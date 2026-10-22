@@ -104,6 +104,7 @@ const chrome = await page.evaluate(() => ({
   footerLinks: document.querySelectorAll('swr-footer a').length,
   main: !!document.querySelector('main'),
   exit: !!document.querySelector('a[href="/"]'),
+  steerDefault: document.querySelector('.panel[data-panel="steer"]').classList.contains('on'),
 }));
 if (chrome.nav && chrome.navLinks > 0) ok('the shared nav is mounted with links');
 else bad('the shared nav is mounted with links', JSON.stringify(chrome));
@@ -113,6 +114,8 @@ if (chrome.main) ok('the page has a main landmark');
 else bad('the page has a main landmark', 'no <main>');
 if (chrome.exit) ok('the page carries an exit link back to the site');
 else bad('the page carries an exit link back to the site', 'no a[href="/"]');
+if (chrome.steerDefault) ok('the Direction tab is the surface the page opens on');
+else bad('the Direction tab is the surface the page opens on', 'not on');
 
 // --- 2) the stage paints ---------------------------------------------------
 // The composition is centred, so the sample covers the WHOLE canvas: a
@@ -209,7 +212,102 @@ if (jsonRejected.name === 'JSON Round Trip' && /Invalid JSON/.test(jsonRejected.
   bad('invalid JSON is rejected without losing the preset', JSON.stringify(jsonRejected));
 }
 
-// --- 6) a new preset persists ---------------------------------------------
+// --- 6) the steering is additive, and the direction is what it says -------
+// The Direction tab is the page's default surface, and the panel's central
+// claim is that steering NUDGES the preset: at steer 0 the resolved values
+// must be the preset's own.
+const steerTab = await page.evaluate(() => ({
+  summary: (document.querySelector('#summary') || {}).textContent || '',
+  badge: (document.querySelector('#dirBadgeTxt') || {}).textContent || '',
+}));
+if (/Preset voice/.test(steerTab.summary) && /Your direction/.test(steerTab.summary)) {
+  ok('the summary shows the preset/direction split');
+} else {
+  bad('the summary shows the preset/direction split', steerTab.summary.slice(0, 80));
+}
+if (steerTab.badge.trim()) ok('the stage carries a direction badge (' + steerTab.badge.trim() + ')');
+else bad('the stage carries a direction badge', 'empty');
+
+const neutral = await page.evaluate(() => {
+  const p = window.SWRPresetEditor.preset;
+  const before = window.SWRPresetEditor.resolved;
+  // Steer to zero and read the resolution again: it must be the preset.
+  p.steer.blend = 0;
+  const atZero = window.SWRPresetEditor.resolved;
+  p.steer.blend = 0.45;
+  return {
+    baseHue: p.global.hue,
+    atZeroHue: atZero.hue,
+    atZeroPa: atZero.pa,
+    atZeroCountMul: atZero.countMul,
+    atZeroOpacityMul: atZero.opacityMul,
+    beforeHue: before.hue,
+  };
+});
+if (Math.abs(neutral.atZeroHue - neutral.baseHue) < 1e-9) ok('at steer 0 the hue is the preset hue');
+else bad('at steer 0 the hue is the preset hue', neutral.atZeroHue + ' vs ' + neutral.baseHue);
+if (neutral.atZeroPa === 0) ok('at steer 0 no palette is mixed in');
+else bad('at steer 0 no palette is mixed in', neutral.atZeroPa);
+if (Math.abs(neutral.atZeroCountMul - 1) < 1e-9 && Math.abs(neutral.atZeroOpacityMul - 1) < 1e-9) {
+  ok('at steer 0 the layer multipliers are neutral');
+} else {
+  bad('at steer 0 the layer multipliers are neutral',
+    'count ' + neutral.atZeroCountMul + ' opacity ' + neutral.atZeroOpacityMul);
+}
+
+// A palette must change the picture, not just the numbers.
+const beforePal = await stageStats();
+await page.evaluate(() => document.querySelector('[data-pal="acid"]').click());
+await new Promise(r => setTimeout(r, 700));
+const afterPal = await page.evaluate(() => ({
+  palette: window.SWRPresetEditor.preset.steer.palette,
+  hue: window.SWRPresetEditor.resolved.hue,
+  pa: window.SWRPresetEditor.resolved.pa,
+}));
+const afterPalStats = await stageStats();
+if (afterPal.palette === 'acid' && afterPal.pa > 0) ok('a palette button sets the direction palette');
+else bad('a palette button sets the direction palette', JSON.stringify(afterPal));
+if (afterPalStats.sum !== beforePal.sum) ok('the palette changes what is rendered');
+else bad('the palette changes what is rendered', 'identical pixels');
+
+// A vibe is a whole direction in one click.
+await page.evaluate(() => document.querySelector('[data-vibe="Hyper"]').click());
+await new Promise(r => setTimeout(r, 500));
+const vibe = await page.evaluate(() => {
+  const s = window.SWRPresetEditor.preset.steer;
+  return { palette: s.palette, energy: s.mood.energy, aberration: s.filters.aberration };
+});
+if (vibe.palette === 'ultra' && vibe.energy > 0.5 && vibe.aberration > 0.3) {
+  ok('a vibe applies its palette, mood and filters');
+} else {
+  bad('a vibe applies its palette, mood and filters', JSON.stringify(vibe));
+}
+
+// The direction can be carried across presets: the direction of the preset
+// you are LEAVING is the one that follows you.
+const carried = await page.evaluate(async () => {
+  const keep = document.querySelector('#keepSteer');
+  keep.checked = true;
+  keep.dispatchEvent(new Event('change', { bubbles: true }));
+  // Two presets to switch between.
+  document.querySelector('[data-cmd="new"]').click();
+  const from = window.SWRPresetEditor.preset;
+  from.steer.palette = 'blood';
+  from.steer.mood.energy = 0.77;
+  const sel = document.querySelector('#presetSelect');
+  const other = Object.values(window.SWRPresetEditor.all).find(x => x.id !== from.id);
+  sel.value = other.id;
+  sel.dispatchEvent(new Event('change', { bubbles: true }));
+  const now = window.SWRPresetEditor.preset.steer;
+  return { palette: now.palette, energy: now.mood.energy, name: window.SWRPresetEditor.preset.name };
+});
+if (carried.palette === 'blood' && Math.abs(carried.energy - 0.77) < 1e-9) {
+  ok('"keep my direction" carries the direction across presets');
+} else {
+  bad('"keep my direction" carries the direction across presets', JSON.stringify(carried));
+}
+
+// --- 7) a new preset persists ---------------------------------------------
 await page.evaluate(() => document.querySelector('[data-cmd="new"]').click());
 await new Promise(r => setTimeout(r, 700));
 const stored = await page.evaluate(() => {
@@ -231,18 +329,30 @@ const afterReload = await page.evaluate(() => ({
 if (afterReload.count === stored.names.length) ok('the presets survive a reload');
 else bad('the presets survive a reload', afterReload.count + ' vs ' + stored.names.length);
 
-// --- 7) the engine bridge -------------------------------------------------
+// --- 8) the engine bridge -------------------------------------------------
 const bridged = await page.evaluate(() => new Promise((resolve) => {
   window.addEventListener('swr:preset-applied', (e) => {
-    resolve({ name: e.detail && e.detail.name, layers: (e.detail && e.detail.layers || []).length });
+    resolve({
+      name: e.detail && e.detail.name,
+      layers: (e.detail && e.detail.layers || []).length,
+      steer: !!(e.detail && e.detail.steer),
+      resolved: e.detail && e.detail.resolved,
+    });
   }, { once: true });
   document.querySelector('[data-cmd="push"]').click();
   setTimeout(() => resolve(null), 3000);
 }));
 if (bridged && bridged.name) ok('"Apply to engine" dispatches swr:preset-applied with the document');
 else bad('"Apply to engine" dispatches swr:preset-applied with the document', JSON.stringify(bridged));
+if (bridged && bridged.steer) ok('the applied document carries the steer block');
+else bad('the applied document carries the steer block', JSON.stringify(bridged));
+if (bridged && bridged.resolved && typeof bridged.resolved.hue === 'number' && bridged.resolved.palette) {
+  ok('the applied document carries the resolved view');
+} else {
+  bad('the applied document carries the resolved view', JSON.stringify(bridged && bridged.resolved));
+}
 
-// --- 8) the deep link restores its preset ---------------------------------
+// --- 9) the deep link restores its preset ---------------------------------
 // The link carries whatever is current, so the expectation comes from the
 // link's own payload — not from a name captured earlier in the run.
 const link = await page.evaluate(() => ({

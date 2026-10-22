@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Preset Editor · SWR</title>
-<meta name="description" content="Author, preview and export neon generative presets: layers, LFOs, audio bands and a live audio-reactive canvas." />
+<meta name="description" content="Author neon generative presets and steer them: layers, LFOs, audio bands, mood axes, palettes and a live audio-reactive canvas." />
 <meta name="color-scheme" content="dark" />
 <meta property="og:title" content="Preset Editor · SWR" />
-<meta property="og:description" content="Author, preview and export neon generative presets with a live audio-reactive canvas." />
+<meta property="og:description" content="Author neon generative presets and steer them — mood axes, palettes, filters and a live reactive canvas." />
 <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 <link rel="canonical" href="https://sainted-word-records.vercel.app/preset-editor" />
 <link rel="stylesheet" href="/lib/design-tokens.css" />
@@ -68,7 +68,7 @@
 
   /* The editor is a fixed-height application area: the shared nav sits above
      it and the shared footer below, so the stage never runs under them. */
-  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,1fr) 470px;
+  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,1fr) 480px;
        height:calc(100vh - 190px); min-height:560px}
   #previewPane{position:relative; display:flex; flex-direction:column; min-height:0}
   #stageWrap{flex:1; position:relative; min-height:0; overflow:hidden}
@@ -83,9 +83,15 @@
   .bar i{display:block; width:100%; height:26px; background:#101a26; border-radius:2px; position:relative; overflow:hidden}
   .bar i b{position:absolute; left:0; right:0; bottom:0; height:0%; background:linear-gradient(180deg,var(--neon),rgba(77,227,208,.25)); transition:height .05s linear}
   .bar span{font-size:9px; letter-spacing:.06em}
+  #dirBadge{
+    position:absolute; right:10px; top:10px; padding:6px 10px; border-radius:7px;
+    border:1px solid rgba(255,79,216,.35); background:rgba(6,10,16,.72); backdrop-filter:blur(6px);
+    font-size:10.5px; color:var(--neon2); letter-spacing:.08em; pointer-events:none; white-space:nowrap;
+  }
+  #dirBadge em{color:var(--dim); font-style:normal; letter-spacing:.04em}
 
   #editorPane{border-left:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; min-height:0}
-  .tabs{display:flex; gap:4px; padding:8px 10px 0; border-bottom:1px solid var(--line)}
+  .tabs{display:flex; gap:4px; padding:8px 10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
   .tabs button{border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; padding:6px 11px; color:var(--dim); background:transparent}
   .tabs button.on{color:var(--neon); border-color:var(--line); background:var(--panel2)}
   .panels{flex:1; overflow:auto; padding:12px}
@@ -124,7 +130,7 @@
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
   .grid3{display:grid; grid-template-columns:1fr 1fr; gap:0 12px; margin-top:6px}
   .empty{color:var(--dim); text-align:center; padding:22px 0; font-size:11.5px}
-  #jsonBox{width:100%; height:calc(100vh - 300px); min-height:260px; resize:vertical; font-size:11.5px; line-height:1.5}
+  #jsonBox{width:100%; height:calc(100vh - 300px); min-height:240px; resize:vertical; font-size:11.5px; line-height:1.5}
   .hint{color:var(--dim); font-size:11px; margin:6px 0 10px}
   .btnrow{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
   #toast{
@@ -140,8 +146,41 @@
   ::-webkit-scrollbar-thumb{background:#1c2735; border-radius:6px}
   ::-webkit-scrollbar-thumb:hover{background:#2a3a4e}
 
-  @media (max-width:920px){
-    main{grid-template-columns:1fr; grid-template-rows:42vh 1fr}
+  /* ---- steering ---- */
+  .vibes{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px}
+  .vibes button{
+    padding:6px 11px; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    border-radius:20px; border-color:rgba(77,227,208,.28);
+  }
+  .vibes button:hover{background:rgba(77,227,208,.08)}
+  .mood{display:block; margin-bottom:11px}
+  .mood-top{display:flex; justify-content:space-between; align-items:baseline; font-size:11px; color:var(--dim); letter-spacing:.1em}
+  .mood-top output{color:var(--neon); font-size:11px; letter-spacing:0}
+  .mood-ends{display:flex; justify-content:space-between; font-size:9.5px; color:#55657a; letter-spacing:.04em; margin-top:-3px}
+  .pals{display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px}
+  .pal{
+    display:flex; align-items:center; gap:5px; padding:4px 8px 4px 5px; border-radius:20px;
+    border:1px solid var(--line); background:var(--panel2); cursor:pointer; font-size:10.5px; color:var(--dim);
+    transition:.15s;
+  }
+  .pal:hover{border-color:#2c3c4f; color:var(--txt)}
+  .pal.on{border-color:var(--neon); color:var(--neon); box-shadow:0 0 12px rgba(77,227,208,.15)}
+  .pal i{width:14px; height:14px; border-radius:50%; display:block; flex:none; border:1px solid rgba(255,255,255,.15)}
+  .summary{
+    border:1px solid var(--line); border-radius:8px; padding:9px 10px; background:#0a121b;
+    font-size:11px; color:var(--dim); line-height:1.6; margin-bottom:10px;
+  }
+  .summary b{color:var(--txt); font-weight:400}
+  .summary .k{color:var(--neon2)}
+  .traitchips{display:flex; gap:5px; flex-wrap:wrap; margin-top:6px}
+  .traitchips span{
+    font-size:10px; padding:2px 8px; border-radius:10px; letter-spacing:.05em;
+    border:1px solid rgba(255,79,216,.28); color:var(--neon2);
+  }
+  .lockrow{display:flex; gap:7px; align-items:center; margin:4px 0 8px; color:var(--dim); font-size:11px}
+
+  @media (max-width:980px){
+    main{grid-template-columns:1fr; grid-template-rows:38vh 1fr}
     #editorPane{border-left:none; border-top:1px solid var(--line)}
     #jsonBox{height:46vh}
   }
@@ -180,12 +219,14 @@
           <div id="srcLabel">source: demo</div>
         </div>
       </div>
+      <div id="dirBadge"><em>direction</em> <span id="dirBadgeTxt">auto</span></div>
     </div>
   </section>
 
   <aside id="editorPane" aria-label="Preset editor">
     <nav class="tabs" role="tablist">
-      <button class="on" data-tab="design" role="tab">Design</button>
+      <button class="on" data-tab="steer" role="tab">Direction</button>
+      <button data-tab="design" role="tab">Design</button>
       <button data-tab="audio" role="tab">Audio</button>
       <button data-tab="layers" role="tab">Layers</button>
       <button data-tab="lfos" role="tab">LFOs</button>
@@ -193,8 +234,56 @@
     </nav>
     <div class="panels">
 
-      <!-- DESIGN -->
-      <div class="panel on" data-panel="design">
+      <!-- ============ DIRECTION / STEERING ============ -->
+      <div class="panel on" data-panel="steer">
+        <div class="sec">Preset voice vs. your direction</div>
+        <div class="summary" id="summary"></div>
+        <label class="ctl"><span>steer amount</span>
+          <input type="range" data-path="steer.blend" data-type="number" min="0" max="1" step="0.01">
+          <output></output></label>
+        <div class="hint" style="margin-top:-2px">
+          Steering is <b>additive</b> — your direction nudges the preset, it never replaces it.
+          At 0 you see the preset exactly as authored; at 1 your direction has full influence.
+        </div>
+        <label class="lockrow">
+          <input type="checkbox" id="keepSteer"> keep my direction when switching presets
+        </label>
+
+        <div class="sec">Quick vibes</div>
+        <div class="vibes" id="vibes"></div>
+        <div class="btnrow">
+          <button data-cmd="steerReset">↺ Reset direction</button>
+          <button data-cmd="steerRandom">⚄ Surprise me</button>
+        </div>
+
+        <div class="sec">Mood</div>
+        <div id="moodHost"></div>
+
+        <div class="sec">Palette</div>
+        <div class="pals" id="pals"></div>
+        <label class="ctl"><span>palette mix</span>
+          <input type="range" data-path="steer.paletteAmount" data-type="number" min="0" max="1" step="0.01">
+          <output></output></label>
+
+        <div class="sec">Filters &amp; finish</div>
+        <label class="ctl"><span>trails</span>
+          <input type="range" data-path="steer.filters.trails" data-type="number" min="0" max="0.95" step="0.01"><output></output></label>
+        <label class="ctl"><span>grain</span>
+          <input type="range" data-path="steer.filters.grain" data-type="number" min="0" max="1" step="0.01"><output></output></label>
+        <label class="ctl"><span>scanlines</span>
+          <input type="range" data-path="steer.filters.scanlines" data-type="number" min="0" max="1" step="0.01"><output></output></label>
+        <label class="ctl"><span>vignette</span>
+          <input type="range" data-path="steer.filters.vignette" data-type="number" min="0" max="1" step="0.01"><output></output></label>
+        <label class="ctl"><span>chroma shift</span>
+          <input type="range" data-path="steer.filters.aberration" data-type="number" min="0" max="1" step="0.01"><output></output></label>
+        <label class="ctl"><span>tone wash</span>
+          <input type="range" data-path="steer.filters.wash" data-type="number" min="0" max="1" step="0.01"><output></output></label>
+        <label class="ctl"><span>glow</span>
+          <input type="range" data-path="steer.filters.glow" data-type="number" min="0" max="1" step="0.01"><output></output></label>
+      </div>
+
+      <!-- ============ DESIGN ============ -->
+      <div class="panel" data-panel="design">
         <div class="sec">Identity</div>
         <label class="row"><span>Look</span>
           <select data-path="look" data-type="string">
@@ -208,22 +297,17 @@
           <input type="text" id="tagInput" placeholder="comma, separated, tags" aria-label="Tags">
         </label>
 
-        <div class="sec">Global</div>
+        <div class="sec">Global <span style="letter-spacing:0;text-transform:none;color:#55657a">(preset base — steering modulates these)</span></div>
         <label class="ctl"><span>hue</span>
-          <input type="range" data-path="global.hue" data-type="number" min="0" max="1" step="0.001">
-          <output></output></label>
+          <input type="range" data-path="global.hue" data-type="number" min="0" max="1" step="0.001"><output></output></label>
         <label class="ctl"><span>saturation</span>
-          <input type="range" data-path="global.saturation" data-type="number" min="0" max="1" step="0.01">
-          <output></output></label>
+          <input type="range" data-path="global.saturation" data-type="number" min="0" max="1" step="0.01"><output></output></label>
         <label class="ctl"><span>bloom</span>
-          <input type="range" data-path="global.bloom" data-type="number" min="0" max="1" step="0.01">
-          <output></output></label>
+          <input type="range" data-path="global.bloom" data-type="number" min="0" max="1" step="0.01"><output></output></label>
         <label class="ctl"><span>contrast</span>
-          <input type="range" data-path="global.contrast" data-type="number" min="0.2" max="2" step="0.01">
-          <output></output></label>
+          <input type="range" data-path="global.contrast" data-type="number" min="0.2" max="2" step="0.01"><output></output></label>
         <label class="ctl"><span>speed</span>
-          <input type="range" data-path="global.speed" data-type="number" min="0" max="3" step="0.01">
-          <output></output></label>
+          <input type="range" data-path="global.speed" data-type="number" min="0" max="3" step="0.01"><output></output></label>
         <label class="row"><span>seed</span>
           <span style="display:flex; gap:6px">
             <input type="number" data-path="global.seed" data-type="number" min="0" max="999999" step="1" aria-label="Seed">
@@ -240,7 +324,7 @@
         </label>
       </div>
 
-      <!-- AUDIO -->
+      <!-- ============ AUDIO ============ -->
       <div class="panel" data-panel="audio">
         <div class="sec">Source</div>
         <label class="row"><span>input</span>
@@ -282,7 +366,7 @@
         </label>
       </div>
 
-      <!-- LAYERS -->
+      <!-- ============ LAYERS ============ -->
       <div class="panel" data-panel="layers">
         <div class="btnrow">
           <button data-cmd="addLayer" class="primary">＋ Add layer</button>
@@ -291,7 +375,7 @@
         <div id="layers"></div>
       </div>
 
-      <!-- LFOS -->
+      <!-- ============ LFOS ============ -->
       <div class="panel" data-panel="lfos">
         <div class="btnrow">
           <button data-cmd="addLfo" class="primary">＋ Add modulator</button>
@@ -300,9 +384,9 @@
         <div id="lfos"></div>
       </div>
 
-      <!-- JSON -->
+      <!-- ============ JSON ============ -->
       <div class="panel" data-panel="json">
-        <div class="hint">Full preset document. Edit and press <b>Apply JSON</b> — invalid data is rejected.</div>
+        <div class="hint">Full preset document — including your <b>steer</b> block. Edit and press <b>Apply JSON</b>.</div>
         <div class="btnrow">
           <button data-cmd="jsonLoad">⟳ Refresh from editor</button>
           <button data-cmd="jsonApply" class="primary">✓ Apply JSON</button>
@@ -319,7 +403,7 @@
 
 <script>
 /* ============================================================
-   SWR · NEON — User Preset Editor
+   SWR · NEON — Preset Editor with user steering
    Standalone. Presets persist to localStorage; the document is
    applied to an embedding engine through a documented event
    (see pushToEngine) and can be exported as .swr.json.
@@ -352,41 +436,93 @@ function b64urlDecode(str) {
   return decodeURIComponent(escape(atob(s + '==='.slice((s.length + 3) % 4))));
 }
 
-/* ---------------- schema ---------------- */
+/* ============================================================
+   SCHEMA
+   ============================================================ */
 const LAYER_TYPES = {
-  bars:      { label: 'Spectrum Bars',   defaults: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true } },
-  rings:     { label: 'Concentric Rings',defaults: { count: 7, radius: 0.35, thickness: 0.12, spin: 0.4, spread: 0.6 } },
-  waveform:  { label: 'Waveform',        defaults: { amp: 0.35, thickness: 0.06, glow: 0.7, noise: 0.25 } },
-  particles: { label: 'Particles',       defaults: { count: 220, size: 0.012, speed: 0.5, spread: 0.9, jitter: 0.4 } },
-  grid:      { label: 'Warp Grid',       defaults: { cols: 18, rows: 12, warp: 0.35, glow: 0.5 } }
+  bars:      { label: 'Spectrum Bars',    defaults: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true } },
+  rings:     { label: 'Concentric Rings', defaults: { count: 7, radius: 0.35, thickness: 0.12, spin: 0.4, spread: 0.6 } },
+  waveform:  { label: 'Waveform',         defaults: { amp: 0.35, thickness: 0.06, glow: 0.7, noise: 0.25 } },
+  particles: { label: 'Particles',        defaults: { count: 220, size: 0.012, speed: 0.5, spread: 0.9, jitter: 0.4 } },
+  grid:      { label: 'Warp Grid',        defaults: { cols: 18, rows: 12, warp: 0.35, glow: 0.5 } }
 };
 
 const PARAM_SPEC = {
-  count:     { min: 4,    max: 256,  step: 1 },
-  width:     { min: 0.05, max: 1,    step: 0.01 },
-  gain:      { min: 0,    max: 3,    step: 0.01 },
-  tilt:      { min: -1,   max: 1,    step: 0.01 },
-  mirror:    { bool: true },
-  radius:    { min: 0.05, max: 1,    step: 0.01 },
-  thickness: { min: 0.01, max: 0.5,  step: 0.01 },
-  spin:      { min: -2,   max: 2,    step: 0.01 },
-  spread:    { min: 0,    max: 2,    step: 0.01 },
-  amp:       { min: 0,    max: 1,    step: 0.01 },
-  glow:      { min: 0,    max: 1,    step: 0.01 },
-  noise:     { min: 0,    max: 1,    step: 0.01 },
-  size:      { min: 0.002,max: 0.06, step: 0.001 },
-  speed:     { min: 0,    max: 3,    step: 0.01 },
-  jitter:    { min: 0,    max: 1,    step: 0.01 },
-  cols:      { min: 3,    max: 64,   step: 1 },
-  rows:      { min: 3,    max: 64,   step: 1 },
-  warp:      { min: 0,    max: 1,    step: 0.01 }
+  count: { min: 4, max: 256, step: 1 }, width: { min: 0.05, max: 1, step: 0.01 },
+  gain: { min: 0, max: 3, step: 0.01 }, tilt: { min: -1, max: 1, step: 0.01 },
+  mirror: { bool: true },
+  radius: { min: 0.05, max: 1, step: 0.01 }, thickness: { min: 0.01, max: 0.5, step: 0.01 },
+  spin: { min: -2, max: 2, step: 0.01 }, spread: { min: 0, max: 2, step: 0.01 },
+  amp: { min: 0, max: 1, step: 0.01 }, glow: { min: 0, max: 1, step: 0.01 },
+  noise: { min: 0, max: 1, step: 0.01 }, size: { min: 0.002, max: 0.06, step: 0.001 },
+  speed: { min: 0, max: 3, step: 0.01 }, jitter: { min: 0, max: 1, step: 0.01 },
+  cols: { min: 3, max: 64, step: 1 }, rows: { min: 3, max: 64, step: 1 },
+  warp: { min: 0, max: 1, step: 0.01 }
 };
 
 const BLENDS = ['lighter', 'screen', 'source-over', 'overlay', 'multiply', 'difference'];
 
+/* ---- palettes: hue shift + sat multiplier + optional tone-wash colours ---- */
+const PALETTES = {
+  auto:   { label: 'Auto',   hueShift: 0,     satMul: 1,    tint: null,      accent: null },
+  neon:   { label: 'Neon',   hueShift: 0.00,  satMul: 1.15, tint: '#18e0d0', accent: '#ff2fd0' },
+  acid:   { label: 'Acid',   hueShift: 0.18,  satMul: 1.25, tint: '#b6ff2e', accent: '#00e5ff' },
+  sunset: { label: 'Sunset', hueShift: -0.12, satMul: 1.05, tint: '#ff6a3d', accent: '#ffcf5c' },
+  ice:    { label: 'Ice',    hueShift: 0.05,  satMul: 0.70, tint: '#8fd4ff', accent: '#dff6ff' },
+  ember:  { label: 'Ember',  hueShift: -0.22, satMul: 1.10, tint: '#ff3b1f', accent: '#ffb03a' },
+  toxic:  { label: 'Toxic',  hueShift: 0.24,  satMul: 1.30, tint: '#39ff88', accent: '#c8ff00' },
+  mono:   { label: 'Mono',   hueShift: 0.00,  satMul: 0.00, tint: '#e8f0ff', accent: '#8a97a8' },
+  sepia:  { label: 'Sepia',  hueShift: -0.06, satMul: 0.45, tint: '#d9a86c', accent: '#7a5a35' },
+  blood:  { label: 'Blood',  hueShift: -0.35, satMul: 1.10, tint: '#ff0d3d', accent: '#ff7a00' },
+  ultra:  { label: 'Ultra',  hueShift: 0.42,  satMul: 1.20, tint: '#7a5cff', accent: '#00e0ff' }
+};
+
+/* ---- mood axes: bipolar, additive ---- */
+const MOODS = [
+  { key: 'warmth',   label: 'WARMTH',   lo: 'cool / clinical', hi: 'warm / golden' },
+  { key: 'energy',   label: 'ENERGY',   lo: 'still',           hi: 'frantic' },
+  { key: 'density',  label: 'DENSITY',  lo: 'sparse',          hi: 'packed' },
+  { key: 'softness', label: 'SOFTNESS', lo: 'hard-edged',      hi: 'hazy' },
+  { key: 'order',    label: 'ORDER',    lo: 'chaotic',         hi: 'structured' }
+];
+
+/* ---- one-click vibes ---- */
+const VIBES = {
+  Dreamy:  { palette: 'ice',    paletteAmount: 0.55, blend: 0.6,
+    mood: { warmth: 0.30, energy: -0.50, density: -0.10, softness: 0.70, order: -0.10 },
+    filters: { grain: 0.12, scanlines: 0, vignette: 0.35, aberration: 0.05, trails: 0.65, wash: 0.25, glow: 0.75 } },
+  Hard:    { palette: 'acid',   paletteAmount: 0.70, blend: 0.65,
+    mood: { warmth: -0.10, energy: 0.80, density: 0.30, softness: -0.50, order: 0.40 },
+    filters: { grain: 0.05, scanlines: 0.18, vignette: 0.30, aberration: 0.45, trails: 0.15, wash: 0.05, glow: 0.15 } },
+  Analog:  { palette: 'sepia',  paletteAmount: 0.60, blend: 0.55,
+    mood: { warmth: 0.60, energy: -0.20, density: 0.10, softness: 0.30, order: -0.30 },
+    filters: { grain: 0.55, scanlines: 0.30, vignette: 0.50, aberration: 0.10, trails: 0.45, wash: 0.40, glow: 0.35 } },
+  Minimal: { palette: 'mono',   paletteAmount: 0.40, blend: 0.60,
+    mood: { warmth: 0, energy: -0.30, density: -0.60, softness: 0.10, order: 0.70 },
+    filters: { grain: 0.04, scanlines: 0, vignette: 0.15, aberration: 0, trails: 0.20, wash: 0.05, glow: 0.25 } },
+  Hyper:   { palette: 'ultra',  paletteAmount: 0.80, blend: 0.70,
+    mood: { warmth: 0.10, energy: 0.90, density: 0.60, softness: -0.20, order: -0.50 },
+    filters: { grain: 0.20, scanlines: 0.10, vignette: 0.20, aberration: 0.60, trails: 0.75, wash: 0.30, glow: 0.80 } }
+};
+
+function defaultSteer() {
+  return {
+    blend: 0.45,
+    mood: { warmth: 0, energy: 0, density: 0, softness: 0, order: 0 },
+    palette: 'auto',
+    paletteAmount: 0.55,
+    filters: { trails: 0.40, grain: 0.10, scanlines: 0, vignette: 0.22, aberration: 0, wash: 0.15, glow: 0.35 }
+  };
+}
+
+/* ---- authored personality: what makes each preset itself ---- */
+const PERSONALITIES = {
+  'Neon Bloom': { warmth: -0.20, energy: 0.35, density: 0.10, softness: 0.30, order: 0.20, note: 'electric, blooming, precise' }
+};
+
 function defaultPreset(name = 'Neon Bloom') {
   return {
-    id: uid('p_'), name, author: '', version: 1,
+    id: uid('p_'), name, author: '', version: 2,
     created: Date.now(), modified: Date.now(),
     tags: ['neon'], look: 'clean', webgl: 0,
     audio: {
@@ -395,20 +531,59 @@ function defaultPreset(name = 'Neon Bloom') {
       tempo: { bpm: 120, lock: true, offset: 0 }
     },
     global: { hue: 0.52, saturation: 0.9, bloom: 0.6, contrast: 1, speed: 1, seed: 1337 },
+    personality: { ...PERSONALITIES['Neon Bloom'] },
+    steer: defaultSteer(),
     layers: [
       { id: uid('l_'), name: 'Bars',  type: 'bars',      enabled: true, opacity: 0.55, blend: 'lighter', params: { ...LAYER_TYPES.bars.defaults } },
-      { id: uid('l_'), name: 'Rings', type: 'rings',     enabled: true, opacity: 0.6,  blend: 'lighter', params: { ...LAYER_TYPES.rings.defaults } },
-      { id: uid('l_'), name: 'Dust',  type: 'particles', enabled: true, opacity: 0.5,  blend: 'lighter', params: { ...LAYER_TYPES.particles.defaults } }
+      { id: uid('l_'), name: 'Rings', type: 'rings',     enabled: true, opacity: 0.60, blend: 'lighter', params: { ...LAYER_TYPES.rings.defaults } },
+      { id: uid('l_'), name: 'Dust',  type: 'particles', enabled: true, opacity: 0.50, blend: 'lighter', params: { ...LAYER_TYPES.particles.defaults } }
     ],
     lfos: [
-      { id: uid('m_'), name: 'Hue drift',  enabled: true, shape: 'sine',     rate: 0.05, depth: 0.25, offset: 0, phase: 0, target: 'global.hue' },
-      { id: uid('m_'), name: 'Breathe',    enabled: true, shape: 'triangle', rate: 0.17, depth: 0.18, offset: 0, phase: 0, target: 'global.bloom' }
+      { id: uid('m_'), name: 'Hue drift', enabled: true, shape: 'sine',     rate: 0.05, depth: 0.25, offset: 0, phase: 0, target: 'global.hue' },
+      { id: uid('m_'), name: 'Breathe',   enabled: true, shape: 'triangle', rate: 0.17, depth: 0.18, offset: 0, phase: 0, target: 'global.bloom' }
     ]
   };
 }
 
-/* ---------------- store ---------------- */
+/* ============================================================
+   PERSONALITY DERIVATION (for imported / authored presets)
+   ============================================================ */
+function derivePersonality(p) {
+  if (p.personality && typeof p.personality === 'object') return p.personality;
+  const layerTypes = new Set(p.layers.map(l => l.type));
+  const density = clamp((p.layers.length - 2) * 0.25 + (layerTypes.has('particles') ? 0.2 : 0), -1, 1);
+  let noise = 0, n = 0;
+  p.layers.forEach(l => {
+    if (typeof l.params.jitter === 'number') { noise += l.params.jitter; n++; }
+    if (typeof l.params.noise === 'number') { noise += l.params.noise; n++; }
+  });
+  noise = n ? noise / n : 0.2;
+  return {
+    warmth: clamp((p.global.hue - 0.5) * 1.6, -1, 1),
+    energy: clamp(p.global.speed - 1, -1, 1),
+    density: clamp(density, -1, 1),
+    softness: clamp((p.global.bloom - 0.5) * 1.6, -1, 1),
+    order: clamp(1 - noise * 1.6, -1, 1),
+    note: 'derived from structure'
+  };
+}
+
+function personalityChips(pers) {
+  const out = [];
+  const pick = (v, lo, hi, mid) => v > 0.25 ? hi : v < -0.25 ? lo : mid;
+  out.push(pick(pers.energy, 'still', 'energetic', 'steady'));
+  out.push(pick(pers.density, 'sparse', 'dense', 'balanced'));
+  out.push(pick(pers.softness, 'hard-edged', 'hazy', 'crisp'));
+  out.push(pick(pers.warmth, 'cool', 'warm', 'neutral'));
+  out.push(pick(pers.order, 'chaotic', 'structured', 'free'));
+  return out;
+}
+
+/* ============================================================
+   STORE
+   ============================================================ */
 const STORE_KEY = 'swr.presets.v1';
+const KEEP_KEY  = 'swr.keepSteer';
 let store, preset;
 
 function loadStore() {
@@ -424,11 +599,13 @@ function loadStore() {
 }
 
 function persist() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { toast('Storage full — export instead'); }
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+  catch (e) { toast('Storage full — export instead'); }
 }
 
 store  = loadStore();
-preset = store.presets[store.current] || Object.values(store.presets)[0];
+preset = normalize(store.presets[store.current] || Object.values(store.presets)[0]);
+store.presets[preset.id] = preset;
 
 /* deep-link: #p=<base64url json> */
 (function deepLink() {
@@ -441,7 +618,9 @@ preset = store.presets[store.current] || Object.values(store.presets)[0];
   } catch (e) { /* ignore a malformed link */ }
 })();
 
-/* ---------------- normalization ---------------- */
+/* ============================================================
+   NORMALIZE
+   ============================================================ */
 function normalize(raw) {
   const d = defaultPreset(raw.name || 'Imported');
   const p = {
@@ -452,7 +631,16 @@ function normalize(raw) {
   };
   p.audio.bands = { ...d.audio.bands, ...((raw.audio || {}).bands || {}) };
   p.audio.tempo = { ...d.audio.tempo, ...((raw.audio || {}).tempo || {}) };
+
+  /* steer block */
+  const ds = defaultSteer(), rs = raw.steer || {};
+  p.steer = { ...ds, ...rs };
+  p.steer.mood    = { ...ds.mood,    ...(rs.mood || {}) };
+  p.steer.filters = { ...ds.filters, ...(rs.filters || {}) };
+  if (!PALETTES[p.steer.palette]) p.steer.palette = 'auto';
+
   p.tags = Array.isArray(raw.tags) ? raw.tags : d.tags;
+
   p.layers = (Array.isArray(raw.layers) && raw.layers.length ? raw.layers : d.layers).map(L => {
     const type = LAYER_TYPES[L.type] ? L.type : 'bars';
     return {
@@ -465,6 +653,7 @@ function normalize(raw) {
       params: { ...LAYER_TYPES[type].defaults, ...(L.params || {}) }
     };
   });
+
   p.lfos = (Array.isArray(raw.lfos) ? raw.lfos : d.lfos).map(l => ({
     id: l.id || uid('m_'),
     name: l.name || 'LFO',
@@ -476,15 +665,70 @@ function normalize(raw) {
     phase: num(l.phase, 0),
     target: l.target || 'global.hue'
   }));
+
+  p.personality = derivePersonality(p);
   return p;
 }
 
-/* ---------------- editor state ---------------- */
+/* ============================================================
+   RESOLVE — the heart of steering
+   Preset values are the base; the user's direction is an additive lens.
+   ============================================================ */
+function resolve(p) {
+  const s = p.steer || defaultSteer();
+  const g = p.global;
+  const b = clamp(s.blend ?? 0.45, 0, 1);
+
+  const m = s.mood || {};
+  const warmth   = (m.warmth   || 0) * b;
+  const energy   = (m.energy   || 0) * b;
+  const density  = (m.density  || 0) * b;
+  const softness = (m.softness || 0) * b;
+  const order    = (m.order    || 0) * b;
+
+  const pal = PALETTES[s.palette] || PALETTES.auto;
+  const pa  = s.palette === 'auto' ? 0 : clamp(s.paletteAmount ?? 0.55, 0, 1);
+
+  let hue = g.hue + pal.hueShift * pa + warmth * 0.09;
+  hue = ((hue % 1) + 1) % 1;
+
+  const sat      = clamp(g.saturation * (1 + (pal.satMul - 1) * pa) + warmth * 0.08, 0, 1);
+  const bloom    = clamp(g.bloom + softness * 0.55 + density * 0.05, 0, 1.6);
+  const contrast = clamp(g.contrast - softness * 0.20 + order * 0.30, 0.2, 2.4);
+  const speed    = Math.max(0, g.speed * (1 + energy * 0.95));
+
+  const countMul   = clamp(1 + density * 0.70, 0.25, 2.2);
+  // Neutral at density 0: the multiplier is a MODIFIER, not a dimmer. A
+  // constant 0.78 here would dim every preset by a fifth even with the
+  // direction at zero — which is the opposite of what the panel promises
+  // ("at 0 you see the preset exactly as authored").
+  const opacityMul = clamp(1 + density * 0.42, 0.25, 1.4);
+  const jitterMul  = clamp(1 - order * 0.60 + softness * 0.30, 0.1, 2);
+  const thickMul   = clamp(1 + softness * 0.60, 0.3, 2.4);
+
+  const f = s.filters || {};
+  const filters = {
+    trails:     clamp((f.trails     ?? 0.40) + energy * 0.15,           0, 0.95),
+    grain:      clamp((f.grain      ?? 0.10) + softness * 0.18,         0, 1),
+    scanlines:  clamp((f.scanlines  ?? 0.00) + order * 0.15,            0, 1),
+    vignette:   clamp((f.vignette   ?? 0.22) + softness * 0.15,         0, 1),
+    aberration: clamp((f.aberration ?? 0.00) + Math.abs(energy) * 0.25, 0, 1),
+    wash:       clamp((f.wash       ?? 0.15) + warmth * 0.20,           0, 1),
+    glow:       clamp((f.glow       ?? 0.35) + softness * 0.30,         0, 1)
+  };
+
+  return { hue, sat, bloom, contrast, speed, countMul, opacityMul, jitterMul, thickMul, filters, pal, pa, blend: b };
+}
+
+/* ============================================================
+   EDITOR STATE
+   ============================================================ */
 let dirty = false, saveTimer = null;
 
 function touch(structural = false) {
   preset.modified = Date.now();
   if (structural) { renderLayers(); renderLfos(); }
+  updateSummary();
   dirty = true;
   const st = $('#status'); st.textContent = 'unsaved'; st.classList.add('dirty');
   clearTimeout(saveTimer);
@@ -507,7 +751,9 @@ function toast(msg) {
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1700);
 }
 
-/* ---------------- rendering: header ---------------- */
+/* ============================================================
+   HEADER
+   ============================================================ */
 function syncPresetSelect() {
   const sel = $('#presetSelect');
   sel.innerHTML = Object.values(store.presets)
@@ -521,9 +767,12 @@ function syncHeader() {
   $('#presetName').value = preset.name || '';
   $('#tagInput').value = (preset.tags || []).join(', ');
   syncPresetSelect();
+  $('#keepSteer').checked = localStorage.getItem(KEEP_KEY) === '1';
 }
 
-/* ---------------- rendering: controls ---------------- */
+/* ============================================================
+   CONTROL BUILDERS
+   ============================================================ */
 function rangeHTML(label, value, path, min, max, step) {
   return `<label class="ctl"><span>${esc(label)}</span>
     <input type="range" data-path="${path}" data-type="number" min="${min}" max="${max}" step="${step}" value="${value}">
@@ -544,7 +793,77 @@ function paramControl(key, value, path) {
   return rangeHTML(key, value, path, s.min, s.max, s.step);
 }
 
-/* ---------------- rendering: layers ---------------- */
+/* ============================================================
+   STEER PANEL — mood sliders, palettes, vibes, summary
+   ============================================================ */
+function buildMoodUI() {
+  $('#moodHost').innerHTML = MOODS.map(m => `
+    <label class="mood">
+      <span class="mood-top"><span>${m.label}</span><output></output></span>
+      <input type="range" data-path="steer.mood.${m.key}" data-type="number" min="-1" max="1" step="0.01" aria-label="${m.label}">
+      <span class="mood-ends"><span>${m.lo}</span><span>${m.hi}</span></span>
+    </label>`).join('');
+}
+
+function buildVibesUI() {
+  $('#vibes').innerHTML = Object.keys(VIBES)
+    .map(k => `<button data-vibe="${k}">${k}</button>`).join('');
+}
+
+function buildPalettesUI() {
+  $('#pals').innerHTML = Object.entries(PALETTES).map(([id, p]) => {
+    const sw = p.tint
+      ? `background:linear-gradient(135deg,${p.tint},${p.accent || p.tint})`
+      : 'background:conic-gradient(#4de3d0,#ff4fd8,#ffb454,#4de3d0)';
+    return `<button class="pal" data-pal="${id}" title="${p.label}"><i style="${sw}"></i>${p.label}</button>`;
+  }).join('');
+}
+
+function syncPaletteButtons() {
+  $$('#pals .pal').forEach(btn => btn.classList.toggle('on', btn.dataset.pal === preset.steer.palette));
+}
+
+function applyVibe(name) {
+  const v = VIBES[name];
+  if (!v) return;
+  const s = preset.steer;
+  s.palette = v.palette;
+  s.paletteAmount = v.paletteAmount;
+  s.blend = v.blend;
+  Object.assign(s.mood, v.mood);
+  Object.assign(s.filters, v.filters);
+  syncStatic();
+  syncPaletteButtons();
+  touch(false);
+  toast('Vibe → ' + name);
+}
+
+function updateSummary() {
+  const R = resolve(preset);
+  const pers = preset.personality || derivePersonality(preset);
+  const chips = personalityChips(pers).map(c => `<span>${c}</span>`).join('');
+  const palLabel = R.pa > 0 ? `${R.pal.label} · ${Math.round(R.pa * 100)}%` : 'preset\'s own';
+  const moodTxt = MOODS
+    .map(m => ({ m, v: preset.steer.mood[m.key] || 0 }))
+    .filter(x => Math.abs(x.v) > 0.05)
+    .map(x => `${x.m.key} ${x.v > 0 ? '+' : ''}${x.v.toFixed(2)}`)
+    .join(' · ') || 'no mood offset';
+
+  $('#summary').innerHTML =
+    `<b>Preset voice:</b> <span class="k">${Math.round((1 - R.blend) * 100)}%</span> · ` +
+    `<b>Your direction:</b> <span class="k">${Math.round(R.blend * 100)}%</span><br>` +
+    `<b>Palette:</b> ${palLabel} &nbsp;·&nbsp; <b>Resulting hue:</b> ${R.hue.toFixed(2)}<br>` +
+    `<b>Mood offsets:</b> ${moodTxt}` +
+    `<div class="traitchips">${chips}</div>`;
+
+  $('#dirBadgeTxt').textContent =
+    (R.pa > 0 ? R.pal.label.toLowerCase() : 'auto') +
+    (R.blend > 0.05 ? ` · ${Math.round(R.blend * 100)}% you` : '');
+}
+
+/* ============================================================
+   LAYERS / LFOS RENDER
+   ============================================================ */
 function layerCard(L, i) {
   const params = Object.entries(L.params)
     .map(([k, v]) => paramControl(k, v, `layers.${i}.params.${k}`)).join('');
@@ -576,7 +895,6 @@ function renderLayers() {
     : '<div class="empty">No layers yet — add one to start shaping the look.</div>';
 }
 
-/* ---------------- rendering: LFOs ---------------- */
 function targetOptions(sel) {
   const globals = ['global.hue', 'global.saturation', 'global.bloom', 'global.contrast', 'global.speed'];
   let html = `<optgroup label="Global">${globals.map(p =>
@@ -631,7 +949,9 @@ function renderLfos() {
     : '<div class="empty">No modulators — add one to animate any parameter.</div>';
 }
 
-/* ---------------- sync static inputs ---------------- */
+/* ============================================================
+   SYNC
+   ============================================================ */
 function syncStatic() {
   $$('[data-path]').forEach(inp => {
     if (inp === document.activeElement) return;
@@ -642,18 +962,25 @@ function syncStatic() {
     const out = inp.parentElement && inp.parentElement.querySelector('output');
     if (out) out.textContent = fmt(v);
   });
+  syncPaletteButtons();
 }
 
 function renderAll() {
+  buildMoodUI();
+  buildVibesUI();
+  buildPalettesUI();
   renderLayers();
   renderLfos();
   syncStatic();
   syncHeader();
+  updateSummary();
   updateAudioHint();
   $('#jsonBox').value = JSON.stringify(preset, null, 2);
 }
 
-/* ---------------- input handling ---------------- */
+/* ============================================================
+   INPUT
+   ============================================================ */
 function onEdit(e) {
   const t = e.target;
   const path = t.dataset && t.dataset.path;
@@ -669,15 +996,14 @@ function onEdit(e) {
   const out = t.parentElement && t.parentElement.querySelector('output');
   if (out) out.textContent = fmt(v);
 
-  /* side-effects */
   if (path === 'audio.source') setSource(v);
   if (path.endsWith('.type')) {
     const base = path.replace(/\.type$/, '.params');
     setPath(preset, base, { ...LAYER_TYPES[v].defaults });
-    renderLayers();
-    renderLfos();          // targets change
+    renderLayers(); renderLfos();
     toast('Layer type → ' + LAYER_TYPES[v].label);
   }
+  if (path === 'steer.palette') syncPaletteButtons();
   if (path === 'name') syncPresetSelect();
 
   touch(false);
@@ -686,14 +1012,30 @@ function onEdit(e) {
 document.addEventListener('input', onEdit);
 document.addEventListener('change', onEdit);
 
-/* tag field is special (array) */
 $('#tagInput').addEventListener('input', e => {
   preset.tags = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
   touch(false);
 });
 
-/* ---------------- button commands ---------------- */
+$('#keepSteer').addEventListener('change', e => {
+  localStorage.setItem(KEEP_KEY, e.target.checked ? '1' : '0');
+  toast(e.target.checked ? 'Direction will follow you across presets' : 'Each preset uses its own direction');
+});
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
 document.addEventListener('click', e => {
+  const vibeBtn = e.target.closest('[data-vibe]');
+  if (vibeBtn) { applyVibe(vibeBtn.dataset.vibe); return; }
+
+  const palBtn = e.target.closest('[data-pal]');
+  if (palBtn) {
+    preset.steer.palette = palBtn.dataset.pal;
+    syncStatic(); touch(false);
+    return;
+  }
+
   const btn = e.target.closest('[data-act],[data-cmd]');
   if (!btn) return;
 
@@ -725,6 +1067,7 @@ function runCommand(cmd) {
   switch (cmd) {
     case 'new': {
       const p = defaultPreset('Untitled ' + (Object.keys(store.presets).length + 1));
+      p.personality = derivePersonality(p);
       store.presets[p.id] = p; store.current = p.id; preset = p;
       persist(); renderAll(); toast('New preset created');
       break;
@@ -741,7 +1084,7 @@ function runCommand(cmd) {
       if (!confirm(`Delete preset "${preset.name}"? This cannot be undone.`)) return;
       delete store.presets[preset.id];
       store.current = Object.keys(store.presets)[0];
-      preset = store.presets[store.current];
+      preset = normalize(store.presets[store.current]);
       persist(); renderAll(); toast('Preset deleted');
       break;
     }
@@ -767,6 +1110,27 @@ function runCommand(cmd) {
       });
       renderLfos(); touch(false);
       break;
+    case 'steerReset':
+      preset.steer = defaultSteer();
+      syncStatic(); touch(false); toast('Direction reset to neutral');
+      break;
+    case 'steerRandom': {
+      const rnd = (a, b) => a + Math.random() * (b - a);
+      const s = preset.steer;
+      s.blend = +rnd(0.35, 0.85).toFixed(2);
+      s.paletteAmount = +rnd(0.3, 0.9).toFixed(2);
+      s.palette = Object.keys(PALETTES)[1 + Math.floor(Math.random() * (Object.keys(PALETTES).length - 1))];
+      MOODS.forEach(m => s.mood[m.key] = +rnd(-0.8, 0.8).toFixed(2));
+      s.filters.grain = +rnd(0, 0.6).toFixed(2);
+      s.filters.scanlines = Math.random() < 0.4 ? +rnd(0, 0.4).toFixed(2) : 0;
+      s.filters.vignette = +rnd(0.05, 0.6).toFixed(2);
+      s.filters.aberration = Math.random() < 0.5 ? +rnd(0, 0.6).toFixed(2) : 0;
+      s.filters.trails = +rnd(0.1, 0.8).toFixed(2);
+      s.filters.wash = +rnd(0, 0.5).toFixed(2);
+      s.filters.glow = +rnd(0.1, 0.9).toFixed(2);
+      syncStatic(); touch(false); toast('Direction randomized');
+      break;
+    }
     case 'jsonLoad':
       $('#jsonBox').value = JSON.stringify(preset, null, 2);
       toast('Loaded from editor');
@@ -787,24 +1151,31 @@ function runCommand(cmd) {
       break;
     case 'pickFile': $('#audioFile').click(); break;
     case 'push': pushToEngine(preset); break;
-    case 'save': persist(); toast('Saved'); break;
   }
 }
 
-/* keyboard */
 addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
     e.preventDefault(); persist(); toast('Saved');
   }
 });
 
-/* ---------------- preset select / import ---------------- */
+/* ============================================================
+   PRESET SWITCHING (+ keep direction)
+   ============================================================ */
 $('#presetSelect').addEventListener('change', e => {
+  const keep = localStorage.getItem(KEEP_KEY) === '1';
+  const carried = clone(preset.steer);
+
   if (dirty) { store.presets[preset.id] = preset; persist(); }
   store.current = e.target.value;
-  preset = store.presets[store.current];
+  preset = normalize(store.presets[store.current]);
+
+  if (keep) preset.steer = carried;
+
   persist();
   renderAll();
+  if (keep) toast('Direction carried over');
 });
 
 $('#fileImport').addEventListener('change', e => {
@@ -833,20 +1204,20 @@ function download(p) {
   toast('Exported ' + a.download);
 }
 
-/* ---------------- tabs ---------------- */
+/* ============================================================
+   TABS
+   ============================================================ */
 $$('.tabs button').forEach(b => b.addEventListener('click', () => {
   $$('.tabs button').forEach(x => x.classList.toggle('on', x === b));
   $$('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === b.dataset.tab));
   if (b.dataset.tab === 'json') $('#jsonBox').value = JSON.stringify(preset, null, 2);
+  if (b.dataset.tab === 'steer') updateSummary();
 }));
 
 /* ============================================================
    AUDIO
    ============================================================ */
-const audio = {
-  mode: 'demo', ctx: null, analyser: null, data: null,
-  stream: null, el: null, src: null, prevBass: 0
-};
+const audio = { mode: 'demo', ctx: null, analyser: null, data: null, stream: null, el: null, src: null, prevBass: 0 };
 
 function stopNodes() {
   try { audio.src && audio.src.disconnect(); } catch (e) {}
@@ -914,7 +1285,7 @@ async function useFile(file) {
 
 function setSource(v) {
   if (v === 'mic') useMic();
-  else if (v === 'file') { updateAudioHint('choose a file below'); }
+  else if (v === 'file') updateAudioHint('choose a file below');
   else { stopNodes(); audio.mode = 'demo'; updateAudioHint(); }
 }
 
@@ -935,13 +1306,15 @@ $('#audioFile').addEventListener('change', e => {
   e.target.value = '';
 });
 
-/* ---------------- feature extraction ---------------- */
+/* ---- feature extraction ---- */
 const smooth = { sub: 0, bass: 0, mid: 0, treble: 0, air: 0, rms: 0, centroid: 0 };
 
 function demoSynth(t) {
   const bpm = preset.audio.tempo.bpm || 120;
   const beat = (t * bpm / 60) % 1;
   const pulse = Math.exp(-beat * 5.5);
+  // The off-beat half of the pulse. (This constant was a stray emoji in the
+  // supplied source — a syntax error that stopped the whole script parsing.)
   const off = Math.exp(-(((beat + 0.5) % 1)) * 5.5);
   const kick = Math.max(pulse, off);
   return {
@@ -998,7 +1371,7 @@ function features(t) {
 }
 
 /* ============================================================
-   LFO + RENDER
+   LFO
    ============================================================ */
 function lfoValue(l, t) {
   const p = (l.phase || 0) + t * (l.rate || 0);
@@ -1027,7 +1400,12 @@ function buildMods(t) {
   return mods;
 }
 
-/* ---------------- layer painters ---------------- */
+/* ============================================================
+   PAINTERS
+
+   Every painter takes the layer's PARAMETERS (already steered and
+   modulated), the features, the time, the two colours and the canvas.
+   ============================================================ */
 function drawBars(L, f, t, c1, c2, W, H, ctx) {
   const n = Math.max(4, Math.round(L.count));
   const gap = 1 - L.width;
@@ -1127,15 +1505,38 @@ function drawGrid(L, f, t, c1, c2, W, H, ctx) {
   }
 }
 
-const PAINTERS = {
-  bars: drawBars, rings: drawRings, waveform: drawWaveform,
-  particles: drawParticles, grid: drawGrid
-};
+const PAINTERS = { bars: drawBars, rings: drawRings, waveform: drawWaveform, particles: drawParticles, grid: drawGrid };
 
-/* ---------------- canvas ---------------- */
+/* ============================================================
+   CANVAS + OVERLAY CACHES
+   ============================================================ */
 const stage = $('#stage');
 const ctx = stage.getContext('2d', { alpha: false });
 let W = 0, H = 0, DPR = 1;
+
+const ov = { grain: null, grainPat: null, scan: null, scanPat: null, vg: null, abSnap: null, abTint: null };
+
+function buildNoiseTile() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  const img = g.createImageData(128, 128);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = (Math.random() * 255) | 0;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  ov.grain = c;
+}
+
+function buildScanTile() {
+  const c = document.createElement('canvas'); c.width = 1; c.height = 4;
+  const g = c.getContext('2d');
+  g.clearRect(0, 0, 1, 4);
+  g.fillStyle = 'rgba(0,0,0,1)';
+  g.fillRect(0, 0, 1, 2);
+  ov.scan = c;
+}
 
 function resize() {
   const r = stage.parentElement.getBoundingClientRect();
@@ -1147,23 +1548,143 @@ function resize() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.fillStyle = '#05070c';
   ctx.fillRect(0, 0, W, H);
+
+  if (!ov.grain) buildNoiseTile();
+  if (!ov.scan) buildScanTile();
+  ov.grainPat = ctx.createPattern(ov.grain, 'repeat');
+  ov.scanPat = ctx.createPattern(ov.scan, 'repeat');
+
+  const grad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.18, W / 2, H / 2, Math.max(W, H) * 0.78);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+  ov.vg = grad;
+
+  if (!ov.abSnap) { ov.abSnap = document.createElement('canvas'); ov.abTint = document.createElement('canvas'); }
+  const aw = Math.max(1, Math.round(stage.width * 0.5));
+  const ah = Math.max(1, Math.round(stage.height * 0.5));
+  ov.abSnap.width = aw; ov.abSnap.height = ah;
+  ov.abTint.width = aw; ov.abTint.height = ah;
 }
 new ResizeObserver(resize).observe($('#stageWrap'));
 
-/* ---------------- main loop ---------------- */
+/* ============================================================
+   POST PROCESSING
+   ============================================================ */
+function drawAberration(amount) {
+  if (amount <= 0.01) return;
+  const sw = ov.abSnap.width, sh = ov.abSnap.height;
+  if (!sw || !sh) return;
+
+  const sctx = ov.abSnap.getContext('2d');
+  sctx.setTransform(1, 0, 0, 1, 0, 0);
+  sctx.globalCompositeOperation = 'source-over';
+  sctx.globalAlpha = 1;
+  sctx.clearRect(0, 0, sw, sh);
+  sctx.drawImage(stage, 0, 0, sw, sh);
+
+  const dx = amount * 9 * DPR;
+
+  for (const [color, dir] of [['#ff0044', 1], ['#00d0ff', -1]]) {
+    const tctx = ov.abTint.getContext('2d');
+    tctx.setTransform(1, 0, 0, 1, 0, 0);
+    tctx.globalCompositeOperation = 'source-over';
+    tctx.globalAlpha = 1;
+    tctx.clearRect(0, 0, sw, sh);
+    tctx.drawImage(ov.abSnap, 0, 0);
+    tctx.globalCompositeOperation = 'multiply';
+    tctx.fillStyle = color;
+    tctx.fillRect(0, 0, sw, sh);
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    // The aberration pass adds the WHOLE FRAME twice more, so its alpha is
+    // the picture's brightness multiplier: at 0.55 the two copies pushed the
+    // Hyper vibe to 24% clipped white. 0.28 keeps the chroma fringe
+    // readable without the frame running out of headroom.
+    ctx.globalAlpha = 0.28 * amount;
+    ctx.drawImage(ov.abTint, dir * dx, 0, stage.width, stage.height);
+    ctx.restore();
+  }
+}
+
+function postPass(R) {
+  const F = R.filters;
+
+  /* tone wash — recolours luminance toward the palette */
+  if (R.pa > 0.01 && F.wash > 0.01 && R.pal.tint) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'color';
+    ctx.globalAlpha = F.wash * R.pa * 0.9;
+    ctx.fillStyle = R.pal.tint;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+
+    if (R.pal.accent) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'soft-light';
+      ctx.globalAlpha = F.wash * R.pa * 0.40;
+      ctx.fillStyle = R.pal.accent;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
+
+  drawAberration(F.aberration);
+
+  /* scanlines */
+  if (F.scanlines > 0.01 && ov.scanPat) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = F.scanlines * 0.42;
+    ctx.fillStyle = ov.scanPat;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  /* grain */
+  if (F.grain > 0.01 && ov.grainPat) {
+    const rx = Math.random() * 128, ry = Math.random() * 128;
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = F.grain * 0.55;
+    ctx.translate(-rx, -ry);
+    ctx.fillStyle = ov.grainPat;
+    ctx.fillRect(0, 0, W + 128, H + 128);
+    ctx.restore();
+  }
+
+  /* vignette */
+  if (F.vignette > 0.01 && ov.vg) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = F.vignette;
+    ctx.fillStyle = ov.vg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+}
+
+/* ============================================================
+   MAIN LOOP
+
+   The resolved steer (R) is the ONLY thing that changes the picture:
+   the preset document stays exactly as authored, and the direction is
+   applied on top of it, per frame.
+   ============================================================ */
 let t0 = performance.now(), fpsAcc = 0, fpsN = 0, lastHud = 0;
 
 function frame(now) {
   const t = (now - t0) / 1000;
   const f = features(t);
   const mods = buildMods(t);
-  const g = preset.global;
+  const R = resolve(preset);
 
-  const hue = ((g.hue + (mods['global.hue'] || 0)) % 1 + 1) % 1;
-  const sat = clamp(g.saturation + (mods['global.saturation'] || 0), 0, 1);
-  const bloom = clamp(g.bloom + (mods['global.bloom'] || 0), 0, 1.5);
-  const contrast = clamp(g.contrast + (mods['global.contrast'] || 0), 0.1, 2.5);
-  const speed = Math.max(0, g.speed + (mods['global.speed'] || 0));
+  const hue = ((R.hue + (mods['global.hue'] || 0)) % 1 + 1) % 1;
+  const sat = clamp(R.sat + (mods['global.saturation'] || 0), 0, 1);
+  const bloom = clamp(R.bloom + (mods['global.bloom'] || 0), 0, 1.8);
+  const contrast = clamp(R.contrast + (mods['global.contrast'] || 0), 0.1, 2.5);
+  const speed = Math.max(0, R.speed + (mods['global.speed'] || 0));
 
   // Lightness stays in the 30-48 band: the layers composite with 'lighter',
   // so a light base plus a glow plus overlapping shapes adds up fast and
@@ -1175,16 +1696,17 @@ function frame(now) {
   // the bars lost their colour. 0.12 of the wheel keeps both in one family.
   const c2 = `hsl(${((hue + 0.12) % 1) * 360} ${sat * 100}% ${clamp((34 + f.mid * 10) * contrast, 10, 48)}%)`;
 
-  /* motion-trail fade — the retention has to be low enough that the
-     'lighter' composite of successive frames cannot climb to white. At a
-     19% fade the canvas kept 81% of every previous frame and the bars
-     saturated after a second; at ~40% the trail still reads and the hue
-     survives. */
+  /* motion-trail fade — the `trails` steer sets how much of the previous
+     frame survives. The retention has to be low enough that the 'lighter'
+     composite of successive frames cannot climb to white: at 73% retention
+     the bars washed out to a flat pastel wall. The floor keeps the trail
+     visible without letting the stack saturate. */
+  const retention = clamp(0.52 - R.filters.trails * 0.38, 0.30, 0.62);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
   ctx.shadowBlur = 0;
-  ctx.fillStyle = `rgba(5,7,12,${clamp(0.72 - bloom * 0.18, 0.35, 0.8)})`;
+  ctx.fillStyle = `rgba(5,7,12,${retention})`;
   ctx.fillRect(0, 0, W, H);
 
   const tt = t * speed;
@@ -1194,24 +1716,40 @@ function frame(now) {
     const painter = PAINTERS[L.type];
     if (!painter) return;
 
-    /* merge modulated values into a lightweight per-frame copy */
+    /* merge the modulated values into a lightweight per-frame copy */
     const M = { ...L, params: {} };
-    for (const k in L.params) {
-      M.params[k] = L.params[k] + (mods[`layers.${i}.params.${k}`] || 0);
+    for (const k in L.params) M.params[k] = L.params[k] + (mods[`layers.${i}.params.${k}`] || 0);
+
+    /* --- steering shaping: each mood axis owns a different family of
+           parameters, and every multiplier is neutral at density 0 --- */
+    for (const k of ['count', 'cols', 'rows']) {
+      if (typeof M.params[k] === 'number') {
+        M.params[k] = Math.max(3, Math.round(M.params[k] * R.countMul));
+      }
     }
-    const opacity = clamp((L.opacity ?? 1) + (mods[`layers.${i}.opacity`] || 0), 0, 1);
-    if (opacity <= 0.001) return;
+    if (typeof M.params.jitter === 'number') M.params.jitter = clamp(M.params.jitter * R.jitterMul, 0, 1);
+    if (typeof M.params.noise === 'number')  M.params.noise  = clamp(M.params.noise * R.jitterMul, 0, 1);
+    if (typeof M.params.thickness === 'number') M.params.thickness *= R.thickMul;
+    if (typeof M.params.width === 'number') M.params.width = clamp(M.params.width * (2 - R.thickMul), 0.02, 1);
+
+    const opacity = clamp((L.opacity ?? 1) + (mods[`layers.${i}.opacity`] || 0), 0, 1) * R.opacityMul;
+    if (opacity <= 0.002) return;
 
     ctx.save();
     ctx.globalCompositeOperation = L.blend || 'lighter';
-    ctx.globalAlpha = opacity;
-    ctx.shadowBlur = bloom * 5;
+    ctx.globalAlpha = clamp(opacity, 0, 1);
+    // The glow couples the preset's bloom to the steer's glow filter, but it
+    // is bounded: an unbounded shadowBlur over a 'lighter' composite is the
+    // other half of the white-out.
+    ctx.shadowBlur = Math.min(40, bloom * 12 * (0.4 + R.filters.glow));
     ctx.shadowColor = c1;
     ctx.strokeStyle = c1;
     ctx.fillStyle = c1;
     painter(M.params, f, tt, c1, c2, W, H, ctx);
     ctx.restore();
   });
+
+  postPass(R);
 
   /* hud */
   fpsAcc += 1000 / Math.max(1, now - (frame._last || now - 16));
@@ -1243,6 +1781,17 @@ function frame(now) {
    ============================================================ */
 function pushToEngine(p) {
   const payload = clone(p);
+  // The RESOLVED view rides along: the host needs both the authored
+  // document (what the user saved) and the numbers the direction produced
+  // (what the picture is actually using right now).
+  const R = resolve(p);
+  payload.resolved = {
+    hue: +R.hue.toFixed(4), sat: +R.sat.toFixed(4),
+    bloom: +R.bloom.toFixed(3), contrast: +R.contrast.toFixed(3),
+    speed: +R.speed.toFixed(3), palette: R.pal.label,
+    paletteAmount: +R.pa.toFixed(3), steerBlend: +R.blend.toFixed(3),
+    filters: R.filters
+  };
   let delivered = false;
 
   try {
@@ -1269,8 +1818,10 @@ function pushToEngine(p) {
 window.SWRPresetEditor = {
   get preset() { return preset; },
   get all() { return store.presets; },
+  get resolved() { return resolve(preset); },
   load(p) { preset = normalize(p); store.presets[preset.id] = preset; store.current = preset.id; persist(); renderAll(); },
   push: pushToEngine,
+  resolve,
   shareUrl() {
     return location.origin + location.pathname + '#p=' + b64urlEncode(JSON.stringify(preset));
   }

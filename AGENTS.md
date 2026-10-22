@@ -191,9 +191,30 @@ lists). That single file is the seam.
 
 `preset-editor.html` (route `/preset-editor`) is a standalone NEON preset
 authoring surface: a live audio-reactive canvas on the left, the preset
-document on the right (Design / Audio / Layers / LFOs / JSON). It is a
-**page**, not an app surface — it mounts the shared nav and footer and
-carries the standard head (canonical, description, og:image).
+document on the right. The **Direction** tab is the surface the page opens
+on — it is where a preset is *shaped* rather than authored (Design / Audio
+/ Layers / LFOs / JSON edit the document itself). It is a **page**, not an
+app surface — it mounts the shared nav and footer and carries the standard
+head (canonical, description, og:image).
+
+- **Steering is additive, and the multipliers are neutral at zero.** The
+  preset document holds a `steer` block (`blend`, five bipolar `mood`
+  axes, `palette` + `paletteAmount`, seven `filters`) and the render
+  resolves it on top of the preset every frame — the document itself is
+  never rewritten. `resolve()` is the whole mechanism and it is exposed as
+  `window.SWRPresetEditor.resolve()`. Every multiplier (`countMul`,
+  `opacityMul`, `jitterMul`, `thickMul`) is **1 at density 0**, so at
+  `steer.blend = 0` the picture is the preset exactly as authored — the
+  panel promises that, and the gate asserts it.
+- **The render is bounded, and the bounds are not cosmetic.** Three
+  numbers decide whether the composition survives: the lightness band
+  (10–48) the two layer colours sit in, the trail fade (0.30–0.62 alpha),
+  and the aberration pass's alpha (0.28 × amount). The aberration pass
+  adds the *whole frame* twice more, so its alpha is the picture's
+  brightness multiplier — at the first value tried (0.55) the `Hyper`
+  vibe clipped 24% of the frame to white. `c2` is a NEARBY hue (0.12 of
+  the wheel), not a complement: teal + magenta added together cancels to
+  white under `lighter`.
 
 - **Its own palette, scoped to `body.swr-pe`.** The page is dark by
   design, but the shared chrome reads the tokens in
@@ -205,18 +226,24 @@ carries the standard head (canonical, description, og:image).
 - **The engine bridge is an event, not an object.** The editor is
   standalone, so there is no engine to call into. "Apply to engine"
   dispatches `swr:preset-applied` on `window` with the preset document as
-  the detail, posts the same payload to a parent frame when embedded, and
-  copies the JSON to the clipboard. A host page listens with
+  the detail — plus a `resolved` view of what the direction actually
+  produced (hue, saturation, bloom, contrast, speed, the palette and the
+  filter values) — posts the same payload to a parent frame when
+  embedded, and copies the JSON to the clipboard. A host page listens with
   `window.addEventListener('swr:preset-applied', …)`.
 - **Presets live in `localStorage` under `swr.presets.v1`**; a preset is
   shareable as a deep link (`#p=<base64url of the document>`), produced by
   `window.SWRPresetEditor.shareUrl()`.
 - Gate: `check:preset-editor-smoke` (Puppeteer against built `dist/`, in
-  `check:full`) — the page boots with the shared chrome, the stage paints,
-  a control changes both the document and the pixels, layers add and
-  delete, the JSON tab round-trips and rejects invalid data, a preset
-  survives a reload, the bridge event fires, and the deep link restores
-  its preset.
+  `check:full`) — the page boots with the shared chrome and opens on the
+  Direction tab, the stage paints, a control changes both the document
+  and the pixels, layers add and delete, the JSON tab round-trips and
+  rejects invalid data, the steering is additive (at steer 0 the resolved
+  values are the preset's own and the multipliers are neutral), a palette
+  and a vibe both change the picture, "keep my direction" carries across
+  presets, a preset survives a reload, the bridge event fires with the
+  steer block and the resolved view, and the deep link restores its
+  preset.
 
 ## Code style
 
