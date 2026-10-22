@@ -515,7 +515,20 @@
       <div class="head"><h2>Layers</h2><button class="tbtn" id="remap" style="padding:4px 8px;">RE-MAP</button></div>
       <div class="body"><div id="layers"></div></div>
     </aside>
-    <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);position:absolute;bottom:48px;left:8px;right:8px;z-index:5;border-radius:4px;">
+    <!-- iPhone safe-area: this panel is position:absolute with NO positioned
+         ancestor, so its containing block is the viewport and #app's padding
+         cannot reach it. position:relative on #app would not help either: the
+         containing block an absolutely positioned element gets is the PADDING
+         box of its positioned ancestor, which is where the padding lives, so
+         padding on #app insets #app's grid TRACKS and nothing else. The panel's
+         three offsets are therefore composed with the insets here. calc(), not
+         max(): 48px is an offset from the footer track, and the footer track
+         moves down by exactly --safe-bottom, so the gap between them has to
+         stay 48px. max(48px, var(--safe-bottom)) would hold the panel clear of
+         the home indicator but leave it overlapping the footer on a notched
+         phone. Desktop is unchanged: --safe-* is 0px without a notch, and
+         calc(0px + 48px) is 48px. -->
+    <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);position:absolute;bottom:calc(var(--safe-bottom) + 48px);left:calc(var(--safe-left) + 8px);right:calc(var(--safe-right) + 8px);z-index:5;border-radius:4px;">
       <div class="ph" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
         <span style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;">Hook Export</span>
         <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
