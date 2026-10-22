@@ -123,34 +123,49 @@ export function readRawBody(req, { maxBytes = 2_000_000 } = {}) {
   });
 }
 
+// A single allowlist entry. Each entry may be:
+//   - a string (exact match against `Origin`)
+//   - a plain object { pattern: RegExp, httpsOnly: boolean } - for wildcard
+//     namespaces (currently `*.vercel.app`). The pattern is tested against
+//     `new URL(origin).hostname`, so it cannot match a path, a query string
+//     or a redirect target - only the host. `httpsOnly` defaults to true so
+//     the `*.vercel.app` regex cannot bind a non-https origin.
+function _matches(originEntry, origin) {
+  if (typeof originEntry === 'string') return originEntry === origin;
+  if (originEntry && typeof originEntry === 'object' && originEntry.pattern instanceof RegExp) {
+    try {
+      const u = new URL(origin);
+      const httpsOnly = originEntry.httpsOnly !== false; // default true
+      if (httpsOnly && u.protocol !== 'https:') return false;
+      return originEntry.pattern.test(u.hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+  return false;
+}
+
 export function setCors(res, origin) {
-  // Strict CORS with an explicit allowlist (3 entries):
-  //   1. process.env.SWRC_APP_ORIGIN  — the production app origin, set
-  //      in Vercel env. Defaults to the canonical Vercel URL.
-  //   2. http://localhost:5174         — Vite dev server.
-  //   3. http://localhost:4173         — Vite preview server.
-  // No "echo back" — an unknown Origin gets NO Access-Control-Allow-
-  // Origin header, so the browser refuses the response. The previous
-  // "echo any http(s) origin" comment was wrong: the actual code has
-  // always had the allowlist below (it was added in the M1 backend
-  // hardening pass on 2026-09-29). The mistake is that the comment
-  // described the OLD behaviour and was never updated.
-  //
-  // Trade-off: this rejects Vercel preview URLs. Vercel preview
-  // domains (*.vercel.app) are NOT in the allowlist, so a preview
-  // build can serve the app but cross-origin requests from a preview
-  // URL back to the production API are blocked. That is deliberate:
-  // previews are meant to be a static snapshot of the SPA, and the
-  // production API should never trust preview origins. Add a preview
-  // domain to the allowlist only if you can constrain the wildcard
-  // to a known prefix (e.g. 'https://swr-<sha>-kai.vercel.app') — do
-  // NOT wildcard the entire *.vercel.app namespace.
+  // Strict CORS: an explicit allowlist of EXACT ORIGINS plus regex
+  // patterns for wildcard namespaces.
+  //   - process.env.SWRC_APP_ORIGIN  - production app origin (Vercel env).
+  //   - http://localhost:5174         - Vite dev server.
+  //   - http://localhost:4173         - Vite preview server.
+  //   - { pattern: /\.vercel\.app$/, httpsOnly: true } - every Vercel
+  //     preview deploy (P2.1 fix). A regex namespace lets previews work
+  //     without forcing a code edit for every branch URL - and the
+  //     `httpsOnly: true` guard + hostname-only match keeps it from
+  //     matching the wildcard against a redirect target or a path.
+  // No "echo back": an unknown Origin receives NO
+  // Access-Control-Allow-Origin header, so the browser refuses the
+  // response.
   const ALLOWED_ORIGINS = [
     process.env.SWRC_APP_ORIGIN || 'https://sainted-word-records.vercel.app',
     'http://localhost:5174',
     'http://localhost:4173',
+    { pattern: /\.vercel\.app$/, httpsOnly: true },
   ];
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && ALLOWED_ORIGINS.some((entry) => _matches(entry, origin))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }

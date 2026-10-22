@@ -38,6 +38,16 @@ once it hits 1.0.
   compositions (the song's own restore path brings it back), and the
   engine's renderer no longer drives the element, so nothing can restart
   the song from zero mid-playback.
+- The shipped media off-site — the curated packs (582 files, 39.6 MB) can be
+  served from an off-site host instead of the deploy. Set `PACKS_BASE` and
+  the build ships only `packs/manifest.json`, with its `base` rewritten to
+  that URL; the media is fetched cross-origin and never enters the build.
+  `npm run media:publish` uploads the packs to Vercel Blob or the Hugging
+  Face Hub, prints the `PACKS_BASE=` line for the deploy environment, and
+  verifies that the host serves `access-control-allow-origin` — the engine
+  fetches the media from its own origin, so a host without CORS would break
+  the packs at runtime. Unset, nothing changes: the whole directory ships
+  exactly as before.
 - The store — one data file (`site-map.json` → `store`) drives the whole
   storefront. `lib/store.client.js` paints the download catalogue into any
   `[data-store]` container (the marketplace lists the products itself — add

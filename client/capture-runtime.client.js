@@ -109,42 +109,77 @@
   // Synchronously returns true if the canvas was found and toBlob was
   // dispatched; false otherwise. The actual download fires asynchronously
   // inside the toBlob callback (browsers don't support sync toBlob).
+  //
+  // DPR=1 wrap (P2.8 fix from docs/PLANS/architecture-audit-2026-10.md):
+  // a periodic capture from a Retina/HiDPI stage otherwise exports 4x the
+  // pixels it needs (the engine renders onto a 2x backing buffer). Forcing
+  // window.Renderer.dpr = 1 for the duration of the capture means the
+  // NEXT render (which the engine fires at 60 fps anyway) will size the
+  // canvas backing buffer at 1x, and the toBlob() inside this call
+  // captures that buffer. The same wrap exists in engine.html's Recorder
+  // for video export; this is the sibling for the periodic PNG capture.
+  // The wrap is a no-op in environments without window.Renderer (the
+  // engine did not boot) - capture still works at whatever dpr the page
+  // happened to render at.
+  function _dprSwap(duringCallback) {
+    var R = (typeof window !== 'undefined' && window.Renderer) || null;
+    if (!R || typeof R.dpr !== 'number') {
+      return function noop() {};
+    }
+    var prev = R.dpr;
+    R.dpr = 1;
+    var restored = false;
+    return function restore() {
+      if (restored) return;
+      restored = true;
+      R.dpr = prev;
+    };
+  }
+
   function captureNow() {
     var canvas = _findCanvas();
     if (!canvas) {
       _warn('swr-capture: no canvas found (#stage or first <canvas>)');
       return false;
     }
+    var restoreDpr = _dprSwap();
     try {
       canvas.toBlob(function (blob) {
-        if (!blob) {
-          // Tainted canvas (cross-origin media) is the most common cause.
-          _warn('swr-capture: canvas.toBlob returned null (tainted canvas?)');
-          return;
-        }
-        var url = null;
-        var a = null;
         try {
-          url = URL.createObjectURL(blob);
-          a = document.createElement('a');
-          a.href = url;
-          a.download = 'swr-frame-' + _filenameStamp() + '.png';
-          a.style.display = 'none';
-          if (document.body) document.body.appendChild(a);
-          a.click();
-          _captureCount += 1;
-          _lastCaptureAt = Date.now();
-        } catch (e) {
-          _warn('swr-capture: download trigger failed', e);
-          return;
+          if (!blob) {
+            // Tainted canvas (cross-origin media) is the most common cause.
+            _warn('swr-capture: canvas.toBlob returned null (tainted canvas?)');
+            return;
+          }
+          var url = null;
+          var a = null;
+          try {
+            url = URL.createObjectURL(blob);
+            a = document.createElement('a');
+            a.href = url;
+            a.download = 'swr-frame-' + _filenameStamp() + '.png';
+            a.style.display = 'none';
+            if (document.body) document.body.appendChild(a);
+            a.click();
+            _captureCount += 1;
+            _lastCaptureAt = Date.now();
+          } catch (e) {
+            _warn('swr-capture: download trigger failed', e);
+            return;
+          }
+          setTimeout(function () {
+            try { if (a && a.parentNode) a.parentNode.removeChild(a); } catch (_) {}
+            try { if (url) URL.revokeObjectURL(url); } catch (_) {}
+          }, REVOKE_DELAY_MS);
+        } finally {
+          // Restore BEFORE the revoke setTimeout fires, so subsequent
+          // captures and the rest of the engine render at the user's dpr.
+          restoreDpr();
         }
-        setTimeout(function () {
-          try { if (a && a.parentNode) a.parentNode.removeChild(a); } catch (_) {}
-          try { if (url) URL.revokeObjectURL(url); } catch (_) {}
-        }, REVOKE_DELAY_MS);
       }, 'image/png');
     } catch (e) {
       _warn('swr-capture: toBlob threw', e);
+      restoreDpr();
       return false;
     }
     return true;

@@ -109,9 +109,12 @@ Credit-bank, not subscription. Credits never expire. Top up with another key any
 - **Persistent library** (IndexedDB v2) — both `assets` (per-clip) and `songs` (current) stores. Survives reload.
 - **Cross-tab library sync** — uploads + deletes in one tab refresh the library in
   all open tabs via `BroadcastChannel('swr-media')`. Browsers without
-  `BroadcastChannel` (very old or in private mode where it's blocked) sync
-  locally only — the same tab still updates; a manual reload picks up the
-  change in other tabs. No `localStorage` event fallback.
+  `BroadcastChannel` (very old or in private mode where it's blocked) fall
+  through to a `window.addEventListener('storage')` listener on keys with the
+  `swr.` prefix, so the same in-tab updates still propagate to other tabs. The
+  listener is the bridge behind `lib/media-store.client.js:99-117`, and the
+  localStorage write serves as the cross-tab sentinel (see that file for the
+  shape).
 - **MP4-as-audio source** — drop a video file, the engine extracts audio. No conversion.
 - **PWA** — installable, offline, iOS splash screens, 4 PNG icons (192/512/maskable/apple-touch)
 - **Watermark engine** — 3 concepts (monogram / wordmark / icon+text). Suppressed for PT users.
