@@ -183,6 +183,12 @@ const GROUPS = {
     'npm run check:storage-blob-unit',
     'npm run check:cross-tab-unit',
     'npm run check:dpr-ratchet-unit',
+    // P1.1: the one shared reactor contract (lib/apply-reactors.js). Fifteen
+    // surfaces each carried their own applyR with their own unit table,
+    // `scale` was unclamped everywhere, and versions/grid.html silently
+    // dropped every x / y reactor. This gate pins the unit table, the clamp
+    // table, the malformed-input cases AND the sixteen call sites.
+    'npm run check:apply-reactor-unit',
     // P2.2: set + clear session cookies both carry Secure. The plan
     // (docs/PLANS/architecture-audit-2026-10.md) called out that the
     // delete cookie was missing the flag; this is the gate that

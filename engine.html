@@ -26,6 +26,13 @@
        pages start their rAF loops during parse, so the tier must exist before
        any page code runs. One shared file, not 23 inline copies. -->
   <script src="/lib/tier-runtime.js"></script>
+  <!-- The one shared reactor contract (plan P1.1). Blocking classic script,
+       not deferred: the inline module below reads window.SWR_REACTORS while
+       it is assembling window.SWR, and a `defer` tag would land after that.
+       Must not carry type="module": vite's strip-absolute-module-scripts
+       plugin rewrites a module tag on an absolute path into a plain defer
+       classic script, which would load it too late. -->
+  <script src="/lib/apply-reactors.js"></script>
   <script src="/lib/adaptive-guard.js" defer></script>
 <!-- SWR-WATERMARK-MARKER -->
 <script src="/lib/watermark.client.js" defer></script>
@@ -4998,7 +5005,18 @@
         // rot = audio-driven base + per-clip persistent offset (if rotationEnabled)
         // rotationEnabled defaults to true (undefined === true); when false,
         // both manual rotOffset and any rot-target reactors are silenced.
+        //
+        // The reactor loop itself is the shared /lib/apply-reactors.js
+        // contract (plan P1.1), the same one all fourteen variant pages
+        // call. This engine's historical unit table is UNITS.natural: its
+        // presets already read `r.scale` as a gain in the target's natural
+        // units (px, degrees, hue degrees), so every unit is 1. The clamp
+        // table, the target dispatch and the missing-target fallback are the
+        // shared ones, so `scale` is now clamped to [0.05, 4] here too - it
+        // was the one thing every surface in the repo left unclamped.
+        // See lib/apply-reactors.js for the full contract.
         const enabled = layer.rotationEnabled === true;  // rotation is ON by default (Layers.add sets rotationEnabled: true, and the rot-master defaults to enabled); when false, both manual rotOffset and any rot-target reactors are silenced
+        const RX = window.SWR_REACTORS;
         const out = {
           scale: layer.baseScale,
           x: layer.pos.x, y: layer.pos.y,
@@ -5008,34 +5026,29 @@
           brightness: layer.brightness,
           contrast: layer.contrast,
         };
-        if (!enabled) {
-          // Still apply every non-rot reactor (scale/x/y/opacity/hue/etc) — only
-          // rotation is gated by the layer-wide toggle.
-          for (const r of (layer.reactors || [])) {
-            let v = this.getFeature(r);
-            v = this.ease(r.ease, clamp(v, 0, 1)) * r.scale;
-            if (r.target === 'scale') out.scale += v;
-            else if (r.target === 'x') out.x += v;
-            else if (r.target === 'y') out.y += v;
-            else if (r.target === 'opacity') out.opacity = clamp(out.opacity + v, 0, 1.5);
-            else if (r.target === 'hue') out.hue += v;
-            else if (r.target === 'brightness') out.brightness = clamp(out.brightness + v, 0.1, 2.5);
-            else if (r.target === 'contrast') out.contrast = clamp(out.contrast + v, 0.1, 2.5);
-          }
-          return out;
-        }
-        for (const r of (layer.reactors || [])) {
-          let v = this.getFeature(r);
-          v = this.ease(r.ease, clamp(v, 0, 1)) * r.scale;
-          if (r.target === 'scale') out.scale += v;
-          else if (r.target === 'x') out.x += v;
-          else if (r.target === 'y') out.y += v;
-          else if (r.target === 'rot') out.rot += v;
-          else if (r.target === 'opacity') out.opacity = clamp(out.opacity + v, 0, 1.5);
-          else if (r.target === 'hue') out.hue += v;
-          else if (r.target === 'brightness') out.brightness = clamp(out.brightness + v, 0.1, 2.5);
-          else if (r.target === 'contrast') out.contrast = clamp(out.contrast + v, 0.1, 2.5);
-        }
+        // `damp: false` because this engine has never run the shared audio
+        // damper - it never loaded lib/audio-damp.client.js, so reading the
+        // raw analyser value is the behaviour that ships today.
+        // `wrapRotation: false` because this engine never folded the
+        // accumulated angle; the variants do, and they still do.
+        RX.applyReactor(layer, Audio, 0, {
+          base: out,
+          units: RX.UNITS.natural,
+          // This engine's own curve map, NOT lib/ease.js: its `release` is
+          // an ease-out while lib/ease.js's is identity, and twenty
+          // `ease: 'release'` reactors in VISUAL_PRESETS depend on the
+          // difference.
+          ease: (name, t) => this.ease(name, t),
+          feature: (r) => this.getFeature(r),
+          // Rotation is the ONLY thing the layer-wide toggle gates; every
+          // other reactor (scale / x / y / opacity / hue / brightness /
+          // contrast) still runs while it is off, which is what the two
+          // separate loops below did.
+          allowRotation: enabled,
+          wrapRotation: false,
+          damp: false,
+        });
+        if (!enabled) return out;
         // Audio algorithm: high-level audio-reactive behavior (Pulse / Drift
         // / Spark) with an intensity slider. Adds deltas on top of base +
         // reactor values; the algo is intentionally additive so existing

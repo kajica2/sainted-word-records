@@ -266,6 +266,30 @@ for (const name of ENGINES) {
     console.log(`  ${name}.html: WARN ease() is called but unbound (lib/ease.js tag missing?)`);
   }
 
+  // ---- 5b. the reactor loop is shared now (plan P1.1) ------------------
+  // Steps 4 and 5 above used to leave a per-page `applyR` body behind: a
+  // hand-typed `out.x += v * 200` style unit table, a per-target if/else
+  // chain, and six different clamp ranges, one copy in each of the fifteen
+  // variant pages. versions/grid.html's copy silently dropped every `x` /
+  // `y` reactor, which is the bug the audit names.
+  //
+  // The loop now lives once in lib/apply-reactors.js and every page calls
+  // `SWR_REACTORS.applyReactor(...)` with `SWR_REACTORS.UNITS.<name>`, the
+  // blocking `<script src="/lib/apply-reactors.js"></script>` tag in the
+  // page head serving it. There is nothing left to inject here, and writing
+  // a unit chain back into the page would fork the table straight back out
+  // of the shared module, which is the exact failure this step used to be.
+  //
+  // The guard only warns. It must not write a chain back.
+  if (/function\s+applyR\s*\(/.test(src) || /applyR\s*=\s*function\s*\(/.test(src)) {
+    if (!/SWR_REACTORS\.applyReactor\(/.test(src)) {
+      console.log(`  ${name}.html: WARN applyR() does not call the shared module (lib/apply-reactors.js tag missing?)`);
+    }
+    if (!/<script src="\/lib\/apply-reactors\.js"><\/script>/.test(src)) {
+      console.log(`  ${name}.html: WARN applyR() calls SWR_REACTORS but the lib/apply-reactors.js tag is missing`);
+    }
+  }
+
   // ---- 6. hook Layers.render to mark the cache dirty on changes -------
   if (!/SWR_RENDER\.invalidate/.test(src)) {
     // Find `Layers.render = function() { … }` and append an invalidate call.
