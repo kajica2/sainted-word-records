@@ -206,15 +206,30 @@ head (canonical, description, og:image).
   `opacityMul`, `jitterMul`, `thickMul`) is **1 at density 0**, so at
   `steer.blend = 0` the picture is the preset exactly as authored — the
   panel promises that, and the gate asserts it.
-- **The render is bounded, and the bounds are not cosmetic.** Three
+- **The library, the reactive maps and the layer state.** The **Library**
+  tab holds six starter presets (Tidal, Nebula, Gridlock, Pulse Engine,
+  Shatter, Riot — subtle → maximum); loading one creates a copy. A layer
+  carries `react` maps (feature → parameter, through one of seven curves:
+  linear, sqrt, exp, pulse, thresh, inv, log) and the document carries
+  `audio.reactivity`, the master that scales all of them. A layer can be
+  **locked** (`⚿` — every control on the card is disabled, the drag handle
+  is inert, and edits are refused) or **frozen** (`❄` — the geometry,
+  the motion and the parameters are held from the snapshot, while the
+  colour pipeline and the alpha keep running).
+- **The render is bounded, and the bounds are not cosmetic.** Four
   numbers decide whether the composition survives: the lightness band
   (10–48) the two layer colours sit in, the trail fade (0.30–0.62 alpha),
-  and the aberration pass's alpha (0.28 × amount). The aberration pass
-  adds the *whole frame* twice more, so its alpha is the picture's
-  brightness multiplier — at the first value tried (0.55) the `Hyper`
-  vibe clipped 24% of the frame to white. `c2` is a NEARBY hue (0.12 of
-  the wheel), not a complement: teal + magenta added together cancels to
-  white under `lighter`.
+  the per-frame trail normalisation (a trail is a LENGTH, not a
+  brightness: the residue is worth `1/(1-retention)` of a frame, so each
+  frame draws at `alpha × (1-retention)` and the settled brightness is the
+  authored alpha whatever the trail), the additive stack cap (layers that
+  ADD are scaled so their opacities cannot sum past 1.1), and the
+  aberration pass's alpha (0.28 × amount — that pass adds the *whole
+  frame* twice more, so its alpha is the picture's brightness
+  multiplier; at the first value tried (0.55) the `Hyper` vibe clipped
+  24% of the frame to white). `c2` is a NEARBY hue (0.12 of the wheel),
+  not a complement: teal + magenta added together cancels to white under
+  `lighter`.
 
 - **Its own palette, scoped to `body.swr-pe`.** The page is dark by
   design, but the shared chrome reads the tokens in
@@ -235,15 +250,24 @@ head (canonical, description, og:image).
   shareable as a deep link (`#p=<base64url of the document>`), produced by
   `window.SWRPresetEditor.shareUrl()`.
 - Gate: `check:preset-editor-smoke` (Puppeteer against built `dist/`, in
-  `check:full`) — the page boots with the shared chrome and opens on the
-  Direction tab, the stage paints, a control changes both the document
-  and the pixels, layers add and delete, the JSON tab round-trips and
-  rejects invalid data, the steering is additive (at steer 0 the resolved
-  values are the preset's own and the multipliers are neutral), a palette
-  and a vibe both change the picture, "keep my direction" carries across
-  presets, a preset survives a reload, the bridge event fires with the
-  steer block and the resolved view, and the deep link restores its
-  preset.
+  `check:full`) — 59 assertions: the page boots with the shared chrome and
+  opens on the Direction tab, the stage paints, a control changes both the
+  document and the pixels, layers add and delete, the JSON tab round-trips
+  and rejects invalid data, the steering is additive (at steer 0 the
+  resolved values are the preset's own and the multipliers are neutral), a
+  palette and a vibe both change the picture, "keep my direction" carries
+  across presets, a preset survives a reload, the bridge event fires with
+  the steer block and the resolved view, the deep link restores its
+  preset, the library offers six reactive starters and loading one keeps
+  its maps, a locked layer is inert and a frozen layer holds its geometry
+  while an unfrozen one keeps moving, a dragged layer lands where it was
+  dropped, a rule fires and changes the render (and its `else` branch
+  runs), the tick stays inside its 2ms budget, a manual edit holds the
+  rules off, a scene eases in, the playhead jumps, drift stays inside the
+  deviation cap and reverts in one click, breeding produces a lineage, the
+  same seed replays the same stream after export → import, and an old
+  preset loads with the three blocks off and resolves to exactly its
+  authored values.
 
 ## Code style
 

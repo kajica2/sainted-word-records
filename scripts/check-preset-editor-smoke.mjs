@@ -373,6 +373,350 @@ if (deep.name === link.name && Math.abs(deep.bloom - link.bloom) < 1e-6) {
   bad('the deep link restores the preset it carries', JSON.stringify({ expected: link, got: deep }));
 }
 
+// --- 10) LOGIC: a rule fires, and the picture follows -------------------
+// The engine is driven deterministically here (the same entry point the
+// render loop uses), so the assertion is about the RULEBOOK, not about
+// whether the demo signal happened to be loud enough.
+const ruleTest = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  const P = R.preset;
+  P.logic.enabled = true;
+  P.logic.tickMs = 20;
+  P.logic.rules = [{
+    id: 'r_smoke', name: 'pulse-driven bloom', enabled: true, priority: 10, mode: 'edge',
+    when: { k: 'all', of: [{ k: 'feature', name: 'bass', op: '>', threshold: 0.7, sustainMs: 300 }] },
+    then: [{ t: 'rampParam', path: 'global.bloom', value: 1, ms: 400, easing: 'smooth' }],
+    else: [{ t: 'rampParam', path: 'global.bloom', value: 0.6, ms: 600, easing: 'smooth' }],
+    cooldownMs: 2000, once: false,
+  }];
+  const loud = { bass: 0.9, mid: 0.5, treble: 0.5, rms: 0.7, centroid: 0.5, pulse: 1, beat: 1, onset: 0 };
+  const quiet = { bass: 0.1, mid: 0.2, treble: 0.2, rms: 0.2, centroid: 0.5, pulse: 0, beat: 0, onset: 0 };
+  const t = performance.now();
+  R.logic.tick(t, loud, 60);          // the condition starts holding
+  R.logic.tick(t + 200, loud, 60);
+  R.logic.tick(t + 400, loud, 60);    // held for 400ms > the 300ms sustain
+  const fired = R.events.filter(e => e.kind === 'rule' && e.ruleId === 'r_smoke').length;
+  // the ramp is animated by the frame loop, so let a few frames run
+  await new Promise(r => setTimeout(r, 600));
+  const bloom = R.resolved.bloom;
+  R.logic.tick(t + 800, quiet, 60);   // it stops holding → the else branch
+  await new Promise(r => setTimeout(r, 200));
+  const released = R.events.filter(e => e.kind === 'rule' && e.ruleId === 'r_smoke' && /released/.test(e.text)).length;
+  return { fired, released, bloom: +bloom.toFixed(3), tick: R.tickCostMs };
+});
+if (ruleTest.fired >= 1) ok('a rule fires in the log (' + ruleTest.fired + ' firing)');
+else bad('a rule fires in the log', JSON.stringify(ruleTest));
+if (ruleTest.bloom > 0.9) ok('the fired rule changes the render (bloom → ' + ruleTest.bloom + ')');
+else bad('the fired rule changes the render', JSON.stringify(ruleTest));
+if (ruleTest.released >= 1) ok('the else branch runs when the condition falls away');
+else bad('the else branch runs when the condition falls away', JSON.stringify(ruleTest));
+if (ruleTest.tick <= 2) ok('the logic tick stays inside its 2ms budget (' + ruleTest.tick.toFixed(3) + 'ms)');
+else bad('the logic tick stays inside its 2ms budget', ruleTest.tick + 'ms');
+
+// A manual edit must win over the rule.
+const manualWins = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  const el = document.querySelector('input[data-path="global.bloom"]');
+  el.value = '0.22';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  const held = R.runtime.manualHold['global.bloom'] > 0;
+  const loud = { bass: 0.9, mid: 0.5, treble: 0.5, rms: 0.7, centroid: 0.5, pulse: 1, beat: 1, onset: 0 };
+  R.logic.tick(performance.now() + 3000, loud, 60);
+  const events = R.events.slice(-4).map(e => e.kind);
+  return { held, events };
+});
+if (manualWins.held) ok('a manual edit holds the rules off that parameter');
+else bad('a manual edit holds the rules off that parameter', JSON.stringify(manualWins));
+if (manualWins.events.includes('held')) ok('the hold is visible in the log');
+else bad('the hold is visible in the log', JSON.stringify(manualWins));
+
+// --- 11) SCENES + the timeline ------------------------------------------
+const sceneTest = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  const P = R.preset;
+  P.logic.scenes = [
+    { id: 'sc_intro', name: 'intro', overrides: { 'global.bloom': 0.2 }, transitionMs: 200, easing: 'smooth', entryRules: [], exitRules: [] },
+    { id: 'sc_drop', name: 'drop', overrides: { 'global.bloom': 1.0 }, transitionMs: 200, easing: 'smooth', entryRules: [], exitRules: [] },
+  ];
+  P.sequence = {
+    enabled: true, mode: 'loop',
+    sections: [{ name: 'intro', sceneId: 'sc_intro', bars: 1 }, { name: 'drop', sceneId: 'sc_drop', bars: 1 }],
+  };
+  R.logic.setScene('sc_drop', { now: performance.now() });
+  await new Promise(r => setTimeout(r, 500));
+  const afterScene = { scene: P.logic.activeSceneId, bloom: +R.resolved.bloom.toFixed(3) };
+  // the playhead: jump to the first section
+  const jump = document.querySelector('#tlSections button');
+  if (jump) jump.click();
+  await new Promise(r => setTimeout(r, 400));
+  const afterJump = { scene: P.logic.activeSceneId, section: R.runtime.seq.section };
+  return { afterScene, afterJump };
+});
+if (sceneTest.afterScene.scene === 'sc_drop' && sceneTest.afterScene.bloom > 0.9) {
+  ok('a scene switches and its overrides ease in (bloom → ' + sceneTest.afterScene.bloom + ')');
+} else {
+  bad('a scene switches and its overrides ease in', JSON.stringify(sceneTest));
+}
+if (sceneTest.afterJump.section === 0) ok('the timeline playhead jumps to a section');
+else bad('the timeline playhead jumps to a section', JSON.stringify(sceneTest));
+
+// --- 12) EVOLUTION: drift stays inside the cap, and reverts ---------------
+const driftTest = await page.evaluate(() => {
+  const R = window.SWRPresetEditor;
+  const P = R.preset;
+  P.evolution.enabled = true;
+  P.evolution.mode = 'drift';
+  const authored = P.global.bloom;
+  let max = 0;
+  for (let i = 0; i < 300; i++) {           // 30 seconds of drift at 10Hz
+    R.evolution.drift(0.1);
+    max = Math.max(max, R.evolution.deviation());
+  }
+  const dev = R.evolution.deviation();
+  const moved = Object.keys(R.runtime.drift).length;
+  R.evolution.revert();
+  return { dev: +dev.toFixed(4), max: +max.toFixed(4), moved, afterRevert: R.evolution.deviation(), driftLeft: Object.keys(R.runtime.drift).length, bloom: R.resolved.bloom, authored };
+});
+if (driftTest.max <= 0.35) ok('drift stays inside the deviation cap (' + driftTest.max + ' ≤ 0.35)');
+else bad('drift stays inside the deviation cap', JSON.stringify(driftTest));
+if (driftTest.moved > 0) ok('drift actually moves the preset (' + driftTest.moved + ' parameters)');
+else bad('drift actually moves the preset', JSON.stringify(driftTest));
+if (driftTest.afterRevert === 0 && driftTest.driftLeft === 0) {
+  ok('one click reverts the drift to the authored preset');
+} else {
+  bad('one click reverts the drift to the authored preset', JSON.stringify(driftTest));
+}
+
+// --- 13) EVOLUTION: breeding produces a lineage --------------------------
+const breedTest = await page.evaluate(() => {
+  const R = window.SWRPresetEditor;
+  const P = R.preset;
+  P.evolution.enabled = true;
+  P.evolution.mode = 'breeding';
+  P.evolution.seed = 4242;
+  P.evolution.rngState = 0;
+  R.evolution.spawn();
+  const gen0 = P.evolution.population.map(i => i.id);
+  for (let g = 0; g < 3; g++) {
+    P.evolution.population.forEach((ind, i) => R.evolution.rate(ind.id, 1 + ((i + g) % 5)));
+    R.evolution.breed();
+  }
+  return {
+    generation: P.evolution.generation,
+    population: P.evolution.population.length,
+    lineage: P.evolution.lineage.length,
+    children: P.evolution.lineage.map(l => l.children.length),
+    gen0,
+    seed: P.evolution.seed,
+  };
+});
+if (breedTest.generation === 3) ok('three generations bred');
+else bad('three generations bred', JSON.stringify(breedTest));
+if (breedTest.population === 6 && breedTest.lineage === 3) ok('the population stays at six and the lineage records every generation');
+else bad('the population stays at six and the lineage records every generation', JSON.stringify(breedTest));
+if (breedTest.children.every(n => n === 6)) ok('every generation has six children');
+else bad('every generation has six children', JSON.stringify(breedTest));
+
+// --- 14) the round trip: export → import → identical behaviour -----------
+const roundTrip = await page.evaluate(() => {
+  const R = window.SWRPresetEditor;
+  const P = R.preset;
+  P.evolution.mode = 'drift';
+  P.evolution.seed = 4242;
+  P.evolution.rngState = 0;
+  R.evolution.spawn();
+  P.evolution.population.forEach((ind, i) => R.evolution.rate(ind.id, 1 + (i % 5)));
+  R.evolution.breed();
+  const exported = JSON.parse(JSON.stringify(P));
+  // the same seed must replay the same stream: both replays start from the
+  // authored state, and the live drift is quiesced so the render loop is
+  // not consuming the PRNG stream between the two of them
+  P.evolution.enabled = false;
+  R.evolution.revert();
+  // a manual edit earlier in the run holds the drift off a gene for four
+  // seconds; the hold survives in the first replay but not after the
+  // reload (which resets the live layer), so both replays must start
+  // without it
+  R.runtime.manualHold = {};
+  const a = [];
+  for (let i = 0; i < 5; i++) a.push(R.evolution.drift(0.1));
+  // import the EXPORTED document (the state before the first replay) and
+  // replay it: the same document must produce the same stream
+  const clone = JSON.parse(JSON.stringify(exported));
+  clone.evolution.seed = 4242;
+  R.load(clone);              // loading resets the live layer
+  const b = [];
+  for (let i = 0; i < 5; i++) b.push(R.evolution.drift(0.1));
+  return {
+    same: JSON.stringify(a.map(x => +x.toFixed(6))) === JSON.stringify(b.map(x => +x.toFixed(6))),
+    seedKept: R.preset.evolution.seed === 4242,
+    lineageKept: (R.preset.evolution.lineage || []).length,
+    locksKept: JSON.stringify(R.preset.evolution.geneMap.map(g => g.locked)) === JSON.stringify(exported.evolution.geneMap.map(g => g.locked)),
+  };
+});
+if (roundTrip.same) ok('the same seed replays the same stream after export → import');
+else bad('the same seed replays the same stream after export → import', JSON.stringify(roundTrip));
+if (roundTrip.seedKept && roundTrip.lineageKept >= 1 && roundTrip.locksKept) {
+  ok('the round trip keeps the seed, the lineage and the gene locks');
+} else {
+  bad('the round trip keeps the seed, the lineage and the gene locks', JSON.stringify(roundTrip));
+}
+
+// --- 15) an old preset still loads and renders unchanged -----------------
+const legacy = await page.evaluate(() => {
+  const R = window.SWRPresetEditor;
+  // a preset written before the subsystems existed
+  const old = {
+    id: 'p_legacy', name: 'Legacy', version: 1,
+    created: 1, modified: 1, tags: ['neon'], look: 'clean', webgl: 0,
+    audio: { source: 'demo', gain: 1, smoothing: 0.72, bands: { sub: 1, bass: 1, mid: 1, treble: 1, air: 1, rms: 1, centroid: 0.6 }, tempo: { bpm: 120, lock: true, offset: 0 } },
+    global: { hue: 0.52, saturation: 0.9, bloom: 0.6, contrast: 1, speed: 1, seed: 1337 },
+    layers: [{ id: 'l_1', name: 'Bars', type: 'bars', enabled: true, opacity: 0.55, blend: 'lighter', params: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true } }],
+    lfos: [],
+  };
+  R.load(old);
+  const p = R.preset;
+  const res = R.resolved;
+  return {
+    hasLogic: !!p.logic, logicEnabled: p.logic.enabled,
+    hasEvo: !!p.evolution, evoEnabled: p.evolution.enabled,
+    hasSeq: !!p.sequence, seqEnabled: p.sequence.enabled,
+    hue: +res.hue.toFixed(4), sat: +res.sat.toFixed(4), bloom: +res.bloom.toFixed(4),
+    contrast: +res.contrast.toFixed(4), speed: +res.speed.toFixed(4),
+    layers: p.layers.length,
+  };
+});
+if (legacy.hasLogic && !legacy.logicEnabled && legacy.hasEvo && !legacy.evoEnabled && legacy.hasSeq && !legacy.seqEnabled) {
+  ok('an old preset gains the three blocks, all switched off');
+} else {
+  bad('an old preset gains the three blocks, all switched off', JSON.stringify(legacy));
+}
+if (legacy.hue === 0.52 && legacy.sat === 0.9 && legacy.bloom === 0.6 && legacy.contrast === 1 && legacy.speed === 1) {
+  ok('an old preset resolves to exactly its authored values');
+} else {
+  bad('an old preset resolves to exactly its authored values', JSON.stringify(legacy));
+}
+
+// --- 16) the LIBRARY: six reactive starters -------------------------------
+const lib = await page.evaluate(() => {
+  const R = window.SWRPresetEditor;
+  document.querySelector('[data-tab="library"]').click();
+  const cards = document.querySelectorAll('#libGrid .lib-card').length;
+  const names = R.library.map(b => b.name);
+  const hasMaps = R.library.every(b => b.layers.some(L => L.react && L.react.length));
+  return { cards, names, hasMaps };
+});
+if (lib.cards === 6 && lib.names.length === 6) ok('the library offers six starter presets (' + lib.names.join(', ') + ')');
+else bad('the library offers six starter presets', JSON.stringify(lib));
+if (lib.hasMaps) ok('every library preset carries audio-reactivity maps');
+else bad('every library preset carries audio-reactivity maps', JSON.stringify(lib));
+
+const libLoad = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  document.querySelector('[data-tab="library"]').click();
+  document.querySelector('[data-lib="4"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  const p = R.preset;
+  return {
+    name: p.name,
+    maps: p.layers[0].react.length,
+    reactivity: p.audio.reactivity,
+    badge: document.querySelector('#reactBadge').classList.contains('on'),
+    copies: Object.keys(R.all).length,
+  };
+});
+if (libLoad.name === 'Shatter' && libLoad.maps === 3) ok('loading a library preset keeps its reactivity maps');
+else bad('loading a library preset keeps its reactivity maps', JSON.stringify(libLoad));
+if (libLoad.badge) ok('the REACTIVE badge shows a preset has reactive layers');
+else bad('the REACTIVE badge shows a preset has reactive layers', JSON.stringify(libLoad));
+
+// --- 17) lock: the layer is inert ------------------------------------------
+const lockTest = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  document.querySelector('[data-tab="library"]').click();
+  document.querySelector('[data-lib="5"]').click();     // Riot — three layers
+  await new Promise(r => setTimeout(r, 300));
+  document.querySelector('[data-tab="layers"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  const card = document.querySelector('#layers .card');
+  if (!card) return { skipped: true };
+  card.querySelector('[data-act="lock"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  const after = document.querySelector('#layers .card');
+  const ctrls = [...after.querySelectorAll('input,select,button')];
+  const allDisabled = ctrls.filter(el => el.dataset.act !== 'lock').every(el => el.disabled);
+  // an edit attempt must not take
+  const before = R.preset.layers[0].params.gain;
+  const slider = after.querySelector('input[type=range]');
+  if (slider) { slider.value = '0.1'; slider.dispatchEvent(new Event('input', { bubbles: true })); }
+  return {
+    locked: R.preset.layers[0].locked,
+    allDisabled,
+    lockButtonWorks: !after.querySelector('[data-act="lock"]').disabled,
+    gainUnchanged: R.preset.layers[0].params.gain === before,
+  };
+});
+if (lockTest.locked && lockTest.allDisabled) ok('a locked layer disables every control');
+else bad('a locked layer disables every control', JSON.stringify(lockTest));
+if (lockTest.lockButtonWorks) ok('a locked layer can still be unlocked');
+else bad('a locked layer can still be unlocked', JSON.stringify(lockTest));
+if (lockTest.gainUnchanged) ok('a locked layer ignores edits');
+else bad('a locked layer ignores edits', JSON.stringify(lockTest));
+
+// --- 18) freeze: the geometry is held, the colour is not ------------------
+const freezeTest = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  document.querySelector('[data-tab="layers"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  const cards = document.querySelectorAll('#layers .card');
+  if (cards.length < 2) return { skipped: true };
+  cards[1].querySelector('[data-act="freeze"]').click();
+  await new Promise(r => setTimeout(r, 300));
+  const L = R.preset.layers[1];
+  const frozenParams = { ...(R.runtime.lastParams[1] || {}) };
+  const liveParams = { ...(R.runtime.lastParams[0] || {}) };
+  await new Promise(r => setTimeout(r, 900));   // let the music move
+  const frozenAfter = { ...(R.runtime.lastParams[1] || {}) };
+  const liveAfter = { ...(R.runtime.lastParams[0] || {}) };
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  return {
+    frozen: L.frozen,
+    hasSnapshot: typeof L.frozenAt === 'number' && !!L.frozenFeatures,
+    frozenHeld: same(frozenParams, frozenAfter),
+    liveMoved: !same(liveParams, liveAfter),
+    frozenParams, liveParams, frozenAfter, liveAfter,
+  };
+});
+if (freezeTest.frozen && freezeTest.hasSnapshot) ok('freezing snapshots the features and the time');
+else bad('freezing snapshots the features and the time', JSON.stringify(freezeTest));
+if (freezeTest.frozenHeld) ok('a frozen layer holds its geometry');
+else bad('a frozen layer holds its geometry', JSON.stringify(freezeTest));
+if (freezeTest.liveMoved) ok('an unfrozen layer keeps moving');
+else bad('an unfrozen layer keeps moving', JSON.stringify(freezeTest));
+
+// --- 19) drag to reorder ----------------------------------------------------
+const dragTest = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  document.querySelector('[data-tab="layers"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  const cards = document.querySelectorAll('#layers .card');
+  if (cards.length < 3) return { skipped: true };
+  const before = R.preset.layers.map(l => l.name);
+  const handle = cards[2].querySelector('.drag-handle');
+  const from = cards[2].getBoundingClientRect();
+  const to = cards[0].getBoundingClientRect();
+  const ev = (type, y) => handle.dispatchEvent(new PointerEvent(type, { bubbles: true, clientY: y, pointerId: 1, cancelable: true }));
+  ev('pointerdown', from.top + 10);
+  ev('pointermove', to.top + 2);
+  ev('pointerup', to.top + 2);
+  await new Promise(r => setTimeout(r, 300));
+  const after = R.preset.layers.map(l => l.name);
+  return { before, after, changed: before.join() !== after.join(), movedToTop: after[0] === before[2] };
+});
+if (dragTest.skipped) ok('drag to reorder (skipped: fewer than three layers)');
+else if (dragTest.changed && dragTest.movedToTop) ok('a dragged layer moves to the drop position');
+else bad('a dragged layer moves to the drop position', JSON.stringify(dragTest));
+
 // --- console hygiene ------------------------------------------------------
 if (errors.length) bad('no console errors during the run', errors[0]);
 else ok('no console errors during the run');

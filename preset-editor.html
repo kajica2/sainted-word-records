@@ -179,6 +179,137 @@
   }
   .lockrow{display:flex; gap:7px; align-items:center; margin:4px 0 8px; color:var(--dim); font-size:11px}
 
+  /* ---- drag handle, lock & freeze ---- */
+  .drag-handle{
+    cursor:grab; color:var(--dim); font-size:15px; line-height:1;
+    padding:2px 5px; border-radius:4px; user-select:none;
+    transition:.15s; flex:none;
+  }
+  .drag-handle:hover{color:var(--neon); background:rgba(77,227,208,.1)}
+  .drag-handle.locked{cursor:not-allowed; opacity:.25}
+  .drag-handle.locked:hover{background:transparent; color:var(--dim)}
+  .card.dragging{opacity:.55; box-shadow:0 8px 30px rgba(77,227,208,.35); z-index:10}
+  .card.dragging .card-head{cursor:grabbing}
+  .card.drop-before::before{
+    content:''; position:absolute; left:-4px; right:-4px; top:-5px; height:3px;
+    background:var(--neon); box-shadow:0 0 12px var(--neon); border-radius:2px;
+  }
+  .card.drop-after::after{
+    content:''; position:absolute; left:-4px; right:-4px; bottom:-5px; height:3px;
+    background:var(--neon); box-shadow:0 0 12px var(--neon); border-radius:2px;
+  }
+  .card.locked{border-color:rgba(255,180,84,.35); background:linear-gradient(180deg,rgba(255,180,84,.035),transparent 60%)}
+  .card.locked::before{
+    content:'⚿'; position:absolute; top:8px; right:8px;
+    color:var(--warn); font-size:13px; opacity:.75; pointer-events:none;
+  }
+  .card.frozen{border-color:rgba(143,212,255,.4); background:linear-gradient(180deg,rgba(143,212,255,.04),transparent 60%)}
+  .card.frozen::after{
+    content:'❄'; position:absolute; top:8px; right:26px;
+    color:#8fd4ff; font-size:13px; opacity:.85; pointer-events:none;
+    text-shadow:0 0 8px rgba(143,212,255,.6);
+  }
+  .card.locked.frozen::before{right:26px}
+  .card.locked.frozen::after{right:8px}
+  .toggle-btn{padding:3px 7px; font-size:12px; line-height:1.2; opacity:.45; transition:.15s}
+  .toggle-btn:hover{opacity:1}
+  .toggle-btn.active{opacity:1}
+  .toggle-btn.active[data-act="freeze"]{border-color:#8fd4ff; color:#8fd4ff; box-shadow:0 0 10px rgba(143,212,255,.3)}
+  .toggle-btn.active[data-act="lock"]{border-color:var(--warn); color:var(--warn); box-shadow:0 0 10px rgba(255,180,84,.25)}
+  .react-chips{display:flex; gap:4px; flex-wrap:wrap; margin:6px 0 2px}
+  .react-chips span{font-size:9.5px; padding:2px 7px; border-radius:10px; background:rgba(255,79,216,.08); color:var(--neon2); border:1px solid rgba(255,79,216,.25); letter-spacing:.04em}
+  #reactBadge{font-size:10px; padding:2px 8px; border-radius:10px; letter-spacing:.08em; border:1px solid rgba(255,79,216,.35); color:var(--neon2); display:none}
+  #reactBadge.on{display:inline-block}
+
+  /* ---- library ---- */
+  .lib-grid{display:grid; grid-template-columns:1fr; gap:10px}
+  .lib-card{border:1px solid var(--line); border-radius:8px; padding:12px; background:var(--panel2); transition:.15s border-color,.15s box-shadow}
+  .lib-card:hover{border-color:rgba(77,227,208,.5); box-shadow:0 0 16px rgba(77,227,208,.1)}
+  .lib-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px}
+  .lib-head b{font-size:13px; color:var(--txt); letter-spacing:.04em; font-weight:600}
+  .lib-badge{font-size:9.5px; padding:2px 8px; border-radius:10px; letter-spacing:.1em; text-transform:uppercase}
+  .lib-badge.subtle{background:rgba(143,212,255,.12); color:#8fd4ff; border:1px solid rgba(143,212,255,.3)}
+  .lib-badge.moderate{background:rgba(77,227,208,.12); color:var(--neon); border:1px solid rgba(77,227,208,.3)}
+  .lib-badge.dramatic{background:rgba(255,79,216,.12); color:var(--neon2); border:1px solid rgba(255,79,216,.3)}
+  .lib-badge.maximum{background:rgba(255,180,84,.12); color:var(--warn); border:1px solid rgba(255,180,84,.3)}
+  .lib-desc{font-size:11px; color:var(--dim); margin:0 0 8px 0; line-height:1.55}
+  .lib-chips{display:flex; gap:4px; flex-wrap:wrap; margin-bottom:9px}
+  .lib-chips span{font-size:9.5px; padding:2px 7px; border-radius:10px; background:rgba(255,255,255,.04); color:var(--dim); border:1px solid var(--line); letter-spacing:.05em}
+  .lib-foot{display:flex; justify-content:space-between; align-items:center}
+  .lib-foot button{font-size:11px; padding:4px 11px}
+  .lib-react{font-size:10px; color:#55657a; letter-spacing:.04em}
+  .lib-algo{font-size:10px; color:#55657a; margin-top:6px; letter-spacing:.03em; line-height:1.5; padding-top:6px; border-top:1px solid var(--line)}
+
+  /* ---- logic / evolution / timeline ---- */
+  .autopilot{display:flex; align-items:center; gap:6px; color:var(--dim); font-size:11px; letter-spacing:.08em}
+  .autopilot select{padding:4px 6px}
+  #timeline{
+    position:relative; height:46px; border-top:1px solid var(--line);
+    background:#070b12; padding:6px 8px; overflow:hidden;
+  }
+  #timeline.off{display:none}
+  #tlSections{display:flex; gap:3px; height:20px; align-items:stretch}
+  #tlSections button{
+    flex:1 1 auto; min-width:0; padding:2px 4px; font-size:10px; letter-spacing:.06em;
+    text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    border-radius:4px; background:#0e1622; color:var(--dim);
+  }
+  #tlSections button.on{border-color:var(--neon); color:var(--neon); background:#132029}
+  #tlRuler{position:relative; height:12px; margin-top:3px; border-top:1px solid var(--line)}
+  #tlRuler span{position:absolute; top:0; font-size:8.5px; color:#55657a; letter-spacing:.05em}
+  #tlPlayhead{position:absolute; top:0; bottom:0; width:1px; background:var(--neon2); box-shadow:0 0 8px rgba(255,79,216,.8)}
+  #tlPlayhead::after{
+    content:''; position:absolute; top:0; left:-3px; border-left:3.5px solid transparent;
+    border-right:3.5px solid transparent; border-top:5px solid var(--neon2);
+  }
+  .rule{border:1px solid var(--line); border-radius:8px; background:var(--panel2); padding:8px; margin-bottom:9px}
+  .rule.off{opacity:.55}
+  .rule-head{display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:7px}
+  .rule-head .nm{flex:1; min-width:80px}
+  .rule-head select{max-width:78px}
+  .dot-live{width:9px; height:9px; border-radius:50%; background:#22303f; flex:none}
+  .dot-live.hit{background:var(--neon); box-shadow:0 0 8px rgba(77,227,208,.85)}
+  .cond{border-left:2px solid #24313f; padding-left:7px; margin:5px 0}
+  .cond-row{display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin:3px 0}
+  .cond-row select{max-width:112px}
+  .cond-row input[type=number]{width:70px}
+  .cond-row input[type=text]{width:110px}
+  .cond-row .k{color:var(--dim); font-size:10.5px; min-width:52px}
+  .rule textarea{
+    width:100%; min-height:64px; font-size:11px; line-height:1.45; margin-top:6px;
+    resize:vertical; font-family:ui-monospace,monospace;
+  }
+  .log{
+    max-height:190px; overflow:auto; border:1px solid var(--line); border-radius:8px;
+    background:#070b12; padding:6px; font-size:10.5px; line-height:1.5;
+  }
+  .log div{display:flex; gap:6px; padding:1px 3px; border-bottom:1px solid #0d151d}
+  .log div:last-child{border-bottom:none}
+  .log .ts{color:#55657a; flex:none}
+  .log .kind{flex:none; width:52px; letter-spacing:.06em; text-transform:uppercase; font-size:9.5px}
+  .log .kind.rule{color:var(--neon)}
+  .log .kind.scene{color:var(--neon2)}
+  .log .kind.section{color:#ffb454}
+  .log .kind.evolution{color:#8fd4ff}
+  .log .kind.held{color:#ff7a6a}
+  .log .kind.budget{color:#ff7a6a}
+  .meterbar{height:8px; border-radius:4px; background:#101a26; overflow:hidden; margin:2px 0 4px}
+  .meterbar i{display:block; height:100%; width:0; background:linear-gradient(90deg,var(--neon),var(--warn)); transition:width .2s}
+  .pop{display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:8px}
+  .pop figure{margin:0; border:1px solid var(--line); border-radius:8px; background:var(--panel2); padding:6px; text-align:center}
+  .pop figure.on{border-color:var(--neon)}
+  .pop canvas{width:100%; height:56px; display:block; border-radius:4px; background:#05070c}
+  .pop figcaption{font-size:9.5px; color:var(--dim); margin-top:4px; letter-spacing:.04em}
+  .pop .stars{display:flex; gap:2px; justify-content:center; margin-top:3px}
+  .pop .stars button{padding:0 3px; font-size:11px; line-height:1.1; background:transparent; border-color:transparent}
+  .pop .stars button.on{color:var(--neon); text-shadow:0 0 8px rgba(77,227,208,.7)}
+  .gene{display:flex; gap:6px; align-items:center; font-size:10.5px; color:var(--dim); padding:3px 0}
+  .gene .path{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--txt)}
+  .gene.locked .path{color:var(--neon)}
+  .lineage{font-size:10.5px; color:var(--dim); line-height:1.6; max-height:190px; overflow:auto}
+  .lineage .node{padding-left:12px; border-left:1px solid #1b2432; margin-left:4px}
+  .lineage .gen{color:var(--neon2)}
+
   @media (max-width:980px){
     main{grid-template-columns:1fr; grid-template-rows:38vh 1fr}
     #editorPane{border-left:none; border-top:1px solid var(--line)}
@@ -197,7 +328,17 @@
   <button data-cmd="new" title="New preset">＋ New</button>
   <button data-cmd="dup" title="Duplicate preset">⧉ Duplicate</button>
   <button data-cmd="del" class="danger" title="Delete preset">✕ Delete</button>
+  <span id="reactBadge">◉ REACTIVE</span>
   <div class="spacer"></div>
+  <label class="autopilot" title="Autopilot: what the instrument may do on its own">
+    <span>autopilot</span>
+    <select id="autopilot" aria-label="Autopilot mode">
+      <option value="off">off</option>
+      <option value="rulebook">rulebook only</option>
+      <option value="drift">drift</option>
+      <option value="breeding">breeding</option>
+    </select>
+  </label>
   <span class="status" id="status" role="status" aria-live="polite">saved</span>
   <button data-cmd="push" class="primary" title="Apply to the engine (⌘/Ctrl+S saves)">▶ Apply to engine</button>
   <button data-cmd="export" title="Download .swr.json">↧ Export</button>
@@ -221,15 +362,23 @@
       </div>
       <div id="dirBadge"><em>direction</em> <span id="dirBadgeTxt">auto</span></div>
     </div>
+    <div id="timeline" class="off" aria-label="Composition timeline">
+      <div id="tlSections"></div>
+      <div id="tlRuler"></div>
+      <div id="tlPlayhead"></div>
+    </div>
   </section>
 
   <aside id="editorPane" aria-label="Preset editor">
     <nav class="tabs" role="tablist">
       <button class="on" data-tab="steer" role="tab">Direction</button>
+      <button data-tab="library" role="tab">Library</button>
       <button data-tab="design" role="tab">Design</button>
       <button data-tab="audio" role="tab">Audio</button>
       <button data-tab="layers" role="tab">Layers</button>
       <button data-tab="lfos" role="tab">LFOs</button>
+      <button data-tab="logic" role="tab">Logic</button>
+      <button data-tab="evolution" role="tab">Evolution</button>
       <button data-tab="json" role="tab">JSON</button>
     </nav>
     <div class="panels">
@@ -280,6 +429,15 @@
           <input type="range" data-path="steer.filters.wash" data-type="number" min="0" max="1" step="0.01"><output></output></label>
         <label class="ctl"><span>glow</span>
           <input type="range" data-path="steer.filters.glow" data-type="number" min="0" max="1" step="0.01"><output></output></label>
+      </div>
+
+      <!-- ============ LIBRARY ============ -->
+      <div class="panel" data-panel="library">
+        <div class="hint" style="margin-top:0">
+          Six audio-reactive starter presets, from <b>subtle</b> to <b>maximum</b>.
+          Loading one creates a copy in your working set.
+        </div>
+        <div class="lib-grid" id="libGrid"></div>
       </div>
 
       <!-- ============ DESIGN ============ -->
@@ -340,6 +498,12 @@
         </div>
         <div class="hint" id="audioHint">Demo mode synthesizes a beat from the tempo below — no permissions needed.</div>
 
+        <div class="sec">Reactivity</div>
+        <label class="ctl"><span>master</span>
+          <input type="range" data-path="audio.reactivity" data-type="number" min="0" max="3" step="0.01">
+          <output></output></label>
+        <div class="hint" style="margin-top:-2px">Scales every layer's audio-driven modulation. 0 = static, 1 = as authored, 2 = doubled.</div>
+
         <div class="sec">Analysis</div>
         <label class="ctl"><span>gain</span>
           <input type="range" data-path="audio.gain" data-type="number" min="0" max="4" step="0.01">
@@ -382,6 +546,75 @@
           <span class="hint" style="margin:0; align-self:center">additive offsets, applied per frame</span>
         </div>
         <div id="lfos"></div>
+      </div>
+
+      <!-- ============ LOGIC ============ -->
+      <div class="panel" data-panel="logic">
+        <div class="sec">Rulebook</div>
+        <div class="lockrow">
+          <label class="chk"><input type="checkbox" id="logicEnabled"> rules armed</label>
+          <label class="chk">tick
+            <input type="number" id="logicTickMs" min="20" max="500" step="10" style="width:64px"> ms
+          </label>
+          <span class="hint" id="logicBudget" style="margin:0">tick —</span>
+        </div>
+        <div class="btnrow">
+          <button data-cmd="addRule" class="primary">＋ Add rule</button>
+          <button data-cmd="addScene">＋ Add scene</button>
+          <button data-cmd="dryRun">▷ Dry run 30s</button>
+        </div>
+        <div id="rules"></div>
+        <div class="sec">Scenes</div>
+        <div id="scenes"></div>
+        <div class="sec">Composition</div>
+        <div class="lockrow">
+          <label class="chk"><input type="checkbox" id="seqEnabled"> sequence on</label>
+          <label class="chk">mode
+            <select id="seqMode"><option value="loop">loop</option><option value="oneshot">oneshot</option></select>
+          </label>
+        </div>
+        <div class="btnrow"><button data-cmd="addSection">＋ Add section</button></div>
+        <div id="sections"></div>
+        <div class="sec">Event log</div>
+        <div class="lockrow">
+          <label class="chk"><input type="checkbox" id="logFilterRule" checked> rules</label>
+          <label class="chk"><input type="checkbox" id="logFilterScene" checked> scenes</label>
+          <label class="chk"><input type="checkbox" id="logFilterOther" checked> other</label>
+          <button data-cmd="clearLog" style="padding:2px 8px">clear</button>
+        </div>
+        <div id="eventLog" class="log"></div>
+      </div>
+
+      <!-- ============ EVOLUTION ============ -->
+      <div class="panel" data-panel="evolution">
+        <div class="sec">Nursery</div>
+        <div class="lockrow">
+          <label class="chk">mode
+            <select id="evoMode">
+              <option value="off">off</option>
+              <option value="drift">drift</option>
+              <option value="breeding">breeding</option>
+            </select>
+          </label>
+          <label class="chk">seed
+            <input type="number" id="evoSeed" min="1" max="999999" step="1" style="width:76px">
+          </label>
+          <span class="hint" id="evoGen" style="margin:0">gen 0</span>
+        </div>
+        <div class="sec">Personality deviation</div>
+        <div class="meterbar"><i id="deviationBar"></i></div>
+        <div class="hint" id="deviationTxt">—</div>
+        <div class="btnrow">
+          <button data-cmd="evoRevert">↺ Revert to authored</button>
+          <button data-cmd="evoFound">⚄ Found population</button>
+          <button data-cmd="evoBreed" class="primary">⚗ Breed generation</button>
+        </div>
+        <div class="sec">Population</div>
+        <div id="population" class="pop"></div>
+        <div class="sec">Genes</div>
+        <div id="genes"></div>
+        <div class="sec">Lineage</div>
+        <div id="lineage" class="lineage"></div>
       </div>
 
       <!-- ============ JSON ============ -->
@@ -462,6 +695,19 @@ const PARAM_SPEC = {
 
 const BLENDS = ['lighter', 'screen', 'source-over', 'overlay', 'multiply', 'difference'];
 
+/* ---- reactive curves: how a feature drives a parameter ---- */
+const REACT_CURVES = {
+  linear: f => f,
+  sqrt:   f => Math.sqrt(Math.max(0, f)),
+  exp:    f => (Math.exp(clamp(f, 0, 3) * 2.2) - 1) / (Math.exp(6.6) - 1),
+  pulse:  f => f * f,
+  thresh: f => f > 0.4 ? 1 : 0,
+  inv:    f => 1 - Math.min(1, f),
+  log:    f => Math.log(1 + Math.max(0, f) * 9) / Math.log(10)
+};
+
+const REACT_FEATURES = ['sub', 'bass', 'mid', 'treble', 'air', 'rms', 'centroid', 'pulse', 'beat', 'onset'];
+
 /* ---- palettes: hue shift + sat multiplier + optional tone-wash colours ---- */
 const PALETTES = {
   auto:   { label: 'Auto',   hueShift: 0,     satMul: 1,    tint: null,      accent: null },
@@ -515,18 +761,188 @@ function defaultSteer() {
   };
 }
 
+/* ============================================================
+   THE BUILT-IN LIBRARY — six audio-reactive starter presets, from
+   subtle to maximum. Loading one creates a COPY in your working set;
+   the library itself is never written to.
+   ============================================================ */
+const BUILTIN_PRESETS = [
+  {
+    name: 'Tidal', profile: 'subtle',
+    algorithm: 'linear + sqrt curves · rms → waveform amplitude · bass → thickness',
+    description: 'Slow-breathing waveform. Amplitude tracks RMS via square-root, thickness tracks bass. Deep blues, high trails, near-zero aberration. For ambient, downtempo, vocal-forward material.',
+    tags: ['ambient', 'waveform', 'subtle'],
+    global: { hue: 0.56, saturation: 0.72, bloom: 0.35, contrast: 0.85, speed: 0.4, seed: 11 },
+    audio: { reactivity: 1.0, gain: 1, smoothing: 0.82,
+      bands: { bass: 1.2, mid: 0.9, treble: 0.6, air: 0.4, rms: 1.6, centroid: 0.3 },
+      tempo: { bpm: 72, lock: true, offset: 0 } },
+    personality: { warmth: -0.3, energy: -0.6, density: -0.5, softness: 0.7, order: 0.5, note: 'flowing, deep, patient' },
+    steer: { blend: 0.35, palette: 'ice', paletteAmount: 0.55,
+      mood: { warmth: -0.2, energy: -0.5, density: -0.4, softness: 0.5, order: 0.3 },
+      filters: { trails: 0.72, grain: 0.08, scanlines: 0, vignette: 0.45, aberration: 0, wash: 0.35, glow: 0.55 } },
+    layers: [
+      { name: 'Swell', type: 'waveform', enabled: true, opacity: 0.75, blend: 'lighter',
+        params: { amp: 0.28, thickness: 0.07, glow: 0.55, noise: 0.08 },
+        react: [
+          { feature: 'rms',  param: 'amp',       amount: 0.55, curve: 'sqrt' },
+          { feature: 'bass', param: 'thickness', amount: 0.05, curve: 'linear' }
+        ] }
+    ],
+    lfos: [
+      { name: 'Hue tide',   shape: 'sine',     rate: 0.025, depth: 0.08, offset: 0, phase: 0, target: 'global.hue' },
+      { name: 'Slow bloom', shape: 'triangle', rate: 0.06,  depth: 0.12, offset: 0, phase: 0.3, target: 'global.bloom' }
+    ]
+  },
+  {
+    name: 'Nebula', profile: 'subtle',
+    algorithm: 'sqrt + log curves · bass → orbital spread · treble → angular velocity · centroid → particle size',
+    description: 'Orbital particle cloud. Bass expands the orbit radius, treble spins faster, centroid decides particle size. Purple/blue palette with grain. For cosmic, cinematic, slow-build material.',
+    tags: ['ambient', 'particles', 'atmospheric'],
+    global: { hue: 0.74, saturation: 0.85, bloom: 0.55, contrast: 1.0, speed: 0.7, seed: 42 },
+    audio: { reactivity: 1.1, gain: 1, smoothing: 0.78,
+      bands: { bass: 1.4, mid: 0.8, treble: 1.1, air: 0.9, rms: 1, centroid: 1.4 },
+      tempo: { bpm: 84, lock: true, offset: 0 } },
+    personality: { warmth: 0.1, energy: -0.2, density: 0.3, softness: 0.5, order: -0.3, note: 'vast, slow, floating' },
+    steer: { blend: 0.4, palette: 'ultra', paletteAmount: 0.65,
+      mood: { warmth: 0.1, energy: -0.2, density: 0.2, softness: 0.5, order: -0.3 },
+      filters: { trails: 0.55, grain: 0.22, scanlines: 0, vignette: 0.35, aberration: 0.08, wash: 0.30, glow: 0.55 } },
+    layers: [
+      { name: 'Dust', type: 'particles', enabled: true, opacity: 0.85, blend: 'lighter',
+        params: { count: 320, size: 0.014, speed: 0.35, spread: 1.1, jitter: 0.25 },
+        react: [
+          { feature: 'bass',     param: 'spread', amount: 0.9,  curve: 'sqrt' },
+          { feature: 'treble',   param: 'speed',  amount: 0.35, curve: 'linear' },
+          { feature: 'centroid', param: 'size',   amount: 0.02, curve: 'log' }
+        ] }
+    ],
+    lfos: [
+      { name: 'Drift',  shape: 'noise', rate: 0.05, depth: 0.25, offset: 0, phase: 0, target: 'global.hue' },
+      { name: 'Breath', shape: 'sine',  rate: 0.08, depth: 0.15, offset: 0, phase: 0, target: 'global.bloom' }
+    ]
+  },
+  {
+    name: 'Gridlock', profile: 'moderate',
+    algorithm: 'exp curve · bass → warp amplitude (explosive) · treble → glow',
+    description: 'A structured warp grid that buckles under bass. The exp curve makes warp explode on kicks, treble brightens the glow. Acid green with scanlines — tight, architectural, club-ready.',
+    tags: ['structured', 'grid', 'club'],
+    global: { hue: 0.28, saturation: 0.9, bloom: 0.5, contrast: 1.15, speed: 1.0, seed: 7 },
+    audio: { reactivity: 1.2, gain: 1, smoothing: 0.6,
+      bands: { bass: 1.6, mid: 0.8, treble: 1.2, air: 0.7, rms: 1, centroid: 0.6 },
+      tempo: { bpm: 124, lock: true, offset: 0 } },
+    personality: { warmth: -0.2, energy: 0.3, density: 0.2, softness: -0.2, order: 0.7, note: 'precise, punchy, neon' },
+    steer: { blend: 0.5, palette: 'toxic', paletteAmount: 0.7,
+      mood: { warmth: -0.1, energy: 0.4, density: 0.2, softness: -0.1, order: 0.5 },
+      filters: { trails: 0.25, grain: 0.06, scanlines: 0.28, vignette: 0.28, aberration: 0.15, wash: 0.08, glow: 0.5 } },
+    layers: [
+      { name: 'Mesh', type: 'grid', enabled: true, opacity: 0.9, blend: 'lighter',
+        params: { cols: 22, rows: 14, warp: 0.25, glow: 0.5 },
+        react: [
+          { feature: 'bass',   param: 'warp', amount: 0.7,  curve: 'exp' },
+          { feature: 'treble', param: 'glow', amount: 0.35, curve: 'linear' }
+        ] }
+    ],
+    lfos: [{ name: 'Phase', shape: 'sine', rate: 0.12, depth: 0.1, offset: 0, phase: 0, target: 'global.speed' }]
+  },
+  {
+    name: 'Pulse Engine', profile: 'moderate',
+    algorithm: 'thresh + sqrt curves · pulse → ring count · rms → radius · mid → thickness',
+    description: 'Concentric rings that appear in clusters on the beat. The thresh curve turns the pulse detector into a binary trigger, rms expands, mid thickens strokes. Neon cyan/magenta.',
+    tags: ['rhythmic', 'rings', 'beat'],
+    global: { hue: 0.50, saturation: 0.95, bloom: 0.65, contrast: 1.1, speed: 1.2, seed: 3 },
+    audio: { reactivity: 1.3, gain: 1.1, smoothing: 0.55,
+      bands: { bass: 1.4, mid: 1.3, treble: 0.9, air: 0.5, rms: 1.4, centroid: 0.5 },
+      tempo: { bpm: 128, lock: true, offset: 0 } },
+    personality: { warmth: 0, energy: 0.4, density: 0.4, softness: 0, order: 0.3, note: 'rhythmic, bright, hypnotic' },
+    steer: { blend: 0.45, palette: 'neon', paletteAmount: 0.7,
+      mood: { warmth: 0, energy: 0.4, density: 0.3, softness: 0, order: 0.3 },
+      filters: { trails: 0.35, grain: 0.05, scanlines: 0.1, vignette: 0.25, aberration: 0.35, wash: 0.1, glow: 0.6 } },
+    layers: [
+      { name: 'Pulse', type: 'rings', enabled: true, opacity: 0.85, blend: 'lighter',
+        params: { count: 8, radius: 0.3, thickness: 0.1, spin: 0.3, spread: 0.7 },
+        react: [
+          { feature: 'pulse', param: 'count',     amount: 14,   curve: 'thresh' },
+          { feature: 'rms',   param: 'radius',    amount: 0.35, curve: 'sqrt' },
+          { feature: 'mid',   param: 'thickness', amount: 0.06, curve: 'linear' }
+        ] }
+    ],
+    lfos: [{ name: 'Spin', shape: 'sine', rate: 0.15, depth: 0.3, offset: 0, phase: 0, target: 'layers.0.params.spin' }]
+  },
+  {
+    name: 'Shatter', profile: 'dramatic',
+    algorithm: 'exp + pulse curves · bass → gain · treble → bar count · pulse → width',
+    description: 'Spectrum bars that explode on bass. The exp curve gives a hard kick-driven punch; treble adds bars, pulse flattens width into a shockwave. Blood red/orange with heavy chroma.',
+    tags: ['dramatic', 'bars', 'club'],
+    global: { hue: 0.03, saturation: 1.0, bloom: 0.7, contrast: 1.35, speed: 1.5, seed: 99 },
+    audio: { reactivity: 1.5, gain: 1.2, smoothing: 0.5,
+      bands: { bass: 1.8, mid: 1, treble: 1.3, air: 0.8, rms: 1, centroid: 0.6 },
+      tempo: { bpm: 140, lock: true, offset: 0 } },
+    personality: { warmth: 0.5, energy: 0.7, density: 0.5, softness: -0.5, order: 0.2, note: 'violent, hot, kinetic' },
+    steer: { blend: 0.55, palette: 'blood', paletteAmount: 0.8,
+      mood: { warmth: 0.4, energy: 0.7, density: 0.4, softness: -0.4, order: 0.2 },
+      filters: { trails: 0.2, grain: 0.08, scanlines: 0.15, vignette: 0.35, aberration: 0.55, wash: 0.15, glow: 0.55 } },
+    layers: [
+      { name: 'Shards', type: 'bars', enabled: true, opacity: 0.9, blend: 'lighter',
+        params: { count: 48, width: 0.8, gain: 1.1, tilt: 0.2, mirror: true },
+        react: [
+          { feature: 'bass',   param: 'gain',  amount: 1.6,  curve: 'exp' },
+          { feature: 'treble', param: 'count', amount: 40,   curve: 'sqrt' },
+          { feature: 'pulse',  param: 'width', amount: 0.25, curve: 'pulse' }
+        ] }
+    ],
+    lfos: [{ name: 'Shake', shape: 'noise', rate: 0.6, depth: 0.15, offset: 0, phase: 0, target: 'global.speed' }]
+  },
+  {
+    name: 'Riot', profile: 'maximum',
+    algorithm: 'every curve layered · 3 layers (bars + particles + grid) · full-spectrum reactivity',
+    description: 'Everything at once. A bass-driven bar stack, an orbiting particle swarm, and a warped grid — each with its own curve, stacked with heavy trails and aberration. For drops, breakdowns, noisier material.',
+    tags: ['max', 'multi-layer', 'chaos'],
+    global: { hue: 0.88, saturation: 1.0, bloom: 0.9, contrast: 1.4, speed: 1.8, seed: 666 },
+    audio: { reactivity: 1.6, gain: 1.2, smoothing: 0.45,
+      bands: { bass: 1.6, mid: 1.4, treble: 1.5, air: 1.2, rms: 1.2, centroid: 1 },
+      tempo: { bpm: 150, lock: true, offset: 0 } },
+    personality: { warmth: 0.2, energy: 0.9, density: 0.8, softness: -0.3, order: -0.4, note: 'loud, layered, overwhelming' },
+    steer: { blend: 0.6, palette: 'ultra', paletteAmount: 0.75,
+      mood: { warmth: 0.2, energy: 0.9, density: 0.6, softness: -0.3, order: -0.3 },
+      filters: { trails: 0.65, grain: 0.25, scanlines: 0.18, vignette: 0.3, aberration: 0.7, wash: 0.35, glow: 0.8 } },
+    layers: [
+      { name: 'Riot bars', type: 'bars', enabled: true, opacity: 0.8, blend: 'lighter',
+        params: { count: 64, width: 0.6, gain: 1.2, tilt: 0.4, mirror: true },
+        react: [
+          { feature: 'bass',   param: 'gain', amount: 1.4, curve: 'exp' },
+          { feature: 'treble', param: 'tilt', amount: 0.6, curve: 'linear' }
+        ] },
+      { name: 'Storm', type: 'particles', enabled: true, opacity: 0.7, blend: 'lighter',
+        params: { count: 420, size: 0.01, speed: 1.2, spread: 1.2, jitter: 0.6 },
+        react: [
+          { feature: 'treble',   param: 'speed',  amount: 0.8, curve: 'linear' },
+          { feature: 'centroid', param: 'jitter', amount: 0.4, curve: 'sqrt' }
+        ] },
+      { name: 'Warp', type: 'grid', enabled: true, opacity: 0.5, blend: 'screen',
+        params: { cols: 26, rows: 16, warp: 0.4, glow: 0.6 },
+        react: [
+          { feature: 'bass', param: 'warp', amount: 0.8, curve: 'pulse' },
+          { feature: 'mid',  param: 'glow', amount: 0.4, curve: 'linear' }
+        ] }
+    ],
+    lfos: [
+      { name: 'Chaos', shape: 'noise',  rate: 0.4, depth: 0.3,  offset: 0, phase: 0, target: 'global.hue' },
+      { name: 'Pulse', shape: 'square', rate: 0.9, depth: 0.15, offset: 0, phase: 0, target: 'global.speed' }
+    ]
+  }
+];
+
 /* ---- authored personality: what makes each preset itself ---- */
 const PERSONALITIES = {
   'Neon Bloom': { warmth: -0.20, energy: 0.35, density: 0.10, softness: 0.30, order: 0.20, note: 'electric, blooming, precise' }
 };
 
 function defaultPreset(name = 'Neon Bloom') {
-  return {
+  const p = {
     id: uid('p_'), name, author: '', version: 2,
     created: Date.now(), modified: Date.now(),
     tags: ['neon'], look: 'clean', webgl: 0,
     audio: {
-      source: 'demo', gain: 1, smoothing: 0.72,
+      source: 'demo', gain: 1, smoothing: 0.72, reactivity: 1,
       bands: { sub: 1, bass: 1, mid: 1, treble: 1, air: 1, rms: 1, centroid: 0.6 },
       tempo: { bpm: 120, lock: true, offset: 0 }
     },
@@ -534,15 +950,19 @@ function defaultPreset(name = 'Neon Bloom') {
     personality: { ...PERSONALITIES['Neon Bloom'] },
     steer: defaultSteer(),
     layers: [
-      { id: uid('l_'), name: 'Bars',  type: 'bars',      enabled: true, opacity: 0.55, blend: 'lighter', params: { ...LAYER_TYPES.bars.defaults } },
-      { id: uid('l_'), name: 'Rings', type: 'rings',     enabled: true, opacity: 0.60, blend: 'lighter', params: { ...LAYER_TYPES.rings.defaults } },
-      { id: uid('l_'), name: 'Dust',  type: 'particles', enabled: true, opacity: 0.50, blend: 'lighter', params: { ...LAYER_TYPES.particles.defaults } }
+      { id: uid('l_'), name: 'Bars',  type: 'bars',      enabled: true, opacity: 0.55, blend: 'lighter', params: { ...LAYER_TYPES.bars.defaults },      react: [], locked: false, frozen: false, frozenAt: null, frozenFeatures: null },
+      { id: uid('l_'), name: 'Rings', type: 'rings',     enabled: true, opacity: 0.60, blend: 'lighter', params: { ...LAYER_TYPES.rings.defaults },     react: [], locked: false, frozen: false, frozenAt: null, frozenFeatures: null },
+      { id: uid('l_'), name: 'Dust',  type: 'particles', enabled: true, opacity: 0.50, blend: 'lighter', params: { ...LAYER_TYPES.particles.defaults }, react: [], locked: false, frozen: false, frozenAt: null, frozenFeatures: null }
     ],
     lfos: [
       { id: uid('m_'), name: 'Hue drift', enabled: true, shape: 'sine',     rate: 0.05, depth: 0.25, offset: 0, phase: 0, target: 'global.hue' },
       { id: uid('m_'), name: 'Breathe',   enabled: true, shape: 'triangle', rate: 0.17, depth: 0.18, offset: 0, phase: 0, target: 'global.bloom' }
     ]
   };
+  // The three autonomous blocks travel with every preset, switched off.
+  // A preset without them would crash the Logic panel the moment it was
+  // opened (a NEW preset is built here, not normalised).
+  return withSubsystems(p);
 }
 
 /* ============================================================
@@ -577,6 +997,715 @@ function personalityChips(pers) {
   out.push(pick(pers.warmth, 'cool', 'warm', 'neutral'));
   out.push(pick(pers.order, 'chaotic', 'structured', 'free'));
   return out;
+}
+
+/* ============================================================
+   LOGIC · EVOLUTION · COMPOSITION — the additive data model
+
+   Every one of these blocks is OPTIONAL. A preset written before they
+   existed loads unchanged and renders exactly as it did: they default to
+   off, and nothing outside this section reads them until they are on.
+   ============================================================ */
+const DEFAULT_LOGIC = { enabled: false, tickMs: 60, rules: [], scenes: [], activeSceneId: null };
+const DEFAULT_EVOLUTION = {
+  enabled: false, mode: 'off', geneMap: [], seed: 1337, rngState: 0,
+  generation: 0, population: [], lineage: [], audition: null,
+};
+const DEFAULT_SEQUENCE = { enabled: false, mode: 'loop', sections: [] };
+
+function defaultGeneMap() {
+  return [
+    { path: 'global.hue',      min: 0,   max: 1,   sigma: 0.02, kind: 'float', locked: false },
+    { path: 'global.bloom',    min: 0,   max: 1,   sigma: 0.04, kind: 'float', locked: false },
+    { path: 'global.contrast', min: 0.2, max: 2,   sigma: 0.05, kind: 'float', locked: false },
+    { path: 'global.speed',    min: 0,   max: 3,   sigma: 0.05, kind: 'float', locked: false },
+    { path: 'layers.0.params.gain',   min: 0, max: 3, sigma: 0.08, kind: 'float', locked: false },
+    { path: 'layers.1.params.spread', min: 0, max: 2, sigma: 0.06, kind: 'float', locked: false },
+  ];
+}
+
+/* merge the optional blocks into a preset without touching the rest */
+function withSubsystems(p) {
+  const raw = p || {};
+  const L = raw.logic || {};
+  p.logic = {
+    ...DEFAULT_LOGIC, ...L,
+    rules: Array.isArray(L.rules) ? L.rules : [],
+    scenes: Array.isArray(L.scenes) ? L.scenes : [],
+  };
+  const E = raw.evolution || {};
+  p.evolution = {
+    ...DEFAULT_EVOLUTION, ...E,
+    geneMap: Array.isArray(E.geneMap) && E.geneMap.length ? E.geneMap : defaultGeneMap(),
+    population: Array.isArray(E.population) ? E.population : [],
+    lineage: Array.isArray(E.lineage) ? E.lineage : [],
+  };
+  const S = raw.sequence || {};
+  p.sequence = {
+    ...DEFAULT_SEQUENCE, ...S,
+    sections: Array.isArray(S.sections) ? S.sections : [],
+  };
+  return p;
+}
+
+/* ============================================================
+   LOGIC — "The Rulebook"
+
+   A deterministic, observable rules engine. It runs on a tick driven by
+   the render loop (no hidden clocks), it may only act THROUGH the
+   resolve() pipeline, and every firing is logged.
+   ============================================================ */
+
+/* The seeded PRNG lives in the preset document (evolution.rngState), not in
+   module scope, so a preset replays identically after export/import. */
+function rngNext() {
+  const ev = preset.evolution;
+  let a = (ev.rngState >>> 0) || 0x9e3779b9;
+  a = (a + 0x6D2B79F5) | 0;
+  ev.rngState = a >>> 0;
+  let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+function rngGaussian(sigma) {
+  const u = Math.max(1e-9, rngNext()), v = rngNext();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sigma;
+}
+function rngPick(arr) { return arr[Math.floor(rngNext() * arr.length) % arr.length]; }
+
+/* Runtime state: everything the engine can change, in one observable place.
+   The document stays the source of truth; this is the live layer on top. */
+const runtime = {
+  overrides: {},        // path -> value (rules, scenes)
+  drift: {},            // path -> value (the evolution layer, kept apart so
+                        // "revert to authored" does not wipe the rulebook)
+  ramps: [],            // { path, from, to, t0, ms, easing }
+  layerFlags: {},       // layer id -> enabled
+  layerMutations: {},   // layer index -> amount
+  events: [],           // the firing log
+  ruleState: {},        // rule id -> { prev, lastFire, fired, count }
+  sustain: {},          // condition key -> { t }
+  manualHold: {},       // path -> until (ms) — a manual edit wins for a while
+  seq: { bar: 0, section: 0, startedMs: 0, running: false },
+  tickCostMs: 0,
+  deviation: 0,
+  undo: [],             // drift snapshots
+  reseedCount: 0,
+  gestures: {},
+  startedMs: 0,
+  sceneEnteredMs: 0,
+  lastTickMs: 0,
+  lastParams: {},       // layer index → the parameters the renderer used
+  lastOpacity: {},      // layer index → the alpha the renderer used
+};
+
+const EASE = {
+  linear: t => t,
+  smooth: t => t * t * (3 - 2 * t),
+  sharp: t => Math.pow(t, 0.4),
+  soft: t => 1 - Math.pow(1 - t, 2),
+};
+
+function ovGet(path, fallback) {
+  // The drift layer sits ON TOP of the rule layer: evolution is the last
+  // thing to touch a value. (They are kept in separate maps so that
+  // reverting the drift cannot wipe the rulebook's live state.)
+  const d = runtime.drift[path];
+  if (d !== undefined) return d;
+  const v = runtime.overrides[path];
+  return v === undefined ? fallback : v;
+}
+
+/* the rule layer's own read — the drift never hides a rule's value */
+function ruleGet(path, fallback) {
+  const v = runtime.overrides[path];
+  return v === undefined ? fallback : v;
+}
+
+/* ---- conditions ---- */
+function cmp(v, op, threshold) {
+  switch (op) {
+    case '>':  return v > threshold;
+    case '>=': return v >= threshold;
+    case '<':  return v < threshold;
+    case '<=': return v <= threshold;
+    case '==': return v === threshold;
+    case '!=': return v !== threshold;
+    default:   return false;
+  }
+}
+
+function evalCond(c, ctx, key) {
+  if (!c || typeof c !== 'object') return false;
+  switch (c.k) {
+    case 'all': return (c.of || []).every(x => evalCond(x, ctx, key + '.a' + ctx.depth++));
+    case 'any': return (c.of || []).some(x => evalCond(x, ctx, key + '.o' + ctx.depth++));
+    case 'not': return !evalCond((c.of || [])[0], ctx, key + '.n');
+    case 'n': {
+      let n = 0;
+      for (const x of (c.of || [])) if (evalCond(x, ctx, key + '.c' + ctx.depth++)) n++;
+      return n >= (c.n || 1);
+    }
+    case 'feature': {
+      const v = ctx.feat[c.name] || 0;
+      if (!cmp(v, c.op || '>', c.threshold ?? 0)) { delete runtime.sustain[key]; return false; }
+      if (!c.sustainMs) return true;
+      const st = runtime.sustain[key] || (runtime.sustain[key] = { t: ctx.now });
+      return (ctx.now - st.t) >= c.sustainMs;
+    }
+    case 'elapsed': {
+      const from = c.since === 'scene' ? runtime.sceneEnteredMs : runtime.startedMs;
+      return cmp(ctx.now - from, c.op || '>', c.ms ?? 0);
+    }
+    case 'scene':
+      return c.is === 'isNot' ? ctx.sceneId !== c.sceneId : ctx.sceneId === c.sceneId;
+    case 'rand':   return ctx.rng() < (c.p ?? 0);
+    case 'fps':    return cmp(ctx.fps, c.op || '<', c.n ?? 0);
+    case 'layerCount': return cmp(ctx.layerCount, c.op || '>', c.n ?? 0);
+    case 'gesture': return (ctx.gestures[c.name] || 0) > 0;
+    case 'sequencePosition': return cmp(ctx.sectionIndex, c.op || '==', c.index ?? 0);
+    default: return false;
+  }
+}
+
+/* ---- actions ---- */
+function startRamp(a, now) {
+  // A ramp must start from a NUMBER: with no current value the path has no
+  // entry yet, and `undefined + …` is NaN — which then propagates into the
+  // resolved document and serialises as null.
+  const cur = effectiveValue(a.path);
+  const from = (cur === undefined || !isFinite(cur)) ? authoredValue(a.path) : cur;
+  runtime.ramps = runtime.ramps.filter(r => r.path !== a.path);
+  runtime.ramps.push({
+    path: a.path, from, to: a.value,
+    t0: now, ms: Math.max(1, a.ms || 400), easing: a.easing || 'smooth',
+  });
+}
+
+/* the value a path currently reads, overrides and ramps included */
+function effectiveValue(path) {
+  for (const r of runtime.ramps) if (r.path === path) return r.to;
+  const v = runtime.overrides[path];
+  return v;
+}
+
+function applyAction(a, ctx) {
+  if (!a || !a.t) return;
+  switch (a.t) {
+    case 'setParam':
+      runtime.overrides[a.path] = a.value;
+      break;
+    case 'rampParam':
+      startRamp(a, ctx.now);
+      break;
+    case 'goScene':
+      setScene(a.sceneId, ctx);
+      break;
+    case 'enableLayer':
+      runtime.layerFlags[a.id] = true;
+      break;
+    case 'disableLayer':
+      runtime.layerFlags[a.id] = false;
+      break;
+    case 'addLayer': {
+      const spec = a.layer || { type: 'bars', name: 'Logic layer' };
+      preset.layers.push({
+        id: uid('l_'), name: spec.name || 'Logic layer', type: spec.type || 'bars',
+        enabled: true, opacity: spec.opacity ?? 0.8, blend: spec.blend || 'lighter',
+        params: { ...(LAYER_TYPES[spec.type] || LAYER_TYPES.bars).defaults, ...(spec.params || {}) },
+      });
+      renderLayers(); renderLfos();
+      break;
+    }
+    case 'removeLayer': {
+      const i = preset.layers.findIndex(l => l.id === a.id);
+      if (i >= 0) { preset.layers.splice(i, 1); renderLayers(); renderLfos(); }
+      break;
+    }
+    case 'setPalette':
+      runtime.overrides['steer.palette'] = a.id;
+      break;
+    case 'setSteerBlend':
+      runtime.overrides['steer.blend'] = a.value;
+      break;
+    case 'mutateLayer':
+      runtime.layerMutations[a.index] = a.amount;
+      break;
+    case 'reseed':
+      runtime.reseedCount++;
+      break;
+    case 'log':
+      logEvent('action', null, a.message || 'log');
+      break;
+  }
+}
+
+/* ---- scenes ---- */
+function setScene(id, ctx) {
+  const scenes = preset.logic.scenes || [];
+  const prev = scenes.find(s => s.id === preset.logic.activeSceneId);
+  if (prev) {
+    for (const rid of (prev.exitRules || [])) setRuleEnabled(rid, false);
+    for (const path of Object.keys(prev.overrides || {})) {
+      if (runtime.overrides[path] !== undefined) delete runtime.overrides[path];
+    }
+  }
+  const next = scenes.find(s => s.id === id);
+  if (!next) {
+    preset.logic.activeSceneId = null;
+    runtime.sceneEnteredMs = ctx ? ctx.now : performance.now();
+    return;
+  }
+  preset.logic.activeSceneId = id;
+  for (const rid of (next.entryRules || [])) setRuleEnabled(rid, true);
+  const now = ctx ? ctx.now : performance.now();
+  for (const path of Object.keys(next.overrides || {})) {
+    const value = next.overrides[path];
+    if (next.transitionMs) startRamp({ path, value, ms: next.transitionMs, easing: next.easing || 'smooth' }, now);
+    else runtime.overrides[path] = value;
+  }
+  runtime.sceneEnteredMs = now;
+  logEvent('scene', null, 'scene → ' + (next.name || id));
+}
+
+function setRuleEnabled(id, on) {
+  const r = (preset.logic.rules || []).find(x => x.id === id);
+  if (r) r.enabled = on;
+}
+
+/* ---- the log ---- */
+function logEvent(kind, ruleId, text, extra) {
+  const e = { t: Date.now(), kind, ruleId: ruleId || null, text: text || '' };
+  if (extra) Object.assign(e, extra);
+  runtime.events.push(e);
+  if (runtime.events.length > 300) runtime.events.splice(0, runtime.events.length - 300);
+  // The DOM re-render is NOT done here: this runs inside the logic tick,
+  // and rebuilding the log's HTML there cost 5.6ms — nearly three times the
+  // 2ms budget. The frame loop flushes it instead.
+  runtime.logDirty = true;
+  return e;
+}
+
+/* ---- the tick ---- */
+function logicTick(now, feat, fps) {
+  const L = preset.logic;
+  if (!L.enabled) return;
+  if (now - runtime.lastTickMs < (L.tickMs || 60)) return;
+  runtime.lastTickMs = now;
+
+  const t0 = performance.now();
+  const ctx = {
+    now, feat, fps: fps || 0,
+    sceneId: L.activeSceneId,
+    layerCount: preset.layers.length,
+    sectionIndex: runtime.seq.section,
+    gestures: runtime.gestures,
+    rng: rngNext,
+    depth: 0,
+  };
+
+  tickSequence(now, ctx);
+
+  const rules = (L.rules || [])
+    .filter(r => r.enabled !== false)
+    .slice()
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+  for (const rule of rules) {
+    const st = runtime.ruleState[rule.id] || (runtime.ruleState[rule.id] = { prev: false, lastFire: -1e9, fired: 0, count: 0 });
+    const matched = evalCond(rule.when, ctx, rule.id);
+    const rising = matched && !st.prev;
+    const falling = !matched && st.prev;
+    st.prev = matched;
+
+    // edge: `then` on the rising edge, `else` on the falling one.
+    // level: `then` every tick while the condition holds (cooldown-gated),
+    //        `else` on the falling edge.
+    let actions = null;
+    if (rule.mode === 'level') {
+      if (matched) actions = rule.then || [];
+      else if (falling) actions = rule.else || [];
+    } else {
+      if (rising) actions = rule.then || [];
+      else if (falling) actions = rule.else || [];
+    }
+    if (!actions || !actions.length) continue;
+    const isThen = actions === rule.then;
+    if (rule.once && st.fired && isThen) continue;
+    // The cooldown gates the FIRING, not the release: a rule that ramps
+    // something up and then releases it must be able to let go, or the
+    // value stays stuck for the whole cooldown window.
+    if (isThen && now - st.lastFire < (rule.cooldownMs || 0)) continue;
+    // A manual edit wins: the rule is held off the parameters the user
+    // just touched, for a visible window.
+    if (ruleActionsHeld(rule, actions)) {
+      st.lastFire = now;
+      logEvent('held', rule.id, 'held — you touched ' + heldPaths(rule, actions).join(', '));
+      continue;
+    }
+    st.lastFire = now;
+    if (isThen) { st.fired = true; st.count++; }
+    const t1 = performance.now();
+    for (const a of actions) applyAction(a, ctx);
+    const latency = performance.now() - t1;
+    logEvent('rule', rule.id, (rule.name || rule.id) + (actions === rule.then ? ' fired' : ' released'), {
+      matched, actions: actions.length, latency: +latency.toFixed(3),
+    });
+  }
+
+  runtime.tickCostMs = performance.now() - t0;
+  if (runtime.tickCostMs > 2) {
+    logEvent('budget', null, 'tick took ' + runtime.tickCostMs.toFixed(2) + 'ms (budget 2ms)');
+  }
+}
+
+function ruleActionsHeld(rule, actions) {
+  return heldPaths(rule, actions).length > 0;
+}
+function heldPaths(rule, actions) {
+  const now = performance.now();
+  const out = [];
+  for (const a of (actions || rule.then || [])) {
+    if ((a.t === 'setParam' || a.t === 'rampParam') && a.path && runtime.manualHold[a.path] > now) out.push(a.path);
+  }
+  return out;
+}
+
+/* ---- the sequence (Composition) ---- */
+function sectionBarTotal() {
+  return (preset.sequence.sections || []).reduce((n, s) => n + Math.max(1, s.bars || 4), 0);
+}
+function tickSequence(now, ctx) {
+  const S = preset.sequence;
+  if (!S.enabled || !(S.sections || []).length) return;
+  if (!runtime.seq.running) { runtime.seq.running = true; runtime.seq.startedMs = now; runtime.seq.bar = 0; }
+  const bpm = preset.audio.tempo.bpm || 120;
+  const bars = (now - runtime.seq.startedMs) * bpm / 60000;
+  let acc = 0, idx = 0;
+  for (let i = 0; i < S.sections.length; i++) {
+    const len = Math.max(1, S.sections[i].bars || 4);
+    if (bars < acc + len) { idx = i; break; }
+    acc += len;
+    idx = i;
+  }
+  runtime.seq.bar = bars;
+  if (idx !== runtime.seq.section) {
+    runtime.seq.section = idx;
+    const sec = S.sections[idx];
+    if (sec && sec.sceneId) setScene(sec.sceneId, ctx);
+    logEvent('section', null, 'section → ' + (sec && (sec.name || sec.sceneId) || '#' + (idx + 1)));
+  }
+}
+
+function jumpToSection(index) {
+  const S = preset.sequence;
+  if (!S.enabled || !(S.sections || []).length) return;
+  let acc = 0;
+  for (let i = 0; i < index; i++) acc += Math.max(1, S.sections[i].bars || 4);
+  const bpm = preset.audio.tempo.bpm || 120;
+  runtime.seq.startedMs = performance.now() - (acc * 60000) / bpm;
+  runtime.seq.section = index;
+  const sec = S.sections[index];
+  if (sec && sec.sceneId) setScene(sec.sceneId, { now: performance.now() });
+}
+
+/* ---- ramps tick (called every frame, not on the logic tick) ---- */
+function tickRamps(now) {
+  if (!runtime.ramps.length) return;
+  for (let i = runtime.ramps.length - 1; i >= 0; i--) {
+    const r = runtime.ramps[i];
+    const t = clamp((now - r.t0) / r.ms, 0, 1);
+    const e = (EASE[r.easing] || EASE.smooth)(t);
+    runtime.overrides[r.path] = r.from + (r.to - r.from) * e;
+    if (t >= 1) runtime.ramps.splice(i, 1);
+  }
+}
+
+/* ============================================================
+   EVOLUTION — "The Nursery"
+
+   Presets become genomes. They may DRIFT (one preset, bounded, undoable)
+   or BREED (a population, rated by you, selected, crossed, mutated).
+   Every random draw comes from the seeded PRNG in the document.
+   ============================================================ */
+
+const DEVIATION_CAP = 0.35;      // how far a preset may leave its character
+const DRIFT_RATE = 0.25;         // max Δ per second, per gene
+const POPULATION_SIZE = 6;
+const ELITE_K = 2;
+
+/* the authored value of a gene path (the document, not the live layer) */
+function authoredValue(path) {
+  const v = getPath(preset, path);
+  return typeof v === 'number' ? v : 0;
+}
+
+/* how far the live preset has drifted from the authored one, normalised by
+   each gene's own range — so a 0.1 change in hue and a 0.1 change in
+   contrast are not counted the same. */
+function computeDeviation() {
+  const genes = preset.evolution.geneMap || [];
+  if (!genes.length) return 0;
+  let sum = 0, n = 0;
+  for (const g of genes) {
+    // The deviation measures the DRIFT only. A rule that ramps the bloom
+    // is not the preset losing its character — that is the rulebook doing
+    // its job, and counting it here made the meter read 0.400 of a 0.35 cap
+    // for a preset that had not drifted at all.
+    const cur = runtime.drift[g.path];
+    if (cur === undefined) continue;
+    const span = (g.max - g.min) || 1;
+    const d = (cur - authoredValue(g.path)) / span;
+    sum += d * d; n++;
+  }
+  return n ? Math.sqrt(sum / n) : 0;
+}
+
+/* DRIFT: one preset, wandering inside its bounds. The gravity well pulls
+   it back toward the authored personality as it approaches the cap, and the
+   document is never rewritten — the drift lives in the runtime layer, so
+   one click reverts it. */
+function driftStep(dtSec, force) {
+  const E = preset.evolution;
+  if (!force && (!E.enabled || E.mode !== 'drift')) return runtime.deviation;
+  const genes = E.geneMap || [];
+  if (!genes.length) return runtime.deviation;
+  const dev = computeDeviation();
+  runtime.deviation = dev;
+  // the well: past the cap, deltas shrink toward zero, so the preset
+  // cannot silently become a different preset.
+  const pull = dev >= DEVIATION_CAP ? Math.max(0, 1 - (dev - DEVIATION_CAP) / DEVIATION_CAP) : 1;
+  for (const g of genes) {
+    if (g.locked) continue;
+    // a manual edit holds the drift off this gene too
+    if (runtime.manualHold[g.path] > performance.now()) continue;
+    const cur = runtime.drift[g.path];
+    const base = cur === undefined ? authoredValue(g.path) : cur;
+    // The rate is per SECOND: a drift step moves the value by at most
+    // DRIFT_RATE × σ per second. (It was multiplied by 60 as well, so the
+    // preset wandered fifteen times faster than the limit says.)
+    let delta = rngGaussian(g.sigma) * DRIFT_RATE * dtSec * pull;
+    if (rngNext() < 0.03 * dtSec) delta += rngGaussian(g.sigma * 6) * pull;   // rare jump
+    const next = clamp(base + delta, g.min, g.max);
+    runtime.drift[g.path] = next;
+  }
+  // The cap is a HARD limit, not a tendency: a single jump mutation can
+  // step straight over it (drift reached 0.4356 against a 0.35 cap), so
+  // the offsets are projected back onto the cap sphere.
+  const after = computeDeviation();
+  if (after > DEVIATION_CAP) {
+    const k = DEVIATION_CAP / after;
+    for (const g of genes) {
+      if (g.locked) continue;
+      const a = authoredValue(g.path);
+      const cur = runtime.drift[g.path];
+      if (cur === undefined) continue;
+      runtime.drift[g.path] = clamp(a + (cur - a) * k, g.min, g.max);
+    }
+  }
+  runtime.deviation = computeDeviation();
+  return runtime.deviation;
+}
+
+/* undo stack for drift — a snapshot of the live layer before each step */
+function pushUndo() {
+  runtime.undo.push(JSON.stringify(runtime.drift));
+  if (runtime.undo.length > 50) runtime.undo.shift();
+}
+function revertDrift() {
+  // Only the DRIFT is reverted. The rulebook's live state belongs to the
+  // rulebook: wiping it here would silently disarm every rule the user
+  // had running.
+  runtime.drift = {};
+  runtime.undo = [];
+  runtime.deviation = 0;
+  logEvent('evolution', null, 'reverted to the authored preset');
+  renderEvolution();
+}
+
+/* ---- breeding ---- */
+function genomeFromPreset() {
+  const out = {};
+  for (const g of (preset.evolution.geneMap || [])) out[g.path] = authoredValue(g.path);
+  return out;
+}
+function genomeValues(genome) {
+  const out = {};
+  for (const g of (preset.evolution.geneMap || [])) {
+    const v = genome[g.path];
+    out[g.path] = typeof v === 'number' ? v : authoredValue(g.path);
+  }
+  return out;
+}
+function applyGenome(genome) {
+  for (const g of (preset.evolution.geneMap || [])) {
+    const v = genome[g.path];
+    if (typeof v === 'number') runtime.drift[g.path] = v;
+  }
+}
+
+function spawnPopulation() {
+  const E = preset.evolution;
+  const pop = [];
+  for (let i = 0; i < POPULATION_SIZE; i++) {
+    const genome = genomeFromPreset();
+    // the founders wander a little so they are not identical
+    for (const g of (E.geneMap || [])) {
+      if (g.locked) continue;
+      genome[g.path] = clamp(genome[g.path] + rngGaussian(g.sigma * 3), g.min, g.max);
+    }
+    pop.push({
+      id: uid('i_'), genome, fitness: 0, age: 0, parents: [],
+      createdAt: Date.now(), rated: false, rating: 0, dwellMs: 0,
+    });
+  }
+  E.population = pop;
+  E.generation = 0;
+  E.lineage = [];
+  logEvent('evolution', null, 'population of ' + POPULATION_SIZE + ' founded (generation 0)');
+  renderEvolution();
+}
+
+function rateIndividual(id, stars) {
+  const E = preset.evolution;
+  const ind = (E.population || []).find(i => i.id === id);
+  if (!ind) return;
+  ind.rated = true;
+  ind.rating = stars;
+  // Fitness: the rating, weighted with dwell time, with stability only as a
+  // tiebreaker.
+  const dwellBonus = Math.min(0.5, (ind.dwellMs || 0) / 60000);
+  const dev = genomeDeviation(ind.genome);
+  const stability = 1 - clamp(dev / DEVIATION_CAP, 0, 1);
+  ind.fitness = +(stars + dwellBonus + stability * 0.2).toFixed(4);
+  logEvent('evolution', null, 'rated ' + stars + '★ (fitness ' + ind.fitness + ')');
+  renderEvolution();
+}
+
+function genomeDeviation(genome) {
+  const genes = preset.evolution.geneMap || [];
+  let sum = 0, n = 0;
+  for (const g of genes) {
+    const span = (g.max - g.min) || 1;
+    const d = ((genome[g.path] ?? authoredValue(g.path)) - authoredValue(g.path)) / span;
+    sum += d * d; n++;
+  }
+  return n ? Math.sqrt(sum / n) : 0;
+}
+
+function tournamentSelect(pop) {
+  const size = 3;
+  let best = null;
+  for (let i = 0; i < size; i++) {
+    const c = pop[Math.floor(rngNext() * pop.length)];
+    if (!best || c.fitness > best.fitness) best = c;
+  }
+  return best;
+}
+
+function crossover(a, b, mode) {
+  const genes = preset.evolution.geneMap || [];
+  const child = {};
+  for (const g of genes) {
+    const va = a[g.path], vb = b[g.path];
+    if (g.kind === 'int') {
+      child[g.path] = Math.round(rngNext() < 0.5 ? va : vb);
+    } else if (mode === 'blend') {
+      const w = rngNext();
+      child[g.path] = va * w + vb * (1 - w);
+    } else {
+      child[g.path] = rngNext() < 0.5 ? va : vb;
+    }
+  }
+  return child;
+}
+
+function mutateGenome(genome) {
+  const genes = preset.evolution.geneMap || [];
+  const out = { ...genome };
+  for (const g of genes) {
+    if (g.locked) continue;
+    let d = rngGaussian(g.sigma);
+    if (rngNext() < 0.02) d += rngGaussian(g.sigma * 8);   // rare jump
+    let v = (out[g.path] ?? authoredValue(g.path)) + d;
+    if (g.kind === 'int') v = Math.round(v);
+    out[g.path] = clamp(v, g.min, g.max);
+  }
+  return out;
+}
+
+function breedGeneration() {
+  const E = preset.evolution;
+  const pop = (E.population || []).slice();
+  if (!pop.length) { spawnPopulation(); return; }
+  pop.sort((a, b) => b.fitness - a.fitness);
+
+  const next = [];
+  // elitism: the best survive unmutated
+  for (let i = 0; i < Math.min(ELITE_K, pop.length); i++) {
+    next.push({ ...pop[i], id: uid('i_'), parents: [pop[i].id], age: pop[i].age + 1, createdAt: Date.now(), rated: false, rating: 0, dwellMs: 0 });
+  }
+  // the rest: tournament → crossover → mutation
+  while (next.length < POPULATION_SIZE) {
+    const a = tournamentSelect(pop), b = tournamentSelect(pop);
+    let child = crossover(genomeValues(a.genome), genomeValues(b.genome), 'uniform');
+    child = mutateGenome(child);
+    next.push({ id: uid('i_'), genome: child, fitness: 0, age: 1, parents: [a.id, b.id], createdAt: Date.now(), rated: false, rating: 0, dwellMs: 0 });
+  }
+  E.population = next;
+  E.generation = (E.generation || 0) + 1;
+  E.lineage.push({
+    id: uid('g_'), generation: E.generation,
+    parents: next.map(i => i.parents).flat(),
+    children: next.map(i => i.id),
+    at: Date.now(),
+  });
+  logEvent('evolution', null, 'generation ' + E.generation + ' bred');
+  renderEvolution();
+}
+
+/* export an ancestor as a standalone preset */
+function exportAncestor(genome, label) {
+  const p = clone(preset);
+  p.id = uid('p_');
+  p.name = (label || 'Ancestor') + ' · ' + (preset.name || 'preset');
+  p.created = Date.now(); p.modified = Date.now();
+  for (const g of (preset.evolution.geneMap || [])) {
+    const v = genome[g.path];
+    if (typeof v === 'number') setPath(p, g.path, v);
+  }
+  p.evolution = {
+    ...DEFAULT_EVOLUTION, mode: 'off',
+    geneMap: clone(preset.evolution.geneMap || []),
+    seed: preset.evolution.seed, rngState: preset.evolution.rngState,
+  };
+  store.presets[p.id] = p;
+  persist();
+  syncPresetSelect();
+  toast('Exported "' + p.name + '"');
+  return p;
+}
+
+/* ---- the audition: the population takes turns on the stage ---- */
+function auditionStep(now) {
+  const E = preset.evolution;
+  if (!E.enabled || E.mode !== 'breeding') return;
+  const pop = E.population || [];
+  if (!pop.length) { spawnPopulation(); return; }
+  const current = pop[E.audition === null || E.audition === undefined ? 0 : E.audition];
+  if (current) current.dwellMs = (current.dwellMs || 0) + 100;
+  if (!E.auditionAt) E.auditionAt = now;
+  if (now - E.auditionAt > 4000) {
+    E.auditionAt = now;
+    const nextIndex = ((E.audition === null || E.audition === undefined ? 0 : E.audition) + 1) % pop.length;
+    E.audition = nextIndex;
+    const ind = pop[nextIndex];
+    if (ind) {
+      applyGenome(ind.genome);
+      logEvent('evolution', null, 'auditioning ' + (nextIndex + 1) + '/' + pop.length);
+    }
+    renderEvolution();
+  }
 }
 
 /* ============================================================
@@ -650,7 +1779,23 @@ function normalize(raw) {
       enabled: L.enabled !== false,
       opacity: clamp(num(L.opacity, 1), 0, 1),
       blend: BLENDS.includes(L.blend) ? L.blend : 'lighter',
-      params: { ...LAYER_TYPES[type].defaults, ...(L.params || {}) }
+      params: { ...LAYER_TYPES[type].defaults, ...(L.params || {}) },
+      // the audio-reactivity maps: feature → parameter, through a curve
+      react: Array.isArray(L.react) ? L.react
+        .filter(r => r && REACT_CURVES[r.curve || 'linear'] && r.param)
+        .map(r => ({
+          feature: REACT_FEATURES.includes(r.feature) ? r.feature : 'bass',
+          param: r.param,
+          amount: num(r.amount, 0.5),
+          curve: r.curve || 'linear',
+          mode: r.mode === 'mul' ? 'mul' : 'add',
+        })) : [],
+      // lock: the layer cannot be edited or reordered
+      locked: L.locked === true,
+      // freeze: the geometry is held; the colour pipeline keeps running
+      frozen: L.frozen === true,
+      frozenAt: typeof L.frozenAt === 'number' ? L.frozenAt : null,
+      frozenFeatures: L.frozenFeatures && typeof L.frozenFeatures === 'object' ? L.frozenFeatures : null,
     };
   });
 
@@ -667,7 +1812,7 @@ function normalize(raw) {
   }));
 
   p.personality = derivePersonality(p);
-  return p;
+  return withSubsystems(p);
 }
 
 /* ============================================================
@@ -675,19 +1820,35 @@ function normalize(raw) {
    Preset values are the base; the user's direction is an additive lens.
    ============================================================ */
 function resolve(p) {
-  const s = p.steer || defaultSteer();
-  const g = p.global;
-  const b = clamp(s.blend ?? 0.45, 0, 1);
+  const s0 = p.steer || defaultSteer();
+  const g0 = p.global;
+  // The runtime layer (rules, scenes, evolution) enters HERE and nowhere
+  // else: the render path never reads it directly.
+  const s = {
+    blend: ovGet('steer.blend', s0.blend ?? 0.45),
+    palette: ovGet('steer.palette', s0.palette),
+    paletteAmount: ovGet('steer.paletteAmount', s0.paletteAmount ?? 0.55),
+    mood: s0.mood || {},
+    filters: s0.filters || {},
+  };
+  const g = {
+    hue: ovGet('global.hue', g0.hue),
+    saturation: ovGet('global.saturation', g0.saturation),
+    bloom: ovGet('global.bloom', g0.bloom),
+    contrast: ovGet('global.contrast', g0.contrast),
+    speed: ovGet('global.speed', g0.speed),
+  };
+  const b = clamp(s.blend, 0, 1);
 
   const m = s.mood || {};
-  const warmth   = (m.warmth   || 0) * b;
-  const energy   = (m.energy   || 0) * b;
-  const density  = (m.density  || 0) * b;
-  const softness = (m.softness || 0) * b;
-  const order    = (m.order    || 0) * b;
+  const warmth   = ovGet('steer.mood.warmth',   m.warmth   || 0) * b;
+  const energy   = ovGet('steer.mood.energy',   m.energy   || 0) * b;
+  const density  = ovGet('steer.mood.density',  m.density  || 0) * b;
+  const softness = ovGet('steer.mood.softness', m.softness || 0) * b;
+  const order    = ovGet('steer.mood.order',    m.order    || 0) * b;
 
   const pal = PALETTES[s.palette] || PALETTES.auto;
-  const pa  = s.palette === 'auto' ? 0 : clamp(s.paletteAmount ?? 0.55, 0, 1);
+  const pa  = s.palette === 'auto' ? 0 : clamp(s.paletteAmount, 0, 1);
 
   let hue = g.hue + pal.hueShift * pa + warmth * 0.09;
   hue = ((hue % 1) + 1) % 1;
@@ -708,13 +1869,13 @@ function resolve(p) {
 
   const f = s.filters || {};
   const filters = {
-    trails:     clamp((f.trails     ?? 0.40) + energy * 0.15,           0, 0.95),
-    grain:      clamp((f.grain      ?? 0.10) + softness * 0.18,         0, 1),
-    scanlines:  clamp((f.scanlines  ?? 0.00) + order * 0.15,            0, 1),
-    vignette:   clamp((f.vignette   ?? 0.22) + softness * 0.15,         0, 1),
-    aberration: clamp((f.aberration ?? 0.00) + Math.abs(energy) * 0.25, 0, 1),
-    wash:       clamp((f.wash       ?? 0.15) + warmth * 0.20,           0, 1),
-    glow:       clamp((f.glow       ?? 0.35) + softness * 0.30,         0, 1)
+    trails:     clamp(ovGet('steer.filters.trails',     f.trails     ?? 0.40) + energy * 0.15,           0, 0.95),
+    grain:      clamp(ovGet('steer.filters.grain',      f.grain      ?? 0.10) + softness * 0.18,         0, 1),
+    scanlines:  clamp(ovGet('steer.filters.scanlines',  f.scanlines  ?? 0.00) + order * 0.15,            0, 1),
+    vignette:   clamp(ovGet('steer.filters.vignette',   f.vignette   ?? 0.22) + softness * 0.15,         0, 1),
+    aberration: clamp(ovGet('steer.filters.aberration', f.aberration ?? 0.00) + Math.abs(energy) * 0.25, 0, 1),
+    wash:       clamp(ovGet('steer.filters.wash',       f.wash       ?? 0.15) + warmth * 0.20,           0, 1),
+    glow:       clamp(ovGet('steer.filters.glow',       f.glow       ?? 0.35) + softness * 0.30,         0, 1)
   };
 
   return { hue, sat, bloom, contrast, speed, countMul, opacityMul, jitterMul, thickMul, filters, pal, pa, blend: b };
@@ -849,16 +2010,238 @@ function updateSummary() {
     .map(x => `${x.m.key} ${x.v > 0 ? '+' : ''}${x.v.toFixed(2)}`)
     .join(' · ') || 'no mood offset';
 
+  const frozenCount = (preset.layers || []).filter(L => L.frozen).length;
+  const lockedCount = (preset.layers || []).filter(L => L.locked).length;
+  const stateBits = [];
+  if (frozenCount) stateBits.push(`<span class="k">${frozenCount}❄</span> frozen`);
+  if (lockedCount) stateBits.push(`<span class="k">${lockedCount}⚿</span> locked`);
+
   $('#summary').innerHTML =
     `<b>Preset voice:</b> <span class="k">${Math.round((1 - R.blend) * 100)}%</span> · ` +
     `<b>Your direction:</b> <span class="k">${Math.round(R.blend * 100)}%</span><br>` +
     `<b>Palette:</b> ${palLabel} &nbsp;·&nbsp; <b>Resulting hue:</b> ${R.hue.toFixed(2)}<br>` +
     `<b>Mood offsets:</b> ${moodTxt}` +
+    (stateBits.length ? `<br><b>Layer state:</b> ${stateBits.join(' · ')}` : '') +
     `<div class="traitchips">${chips}</div>`;
 
   $('#dirBadgeTxt').textContent =
     (R.pa > 0 ? R.pal.label.toLowerCase() : 'auto') +
     (R.blend > 0.05 ? ` · ${Math.round(R.blend * 100)}% you` : '');
+}
+
+/* the REACTIVE badge: the preset has audio-reactive layers */
+function updateReactBadge() {
+  const b = $('#reactBadge');
+  if (!b) return;
+  const mul = preset.audio?.reactivity ?? 1;
+  const any = (preset.layers || []).some(L => L.react && L.react.length);
+  if (any && mul > 0) {
+    b.classList.add('on');
+    b.textContent = `◉ REACTIVE ×${mul.toFixed(2)}`;
+  } else {
+    b.classList.remove('on');
+  }
+}
+
+/* ============================================================
+   LIBRARY
+   ============================================================ */
+function renderLibrary() {
+  const host = $('#libGrid');
+  if (!host) return;
+  host.innerHTML = BUILTIN_PRESETS.map((b, i) => {
+    const chips = (b.tags || []).map(t => `<span>${esc(t)}</span>`).join('');
+    const reactCount = b.layers.reduce((a, L) => a + (L.react ? L.react.length : 0), 0);
+    return `<div class="lib-card">
+      <div class="lib-head">
+        <b>${esc(b.name)}</b>
+        <span class="lib-badge ${b.profile}">${esc(b.profile)}</span>
+      </div>
+      <p class="lib-desc">${esc(b.description)}</p>
+      <div class="lib-chips">${chips}</div>
+      <div class="lib-foot">
+        <span class="lib-react">${b.layers.length} layer${b.layers.length > 1 ? 's' : ''} · ${reactCount} reactive map${reactCount !== 1 ? 's' : ''}</span>
+        <button data-lib="${i}" class="primary">Load →</button>
+      </div>
+      <div class="lib-algo">⚙ ${esc(b.algorithm)}</div>
+    </div>`;
+  }).join('');
+}
+
+function loadFromLibrary(idx) {
+  const b = BUILTIN_PRESETS[idx];
+  if (!b) return;
+  const p = normalize({ ...clone(b), id: uid('p_'), name: b.name, created: Date.now(), builtin: true });
+  store.presets[p.id] = p;
+  store.current = p.id;
+  preset = p;
+  resetLiveLayer();
+  persist();
+  renderAll();
+  toast('Loaded "' + b.name + '" — ' + b.profile);
+}
+
+/* ============================================================
+   DRAG TO REORDER (pointer events — mouse and touch)
+   ============================================================ */
+let dragState = null;
+
+function layerCards() {
+  return [...document.querySelectorAll('#layers .card')];
+}
+
+function computeDropTarget(y, ds) {
+  for (const c of ds.cards) {
+    if (c.id === ds.srcId) continue;
+    const mid = c.rect.top + c.rect.height / 2;
+    if (y < mid) return { el: c.el, id: c.id, before: true };
+  }
+  const others = ds.cards.filter(c => c.id !== ds.srcId);
+  if (others.length) {
+    const last = others[others.length - 1];
+    return { el: last.el, id: last.id, before: false };
+  }
+  return null;
+}
+
+function clearDragMarks() {
+  document.querySelectorAll('#layers .card.dragging, #layers .card.drop-before, #layers .card.drop-after')
+    .forEach(c => { c.classList.remove('dragging', 'drop-before', 'drop-after'); c.style.transform = ''; });
+}
+
+function installDragToReorder() {
+  const host = $('#layers');
+  if (!host || host._dragInstalled) return;
+  host._dragInstalled = true;
+
+  host.addEventListener('pointerdown', e => {
+    const handle = e.target.closest('.drag-handle');
+    if (!handle) return;
+    if (handle.classList.contains('locked')) return;         // locked: no drag
+    const card = handle.closest('.card');
+    if (!card) return;
+    const id = card.dataset.layerId;
+    const layer = preset.layers.find(L => L.id === id);
+    if (!layer || layer.locked) return;
+
+    e.preventDefault();
+    try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+
+    dragState = {
+      srcId: id,
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      cards: layerCards().map(c => {
+        const r = c.getBoundingClientRect();
+        return { el: c, id: c.dataset.layerId, rect: r };
+      }),
+    };
+    card.classList.add('dragging');
+  });
+
+  host.addEventListener('pointermove', e => {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    e.preventDefault();
+    const dy = e.clientY - dragState.startY;
+    const src = document.querySelector(`#layers .card[data-layer-id="${dragState.srcId}"]`);
+    if (src) src.style.transform = `translateY(${dy}px)`;
+    document.querySelectorAll('#layers .card.drop-before, #layers .card.drop-after')
+      .forEach(c => c.classList.remove('drop-before', 'drop-after'));
+    const target = computeDropTarget(e.clientY, dragState);
+    if (target) target.el.classList.add(target.before ? 'drop-before' : 'drop-after');
+  });
+
+  const finish = (e) => {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    e.preventDefault();
+    const target = computeDropTarget(e.clientY, dragState);
+    const reordered = target && target.id !== dragState.srcId;
+    if (reordered) {
+      const srcIdx = preset.layers.findIndex(L => L.id === dragState.srcId);
+      const dstIdx = preset.layers.findIndex(L => L.id === target.id);
+      if (srcIdx >= 0 && dstIdx >= 0) {
+        const [moved] = preset.layers.splice(srcIdx, 1);
+        let insertAt = dstIdx;
+        if (srcIdx < dstIdx) insertAt = dstIdx - 1;
+        insertAt = clamp(target.before ? insertAt : insertAt + 1, 0, preset.layers.length);
+        preset.layers.splice(insertAt, 0, moved);
+      }
+    }
+    clearDragMarks();
+    dragState = null;
+    if (reordered) {
+      renderLayers();
+      renderLfos();
+      touch(false);
+      toast('Layer reordered');
+    }
+  };
+  host.addEventListener('pointerup', finish);
+  host.addEventListener('pointercancel', (e) => {
+    if (!dragState || e.pointerId !== dragState.pointerId) return;
+    clearDragMarks();
+    dragState = null;
+  });
+}
+
+/* ============================================================
+   LAYER STATE — lock & freeze
+   ============================================================ */
+function toggleLayerLock(i) {
+  const L = preset.layers[i];
+  if (!L) return;
+  L.locked = !L.locked;
+  renderLayers();
+  touch(false);
+  toast(L.locked ? '⚿ Layer locked — editing and reordering are off' : 'Layer unlocked');
+}
+
+function toggleLayerFreeze(i) {
+  const L = preset.layers[i];
+  if (!L) return;
+  L.frozen = !L.frozen;
+  if (L.frozen) {
+    // the freeze is a snapshot: the geometry is held from here on
+    L.frozenAt = liveTT;
+    L.frozenFeatures = liveF ? { ...liveF } : null;
+  } else {
+    L.frozenAt = null;
+    L.frozenFeatures = null;
+  }
+  renderLayers();
+  touch(false);
+  toast(L.frozen ? '❄ Layer frozen — the geometry is held, colour and alpha stay live' : 'Layer unfrozen');
+}
+
+/* ============================================================
+   AUDIO REACTIVITY
+
+   A layer's `react` maps are feature → parameter, through a curve. The
+   result is written into a per-frame copy of the parameters — the
+   document is never touched.
+   ============================================================ */
+function applyReactivity(L, feat, mult, out) {
+  if (!L.react || !L.react.length || mult <= 0) return out;
+  for (const r of L.react) {
+    const fv = clamp(feat[r.feature] ?? 0, 0, 3);
+    const curve = REACT_CURVES[r.curve] || REACT_CURVES.linear;
+    const amt = curve(fv) * (r.amount ?? 1) * mult;
+    if (r.param === 'opacity') {
+      out.opacity = clamp((out.opacity ?? 1) + amt, 0, 2);
+      continue;
+    }
+    if (!(r.param in out.params)) continue;
+    const base = out.params[r.param];
+    if (typeof base !== 'number') continue;
+    let v = r.mode === 'mul' ? base * (1 + amt) : base + amt;
+    const spec = PARAM_SPEC[r.param];
+    if (spec && !spec.bool) {
+      v = clamp(v, spec.min, spec.max);
+      if (['count', 'cols', 'rows'].includes(r.param)) v = Math.max(3, Math.round(v));
+    }
+    out.params[r.param] = v;
+  }
+  return out;
 }
 
 /* ============================================================
@@ -867,24 +2250,32 @@ function updateSummary() {
 function layerCard(L, i) {
   const params = Object.entries(L.params)
     .map(([k, v]) => paramControl(k, v, `layers.${i}.params.${k}`)).join('');
-  return `<div class="card">
+  const reactChips = (L.react || []).map(r =>
+    `<span>${esc(r.feature)} → ${esc(r.param)} (${esc(r.curve)} ${r.amount.toFixed(2)})</span>`).join('');
+  const dis = L.locked ? 'disabled' : '';
+
+  return `<div class="card ${L.locked ? 'locked' : ''} ${L.frozen ? 'frozen' : ''}" data-layer-id="${L.id}" data-li="${i}">
     <div class="card-head">
+      <span class="drag-handle ${L.locked ? 'locked' : ''}" title="${L.locked ? 'Locked — cannot be dragged' : 'Drag to reorder'}">⠿</span>
       <span class="dot" style="background:${L.enabled ? 'var(--neon)' : '#3a4757'}; box-shadow:${L.enabled ? '0 0 8px rgba(77,227,208,.8)' : 'none'}"></span>
-      <select data-path="layers.${i}.type" data-type="string" aria-label="Layer type">
+      <select data-path="layers.${i}.type" data-type="string" aria-label="Layer type" ${dis}>
         ${Object.entries(LAYER_TYPES).map(([k, v]) => `<option value="${k}" ${k === L.type ? 'selected' : ''}>${v.label}</option>`).join('')}
       </select>
-      <input class="nm" type="text" data-path="layers.${i}.name" data-type="string" value="${esc(L.name)}" placeholder="layer name" aria-label="Layer name">
-      <label class="chk"><input type="checkbox" data-path="layers.${i}.enabled" data-type="bool" ${L.enabled ? 'checked' : ''}> on</label>
-      <button data-act="up" data-i="${i}" title="Move up" aria-label="Move layer up">↑</button>
-      <button data-act="down" data-i="${i}" title="Move down" aria-label="Move layer down">↓</button>
-      <button data-act="dup" data-i="${i}" title="Duplicate" aria-label="Duplicate layer">⧉</button>
-      <button data-act="del" data-i="${i}" class="danger" title="Delete" aria-label="Delete layer">✕</button>
+      <input class="nm" type="text" data-path="layers.${i}.name" data-type="string" value="${esc(L.name)}" placeholder="layer name" aria-label="Layer name" ${dis}>
+      <label class="chk"><input type="checkbox" data-path="layers.${i}.enabled" data-type="bool" ${L.enabled ? 'checked' : ''} ${dis}> on</label>
+      <button class="toggle-btn ${L.locked ? 'active' : ''}" data-act="lock" data-i="${i}" title="Lock — the layer cannot be edited or reordered" aria-label="Lock layer">⚿</button>
+      <button class="toggle-btn ${L.frozen ? 'active' : ''}" data-act="freeze" data-i="${i}" title="Freeze — hold the geometry; colour and alpha stay live" aria-label="Freeze layer">❄</button>
+      <button data-act="up" data-i="${i}" title="Move up" aria-label="Move layer up" ${dis}>↑</button>
+      <button data-act="down" data-i="${i}" title="Move down" aria-label="Move layer down" ${dis}>↓</button>
+      <button data-act="dup" data-i="${i}" title="Duplicate" aria-label="Duplicate layer" ${dis}>⧉</button>
+      <button data-act="del" data-i="${i}" class="danger" title="Delete" aria-label="Delete layer" ${dis}>✕</button>
     </div>
     <div class="grid2">
       ${rangeHTML('opacity', L.opacity, `layers.${i}.opacity`, 0, 1, 0.01)}
       ${selectHTML('blend', L.blend, `layers.${i}.blend`, BLENDS)}
     </div>
     <div class="grid3">${params || '<span class="hint">no parameters</span>'}</div>
+    <div class="react-chips">${reactChips || '<span style="opacity:.45">no audio reactivity</span>'}</div>
   </div>`;
 }
 
@@ -893,6 +2284,15 @@ function renderLayers() {
   host.innerHTML = preset.layers.length
     ? preset.layers.map(layerCard).join('')
     : '<div class="empty">No layers yet — add one to start shaping the look.</div>';
+
+  // A locked layer is inert: every control on its card is disabled except
+  // the lock toggle itself (which is how you unlock it again).
+  host.querySelectorAll('.card.locked').forEach(card => {
+    card.querySelectorAll('input, select, textarea, button').forEach(el => {
+      if (el.dataset.act === 'lock') return;
+      el.disabled = true;
+    });
+  });
 }
 
 function targetOptions(sel) {
@@ -969,12 +2369,17 @@ function renderAll() {
   buildMoodUI();
   buildVibesUI();
   buildPalettesUI();
+  renderLibrary();
   renderLayers();
   renderLfos();
   syncStatic();
   syncHeader();
   updateSummary();
+  updateReactBadge();
   updateAudioHint();
+  renderLogic();
+  renderEvolution();
+  renderAutopilot();
   $('#jsonBox').value = JSON.stringify(preset, null, 2);
 }
 
@@ -991,7 +2396,21 @@ function onEdit(e) {
   if (type === 'number') v = num(v, 0);
   if (type === 'bool') v = !!v;
 
+  // a locked layer does not take edits
+  const lm = path.match(/^layers\.(\d+)\./);
+  if (lm) {
+    const L = preset.layers[+lm[1]];
+    if (L && L.locked) return;
+  }
+
   setPath(preset, path, v);
+
+  // A manual edit WINS: the rules are held off this parameter for a
+  // visible window, so an autonomous rule cannot fight the user's hand.
+  if (path.startsWith('global.') || path.startsWith('steer.') || path.startsWith('layers.')) {
+    runtime.manualHold[path] = performance.now() + 4000;
+    logEvent('held', null, 'manual edit on ' + path + ' — rules held 4s');
+  }
 
   const out = t.parentElement && t.parentElement.querySelector('output');
   if (out) out.textContent = fmt(v);
@@ -1030,11 +2449,10 @@ document.addEventListener('click', e => {
   if (vibeBtn) { applyVibe(vibeBtn.dataset.vibe); return; }
 
   const palBtn = e.target.closest('[data-pal]');
-  if (palBtn) {
-    preset.steer.palette = palBtn.dataset.pal;
-    syncStatic(); touch(false);
-    return;
-  }
+  if (palBtn) { preset.steer.palette = palBtn.dataset.pal; syncStatic(); touch(false); return; }
+
+  const libBtn = e.target.closest('[data-lib]');
+  if (libBtn) { loadFromLibrary(Number(libBtn.dataset.lib)); return; }
 
   const btn = e.target.closest('[data-act],[data-cmd]');
   if (!btn) return;
@@ -1043,9 +2461,17 @@ document.addEventListener('click', e => {
 
   const act = btn.dataset.act;
   const i = Number(btn.dataset.i);
+
+  // lock & freeze act on the layer itself
+  if (act === 'lock') { toggleLayerLock(i); return; }
+  if (act === 'freeze') { toggleLayerFreeze(i); return; }
+
   const isLfo = btn.dataset.kind === 'lfo';
   const arr = isLfo ? preset.lfos : preset.layers;
   const rerender = isLfo ? renderLfos : renderLayers;
+
+  // a locked layer cannot be moved or removed
+  if (!isLfo && arr[i] && arr[i].locked) return;
 
   if (act === 'up' && i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; rerender(); touch(false); }
   else if (act === 'down' && i < arr.length - 1) { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; rerender(); touch(false); }
@@ -1053,12 +2479,14 @@ document.addEventListener('click', e => {
     const copy = clone(arr[i]);
     copy.id = uid(isLfo ? 'm_' : 'l_');
     copy.name = (copy.name || 'copy') + ' copy';
+    if (!isLfo) { copy.locked = false; copy.frozen = false; copy.frozenAt = null; copy.frozenFeatures = null; }
     arr.splice(i + 1, 0, copy);
     rerender(); touch(false);
   }
   else if (act === 'del') {
     arr.splice(i, 1);
     rerender();
+    if (isLfo) renderLfos();
     touch(false);
   }
 });
@@ -1131,6 +2559,49 @@ function runCommand(cmd) {
       syncStatic(); touch(false); toast('Direction randomized');
       break;
     }
+    /* ---- logic ---- */
+    case 'addRule': {
+      const rule = {
+        id: uid('r_'), name: 'new rule', enabled: true, priority: 0, mode: 'edge',
+        when: { k: 'all', of: [{ k: 'feature', name: 'bass', op: '>', threshold: 0.7, sustainMs: 300 }] },
+        then: [{ t: 'rampParam', path: 'global.bloom', value: 1, ms: 400, easing: 'smooth' }],
+        else: [], cooldownMs: 2000, once: false,
+      };
+      preset.logic.rules.push(rule);
+      renderRules(); touch(false); toast('Rule added');
+      break;
+    }
+    case 'addScene': {
+      const id = uid('s_');
+      preset.logic.scenes.push({ id, name: 'scene ' + (preset.logic.scenes.length + 1), overrides: {}, transitionMs: 400, easing: 'smooth', entryRules: [], exitRules: [] });
+      renderScenes(); touch(false); toast('Scene added');
+      break;
+    }
+    case 'addSection': {
+      preset.sequence.sections.push({ name: 'section ' + (preset.sequence.sections.length + 1), sceneId: '', bars: 4 });
+      renderSections(); renderTimeline(); touch(false);
+      break;
+    }
+    case 'dryRun': {
+      const fires = dryRun(30);
+      const summary = fires.length
+        ? fires.slice(0, 12).map(f => f.t + 's ' + f.rule + ' (' + f.actions + ')').join(' · ')
+        : 'nothing would fire';
+      toast(fires.length ? 'Dry run: ' + fires.length + ' firings — ' + summary : 'Dry run: nothing would fire');
+      logEvent('dryrun', null, '30s dry run → ' + fires.length + ' firings');
+      break;
+    }
+    case 'clearLog': runtime.events = []; renderEventLog(); break;
+    case 'loadPack': {
+      const pack = RULE_PACKS[cmd.slice(8)] || RULE_PACKS['pulse bloom'];
+      preset.logic.rules.push({ ...pack, id: uid('r_') });
+      renderRules(); touch(false); toast('Rule pack loaded: ' + pack.name);
+      break;
+    }
+    /* ---- evolution ---- */
+    case 'evoFound': spawnPopulation(); touch(false); break;
+    case 'evoBreed': breedGeneration(); touch(false); break;
+    case 'evoRevert': revertDrift(); touch(false); break;
     case 'jsonLoad':
       $('#jsonBox').value = JSON.stringify(preset, null, 2);
       toast('Loaded from editor');
@@ -1170,6 +2641,7 @@ $('#presetSelect').addEventListener('change', e => {
   if (dirty) { store.presets[preset.id] = preset; persist(); }
   store.current = e.target.value;
   preset = normalize(store.presets[store.current]);
+  resetLiveLayer();
 
   if (keep) preset.steer = carried;
 
@@ -1212,6 +2684,9 @@ $$('.tabs button').forEach(b => b.addEventListener('click', () => {
   $$('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === b.dataset.tab));
   if (b.dataset.tab === 'json') $('#jsonBox').value = JSON.stringify(preset, null, 2);
   if (b.dataset.tab === 'steer') updateSummary();
+  // the autonomous panels show live state, so they are rebuilt on entry
+  if (b.dataset.tab === 'logic') { renderLogic(); renderTimeline(); }
+  if (b.dataset.tab === 'evolution') renderEvolution();
 }));
 
 /* ============================================================
@@ -1312,18 +2787,30 @@ const smooth = { sub: 0, bass: 0, mid: 0, treble: 0, air: 0, rms: 0, centroid: 0
 function demoSynth(t) {
   const bpm = preset.audio.tempo.bpm || 120;
   const beat = (t * bpm / 60) % 1;
+  const phrase = (t * bpm / 60) % 4;        // a four-beat phrase
   const pulse = Math.exp(-beat * 5.5);
   // The off-beat half of the pulse. (This constant was a stray emoji in the
   // supplied source — a syntax error that stopped the whole script parsing.)
   const off = Math.exp(-(((beat + 0.5) % 1)) * 5.5);
   const kick = Math.max(pulse, off);
+  // The kick is loud on purpose: the demo signal is smoothed (0.72 by
+  // default), and a peak that only reached 0.9 raw never crossed 0.7
+  // after smoothing — so a rule written as "bass > 0.7" could not fire on
+  // the demo at all. The raw peak now clears the smoothing comfortably.
+  //
+  // The HOLD is the other half: a decaying kick is above the threshold for
+  // ~90ms and then falls back, so a rule that must HOLD for 300ms would
+  // never fire on a pulse. The downbeat of every phrase holds the low end
+  // for a beat and a half, which is what a sustained bass actually looks
+  // like — and it makes "bass > 0.7 for 300ms" observable on the demo.
+  const hold = phrase < 1.5 ? 0.55 : 0;
   return {
-    sub: 0.35 + kick * 0.55,
-    bass: 0.30 + kick * 0.60,
+    sub: 0.35 + kick * 0.75 + hold * 0.4,
+    bass: 0.28 + kick * 1.15 + hold,
     mid: 0.35 + 0.22 * Math.sin(t * 1.9) + 0.10 * Math.sin(t * 5.3),
     treble: 0.28 + 0.25 * Math.abs(Math.sin(t * 3.1)),
     air: 0.20 + 0.20 * hash(Math.floor(t * 8)),
-    rms: 0.35 + kick * 0.30,
+    rms: 0.35 + kick * 0.45 + hold * 0.3,
     centroid: 0.45 + 0.20 * Math.sin(t * 0.7),
     pulse
   };
@@ -1672,12 +3159,34 @@ function postPass(R) {
    the preset document stays exactly as authored, and the direction is
    applied on top of it, per frame.
    ============================================================ */
-let t0 = performance.now(), fpsAcc = 0, fpsN = 0, lastHud = 0;
+let t0 = performance.now(), fpsAcc = 0, fpsN = 0, lastHud = 0, lastFeatures = null;
+let liveF = null;      // the features of the current frame (for a freeze)
+let liveTT = 0;        // the current render time (for a freeze)
 
 function frame(now) {
   const t = (now - t0) / 1000;
   const f = features(t);
+  lastFeatures = f;
+  liveF = f;
   const mods = buildMods(t);
+
+  /* --- the autonomous layer runs on the render loop's clock: no hidden
+         timers, and it pauses with the page. --- */
+  tickRamps(now);
+  const dt = runtime.lastFrameMs ? Math.min(0.25, (now - runtime.lastFrameMs) / 1000) : 0;
+  runtime.lastFrameMs = now;
+  if (preset.evolution.enabled && preset.evolution.mode === 'drift' && dt > 0) {
+    pushUndo();
+    driftStep(dt);
+  }
+  auditionStep(now);
+  logicTick(now, f, runtime.fps || 0);
+  if (runtime.logDirty && now - (runtime.lastLogRender || 0) > 250) {
+    runtime.lastLogRender = now;
+    runtime.logDirty = false;
+    renderEventLog();
+  }
+
   const R = resolve(preset);
 
   const hue = ((R.hue + (mods['global.hue'] || 0)) % 1 + 1) % 1;
@@ -1709,43 +3218,123 @@ function frame(now) {
   ctx.fillStyle = `rgba(5,7,12,${retention})`;
   ctx.fillRect(0, 0, W, H);
 
+  /* A trail is a LENGTH, not a brightness. The residue of the previous
+     frames is worth 1/(1-retention) of a single frame, so a layer drawn
+     with `alpha` every frame ends up three times brighter with a long
+     trail than with a short one. Drawing each frame at alpha ×
+     (1-retention) makes the settled brightness the authored alpha,
+     whatever the trail is set to. */
+  const trailNorm = 1 - retention;
+
+  /* The stack: layers that ADD (lighter, screen) must not sum past full
+     opacity, or three bright layers clip the frame to white. */
+  let additive = 0;
+  preset.layers.forEach((L, i) => {
+    const live = runtime.layerFlags[L.id];
+    if (live === false) return;
+    if (live === undefined && !L.enabled) return;
+    const blend = L.blend || 'lighter';
+    if (blend !== 'lighter' && blend !== 'screen') return;
+    const ov = runtime.overrides[`layers.${i}.opacity`];
+    const base = typeof ov === 'number' ? ov : (L.opacity ?? 1);
+    additive += clamp(base, 0, 1) * R.opacityMul;
+  });
+  const stackScale = additive > 1.1 ? 1.1 / additive : 1;
+
   const tt = t * speed;
+  liveTT = tt;
 
   preset.layers.forEach((L, i) => {
-    if (!L.enabled) return;
+    // A rule may enable or disable a layer; the document keeps its own
+    // value and the live flag sits on top of it.
+    const live = runtime.layerFlags[L.id];
+    if (live === false) return;
+    if (live === undefined && !L.enabled) return;
     const painter = PAINTERS[L.type];
     if (!painter) return;
 
     /* merge the modulated values into a lightweight per-frame copy */
     const M = { ...L, params: {} };
-    for (const k in L.params) M.params[k] = L.params[k] + (mods[`layers.${i}.params.${k}`] || 0);
+    for (const k in L.params) {
+      let v = L.params[k] + (mods[`layers.${i}.params.${k}`] || 0);
+      // the runtime layer may set a layer parameter directly
+      const ov = runtime.overrides[`layers.${i}.params.${k}`];
+      if (typeof ov === 'number') v = ov;
+      M.params[k] = v;
+    }
+    const mutation = runtime.layerMutations[i] || 0;
+    if (mutation) {
+      if (typeof M.params.jitter === 'number') M.params.jitter = clamp(M.params.jitter * (1 + mutation), 0, 1);
+      if (typeof M.params.noise === 'number') M.params.noise = clamp(M.params.noise * (1 + mutation), 0, 1);
+    }
 
-    /* --- steering shaping: each mood axis owns a different family of
-           parameters, and every multiplier is neutral at density 0 --- */
-    for (const k of ['count', 'cols', 'rows']) {
-      if (typeof M.params[k] === 'number') {
-        M.params[k] = Math.max(3, Math.round(M.params[k] * R.countMul));
+    /* --- the freeze: the geometry is held, the colour pipeline is not --- */
+    let layerFeatures = f;
+    let layerTime = tt;
+    if (L.frozen) {
+      // the parameters are exactly as authored: no reactivity, no LFOs on the
+      // parameters, no steering shaping.
+      M.params = { ...L.params };
+      // the time is the moment of the freeze, so the motion is held too
+      layerTime = L.frozenAt ?? 0;
+      // and the features are the ones the freeze was taken with
+      layerFeatures = L.frozenFeatures || f;
+    } else {
+      /* audio reactivity: feature → parameter, through the layer's curves */
+      const reactMul = preset.audio.reactivity ?? 1;
+      if (reactMul > 0 && L.react && L.react.length) {
+        applyReactivity(L, f, reactMul, M);
+      }
+
+      /* --- steering shaping: each mood axis owns a different family of
+             parameters, and every multiplier is neutral at density 0 --- */
+      for (const k of ['count', 'cols', 'rows']) {
+        if (typeof M.params[k] === 'number') {
+          M.params[k] = Math.max(3, Math.round(M.params[k] * R.countMul));
+        }
+      }
+      if (typeof M.params.jitter === 'number') M.params.jitter = clamp(M.params.jitter * R.jitterMul, 0, 1);
+      if (typeof M.params.noise === 'number')  M.params.noise  = clamp(M.params.noise * R.jitterMul, 0, 1);
+      if (typeof M.params.thickness === 'number') M.params.thickness *= R.thickMul;
+      if (typeof M.params.width === 'number') M.params.width = clamp(M.params.width * (2 - R.thickMul), 0.02, 1);
+    }
+
+    /* opacity stays live even when frozen: the freeze holds the geometry,
+       the alpha and the colour keep reacting */
+    if (L.frozen && L.react) {
+      for (const r of L.react) {
+        if (r.param !== 'opacity') continue;
+        const fv = clamp(f[r.feature] ?? 0, 0, 3);
+        const curve = REACT_CURVES[r.curve] || REACT_CURVES.linear;
+        const amt = curve(fv) * (r.amount ?? 1) * (preset.audio.reactivity ?? 1);
+        M.opacity = clamp((M.opacity ?? L.opacity ?? 1) + amt, 0, 2);
       }
     }
-    if (typeof M.params.jitter === 'number') M.params.jitter = clamp(M.params.jitter * R.jitterMul, 0, 1);
-    if (typeof M.params.noise === 'number')  M.params.noise  = clamp(M.params.noise * R.jitterMul, 0, 1);
-    if (typeof M.params.thickness === 'number') M.params.thickness *= R.thickMul;
-    if (typeof M.params.width === 'number') M.params.width = clamp(M.params.width * (2 - R.thickMul), 0.02, 1);
 
-    const opacity = clamp((L.opacity ?? 1) + (mods[`layers.${i}.opacity`] || 0), 0, 1) * R.opacityMul;
+    const ovOpacity = runtime.overrides[`layers.${i}.opacity`];
+    const baseOpacity = typeof ovOpacity === 'number' ? ovOpacity : (M.opacity ?? L.opacity ?? 1);
+    const opacity = clamp(baseOpacity + (mods[`layers.${i}.opacity`] || 0), 0, 1) * R.opacityMul;
+
+    // what the renderer actually used for this layer this frame — the
+    // freeze is only meaningful if it can be observed.
+    runtime.lastParams[i] = M.params;
+    runtime.lastOpacity[i] = opacity;
+
     if (opacity <= 0.002) return;
 
     ctx.save();
     ctx.globalCompositeOperation = L.blend || 'lighter';
-    ctx.globalAlpha = clamp(opacity, 0, 1);
+    ctx.globalAlpha = clamp(opacity * trailNorm * stackScale, 0, 1);
     // The glow couples the preset's bloom to the steer's glow filter, but it
     // is bounded: an unbounded shadowBlur over a 'lighter' composite is the
-    // other half of the white-out.
-    ctx.shadowBlur = Math.min(40, bloom * 12 * (0.4 + R.filters.glow));
+    // other half of the white-out. A 40px halo on 64 bars is a wall of
+    // light — the cap is 18, and the stack scale takes it down further when
+    // several layers glow at once.
+    ctx.shadowBlur = Math.min(18, bloom * 8 * (0.4 + R.filters.glow)) * stackScale;
     ctx.shadowColor = c1;
     ctx.strokeStyle = c1;
     ctx.fillStyle = c1;
-    painter(M.params, f, tt, c1, c2, W, H, ctx);
+    painter(M.params, layerFeatures, layerTime, c1, c2, W, H, ctx);
     ctx.restore();
   });
 
@@ -1766,6 +3355,462 @@ function frame(now) {
 
   requestAnimationFrame(frame);
 }
+
+/* ============================================================
+   UI — LOGIC
+   ============================================================ */
+const FEATURE_NAMES = ['bass', 'mid', 'treble', 'rms', 'centroid', 'pulse', 'beat', 'onset'];
+const OPS = ['>', '>=', '<', '<=', '==', '!='];
+
+function condRowHTML(c, i) {
+  const kind = c.k || 'feature';
+  let fields = '';
+  if (kind === 'feature') {
+    fields = `<select data-ck="name">${FEATURE_NAMES.map(n => `<option value="${n}" ${c.name === n ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      <select data-ck="op">${OPS.map(o => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <input type="number" data-ck="threshold" step="0.01" value="${c.threshold ?? 0}" title="threshold">
+      <input type="number" data-ck="sustainMs" step="50" min="0" value="${c.sustainMs ?? 0}" title="sustain ms">`;
+  } else if (kind === 'elapsed') {
+    fields = `<select data-ck="since"><option value="preset" ${c.since !== 'scene' ? 'selected' : ''}>since preset</option><option value="scene" ${c.since === 'scene' ? 'selected' : ''}>since scene</option></select>
+      <select data-ck="op">${OPS.map(o => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <input type="number" data-ck="ms" step="100" value="${c.ms ?? 0}" title="ms">`;
+  } else if (kind === 'scene') {
+    fields = `<select data-ck="is"><option value="is" ${c.is !== 'isNot' ? 'selected' : ''}>is</option><option value="isNot" ${c.is === 'isNot' ? 'selected' : ''}>is not</option></select>
+      <select data-ck="sceneId">${(preset.logic.scenes || []).map(s => `<option value="${s.id}" ${c.sceneId === s.id ? 'selected' : ''}>${esc(s.name || s.id)}</option>`).join('')}</select>`;
+  } else if (kind === 'rand') {
+    fields = `<input type="number" data-ck="p" step="0.05" min="0" max="1" value="${c.p ?? 0.1}" title="probability">`;
+  } else if (kind === 'fps') {
+    fields = `<select data-ck="op">${OPS.map(o => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <input type="number" data-ck="n" step="1" value="${c.n ?? 30}" title="fps">`;
+  } else if (kind === 'layerCount') {
+    fields = `<select data-ck="op">${OPS.map(o => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <input type="number" data-ck="n" step="1" value="${c.n ?? 1}" title="layers">`;
+  } else if (kind === 'gesture') {
+    fields = `<input type="text" data-ck="name" value="${esc(c.name || '')}" placeholder="key / midi / click / drop">`;
+  } else if (kind === 'sequencePosition') {
+    fields = `<select data-ck="op">${OPS.map(o => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
+      <input type="number" data-ck="index" step="1" value="${c.index ?? 0}" title="section index">`;
+  }
+  return `<div class="cond-row" data-ci="${i}">
+    <span class="k">when</span>
+    <select data-ck="k">
+      <option value="feature" ${kind === 'feature' ? 'selected' : ''}>feature</option>
+      <option value="elapsed" ${kind === 'elapsed' ? 'selected' : ''}>elapsed</option>
+      <option value="scene" ${kind === 'scene' ? 'selected' : ''}>scene</option>
+      <option value="rand" ${kind === 'rand' ? 'selected' : ''}>rand</option>
+      <option value="fps" ${kind === 'fps' ? 'selected' : ''}>fps</option>
+      <option value="layerCount" ${kind === 'layerCount' ? 'selected' : ''}>layerCount</option>
+      <option value="gesture" ${kind === 'gesture' ? 'selected' : ''}>gesture</option>
+      <option value="sequencePosition" ${kind === 'sequencePosition' ? 'selected' : ''}>sequencePosition</option>
+    </select>
+    ${fields}
+    <button data-act="delCond" data-i="${i}" title="Remove condition" aria-label="Remove condition">✕</button>
+  </div>`;
+}
+
+function renderRules() {
+  const L = preset.logic;
+  const host = $('#rules');
+  if (!host) return;
+  if (!(L.rules || []).length) {
+    host.innerHTML = '<div class="empty">No rules yet — add one, or load a rule pack below.</div>';
+    return;
+  }
+  host.innerHTML = L.rules.map((r, ri) => {
+    const when = r.when || { k: 'all', of: [] };
+    const conds = (when.of || []).map((c, ci) => condRowHTML(c, ci)).join('');
+    const st = runtime.ruleState[r.id] || { count: 0 };
+    return `<div class="rule ${r.enabled === false ? 'off' : ''}" data-ri="${ri}">
+      <div class="rule-head">
+        <span class="dot-live ${st.count ? 'hit' : ''}" data-dot="${r.id}" title="fired ${st.count}×"></span>
+        <input class="nm" type="text" data-rk="name" value="${esc(r.name || 'rule')}" aria-label="Rule name">
+        <select data-rk="mode" title="edge or level">
+          <option value="edge" ${r.mode !== 'level' ? 'selected' : ''}>edge</option>
+          <option value="level" ${r.mode === 'level' ? 'selected' : ''}>level</option>
+        </select>
+        <input type="number" data-rk="priority" step="1" value="${r.priority ?? 0}" title="priority" style="width:56px">
+        <input type="number" data-rk="cooldownMs" step="100" min="0" value="${r.cooldownMs ?? 0}" title="cooldown ms" style="width:70px">
+        <label class="chk"><input type="checkbox" data-rk="once" ${r.once ? 'checked' : ''}> once</label>
+        <label class="chk"><input type="checkbox" data-rk="enabled" ${r.enabled === false ? '' : 'checked'}> on</label>
+        <button data-act="upRule" data-i="${ri}" title="Move up" aria-label="Move rule up">↑</button>
+        <button data-act="downRule" data-i="${ri}" title="Move down" aria-label="Move rule down">↓</button>
+        <button data-act="delRule" data-i="${ri}" class="danger" title="Delete" aria-label="Delete rule">✕</button>
+      </div>
+      <div class="cond">
+        <div class="cond-row">
+          <span class="k">match</span>
+          <select data-wk="k">
+            <option value="all" ${when.k !== 'any' && when.k !== 'n' ? 'selected' : ''}>all of</option>
+            <option value="any" ${when.k === 'any' ? 'selected' : ''}>any of</option>
+            <option value="n" ${when.k === 'n' ? 'selected' : ''}>n of</option>
+          </select>
+          <input type="number" data-wk="n" step="1" min="1" value="${when.n ?? 1}" style="width:56px" title="n of">
+        </div>
+        ${conds}
+        <button data-act="addCond" data-i="${ri}">＋ condition</button>
+      </div>
+      <div class="cond">
+        <span class="k">then</span>
+        <textarea data-rk="actions" spellcheck="false" aria-label="Actions JSON">${esc(JSON.stringify(r.then || [], null, 1))}</textarea>
+        <div class="hint">actions as JSON — e.g. [{"t":"rampParam","path":"global.bloom","value":1,"ms":400}]</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderScenes() {
+  const host = $('#scenes');
+  if (!host) return;
+  const scenes = preset.logic.scenes || [];
+  host.innerHTML = scenes.length ? scenes.map((s, si) => `<div class="rule" data-si="${si}">
+      <div class="rule-head">
+        <span class="dot-live ${preset.logic.activeSceneId === s.id ? 'hit' : ''}"></span>
+        <input class="nm" type="text" data-sk="name" value="${esc(s.name || s.id)}" aria-label="Scene name">
+        <input type="text" data-sk="id" value="${esc(s.id)}" style="width:100px" title="scene id">
+        <input type="number" data-sk="transitionMs" step="50" min="0" value="${s.transitionMs ?? 400}" title="transition ms" style="width:76px">
+        <button data-act="delScene" data-i="${si}" class="danger" title="Delete" aria-label="Delete scene">✕</button>
+      </div>
+      <textarea data-sk="overrides" spellcheck="false" aria-label="Scene overrides JSON">${esc(JSON.stringify(s.overrides || {}, null, 1))}</textarea>
+      <div class="hint">overrides as JSON — {"global.bloom":1} · active: <b>${esc(preset.logic.activeSceneId || 'none')}</b></div>
+    </div>`).join('') : '<div class="empty">No scenes — a scene is a macro-state a rule can switch to.</div>';
+}
+
+function renderSections() {
+  const host = $('#sections');
+  if (!host) return;
+  const S = preset.sequence;
+  host.innerHTML = (S.sections || []).length ? S.sections.map((sec, i) => `<div class="rule" data-qi="${i}">
+      <div class="rule-head">
+        <input class="nm" type="text" data-qk="name" value="${esc(sec.name || 'section ' + (i + 1))}" aria-label="Section name">
+        <select data-qk="sceneId">
+          <option value="">— no scene —</option>
+          ${(preset.logic.scenes || []).map(s => `<option value="${s.id}" ${sec.sceneId === s.id ? 'selected' : ''}>${esc(s.name || s.id)}</option>`).join('')}
+        </select>
+        <input type="number" data-qk="bars" step="1" min="1" value="${sec.bars ?? 4}" title="bars" style="width:62px">
+        <button data-act="upSection" data-i="${i}" title="Move up" aria-label="Move section up">↑</button>
+        <button data-act="downSection" data-i="${i}" title="Move down" aria-label="Move section down">↓</button>
+        <button data-act="delSection" data-i="${i}" class="danger" title="Delete" aria-label="Delete section">✕</button>
+      </div>
+    </div>`).join('') : '<div class="empty">No sections — add one to compose a structure.</div>';
+}
+
+function renderEventLog() {
+  const host = $('#eventLog');
+  if (!host) return;
+  const wantRule = $('#logFilterRule') ? $('#logFilterRule').checked : true;
+  const wantScene = $('#logFilterScene') ? $('#logFilterScene').checked : true;
+  const wantOther = $('#logFilterOther') ? $('#logFilterOther').checked : true;
+  const rows = runtime.events.filter(e => {
+    if (e.kind === 'rule') return wantRule;
+    if (e.kind === 'scene' || e.kind === 'section') return wantScene;
+    return wantOther;
+  }).slice(-120);
+  host.innerHTML = rows.length ? rows.map(e => `<div><span class="ts">${new Date(e.t).toLocaleTimeString()}</span><span class="kind ${e.kind}">${e.kind}</span><span>${esc(e.text)}</span></div>`).join('')
+    : '<div class="empty">Nothing has fired yet.</div>';
+}
+
+function renderTimeline() {
+  const host = $('#tlSections');
+  if (!host) return;
+  const S = preset.sequence;
+  const on = !!(S.enabled && (S.sections || []).length);
+  $('#timeline').classList.toggle('off', !on);
+  if (!on) return;
+  host.innerHTML = S.sections.map((sec, i) => `<button data-act="jumpSection" data-i="${i}" class="${i === runtime.seq.section ? 'on' : ''}">${esc(sec.name || 'sec ' + (i + 1))}</button>`).join('');
+  const total = sectionBarTotal();
+  const bpm = preset.audio.tempo.bpm || 120;
+  const bars = runtime.seq.bar || 0;
+  const totalSecs = (total * 60) / bpm;
+  const secs = (bars * 60) / bpm;
+  $('#tlPlayhead').style.left = clamp((secs / Math.max(0.001, totalSecs)) * 100, 0, 100) + '%';
+  let ruler = '';
+  for (let b = 0; b <= total; b += Math.max(1, Math.round(total / 8))) {
+    ruler += `<span style="left:${(b / total) * 100}%">${b}</span>`;
+  }
+  $('#tlRuler').innerHTML = ruler;
+}
+
+/* a dry run: 30 seconds of synthetic input, evaluated but NOT applied */
+function dryRun(seconds) {
+  const L = preset.logic;
+  const tick = L.tickMs || 60;
+  const state = {};
+  const sustain = {};
+  const fires = [];
+  let t = 0;
+  while (t < seconds * 1000) {
+    const beat = (t / 1000) * 2;                 // 120 bpm
+    const pulse = Math.pow(1 - (beat % 1), 3);
+    const feat = {
+      bass: 0.55 + 0.4 * pulse, mid: 0.5, treble: 0.45,
+      rms: 0.6, centroid: 0.5, pulse, beat: pulse, onset: pulse > 0.7 ? 1 : 0,
+    };
+    const ctx = { now: t, feat, fps: 60, sceneId: L.activeSceneId, layerCount: preset.layers.length, sectionIndex: 0, gestures: {}, rng: () => 0.5, depth: 0 };
+    for (const rule of (L.rules || []).filter(r => r.enabled !== false).sort((a, b) => (b.priority || 0) - (a.priority || 0))) {
+      const st = state[rule.id] || (state[rule.id] = { prev: false, last: -1e9, fired: false });
+      const matched = evalCond(rule.when, ctx, 'dry.' + rule.id);
+      const fire = matched ? (rule.mode === 'level' ? true : !st.prev) : false;
+      st.prev = matched;
+      if (!fire) continue;
+      if (rule.once && st.fired) continue;
+      if (t - st.last < (rule.cooldownMs || 0)) continue;
+      st.last = t; st.fired = true;
+      fires.push({ t: +(t / 1000).toFixed(2), rule: rule.name || rule.id, actions: (rule.then || []).length });
+    }
+    t += tick;
+  }
+  return fires;
+}
+
+/* ============================================================
+   UI — EVOLUTION
+   ============================================================ */
+function genomeThumb(genome) {
+  const g = genome || {};
+  const c = document.createElement('canvas');
+  c.width = 220; c.height = 110;
+  const x = c.getContext('2d');
+  const hue = (g['global.hue'] ?? preset.global.hue) * 360;
+  const sat = clamp((g['global.saturation'] ?? preset.global.saturation) * 100, 0, 100);
+  const light = clamp((g['global.bloom'] ?? preset.global.bloom) * 60 + 8, 8, 70);
+  x.fillStyle = '#05070c'; x.fillRect(0, 0, c.width, c.height);
+  x.strokeStyle = `hsl(${hue} ${sat}% ${light}%)`;
+  x.lineWidth = 2;
+  const bars = 40;
+  for (let i = 0; i < bars; i++) {
+    const u = i / (bars - 1);
+    const v = 0.5 + 0.4 * Math.sin(u * 9 + (g['global.speed'] ?? 1) * 2);
+    const h = v * c.height * 0.8;
+    x.beginPath(); x.moveTo(i * (c.width / bars), c.height / 2 - h / 2); x.lineTo(i * (c.width / bars), c.height / 2 + h / 2); x.stroke();
+  }
+  return c;
+}
+
+function renderEvolution() {
+  const E = preset.evolution;
+  if (!$('#evoMode')) return;
+  $('#evoMode').value = E.mode || 'off';
+  $('#evoSeed').value = E.seed ?? 1337;
+  $('#evoGen').textContent = 'gen ' + (E.generation || 0);
+  const dev = runtime.deviation || computeDeviation();
+  $('#deviationBar').style.width = clamp((dev / DEVIATION_CAP) * 100, 0, 100) + '%';
+  $('#deviationTxt').textContent = dev.toFixed(3) + ' of ' + DEVIATION_CAP + ' cap — '
+    + (dev >= DEVIATION_CAP ? 'the gravity well is pulling it back' : 'inside the character');
+
+  const pop = E.population || [];
+  const host = $('#population');
+  host.innerHTML = pop.length ? pop.map((ind, i) => {
+    const stars = [1, 2, 3, 4, 5].map(n => `<button data-act="rate" data-id="${ind.id}" data-stars="${n}" class="${ind.rating >= n ? 'on' : ''}" aria-label="rate ${n} stars">★</button>`).join('');
+    return `<figure data-pop="${i}" class="${E.audition === i ? 'on' : ''}">
+      <div data-thumb="${ind.id}"></div>
+      <figcaption>${esc('ind ' + (i + 1))}${ind.parents && ind.parents.length ? ' · ' + ind.parents.length + 'p' : ''}</figcaption>
+      <div class="stars">${stars}</div>
+    </figure>`;
+  }).join('') : '<div class="empty">No population — found one, then breed.</div>';
+  // thumbnails
+  pop.forEach(ind => {
+    const slot = host.querySelector(`[data-thumb="${ind.id}"]`);
+    if (slot) slot.appendChild(genomeThumb(ind.genome));
+  });
+
+  $('#genes').innerHTML = (E.geneMap || []).map((g, gi) => `<div class="gene ${g.locked ? 'locked' : ''}">
+      <label class="chk"><input type="checkbox" data-gk="locked" data-i="${gi}" ${g.locked ? 'checked' : ''}> locked</label>
+      <span class="path">${esc(g.path)}</span>
+      <span>${g.min}–${g.max}</span>
+      <span>σ${g.sigma}</span>
+    </div>`).join('');
+
+  const lin = E.lineage || [];
+  $('#lineage').innerHTML = lin.length ? lin.map(l => `<div class="node"><span class="gen">gen ${l.generation}</span> · ${l.parents.length} parents → ${l.children.length} children
+      <button data-act="exportGen" data-i="${lin.indexOf(l)}" style="padding:1px 6px;font-size:10px">export</button></div>`).join('')
+    : '<div class="empty">No generations yet.</div>';
+}
+
+function renderAutopilot() {
+  const sel = $('#autopilot');
+  if (!sel) return;
+  const E = preset.evolution, L = preset.logic;
+  let mode = 'off';
+  if (E.enabled && E.mode === 'breeding') mode = 'breeding';
+  else if (E.enabled && E.mode === 'drift') mode = 'drift';
+  else if (L.enabled) mode = 'rulebook';
+  sel.value = mode;
+}
+
+function setAutopilot(mode) {
+  const E = preset.evolution, L = preset.logic;
+  L.enabled = (mode === 'rulebook');
+  E.enabled = (mode === 'drift' || mode === 'breeding');
+  E.mode = (mode === 'drift' || mode === 'breeding') ? mode : 'off';
+  if (mode === 'breeding' && !(E.population || []).length) spawnPopulation();
+  logEvent('autopilot', null, 'autopilot → ' + mode);
+  renderLogic(); renderEvolution(); renderAutopilot();
+  touch(false);
+}
+
+
+/* ============================================================
+   UI WIRING — logic / evolution / timeline
+   ============================================================ */
+function logicRuleAt(ri) { return (preset.logic.rules || [])[ri]; }
+
+function readRuleFromCard(card) {
+  const ri = Number(card.dataset.ri);
+  const r = logicRuleAt(ri);
+  if (!r) return;
+  card.querySelectorAll('[data-rk]').forEach(el => {
+    const k = el.dataset.rk;
+    if (k === 'actions') {
+      try {
+        const parsed = JSON.parse(el.value);
+        if (Array.isArray(parsed)) r.then = parsed;
+      } catch (e) { /* leave the last good actions in place */ }
+    } else if (el.type === 'checkbox') r[k] = el.checked;
+    else if (el.type === 'number') r[k] = num(el.value, 0);
+    else r[k] = el.value;
+  });
+  const whenSel = card.querySelector('[data-wk="k"]');
+  const whenN = card.querySelector('[data-wk="n"]');
+  r.when = r.when || { k: 'all', of: [] };
+  if (whenSel) r.when.k = whenSel.value;
+  if (whenN) r.when.n = num(whenN.value, 1);
+  card.querySelectorAll('.cond-row[data-ci]').forEach(row => {
+    const ci = Number(row.dataset.ci);
+    const cond = r.when.of[ci];
+    if (!cond) return;
+    row.querySelectorAll('[data-ck]').forEach(el => {
+      const k = el.dataset.ck;
+      if (el.type === 'number') cond[k] = num(el.value, 0);
+      else cond[k] = el.value;
+    });
+  });
+  touch(false);
+}
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t) return;
+  // Logic rule cards
+  const card = t.closest && t.closest('.rule[data-ri]');
+  if (card) { readRuleFromCard(card); renderRules(); return; }
+  const sc = t.closest && t.closest('.rule[data-si]');
+  if (sc) {
+    const s = (preset.logic.scenes || [])[Number(sc.dataset.si)];
+    if (!s) return;
+    sc.querySelectorAll('[data-sk]').forEach(el => {
+      const k = el.dataset.sk;
+      if (k === 'overrides') {
+        try { const o = JSON.parse(el.value); if (o && typeof o === 'object') s.overrides = o; } catch (e) {}
+      } else if (el.type === 'number') s[k] = num(el.value, 0);
+      else s[k] = el.value;
+    });
+    touch(false); renderScenes();
+    return;
+  }
+  const sec = t.closest && t.closest('.rule[data-qi]');
+  if (sec) {
+    const s = (preset.sequence.sections || [])[Number(sec.dataset.qi)];
+    if (!s) return;
+    sec.querySelectorAll('[data-qk]').forEach(el => {
+      const k = el.dataset.qk;
+      s[k] = el.type === 'number' ? num(el.value, 1) : el.value;
+    });
+    touch(false); renderSections(); renderTimeline();
+    return;
+  }
+  const gene = t.closest && t.closest('.gene');
+  if (gene) {
+    const g = (preset.evolution.geneMap || [])[Number(gene.querySelector('[data-gk]').dataset.i)];
+    if (g) { g.locked = gene.querySelector('[data-gk]').checked; touch(false); renderEvolution(); }
+    return;
+  }
+  if (t.id === 'logicEnabled') { preset.logic.enabled = t.checked; touch(false); renderLogic(); return; }
+  if (t.id === 'logicTickMs') { preset.logic.tickMs = clamp(num(t.value, 60), 20, 500); touch(false); return; }
+  if (t.id === 'seqEnabled') { preset.sequence.enabled = t.checked; touch(false); renderTimeline(); return; }
+  if (t.id === 'seqMode') { preset.sequence.mode = t.value; touch(false); return; }
+  if (t.id === 'evoMode') {
+    preset.evolution.mode = t.value;
+    preset.evolution.enabled = t.value !== 'off';
+    preset.logic.enabled = preset.logic.enabled && t.value === 'rulebook';
+    if (t.value === 'breeding' && !(preset.evolution.population || []).length) spawnPopulation();
+    touch(false); renderEvolution(); renderAutopilot();
+    return;
+  }
+  if (t.id === 'evoSeed') {
+    preset.evolution.seed = clamp(num(t.value, 1337), 1, 999999);
+    preset.evolution.rngState = 0;      // same seed → same stream
+    touch(false);
+    return;
+  }
+  if (t.id === 'autopilot') { setAutopilot(t.value); return; }
+  if (t.id.startsWith('logFilter')) { renderEventLog(); return; }
+});
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  const i = Number(btn.dataset.i);
+
+  if (act === 'addCond') {
+    const r = logicRuleAt(i); if (!r) return;
+    r.when = r.when || { k: 'all', of: [] };
+    r.when.of = r.when.of || [];
+    r.when.of.push({ k: 'feature', name: 'bass', op: '>', threshold: 0.7, sustainMs: 0 });
+    renderRules(); touch(false); return;
+  }
+  if (act === 'delCond') {
+    const card = btn.closest('.rule[data-ri]');
+    const r = logicRuleAt(Number(card.dataset.ri));
+    if (!r || !r.when) return;
+    r.when.of.splice(Number(btn.parentElement.dataset.ci), 1);
+    renderRules(); touch(false); return;
+  }
+  if (act === 'upRule' || act === 'downRule') {
+    const rules = preset.logic.rules;
+    const j = act === 'upRule' ? i - 1 : i + 1;
+    if (j < 0 || j >= rules.length) return;
+    [rules[i], rules[j]] = [rules[j], rules[i]];
+    renderRules(); touch(false); return;
+  }
+  if (act === 'delRule') { preset.logic.rules.splice(i, 1); renderRules(); touch(false); return; }
+  if (act === 'delScene') { preset.logic.scenes.splice(i, 1); renderScenes(); touch(false); return; }
+  if (act === 'upSection' || act === 'downSection') {
+    const secs = preset.sequence.sections;
+    const j = act === 'upSection' ? i - 1 : i + 1;
+    if (j < 0 || j >= secs.length) return;
+    [secs[i], secs[j]] = [secs[j], secs[i]];
+    renderSections(); renderTimeline(); touch(false); return;
+  }
+  if (act === 'delSection') { preset.sequence.sections.splice(i, 1); renderSections(); renderTimeline(); touch(false); return; }
+  if (act === 'jumpSection') { jumpToSection(i); renderTimeline(); return; }
+  if (act === 'rate') { rateIndividual(btn.dataset.id, Number(btn.dataset.stars)); return; }
+  if (act === 'exportGen') {
+    const g = (preset.evolution.lineage || [])[i];
+    if (g) {
+      const ind = (preset.evolution.population || []).find(x => g.children && g.children.includes(x.id));
+      exportAncestor(ind ? ind.genome : genomeFromPreset(), 'gen ' + g.generation);
+    }
+    return;
+  }
+});
+
+/* the rule packs the spec asks for, one click to load */
+const RULE_PACKS = {
+  'pulse bloom': {
+    id: uid('r_'), name: 'pulse-driven bloom', enabled: true, priority: 10, mode: 'edge',
+    when: { k: 'all', of: [{ k: 'feature', name: 'bass', op: '>', threshold: 0.7, sustainMs: 300 }] },
+    then: [{ t: 'rampParam', path: 'global.bloom', value: 1, ms: 400, easing: 'smooth' }],
+    else: [], cooldownMs: 2000, once: false,
+  },
+  'treble → chroma': {
+    id: uid('r_'), name: 'treble → chroma', enabled: true, priority: 5, mode: 'level',
+    when: { k: 'all', of: [{ k: 'feature', name: 'treble', op: '>', threshold: 0.5, sustainMs: 0 }] },
+    then: [{ t: 'setParam', path: 'steer.filters.aberration', value: 0.6 }],
+    else: [{ t: 'setParam', path: 'steer.filters.aberration', value: 0 }],
+    cooldownMs: 500, once: false,
+  },
+};
 
 /* ============================================================
    ENGINE BRIDGE
@@ -1815,13 +3860,56 @@ function pushToEngine(p) {
 }
 
 /* public API for a host page */
+/* Loading a preset starts it from its own state: the live layer (rules'
+ * overrides, ramps, layer flags) belongs to the preset you were looking at,
+ * and carrying it over would make the new preset render with the old
+ * preset's values. */
+function resetLiveLayer() {
+  runtime.overrides = {};
+  runtime.drift = {};
+  runtime.ramps = [];
+  runtime.layerFlags = {};
+  runtime.layerMutations = {};
+  runtime.ruleState = {};
+  runtime.sustain = {};
+  runtime.manualHold = {};
+  runtime.deviation = 0;
+  runtime.undo = [];
+  runtime.seq.section = 0;
+  runtime.seq.running = false;
+}
+
 window.SWRPresetEditor = {
   get preset() { return preset; },
   get all() { return store.presets; },
+  get library() { return BUILTIN_PRESETS; },
   get resolved() { return resolve(preset); },
-  load(p) { preset = normalize(p); store.presets[preset.id] = preset; store.current = preset.id; persist(); renderAll(); },
+  get runtime() { return runtime; },
+  get events() { return runtime.events; },
+  get features() { return lastFeatures; },
+  get tickCostMs() { return runtime.tickCostMs; },
+  load(p) {
+    preset = normalize(p);
+    store.presets[preset.id] = preset;
+    store.current = preset.id;
+    resetLiveLayer();
+    persist();
+    renderAll();
+  },
   push: pushToEngine,
   resolve,
+  loadBuiltin(i) { loadFromLibrary(i); },
+  /* the engine's own entry points, so a host (or a gate) can drive the
+     rulebook deterministically instead of waiting for the music */
+  logic: { tick: logicTick, evaluate: evalCond, apply: applyAction, setScene, dryRun },
+  evolution: {
+    spawn: spawnPopulation, breed: breedGeneration, rate: rateIndividual,
+    /* a FORCED step: it runs whether or not the live drift is on, so a host
+       (or a gate) can drive the drift deterministically instead of racing
+       the render loop's own steps. */
+    drift: (dt) => driftStep(dt, true),
+    revert: revertDrift, deviation: computeDeviation,
+  },
   shareUrl() {
     return location.origin + location.pathname + '#p=' + b64urlEncode(JSON.stringify(preset));
   }
@@ -1830,8 +3918,25 @@ window.SWRPresetEditor = {
 /* ============================================================
    BOOT
    ============================================================ */
+function renderLogic() {
+  const L = preset.logic;
+  if (!$('#logicEnabled')) return;
+  $('#logicEnabled').checked = !!L.enabled;
+  $('#logicTickMs').value = L.tickMs || 60;
+  $('#seqEnabled').checked = !!preset.sequence.enabled;
+  $('#seqMode').value = preset.sequence.mode || 'loop';
+  renderRules();
+  renderScenes();
+  renderSections();
+  renderEventLog();
+  renderTimeline();
+}
+
+runtime.startedMs = performance.now();
+runtime.sceneEnteredMs = runtime.startedMs;
 resize();
 renderAll();
+installDragToReorder();
 updateAudioHint();
 requestAnimationFrame(frame);
 </script>
