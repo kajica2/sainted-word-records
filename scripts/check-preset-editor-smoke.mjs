@@ -726,6 +726,56 @@ if (dragTest.skipped) ok('drag to reorder (skipped: fewer than three layers)');
 else if (dragTest.changed && dragTest.movedToTop) ok('a dragged layer moves to the drop position');
 else bad('a dragged layer moves to the drop position', JSON.stringify(dragTest));
 
+// --- 20) BENCH: the editor measures ITSELF --------------------------------
+// The bench tab runs the shared suite against the editor's own render and
+// the editor's own preset — not a copy of them.
+const bench = await page.evaluate(async () => {
+  document.querySelector('[data-tab="bench"]').click();
+  await new Promise(r => setTimeout(r, 400));
+  const s = window.SWRPresetEditor.bench;
+  if (!s) return { mounted: false };
+  const r = await s.runTest('this preset', { interpolate: true, injectAudioDrift: 0 }, 1200);
+  const lagged = await s.runTest('this preset · +12ms audio lag', { interpolate: true, injectAudioDrift: 0.012 }, 1200);
+  return {
+    mounted: true,
+    fps: r.metrics.fpsAvg,
+    drift: r.metrics.driftAvg,
+    lagDrift: lagged.metrics.driftAvg,
+    grade: r.scores.grade,
+    layers: r.config.layerCount,
+  };
+});
+if (bench.mounted) ok('the Bench tab mounts the shared suite inside the editor');
+else bad('the Bench tab mounts the shared suite inside the editor', JSON.stringify(bench));
+if (bench.fps > 0 && bench.grade) ok('the editor measures its own render (' + bench.fps.toFixed(1) + ' fps, grade ' + bench.grade + ')');
+else bad('the editor measures its own render', JSON.stringify(bench));
+if (bench.drift < 20) ok('the editor\'s own A/V drift is measured (' + bench.drift.toFixed(1) + 'ms)');
+else bad('the editor\'s own A/V drift is measured', JSON.stringify(bench));
+if (bench.lagDrift > bench.drift + 4) ok('an injected lag shows up in the editor\'s sync number (' + bench.lagDrift.toFixed(1) + 'ms)');
+else bad('an injected lag shows up in the editor\'s sync number', JSON.stringify(bench));
+
+const applied = await page.evaluate(async () => {
+  const R = window.SWRPresetEditor;
+  R.loadBuiltin(5);                       // Riot — three layers
+  await new Promise(r => setTimeout(r, 300));
+  const before = R.preset.layers.find(l => l.type === 'particles').params.count;
+  const s = R.bench;
+  const r = await s.runTest('this preset', { interpolate: true, injectAudioDrift: 0 }, 1200);
+  const ai = s.analyze(r);
+  const count = ai.suggestions.find(x => x.id === 'reduce-count');
+  if (!count) return { skipped: true, suggestions: ai.suggestions.length };
+  s.applySuggestions([count]);
+  await new Promise(r2 => setTimeout(r2, 200));
+  const after = R.preset.layers.find(l => l.type === 'particles').params.count;
+  return { before, after, suggestions: ai.suggestions.length };
+});
+if (applied.skipped) ok('the advisor proposes nothing to apply on this run (skipped)');
+else if (applied.after < applied.before) {
+  ok('the advisor\'s suggestion applies to the editor\'s own preset (' + applied.before + ' → ' + applied.after + ' particles)');
+} else {
+  bad('the advisor\'s suggestion applies to the editor\'s own preset', JSON.stringify(applied));
+}
+
 // --- console hygiene ------------------------------------------------------
 if (errors.length) bad('no console errors during the run', errors[0]);
 else ok('no console errors during the run');

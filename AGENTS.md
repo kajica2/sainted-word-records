@@ -271,22 +271,45 @@ head (canonical, description, og:image).
 
 ## The bench & sync lab
 
-`bench.html` (route `/bench`) is the performance lab for the preset editor:
-a live render on the left, and on the right a **Run** tab (five benchmark
-tests), a **Buffer** tab (the A/V ring buffer's live state), **Reports**
-(versioned, persisted), **Compare** (a delta table between two reports) and
-**Advisor** (a heuristic grader that proposes and applies its own
-optimizations).
+`lib/bench-suite.client.js` is the shared suite: the A/V ring buffer, the
+measurement, the report compiler, the advisor and the panel UI. It is a
+global script (`window.SWR_BENCH.createSuite(host)`) and it has TWO hosts:
 
-- **The buffer is auto-created and always running.** Audio features are
-  pushed at 60 Hz into a ring buffer stamped with the time each sample
+- `bench.html` (route `/bench`) — the lab on its own page. It supplies its
+  own layer sets, its own renderer and the demo signal, and it measures
+  itself.
+- `preset-editor.html` — a **Bench** tab. The editor supplies its LIVE
+  feature vector and its OWN preset, so the suite measures the editor's
+  real render and the preset the user is actually editing, and the
+  advisor's suggestions apply to that preset (the particle and grid
+  counts, the trails filter, the audio smoothing).
+
+The host contract is four functions: `tests()` (what to measure),
+`sample(tSec)` (the audio side — the features and the time they
+represent), `reportConfig()` (what goes in a report) and
+`supports(id)` / `apply(id)` (what the advisor may change). The host owns
+what it DRAWS; the suite owns the measurement.
+
+The lab's own page carries a **Run** tab (five benchmark tests), a
+**Buffer** tab (the ring buffer's live state), **Reports** (versioned,
+persisted), **Compare** (a delta table between two reports) and **Advisor**
+(a heuristic grader that proposes and applies its own optimizations).
+
+- **The buffer is auto-created and always running.** Features are pushed
+  at 60 Hz into a ring buffer stamped with the time each sample
   *represents*; the render loop samples the buffer at video time with
   linear interpolation, so the two clocks never have to agree — drift is
   measured, not assumed. The audio clock is a real timer (a lab models a
-  real device) but it is pausable, and the samples are stamped with the
-  real elapsed time: stamping a fixed 60 Hz schedule onto a timer that
-  fires faster runs the audio timeline ahead of the video, and the lab
-  then measures its own clock bug instead of the sync.
+  real device) but it is pausable, and the samples carry the real elapsed
+  time: stamping a fixed 60 Hz schedule onto a timer that fires faster
+  runs the audio timeline ahead of the video, and the lab then measures
+  its own clock bug instead of the sync. The VIDEO clock is the suite's
+  (`suite.state.startAt`), because it is reset per run — a host clock of
+  its own makes the two timelines drift apart by the length of the run.
+- **The layer set comes from the host.** The suite carries the
+  measurement, not the layers: a hardcoded layer set in the runner makes
+  the "baseline" test measure the reactive stack, and the comparison it
+  exists to make is void.
 - **The lab's render is the editor's render.** The painters, the reactive
   curves, the demo signal and the render bounds (the lightness band, the
   trail normalisation, the additive stack cap, the glow cap) are the same
@@ -303,6 +326,10 @@ optimizations).
   the baseline test is really one layer, the advisor grades, lists
   bottlenecks and proposes suggestions, a re-run adds a report, the
   reports survive a reload, and the compare table renders a delta.
+  The editor's half of the suite is covered by
+  `check:preset-editor-smoke` (the Bench tab mounts, the editor measures
+  its own render and its own A/V drift, an injected lag shows up, and the
+  advisor's suggestion lands on the editor's own preset).
 
 ## Code style
 

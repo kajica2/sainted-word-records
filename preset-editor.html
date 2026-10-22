@@ -12,7 +12,9 @@
 <link rel="canonical" href="https://sainted-word-records.vercel.app/preset-editor" />
 <link rel="stylesheet" href="/lib/design-tokens.css" />
 <link rel="stylesheet" href="/lib/components.css" />
+<link rel="stylesheet" href="/lib/bench-suite.css" />
 <script src="/lib/nav.client.js" defer></script>
+<script src="/lib/bench-suite.client.js" defer></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070c'/%3E%3Cpath d='M6 22 L12 10 L16 18 L20 10 L26 22' stroke='%234de3d0' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
 <style>
   /* The editor's own palette. Scoped to body.swr-pe (not :root) so it does
@@ -379,6 +381,7 @@
       <button data-tab="lfos" role="tab">LFOs</button>
       <button data-tab="logic" role="tab">Logic</button>
       <button data-tab="evolution" role="tab">Evolution</button>
+      <button data-tab="bench" role="tab">Bench</button>
       <button data-tab="json" role="tab">JSON</button>
     </nav>
     <div class="panels">
@@ -615,6 +618,16 @@
         <div id="genes"></div>
         <div class="sec">Lineage</div>
         <div id="lineage" class="lineage"></div>
+      </div>
+
+      <!-- ============ BENCH ============ -->
+      <div class="panel" data-panel="bench">
+        <div class="hint" style="margin-top:0">
+          The benchmark suite measures <b>this editor's own render</b> and
+          <b>this preset</b> — not a copy of them. The advisor's suggestions
+          apply to the preset you are editing.
+        </div>
+        <div id="benchHost"></div>
       </div>
 
       <!-- ============ JSON ============ -->
@@ -2687,6 +2700,7 @@ $$('.tabs button').forEach(b => b.addEventListener('click', () => {
   // the autonomous panels show live state, so they are rebuilt on entry
   if (b.dataset.tab === 'logic') { renderLogic(); renderTimeline(); }
   if (b.dataset.tab === 'evolution') renderEvolution();
+  if (b.dataset.tab === 'bench') { const s = mountBench(); if (s) s.renderReportList(); }
 }));
 
 /* ============================================================
@@ -3169,6 +3183,13 @@ function frame(now) {
   lastFeatures = f;
   liveF = f;
   const mods = buildMods(t);
+
+  /* the bench suite samples the buffer on the VIDEO side, which is what
+     makes the A/V drift measurable against this render */
+  if (benchSuite) {
+    const sample = benchSuite.sampleAt((now - benchSuite.state.startAt) / 1000);
+    benchSuite.updateBufferView(sample);
+  }
 
   /* --- the autonomous layer runs on the render loop's clock: no hidden
          timers, and it pauses with the page. --- */
@@ -3813,6 +3834,91 @@ const RULE_PACKS = {
 };
 
 /* ============================================================
+   BENCH — the editor as a host of the shared suite
+
+   The suite (lib/bench-suite.client.js) owns the ring buffer, the
+   measurement, the report compiler and the advisor. This adapter
+   supplies the editor's live feature vector, the editor's preset as
+   the thing being measured, and the editor's real controls as the
+   things the advisor can change.
+   ============================================================ */
+let benchSuite = null;
+
+function benchHost() {
+  return {
+    tests: function () {
+      return [
+        { name: 'this preset', desc: 'the preset you are editing, as authored', cfg: { interpolate: true, injectAudioDrift: 0 } },
+        { name: 'this preset · no interpolation', desc: 'the same, sampled without interpolation', cfg: { interpolate: false, injectAudioDrift: 0 } },
+        { name: 'this preset · +12ms audio lag', desc: 'a delayed audio path — the sync headroom', cfg: { interpolate: true, injectAudioDrift: 0.012 } },
+      ];
+    },
+    // the AUDIO side: the editor's live features, stamped with the time
+    // they represent (the test may inject a lag)
+    sample: function (tSec) {
+      const lag = (benchSuite && benchSuite.state.cfg.injectAudioDrift) || 0;
+      const f = liveF || { bass: 0, mid: 0, treble: 0, air: 0, sub: 0, rms: 0, centroid: 0, pulse: 0 };
+      return { features: f, audioTime: tSec - lag };
+    },
+    reportConfig: function () {
+      return {
+        layerPreset: preset.name || 'preset',
+        layerCount: preset.layers.length,
+        reactivity: preset.audio.reactivity ?? 1,
+        interpolate: benchSuite ? benchSuite.state.cfg.interpolate : true,
+        injectAudioDrift: benchSuite ? (benchSuite.state.cfg.injectAudioDrift || 0) : 0,
+        smoothing: preset.audio.smoothing ?? 0.7,
+        trails: (preset.steer && preset.steer.filters && preset.steer.filters.trails) || 0.4,
+        dpr: DPR,
+        bufferCapacity: benchSuite ? benchSuite.buffer.capacity : 128,
+      };
+    },
+    supports: function (id) {
+      return ['reduce-count', 'increase-trails', 'increase-smoothing'].indexOf(id) >= 0;
+    },
+    // the advisor's suggestions land on the editor's REAL controls
+    apply: function (id) {
+      if (id === 'reduce-count') {
+        preset.layers.forEach(L => {
+          if (L.type === 'particles' && L.params.count) L.params.count = Math.max(4, Math.round(L.params.count * 0.6));
+          if (L.type === 'grid') {
+            if (L.params.cols) L.params.cols = Math.max(3, Math.round(L.params.cols * 0.75));
+            if (L.params.rows) L.params.rows = Math.max(3, Math.round(L.params.rows * 0.75));
+          }
+        });
+        renderLayers();
+        touch(false);
+        return true;
+      }
+      if (id === 'increase-trails') {
+        preset.steer.filters.trails = Math.min(0.95, (preset.steer.filters.trails || 0.4) + 0.15);
+        syncStatic(); touch(false);
+        return true;
+      }
+      if (id === 'increase-smoothing') {
+        preset.audio.smoothing = Math.min(0.98, (preset.audio.smoothing ?? 0.7) + 0.1);
+        syncStatic(); touch(false);
+        return true;
+      }
+      return false;
+    },
+    onTestStart: function () { renderLayers(); },
+    optimizedConfig: function () {
+      return benchSuite ? Object.assign({}, benchSuite.state.cfg) : { interpolate: true, injectAudioDrift: 0 };
+    },
+    toast: function (m) { toast(m); },
+  };
+}
+
+function mountBench() {
+  if (benchSuite) return benchSuite;
+  if (!window.SWR_BENCH) return null;
+  benchSuite = window.SWR_BENCH.createSuite(benchHost());
+  benchSuite.mount(document.getElementById('benchHost'));
+  return benchSuite;
+}
+
+/* ============================================================
    ENGINE BRIDGE
 
    The editor is standalone, so there is no engine object to call
@@ -3894,6 +4000,7 @@ window.SWRPresetEditor = {
   get runtime() { return runtime; },
   get events() { return runtime.events; },
   get features() { return lastFeatures; },
+  get bench() { return benchSuite; },
   get tickCostMs() { return runtime.tickCostMs; },
   load(p) {
     preset = normalize(p);

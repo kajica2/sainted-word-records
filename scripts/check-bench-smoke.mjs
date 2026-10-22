@@ -113,8 +113,8 @@ else bad('the buffer fills on its own', filled);
 
 // --- 2) the buffer measures the lag it is given --------------------------
 const lag = await page.evaluate(async () => {
-  const r = await window.SWRBench.runTest('sync-stress',
-    { layerPreset: 'reactive', reactivity: 1.5, interpolate: true, injectAudioDrift: 0.012 }, 1500);
+  const t = window.SWRBench.tests().find(x => x.name === 'sync-stress');
+  const r = await window.SWRBench.runTest(t.name, t.cfg, 1500);
   return r.metrics.driftAvg;
 });
 if (lag > 6 && lag < 26) ok('a 12ms injected lag is measured back as ~12ms (' + lag.toFixed(1) + 'ms)');
@@ -122,10 +122,9 @@ else bad('a 12ms injected lag is measured back as ~12ms', lag.toFixed(1));
 
 // --- 3) interpolation lowers the measured drift ---------------------------
 const interp = await page.evaluate(async () => {
-  const on = await window.SWRBench.runTest('reactive',
-    { layerPreset: 'reactive', reactivity: 1.5, interpolate: true }, 1500);
-  const off = await window.SWRBench.runTest('reactive-noint',
-    { layerPreset: 'reactive', reactivity: 1.5, interpolate: false }, 1500);
+  const tests = window.SWRBench.tests();
+  const on = await window.SWRBench.runTest('reactive', tests.find(x => x.name === 'reactive').cfg, 1500);
+  const off = await window.SWRBench.runTest('reactive-noint', tests.find(x => x.name === 'reactive-noint').cfg, 1500);
   return { on: on.metrics.driftAvg, off: off.metrics.driftAvg };
 });
 if (interp.on < interp.off) {
@@ -136,8 +135,8 @@ if (interp.on < interp.off) {
 
 // --- 4) a report compiles, with metrics and a grade ----------------------
 const report = await page.evaluate(async () => {
-  const r = await window.SWRBench.runTest('baseline',
-    { layerPreset: 'baseline', reactivity: 0, interpolate: true }, 1200);
+  const t = window.SWRBench.tests().find(x => x.name === 'baseline');
+  const r = await window.SWRBench.runTest(t.name, t.cfg, 1200);
   return {
     version: r.version,
     fps: r.metrics.fpsAvg,
@@ -159,8 +158,8 @@ else bad('the baseline test really is one layer', report.layers);
 
 // --- 5) the advisor grades, lists and proposes --------------------------
 const advisor = await page.evaluate(async () => {
-  const r = await window.SWRBench.runTest('stress',
-    { layerPreset: 'stress', reactivity: 1.5, interpolate: true }, 1500);
+  const t = window.SWRBench.tests().find(x => x.name === 'stress');
+  const r = await window.SWRBench.runTest(t.name, t.cfg, 1500);
   const ai = window.SWRBench.analyze(r);
   return {
     grade: ai.grade,
@@ -180,8 +179,8 @@ else bad('the advisor proposes suggestions', JSON.stringify(advisor));
 // --- 6) apply & re-run produces a second, comparable report --------------
 const applied = await page.evaluate(async () => {
   const before = window.SWRBench.reports.length;
-  const r = await window.SWRBench.runTest('stress',
-    { layerPreset: 'stress', reactivity: 1.5, interpolate: true }, 1200);
+  const t = window.SWRBench.tests().find(x => x.name === 'stress');
+  const r = await window.SWRBench.runTest(t.name, t.cfg, 1200);
   const ai = window.SWRBench.analyze(r);
   const dpr = window.SWRBench.config.dpr;
   // the advisor's own suggestion path: cap the DPR and re-run
@@ -200,16 +199,16 @@ if (persisted > 0) ok('the reports survive a reload (' + persisted + ')');
 else bad('the reports survive a reload', persisted);
 
 const compare = await page.evaluate(() => {
-  const sel = document.querySelector('#cmpA');
-  const sel2 = document.querySelector('#cmpB');
+  const sel = document.querySelector('#benchCmpA');
+  const sel2 = document.querySelector('#benchCmpB');
   if (!sel || !sel2) return { ok: false, why: 'no selects' };
   const opts = [...sel.options].filter(o => o.value);
   if (opts.length < 2) return { ok: false, why: 'fewer than two reports' };
   sel.value = opts[0].value;
   sel2.value = opts[1].value;
   sel.dispatchEvent(new Event('change', { bubbles: true }));
-  const rows = document.querySelectorAll('#cmpTable tbody tr').length;
-  const text = document.querySelector('#cmpTable').textContent || '';
+  const rows = document.querySelectorAll('#benchCmpTable tbody tr').length;
+  const text = document.querySelector('#benchCmpTable').textContent || '';
   return { ok: rows > 1 && /Delta/i.test(text), rows };
 });
 if (compare.ok) ok('the compare table renders a delta (' + compare.rows + ' rows)');

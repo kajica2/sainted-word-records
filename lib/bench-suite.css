@@ -1,0 +1,105 @@
+/* lib/bench-suite.css — the shared stylesheet for the benchmark suite's
+   panel. Both hosts (the lab page and the preset editor's Bench tab) mount
+   the same panel, so the styles live here rather than in either page. */
+  .tabs{display:flex; gap:4px; padding:8px 10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .tabs button{border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; padding:6px 11px; color:var(--dim); background:transparent}
+  .tabs button.on{color:var(--neon); border-color:var(--line); background:var(--panel2)}
+  .panels{flex:1; overflow:auto; padding:12px}
+  .panel{display:none}
+  .panel.on{display:block}
+
+  .sec{font-size:10.5px; letter-spacing:.16em; color:var(--dim); text-transform:uppercase; margin:14px 0 8px}
+  .sec:first-child{margin-top:0}
+  .hint{color:var(--dim); font-size:11px; margin:6px 0 10px; line-height:1.55}
+  .btnrow{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
+  .row{display:grid; grid-template-columns:100px 1fr; gap:8px; align-items:center; margin-bottom:7px}
+  .row>span{color:var(--dim); font-size:11.5px}
+
+  .test-item{
+    display:flex; align-items:center; gap:8px; padding:9px 10px; margin-bottom:6px;
+    border:1px solid var(--line); border-radius:7px; background:var(--panel2);
+    transition:.15s; cursor:pointer;
+  }
+  .test-item:hover{border-color:rgba(77,227,208,.4)}
+  .test-item .name{flex:1; font-size:12px}
+  .test-item .desc{font-size:10.5px; color:var(--dim); display:block; margin-top:2px}
+  .test-item button{padding:3px 9px; font-size:10.5px}
+
+  .buf-stats{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
+  .stat{border:1px solid var(--line); border-radius:7px; padding:9px; background:var(--panel2)}
+  .stat-label{font-size:10px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase}
+  .stat-val{font-size:16px; color:var(--neon); margin-top:3px; font-weight:600}
+  .stat-val.bad{color:var(--bad)}
+  .stat-val.ok{color:var(--ok)}
+  .stat-val small{font-size:10px; color:var(--dim); font-weight:400; letter-spacing:.02em}
+  #benchSpark{width:100%; height:80px; display:block; border:1px solid var(--line); border-radius:6px; background:#060a10}
+  .fill-bar{height:6px; background:#101a26; border-radius:3px; overflow:hidden; margin-top:4px}
+  .fill-bar b{display:block; height:100%; background:linear-gradient(90deg,var(--neon),var(--neon2)); transition:width .15s linear}
+  .buf-tag{
+    display:inline-flex; align-items:center; gap:5px; font-size:10px; padding:3px 8px;
+    border-radius:10px; border:1px solid rgba(87,227,154,.4); color:var(--ok);
+    letter-spacing:.06em; margin-top:6px;
+  }
+  .buf-tag::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 8px var(--ok)}
+
+  .report-card{
+    border:1px solid var(--line); border-radius:7px; padding:9px; margin-bottom:7px;
+    background:var(--panel2); cursor:pointer; transition:.15s;
+  }
+  .report-card:hover{border-color:rgba(77,227,208,.4)}
+  .report-card.selected{border-color:var(--neon); box-shadow:0 0 12px rgba(77,227,208,.15)}
+  .report-head{display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px}
+  .report-head b{font-size:12px; font-weight:600}
+  .report-meta{font-size:10.5px; color:var(--dim); letter-spacing:.03em; line-height:1.5}
+  .grade-badge{
+    font-size:13px; font-weight:700; padding:2px 8px; border-radius:6px;
+    border:1px solid; letter-spacing:.02em; min-width:32px; text-align:center;
+  }
+  .grade-A, .grade-Apos{color:var(--ok); border-color:rgba(87,227,154,.5); background:rgba(87,227,154,.08)}
+  .grade-B{color:var(--neon); border-color:rgba(77,227,208,.5); background:rgba(77,227,208,.08)}
+  .grade-C{color:var(--warn); border-color:rgba(255,180,84,.5); background:rgba(255,180,84,.08)}
+  .grade-D{color:var(--neon2); border-color:rgba(255,79,216,.5); background:rgba(255,79,216,.08)}
+  .grade-F{color:var(--bad); border-color:rgba(255,90,90,.5); background:rgba(255,90,90,.08)}
+
+  .compare-sel{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
+  .compare-sel select{width:100%}
+  .delta-table{width:100%; border-collapse:collapse; font-size:11px}
+  .delta-table th, .delta-table td{padding:6px 8px; text-align:left; border-bottom:1px solid var(--line)}
+  .delta-table th{color:var(--dim); font-weight:400; letter-spacing:.08em; text-transform:uppercase; font-size:9.5px}
+  .delta-table td.num{text-align:right; font-variant-numeric:tabular-nums}
+  .delta-good{color:var(--ok)}
+  .delta-bad{color:var(--bad)}
+  .delta-neutral{color:var(--dim)}
+
+  .grade-card{
+    border:1px solid var(--line); border-radius:8px; padding:16px; text-align:center;
+    background:linear-gradient(180deg,rgba(77,227,208,.04),transparent); margin-bottom:12px;
+  }
+  .grade-card .grade-big{font-size:42px; font-weight:700; line-height:1}
+  .grade-card .grade-score{font-size:11px; color:var(--dim); margin-top:4px; letter-spacing:.08em}
+  .score-bars{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; text-align:left}
+  .score-bar-label{font-size:9.5px; color:var(--dim); letter-spacing:.08em; text-transform:uppercase}
+  .score-bar-track{height:4px; background:#101a26; border-radius:2px; overflow:hidden; margin-top:3px}
+  .score-bar-fill{height:100%; background:var(--neon); transition:width .3s}
+
+  .bottleneck{
+    border-left:3px solid var(--warn); background:rgba(255,180,84,.06);
+    padding:8px 10px; margin-bottom:6px; border-radius:4px; font-size:11.5px;
+  }
+  .bottleneck.high{border-left-color:var(--bad); background:rgba(255,90,90,.06)}
+  .bottleneck .kind{font-size:9.5px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase}
+  .bottleneck .detail{color:var(--txt); margin-top:2px}
+
+  .suggestion{
+    border:1px solid var(--line); border-radius:7px; padding:9px; margin-bottom:6px;
+    background:var(--panel2); display:flex; gap:9px; align-items:flex-start;
+  }
+  .suggestion input[type=checkbox]{accent-color:#4de3d0; margin-top:3px; flex:none}
+  .suggestion .body{flex:1}
+  .suggestion .label{font-size:11.5px; color:var(--txt)}
+  .suggestion .detail{font-size:10.5px; color:var(--dim); margin-top:2px; line-height:1.5}
+  .suggestion .delta{
+    font-size:10px; color:var(--neon2); border:1px solid rgba(255,79,216,.3);
+    padding:1px 6px; border-radius:8px; letter-spacing:.04em; display:inline-block; margin-top:4px;
+  }
+
