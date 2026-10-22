@@ -220,7 +220,7 @@ remaining backlog. Re-checked against the live tree:
 | 2.7 doc-vs-code drift | **closed** — `check:doc-truth` |
 | 2.8 export DPR clamp | **closed** |
 | P3 `webgl-feature-detect` | **closed** — wired |
-| P3 `TRUSTED_PROXIES` | **open** — a non-Vercel deploy has bypassable per-IP rate limits |
+| P3 `TRUSTED_PROXIES` | **closed** (this repo, 2026-10-22) - `clientIp(req)` in `api/_lib/http.js`, gated by `check:trusted-proxies-unit` |
 
 ### 3.7 One concept, one place
 

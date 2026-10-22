@@ -150,6 +150,13 @@ const GROUPS = {
     // the session cookie and the redirect_uri callback. Google's two
     // endpoints are stubbed; everything else is the real handler.
     'npm run check:auth-google-signin-unit',
+    // The client-IP gate (api/_lib/http.js clientIp). Seven handlers read
+    // `x-forwarded-for` directly, so off Vercel - where the header is a
+    // string the client chose - every per-IP rate limit was rotatable and
+    // the dev-mode admin allowlist was a header away. The unit pins the walk
+    // direction, the peer gate, the normalization and the fail-closed default,
+    // and asserts that no call site parses the header itself any more.
+    'npm run check:trusted-proxies-unit',
     'npm run check:bpm-unit',
     'npm run check:life-unit',
     'npm run check:midi-feat-unit',

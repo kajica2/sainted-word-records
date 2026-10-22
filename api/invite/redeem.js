@@ -18,7 +18,7 @@
 // the operator can fix it instead of leaking a generic 500, and is kept
 // distinct from the 404 that means "no such code".
 
-import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
+import { readJsonBody, sendJson, setCors, clientIp } from '../_lib/http.js';
 import { rateLimit } from '../_lib/db.js';
 import { normalizeCode, readInvite, writeInvite, getUsage, incrementUsage, setUsageTier } from '../_lib/kv.js';
 
@@ -38,8 +38,9 @@ export default async function handler(req, res) {
 
   // Per-IP rate limit. Codes are short and pasteable, so a single IP
   // can guess freely without this; the limit is the cheap safety net
-  // against a script hammering the endpoint.
-  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  // against a script hammering the endpoint. The bucket key comes from
+  // clientIp(), so rotating `x-forwarded-for` does not mint a new bucket.
+  const ip = clientIp(req);
   const rl = rateLimit({ key: `invite-redeem:${ip}`, windowMs: 60_000, max: 30 });
   if (!rl.ok) {
     res.setHeader('Retry-After', String(Math.ceil(rl.retryAfterMs / 1000)));

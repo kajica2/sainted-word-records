@@ -249,9 +249,12 @@ Renderer.dpr = prevDpr;
 
 These are real but lower-priority. Most are doc + cosmetic.
 
-- **TRUSTED_PROXIES gate** (`api/_lib/http.js` + `api/middleware.js`) — non-Vercel
-  deployments currently have bypassable per-IP rate limits. Add the
-  documented mechanism.
+- **TRUSTED_PROXIES gate** - **done** (2026-10-22). There is no
+  `api/middleware.js` in this repo, so the gate lives where the mechanism
+  actually has to be: `clientIp(req)` in `api/_lib/http.js`. All seven call
+  sites use it, the chain is walked from the right, an untrusted peer means
+  the header is ignored, and a missing `TRUSTED_PROXIES` fails closed to the
+  peer. Gated by `check:trusted-proxies-unit`.
 - **`webgl-feature-detect` integration** — there's a feature-detect
   module but it's not used by the engine. Either wire it or delete.
 - **The 11-instance doc drift** — covered by mechanism (0.6) once

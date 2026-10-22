@@ -33,7 +33,7 @@
 // non-buyer into PT; that is the same trust model the paid-slot ledger already
 // documents, and it is strictly better than a forgeable localStorage boolean.
 
-import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
+import { readJsonBody, sendJson, setCors, clientIp } from '../_lib/http.js';
 import { rateLimit, readJson } from '../_lib/db.js';
 import { PT_KEY_RE, PT_TIERS, keysIndexPath } from '../_lib/pt-keys.js';
 import { getSlotState } from '../_lib/slots.js';
@@ -48,11 +48,9 @@ const CODE_MAX = 10;
 const IP_WINDOW_MS = 60_000;
 const IP_MAX = 60;
 
-function clientIp(req) {
-  const raw = (req.headers && req.headers['x-forwarded-for']) ||
-    (req.socket && req.socket.remoteAddress) || 'unknown';
-  return String(raw).split(',')[0].trim() || 'unknown';
-}
+// The per-IP budget below uses the one client-IP contract in api/_lib/http.js:
+// `x-forwarded-for` counts only when a trusted proxy wrote it, so a rotated
+// header cannot turn the 60/min IP budget into an unlimited code sweep.
 
 // Normalise to the canonical minted form. The client's localStorage lowercases
 // keys on the way in and an operator may type one in either case, so the
