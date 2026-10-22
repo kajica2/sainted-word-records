@@ -712,6 +712,14 @@
       "destination": "/preset-editor.html"
     },
     {
+      "source": "/bench",
+      "destination": "/bench.html"
+    },
+    {
+      "source": "/bench/",
+      "destination": "/bench.html"
+    },
+    {
       "source": "/composer",
       "destination": "/composer.html"
     },

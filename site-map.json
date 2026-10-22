@@ -322,6 +322,11 @@
       "description": "Author, preview and export neon generative presets — layers, LFOs, audio bands and a live reactive canvas."
     },
     {
+      "label": "Bench & Sync Lab",
+      "href": "/bench",
+      "description": "Benchmark the editor: frame rate, A/V sync through a timestamped ring buffer, versioned reports and an advisor that applies its own optimizations."
+    },
+    {
       "label": "Composer",
       "href": "/composer",
       "description": "Mobile-first audio-reactive video composer. Touch-native, single column on phone, dual column on desktop."
@@ -650,8 +655,8 @@
   "meta": {
     "version": "1.0.0",
     "lastUpdated": "2026-10-22",
-    "totalPages": 171,
-    "corePages": 171,
+    "totalPages": 172,
+    "corePages": 172,
     "archivedPages": 0
   },
   "discovered": [
@@ -679,6 +684,7 @@
     "auth/google-callback.html",
     "auth/login.html",
     "auth/verify.html",
+    "bench.html",
     "bookings.html",
     "buy.html",
     "camera-enhance.html",

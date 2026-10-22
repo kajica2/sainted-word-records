@@ -1,0 +1,1449 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bench &amp; Sync Lab · SWR</title>
+<meta name="description" content="Benchmark the preset editor: frame rate, A/V sync through a timestamped ring buffer, versioned performance reports and a heuristic advisor that applies its own optimizations." />
+<meta name="color-scheme" content="dark" />
+<meta property="og:title" content="Bench &amp; Sync Lab · SWR" />
+<meta property="og:description" content="Frame rate, A/V sync, versioned reports and an advisor that applies its own optimizations." />
+<meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+<link rel="canonical" href="https://sainted-word-records.vercel.app/bench" />
+<link rel="stylesheet" href="/lib/design-tokens.css" />
+<link rel="stylesheet" href="/lib/components.css" />
+<script src="/lib/nav.client.js" defer></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070c'/%3E%3Cpath d='M6 22 L11 10 L16 18 L21 10 L26 22' stroke='%234de3d0' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+  /* The lab's own palette, scoped to body.swr-bench so it does not fight the
+     shared tokens the nav and the footer read. */
+  body.swr-bench{
+    --bg:#05070c; --panel:#0b1018; --panel2:#0e1622; --line:#1b2432;
+    --txt:#dfe9f5; --dim:#7c8ca3; --neon:#4de3d0; --neon2:#ff4fd8; --warn:#ffb454;
+    --ice:#8fd4ff; --ok:#57e39a; --bad:#ff5a5a;
+    /* shared-chrome tokens, dark */
+    --bg-2:#0b1018; --bg-3:#0e1622; --line-2:#2a3a4e;
+    --ink:#dfe9f5; --ink-2:#a9b8cb; --muted:#7c8ca3;
+    --accent:#4de3d0; --accent-2:#ff4fd8; --accent-3:#ffb454;
+  }
+  *{box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--txt);
+    font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    display:flex; flex-direction:column;
+  }
+  header{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:9px 14px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#0a0f16,#070b11);
+  }
+  .brand{font-weight:700; letter-spacing:.16em; color:var(--neon); text-shadow:0 0 14px rgba(77,227,208,.55); white-space:nowrap}
+  .brand small{color:var(--dim); letter-spacing:.06em; font-weight:400; text-shadow:none}
+  .spacer{flex:1}
+  button,select,input[type=text]{
+    font:inherit; color:var(--txt); background:var(--panel2);
+    border:1px solid var(--line); border-radius:6px; padding:5px 8px; outline:none;
+  }
+  button{cursor:pointer; transition:.15s border-color,.15s color,.15s box-shadow}
+  button:hover{border-color:var(--neon); color:var(--neon); box-shadow:0 0 10px rgba(77,227,208,.18)}
+  button.primary{border-color:rgba(77,227,208,.55); color:var(--neon)}
+  button:disabled{cursor:not-allowed; opacity:.35; box-shadow:none}
+  button:disabled:hover{border-color:var(--line); color:var(--txt)}
+  input[type=text]:focus,select:focus{border-color:var(--neon); box-shadow:0 0 0 2px rgba(77,227,208,.12)}
+  #versionInput{width:170px}
+  .siteExit{
+    color:var(--dim); text-decoration:none; font-size:11px; letter-spacing:.1em;
+    border:1px solid var(--line); border-radius:6px; padding:5px 8px;
+  }
+  .siteExit:hover{color:var(--neon); border-color:var(--neon)}
+  .badge{
+    font-size:10px; padding:2px 8px; border-radius:10px; letter-spacing:.08em;
+    border:1px solid rgba(77,227,208,.35); color:var(--neon); display:inline-block;
+  }
+  .badge.warn{border-color:rgba(255,180,84,.4); color:var(--warn)}
+  .badge.bad{border-color:rgba(255,90,90,.4); color:var(--bad)}
+  .badge.ok{border-color:rgba(87,227,154,.4); color:var(--ok)}
+
+  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,1fr) 460px;
+       height:calc(100vh - 190px); min-height:560px}
+  #stageWrap{position:relative; min-height:0; overflow:hidden; background:#05070c}
+  #stage{position:absolute; inset:0; width:100%; height:100%; display:block}
+  #hud{
+    position:absolute; left:12px; top:12px; display:flex; gap:10px; align-items:flex-end;
+    padding:8px 10px; border:1px solid var(--line); border-radius:7px;
+    background:rgba(6,10,16,.72); backdrop-filter:blur(6px); font-size:10.5px; color:var(--dim);
+    pointer-events:none;
+  }
+  .meter{width:22px; display:flex; flex-direction:column; gap:3px; align-items:center}
+  .meter i{display:block; width:100%; height:26px; background:#101a26; border-radius:2px; position:relative; overflow:hidden}
+  .meter i b{position:absolute; left:0; right:0; bottom:0; height:0%; background:linear-gradient(180deg,var(--neon),rgba(77,227,208,.25)); transition:height .05s linear}
+  .meter span{font-size:9px; letter-spacing:.06em}
+  #runIndicator{
+    position:absolute; right:12px; top:12px; padding:8px 12px; border-radius:7px;
+    border:1px solid rgba(255,79,216,.4); background:rgba(6,10,16,.72); backdrop-filter:blur(6px);
+    font-size:10.5px; color:var(--neon2); letter-spacing:.08em; display:none; text-align:right;
+  }
+  #runIndicator.on{display:block}
+  #runIndicator .progress{height:3px; background:#1a2230; border-radius:2px; margin-top:6px; overflow:hidden}
+  #runIndicator .progress b{display:block; height:100%; width:0%; background:var(--neon2); transition:width .1s linear; box-shadow:0 0 8px var(--neon2)}
+
+  #panel{border-left:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; min-height:0}
+  .tabs{display:flex; gap:4px; padding:8px 10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .tabs button{border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; padding:6px 11px; color:var(--dim); background:transparent}
+  .tabs button.on{color:var(--neon); border-color:var(--line); background:var(--panel2)}
+  .panels{flex:1; overflow:auto; padding:12px}
+  .panel{display:none}
+  .panel.on{display:block}
+
+  .sec{font-size:10.5px; letter-spacing:.16em; color:var(--dim); text-transform:uppercase; margin:14px 0 8px}
+  .sec:first-child{margin-top:0}
+  .hint{color:var(--dim); font-size:11px; margin:6px 0 10px; line-height:1.55}
+  .btnrow{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
+  .row{display:grid; grid-template-columns:100px 1fr; gap:8px; align-items:center; margin-bottom:7px}
+  .row>span{color:var(--dim); font-size:11.5px}
+
+  .test-item{
+    display:flex; align-items:center; gap:8px; padding:9px 10px; margin-bottom:6px;
+    border:1px solid var(--line); border-radius:7px; background:var(--panel2);
+    transition:.15s; cursor:pointer;
+  }
+  .test-item:hover{border-color:rgba(77,227,208,.4)}
+  .test-item .name{flex:1; font-size:12px}
+  .test-item .desc{font-size:10.5px; color:var(--dim); display:block; margin-top:2px}
+  .test-item button{padding:3px 9px; font-size:10.5px}
+
+  .buf-stats{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
+  .stat{border:1px solid var(--line); border-radius:7px; padding:9px; background:var(--panel2)}
+  .stat-label{font-size:10px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase}
+  .stat-val{font-size:16px; color:var(--neon); margin-top:3px; font-weight:600}
+  .stat-val.bad{color:var(--bad)}
+  .stat-val.ok{color:var(--ok)}
+  .stat-val small{font-size:10px; color:var(--dim); font-weight:400; letter-spacing:.02em}
+  #sparkCanvas{width:100%; height:80px; display:block; border:1px solid var(--line); border-radius:6px; background:#060a10}
+  .fill-bar{height:6px; background:#101a26; border-radius:3px; overflow:hidden; margin-top:4px}
+  .fill-bar b{display:block; height:100%; background:linear-gradient(90deg,var(--neon),var(--neon2)); transition:width .15s linear}
+  .buf-tag{
+    display:inline-flex; align-items:center; gap:5px; font-size:10px; padding:3px 8px;
+    border-radius:10px; border:1px solid rgba(87,227,154,.4); color:var(--ok);
+    letter-spacing:.06em; margin-top:6px;
+  }
+  .buf-tag::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 8px var(--ok)}
+
+  .report-card{
+    border:1px solid var(--line); border-radius:7px; padding:9px; margin-bottom:7px;
+    background:var(--panel2); cursor:pointer; transition:.15s;
+  }
+  .report-card:hover{border-color:rgba(77,227,208,.4)}
+  .report-card.selected{border-color:var(--neon); box-shadow:0 0 12px rgba(77,227,208,.15)}
+  .report-head{display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px}
+  .report-head b{font-size:12px; font-weight:600}
+  .report-meta{font-size:10.5px; color:var(--dim); letter-spacing:.03em; line-height:1.5}
+  .grade-badge{
+    font-size:13px; font-weight:700; padding:2px 8px; border-radius:6px;
+    border:1px solid; letter-spacing:.02em; min-width:32px; text-align:center;
+  }
+  .grade-A, .grade-Apos{color:var(--ok); border-color:rgba(87,227,154,.5); background:rgba(87,227,154,.08)}
+  .grade-B{color:var(--neon); border-color:rgba(77,227,208,.5); background:rgba(77,227,208,.08)}
+  .grade-C{color:var(--warn); border-color:rgba(255,180,84,.5); background:rgba(255,180,84,.08)}
+  .grade-D{color:var(--neon2); border-color:rgba(255,79,216,.5); background:rgba(255,79,216,.08)}
+  .grade-F{color:var(--bad); border-color:rgba(255,90,90,.5); background:rgba(255,90,90,.08)}
+
+  .compare-sel{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
+  .compare-sel select{width:100%}
+  .delta-table{width:100%; border-collapse:collapse; font-size:11px}
+  .delta-table th, .delta-table td{padding:6px 8px; text-align:left; border-bottom:1px solid var(--line)}
+  .delta-table th{color:var(--dim); font-weight:400; letter-spacing:.08em; text-transform:uppercase; font-size:9.5px}
+  .delta-table td.num{text-align:right; font-variant-numeric:tabular-nums}
+  .delta-good{color:var(--ok)}
+  .delta-bad{color:var(--bad)}
+  .delta-neutral{color:var(--dim)}
+
+  .grade-card{
+    border:1px solid var(--line); border-radius:8px; padding:16px; text-align:center;
+    background:linear-gradient(180deg,rgba(77,227,208,.04),transparent); margin-bottom:12px;
+  }
+  .grade-card .grade-big{font-size:42px; font-weight:700; line-height:1}
+  .grade-card .grade-score{font-size:11px; color:var(--dim); margin-top:4px; letter-spacing:.08em}
+  .score-bars{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; text-align:left}
+  .score-bar-label{font-size:9.5px; color:var(--dim); letter-spacing:.08em; text-transform:uppercase}
+  .score-bar-track{height:4px; background:#101a26; border-radius:2px; overflow:hidden; margin-top:3px}
+  .score-bar-fill{height:100%; background:var(--neon); transition:width .3s}
+
+  .bottleneck{
+    border-left:3px solid var(--warn); background:rgba(255,180,84,.06);
+    padding:8px 10px; margin-bottom:6px; border-radius:4px; font-size:11.5px;
+  }
+  .bottleneck.high{border-left-color:var(--bad); background:rgba(255,90,90,.06)}
+  .bottleneck .kind{font-size:9.5px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase}
+  .bottleneck .detail{color:var(--txt); margin-top:2px}
+
+  .suggestion{
+    border:1px solid var(--line); border-radius:7px; padding:9px; margin-bottom:6px;
+    background:var(--panel2); display:flex; gap:9px; align-items:flex-start;
+  }
+  .suggestion input[type=checkbox]{accent-color:#4de3d0; margin-top:3px; flex:none}
+  .suggestion .body{flex:1}
+  .suggestion .label{font-size:11.5px; color:var(--txt)}
+  .suggestion .detail{font-size:10.5px; color:var(--dim); margin-top:2px; line-height:1.5}
+  .suggestion .delta{
+    font-size:10px; color:var(--neon2); border:1px solid rgba(255,79,216,.3);
+    padding:1px 6px; border-radius:8px; letter-spacing:.04em; display:inline-block; margin-top:4px;
+  }
+
+  #toast{
+    position:fixed; left:50%; bottom:22px; transform:translate(-50%,14px);
+    padding:8px 15px; border-radius:7px; border:1px solid rgba(77,227,208,.45);
+    background:rgba(8,14,20,.95); color:var(--neon); font-size:11.5px;
+    opacity:0; pointer-events:none; transition:.22s; z-index:99;
+    box-shadow:0 0 22px rgba(77,227,208,.22);
+  }
+  #toast.on{opacity:1; transform:translate(-50%,0)}
+  ::-webkit-scrollbar{width:9px; height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#1c2735; border-radius:6px}
+  ::-webkit-scrollbar-thumb:hover{background:#2a3a4e}
+
+  @media (max-width:980px){
+    main{grid-template-columns:1fr; grid-template-rows:38vh 1fr}
+    #panel{border-left:none; border-top:1px solid var(--line)}
+  }
+</style>
+</head>
+<body class="swr-bench">
+<swr-nav></swr-nav>
+
+<header>
+  <a class="siteExit" href="/" title="Back to the site">← Site</a>
+  <div class="brand">SWR<small> / BENCH &amp; SYNC LAB</small></div>
+  <span class="badge ok" id="liveFpsBadge">60 fps</span>
+  <span class="badge" id="liveDriftBadge">drift 0.0 ms</span>
+  <div class="spacer"></div>
+  <input id="versionInput" type="text" placeholder="version tag (e.g. v2.1-baseline)" aria-label="Version tag">
+  <span class="badge" id="bufferBadge">◉ buffer auto</span>
+</header>
+
+<main id="app">
+  <section id="stageWrap" aria-label="Benchmark preview">
+    <canvas id="stage"></canvas>
+    <div id="hud">
+      <div class="meter"><i><b data-meter="bass"></b></i><span>BASS</span></div>
+      <div class="meter"><i><b data-meter="mid"></b></i><span>MID</span></div>
+      <div class="meter"><i><b data-meter="treble"></b></i><span>TREB</span></div>
+      <div class="meter"><i><b data-meter="rms"></b></i><span>RMS</span></div>
+      <div style="padding-left:6px; border-left:1px solid var(--line)">
+        <div id="liveDpr">dpr –</div>
+        <div id="liveCfg">cfg –</div>
+      </div>
+    </div>
+    <div id="runIndicator">
+      <div id="runLabel">running…</div>
+      <div class="progress"><b id="runBar"></b></div>
+    </div>
+  </section>
+
+  <aside id="panel" aria-label="Benchmark panel">
+    <nav class="tabs" role="tablist">
+      <button class="on" data-tab="run" role="tab">Run</button>
+      <button data-tab="buffer" role="tab">Buffer</button>
+      <button data-tab="reports" role="tab">Reports</button>
+      <button data-tab="compare" role="tab">Compare</button>
+      <button data-tab="ai" role="tab">Advisor</button>
+    </nav>
+    <div class="panels">
+
+      <!-- RUN -->
+      <div class="panel on" data-panel="run">
+        <div class="sec">Configuration</div>
+        <div class="row"><span>mode</span>
+          <select id="runMode" aria-label="Run mode">
+            <option value="quick">quick · 1.5s / test</option>
+            <option value="full" selected>full · 3s / test</option>
+          </select>
+        </div>
+        <div class="row"><span>tag</span>
+          <input type="text" id="tagInput" placeholder="auto (YYYYMMDD-HHmm)">
+        </div>
+        <div class="btnrow">
+          <button id="runAllBtn" class="primary">▶ Run all tests</button>
+          <button id="stopBtn" disabled>■ Stop</button>
+        </div>
+
+        <div class="sec">Individual tests</div>
+        <div id="testList"></div>
+
+        <div class="sec">What's measured</div>
+        <div class="hint">
+          Per-test: FPS (avg / p50 / p95 / p99), frame time (avg / p95 / p99), jitter (stddev),
+          A/V drift (avg / max, ms), feature jitter (choppiness), buffer fill,
+          memory (Chrome only). Each report is scored across <b>render</b>, <b>stability</b>,
+          and <b>sync</b>, then graded A+ → F.
+        </div>
+      </div>
+
+      <!-- BUFFER -->
+      <div class="panel" data-panel="buffer">
+        <div class="sec">A/V sync buffer</div>
+        <div class="buf-tag">Auto-created · always running</div>
+        <div class="hint" style="margin-top:8px">
+          Audio features are pushed at 60 Hz into a ring buffer with timestamps. The render
+          loop samples the buffer at video time with linear interpolation, so the two clocks
+          never have to agree — drift is measured, not assumed.
+        </div>
+
+        <div class="buf-stats">
+          <div class="stat">
+            <div class="stat-label">Buffer fill</div>
+            <div class="stat-val" id="bufFill">0%</div>
+            <div class="fill-bar"><b id="bufFillBar"></b></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Interpolation</div>
+            <div class="stat-val" id="bufInterp">on</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Drift avg</div>
+            <div class="stat-val" id="bufDriftAvg">0.0 <small>ms</small></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Drift max</div>
+            <div class="stat-val" id="bufDriftMax">0.0 <small>ms</small></div>
+          </div>
+        </div>
+
+        <div class="sec">Live drift</div>
+        <canvas id="sparkCanvas"></canvas>
+
+        <div class="sec">Controls</div>
+        <div class="btnrow">
+          <button id="toggleInterp">Toggle interpolation</button>
+          <button id="resetBuffer">Clear buffer</button>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="panel" data-panel="reports">
+        <div class="sec">Saved reports</div>
+        <div class="hint">Every run is compiled into a versioned report saved to localStorage.</div>
+        <div class="btnrow">
+          <button id="exportReports">↧ Export all</button>
+          <button id="clearReports" style="color:var(--bad); border-color:rgba(255,90,90,.4)">✕ Clear all</button>
+        </div>
+        <div id="reportList"></div>
+      </div>
+
+      <!-- COMPARE -->
+      <div class="panel" data-panel="compare">
+        <div class="sec">Compare two versions</div>
+        <div class="compare-sel">
+          <div><label style="font-size:10px;color:var(--dim);letter-spacing:.1em">BASELINE</label>
+            <select id="cmpA" aria-label="Baseline report"></select></div>
+          <div><label style="font-size:10px;color:var(--dim);letter-spacing:.1em">CANDIDATE</label>
+            <select id="cmpB" aria-label="Candidate report"></select></div>
+        </div>
+        <div id="cmpTable"></div>
+      </div>
+
+      <!-- ADVISOR -->
+      <div class="panel" data-panel="ai">
+        <div class="sec">Advisor</div>
+        <div id="aiContent">
+          <div class="hint">Run the benchmarks, then the advisor will grade the result, list bottlenecks, and propose optimizations you can apply and re-run.</div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   SWR · BENCH & SYNC LAB
+
+   The painters, the reactive curves, the demo signal and the render
+   bounds below are the SAME code the preset editor runs
+   (preset-editor.html). A benchmark of a different renderer measures
+   the wrong thing, so the parity is deliberate and load-bearing.
+   ============================================================ */
+
+/* ---------- utils ---------- */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+const variance = arr => {
+  if (arr.length < 2) return 0;
+  const m = arr.reduce((s, x) => s + x, 0) / arr.length;
+  return arr.reduce((s, x) => s + (x - m) ** 2, 0) / arr.length;
+};
+const pct = (sorted, p) => {
+  if (!sorted.length) return 0;
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
+};
+const computeStats = arr => {
+  if (!arr.length) return null;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mean = arr.reduce((s, x) => s + x, 0) / arr.length;
+  const sd = Math.sqrt(variance(arr));
+  return { mean, sd, p50: pct(sorted, 0.5), p95: pct(sorted, 0.95), p99: pct(sorted, 0.99) };
+};
+const uid = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1700);
+}
+
+/* ---------- demo synth (the editor's signal) ---------- */
+function demoSynth(t) {
+  const bpm = 120;
+  const beat = (t * bpm / 60) % 1;
+  const phrase = (t * bpm / 60) % 4;
+  const pulse = Math.exp(-beat * 5.5);
+  // The off-beat half of the pulse. (This constant was a stray emoji in the
+  // supplied source — a syntax error that stopped the whole script parsing.)
+  const off = Math.exp(-(((beat + 0.5) % 1)) * 5.5);
+  const kick = Math.max(pulse, off);
+  // The phrase downbeat holds the low end, so a "held for 300ms" condition
+  // is reachable on the demo signal.
+  const hold = phrase < 1.5 ? 0.55 : 0;
+  return {
+    sub: 0.35 + kick * 0.75 + hold * 0.4,
+    bass: 0.28 + kick * 1.15 + hold,
+    mid: 0.35 + 0.22 * Math.sin(t * 1.9) + 0.10 * Math.sin(t * 5.3),
+    treble: 0.28 + 0.25 * Math.abs(Math.sin(t * 3.1)),
+    air: 0.20 + 0.20 * hash(Math.floor(t * 8)),
+    rms: 0.35 + kick * 0.45 + hold * 0.3,
+    centroid: 0.45 + 0.20 * Math.sin(t * 0.7),
+    pulse
+  };
+}
+
+/* ---------- painters (parity with the editor) ---------- */
+const PARAM_SPEC = {
+  count: { min: 4, max: 256, step: 1 }, width: { min: 0.05, max: 1, step: 0.01 },
+  gain: { min: 0, max: 3, step: 0.01 }, tilt: { min: -1, max: 1, step: 0.01 },
+  radius: { min: 0.05, max: 1, step: 0.01 }, thickness: { min: 0.01, max: 0.5, step: 0.01 },
+  spin: { min: -2, max: 2, step: 0.01 }, spread: { min: 0, max: 2, step: 0.01 },
+  amp: { min: 0, max: 1, step: 0.01 }, glow: { min: 0, max: 1, step: 0.01 },
+  noise: { min: 0, max: 1, step: 0.01 }, size: { min: 0.002, max: 0.06, step: 0.001 },
+  speed: { min: 0, max: 3, step: 0.01 }, jitter: { min: 0, max: 1, step: 0.01 },
+  cols: { min: 3, max: 64, step: 1 }, rows: { min: 3, max: 64, step: 1 },
+  warp: { min: 0, max: 1, step: 0.01 },
+};
+
+const PAINTERS = {
+  bars(ctx, f, t, P, W, H, c1, c2) {
+    const n = Math.max(4, Math.round(P.count || 56));
+    const gap = 1 - (P.width || 0.72);
+    const bw = W / n;
+    const half = Math.ceil(n / 2);
+    for (let i = 0; i < n; i++) {
+      // mirrored spectrum + three band lobes (the editor's profile)
+      const u = P.mirror === false
+        ? i / (n - 1 || 1)
+        : (i < half ? (half - 1 - i) / (half - 1 || 1) : (i - half) / (half - 1 || 1));
+      const lobe = (c, s) => Math.exp(-Math.pow((u - c) / s, 2));
+      let v = f.bass * lobe(0.16, 0.22) + f.mid * lobe(0.5, 0.24) + f.treble * lobe(0.84, 0.26);
+      v = v * (P.gain || 1) * (1 + (P.tilt || 0) * (u - 0.5));
+      const h = clamp(v * 0.7, 0, 1) * H * 0.42;
+      ctx.fillStyle = u < 0.5 ? c1 : c2;
+      ctx.fillRect(i * bw + bw * gap * 0.5, H / 2 - h, bw * (1 - gap), h * 2);
+    }
+  },
+  rings(ctx, f, t, P, W, H, c1, c2) {
+    const cx = W / 2, cy = H / 2;
+    const R = Math.min(W, H) * (P.radius || 0.35);
+    const n = Math.max(1, Math.round(P.count || 8));
+    for (let i = 0; i < n; i++) {
+      const u = i / (n - 1 || 1);
+      const r = R * (0.3 + u * (P.spread || 0.6)) * (0.85 + f.bass * 0.5);
+      const a = t * (P.spin || 0.4) * (i % 2 ? 1 : -1);
+      // the stroke is a hairline on the ring's own scale
+      ctx.lineWidth = Math.max(1, r * (P.thickness || 0.1) * (0.35 + u * 0.5));
+      ctx.strokeStyle = i % 2 ? c2 : c1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(1, r), a, a + Math.PI * (1.2 + f.mid * 0.8));
+      ctx.stroke();
+    }
+  },
+  waveform(ctx, f, t, P, W, H, c1, c2) {
+    const cy = H / 2, amp = H * (P.amp || 0.3);
+    ctx.lineWidth = Math.max(1, H * (P.thickness || 0.06));
+    for (let k = 0; k < 2; k++) {
+      ctx.strokeStyle = k ? c2 : c1;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 2) {
+        const u = x / W;
+        const v = Math.sin(u * 8 + t * 2 + k * 1.7) * (0.6 + f.mid * 0.6)
+                + Math.sin(u * 23 - t * 3) * 0.25 * (P.noise || 0.2)
+                + Math.sin(u * 3 + t) * f.bass * 0.5;
+        const y = cy + v * amp * (1 - k * 0.5);
+        x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  },
+  particles(ctx, f, t, P, W, H, c1, c2) {
+    const n = Math.max(1, Math.round(P.count || 200));
+    const base = Math.min(W, H) * 0.45;
+    for (let i = 0; i < n; i++) {
+      const r1 = hash(i * 1.7), r2 = hash(i * 3.1 + 9), r3 = hash(i * 5.3 + 4);
+      const ang = r1 * Math.PI * 2 + t * (P.speed || 0.5) * (0.4 + r2);
+      const rad = (0.1 + r2 * 0.9) * base * (1 + f.bass * 0.4) * (0.6 + (P.spread || 0.9) * 0.4);
+      const x = W / 2 + Math.cos(ang) * rad + (r3 - 0.5) * (P.jitter || 0.4) * 40;
+      const y = H / 2 + Math.sin(ang) * rad * 0.9 + (r1 - 0.5) * (P.jitter || 0.4) * 40;
+      const s = Math.max(0.5, Math.min(W, H) * (P.size || 0.012) * (0.5 + r3));
+      ctx.fillStyle = r3 > 0.5 ? c1 : c2;
+      ctx.beginPath(); ctx.arc(x, y, s, 0, 6.2832); ctx.fill();
+    }
+  },
+  grid(ctx, f, t, P, W, H, c1, c2) {
+    const cols = Math.max(3, Math.round(P.cols || 18));
+    const rows = Math.max(3, Math.round(P.rows || 12));
+    ctx.lineWidth = Math.max(1, Math.min(W, H) * 0.003 * (1 + (P.glow || 0.5)));
+    for (let j = 0; j <= rows; j++) {
+      ctx.strokeStyle = j % 2 ? c2 : c1;
+      ctx.beginPath();
+      for (let i = 0; i <= cols; i++) {
+        const u = i / cols, v = j / rows;
+        const w = Math.sin(u * 6 + t * 1.5 + v * 4) * (P.warp || 0.35) * 0.08 * H * (0.5 + f.bass);
+        const x = u * W, y = v * H + w;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+};
+
+/* ---------- reactivity (the editor's curves) ---------- */
+const CURVES = {
+  linear: f => f,
+  sqrt: f => Math.sqrt(Math.max(0, f)),
+  exp: f => (Math.exp(clamp(f, 0, 3) * 2.2) - 1) / (Math.exp(6.6) - 1),
+  pulse: f => f * f,
+  thresh: f => f > 0.4 ? 1 : 0,
+  inv: f => 1 - Math.min(1, f),
+  log: f => Math.log(1 + Math.max(0, f) * 9) / Math.log(10)
+};
+
+function applyReact(L, f, mul) {
+  const out = { ...L, params: { ...L.params } };
+  if (!L.react || !L.react.length || mul <= 0) return out;
+  for (const r of L.react) {
+    const fv = clamp(f[r.feature] ?? 0, 0, 3);
+    const amt = (CURVES[r.curve] || CURVES.linear)(fv) * (r.amount ?? 1) * mul;
+    const key = r.param;
+    if (key === 'opacity') { out.opacity = clamp((out.opacity ?? 1) + amt, 0, 2); continue; }
+    if (!(key in out.params)) continue;
+    const base = out.params[key] ?? 0;
+    let v = r.mode === 'mul' ? base * (1 + amt) : base + amt;
+    const spec = PARAM_SPEC[key];
+    // the editor clamps every reactive parameter to its own range; a
+    // benchmark that renders unclamped values is not benchmarking the editor
+    if (spec) {
+      v = clamp(v, spec.min, spec.max);
+      if (key === 'count' || key === 'cols' || key === 'rows') v = Math.max(3, Math.round(v));
+    }
+    out.params[key] = v;
+  }
+  return out;
+}
+
+/* ============================================================
+   A/V SYNC BUFFER — auto-created, always on
+   ============================================================ */
+class AVSyncBuffer {
+  constructor(capacity = 128) {
+    this.capacity = capacity;
+    this.buf = [];
+    this.pushes = 0;
+    this.driftSamples = [];
+  }
+  push(features, tAudio) {
+    this.pushes++;
+    this.buf.push({ t: tAudio, f: { ...features } });
+    while (this.buf.length > this.capacity) this.buf.shift();
+  }
+  sampleAt(tVideo, interpolate) {
+    if (!this.buf.length) return { f: null, t: -1, drift: 0 };
+    let a = null, b = null;
+    for (let i = 0; i < this.buf.length - 1; i++) {
+      if (this.buf[i].t <= tVideo && this.buf[i + 1].t >= tVideo) {
+        a = this.buf[i]; b = this.buf[i + 1]; break;
+      }
+    }
+    if (!a) a = tVideo < this.buf[0].t ? this.buf[0] : this.buf[this.buf.length - 1];
+    let result;
+    if (interpolate && a && b) {
+      const alpha = clamp((tVideo - a.t) / Math.max(0.0001, b.t - a.t), 0, 1);
+      const f = {};
+      for (const k in a.f) f[k] = a.f[k] + (b.f[k] - a.f[k]) * alpha;
+      result = { f, t: a.t + (b.t - a.t) * alpha };
+    } else {
+      result = { f: { ...a.f }, t: a.t };
+    }
+    const drift = Math.abs(tVideo - result.t) * 1000;
+    this.driftSamples.push(drift);
+    if (this.driftSamples.length > 500) this.driftSamples.shift();
+    return { ...result, drift };
+  }
+  clear() { this.buf.length = 0; this.pushes = 0; this.driftSamples.length = 0; }
+}
+
+/* ============================================================
+   CONFIG + LAYER SETS
+   ============================================================ */
+function defaultLayers(preset) {
+  if (preset === 'baseline') {
+    return [{ type: 'bars', enabled: true, opacity: 0.85, blend: 'lighter',
+      params: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true },
+      react: [] }];
+  }
+  if (preset === 'reactive') {
+    return [
+      { type: 'bars', enabled: true, opacity: 0.85, blend: 'lighter',
+        params: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true },
+        react: [{ feature: 'bass', param: 'gain', amount: 1.2, curve: 'exp' }] },
+      { type: 'rings', enabled: true, opacity: 0.6, blend: 'lighter',
+        params: { count: 8, radius: 0.35, thickness: 0.12, spin: 0.4, spread: 0.6 },
+        react: [{ feature: 'rms', param: 'radius', amount: 0.3, curve: 'sqrt' }] },
+      { type: 'particles', enabled: true, opacity: 0.55, blend: 'lighter',
+        params: { count: 220, size: 0.012, speed: 0.5, spread: 0.9, jitter: 0.4 },
+        react: [{ feature: 'treble', param: 'speed', amount: 0.6, curve: 'linear' }] }
+    ];
+  }
+  if (preset === 'stress') {
+    return [
+      { type: 'bars', enabled: true, opacity: 0.85, blend: 'lighter',
+        params: { count: 64, width: 0.6, gain: 0.85, tilt: 0.4, mirror: true },
+        react: [{ feature: 'bass', param: 'gain', amount: 1.4, curve: 'exp' }] },
+      { type: 'rings', enabled: true, opacity: 0.6, blend: 'lighter',
+        params: { count: 10, radius: 0.35, thickness: 0.12, spin: 0.4, spread: 0.6 },
+        react: [{ feature: 'rms', param: 'radius', amount: 0.3, curve: 'sqrt' }] },
+      { type: 'waveform', enabled: true, opacity: 0.5, blend: 'screen',
+        params: { amp: 0.35, thickness: 0.06, glow: 0.7, noise: 0.25 },
+        react: [{ feature: 'mid', param: 'amp', amount: 0.3, curve: 'linear' }] },
+      { type: 'particles', enabled: true, opacity: 0.5, blend: 'lighter',
+        params: { count: 320, size: 0.01, speed: 1.2, spread: 1.2, jitter: 0.6 },
+        react: [{ feature: 'treble', param: 'speed', amount: 0.8, curve: 'linear' }] },
+      { type: 'grid', enabled: true, opacity: 0.45, blend: 'screen',
+        params: { cols: 26, rows: 16, warp: 0.4, glow: 0.6 },
+        react: [{ feature: 'bass', param: 'warp', amount: 0.8, curve: 'pulse' }] }
+    ];
+  }
+  return [];
+}
+
+/* The config is built FROM the layer preset. (The supplied source set
+ * `layers: defaultLayers('reactive')` and then merged the test's override
+ * on top, so the "baseline" test ran the three reactive layers and the
+ * baseline it claimed to measure never happened.) */
+function defaultCfg(layerPreset = 'reactive', overrides) {
+  const cfg = {
+    layerPreset,
+    layers: defaultLayers(layerPreset),
+    reactivity: 1.5,
+    interpolate: true,
+    injectAudioDrift: 0,
+    dpr: 0,          // 0 = auto
+    smoothing: 0.7,
+    trails: 0.4,
+  };
+  return Object.assign(cfg, overrides || {});
+}
+
+/* ============================================================
+   RUNTIME STATE
+   ============================================================ */
+const state = {
+  cfg: defaultCfg('reactive'),
+  buffer: new AVSyncBuffer(128),
+  startAt: performance.now(),
+  lastNow: 0,
+  smoothing: {},
+  recording: false,
+  dtSamples: [],
+  driftSamples: [],
+  bassSamples: [],
+  featureDiffs: [],
+  lastBass: null,
+  audioTimer: null,
+  audioTick: 0,
+  activeTest: null,
+  runToken: 0
+};
+
+/* ============================================================
+   CANVAS + RENDER
+   ============================================================ */
+const stage = $('#stage');
+const ctx = stage.getContext('2d', { alpha: false });
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  const r = stage.parentElement.getBoundingClientRect();
+  const want = state.cfg.dpr || window.devicePixelRatio || 1;
+  DPR = Math.min(want, 2.5);
+  W = Math.max(1, Math.round(r.width));
+  H = Math.max(1, Math.round(r.height));
+  stage.width = Math.round(W * DPR);
+  stage.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#05070c';
+  ctx.fillRect(0, 0, W, H);
+  $('#liveDpr').textContent = 'dpr ' + DPR.toFixed(2);
+}
+new ResizeObserver(resize).observe($('#stageWrap'));
+
+function render(f, tSec, cfg) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  // the editor's trail fade and its per-frame trail normalisation
+  const retention = clamp(0.52 - cfg.trails * 0.38, 0.30, 0.62);
+  ctx.fillStyle = `rgba(5,7,12,${retention})`;
+  ctx.fillRect(0, 0, W, H);
+  const trailNorm = 1 - retention;
+
+  const hue = 0.52, sat = 0.9, contrast = 1;
+  const light1 = clamp((30 + f.bass * 12) * contrast, 10, 48);
+  const c1 = `hsl(${hue * 360} ${sat * 100}% ${light1}%)`;
+  const c2 = `hsl(${((hue + 0.12) % 1) * 360} ${sat * 100}% ${clamp((34 + f.mid * 10) * contrast, 10, 48)}%)`;
+
+  // the editor's additive stack cap
+  let additive = 0;
+  for (const L of cfg.layers) {
+    if (!L.enabled) continue;
+    const blend = L.blend || 'lighter';
+    if (blend !== 'lighter' && blend !== 'screen') continue;
+    additive += clamp(L.opacity ?? 1, 0, 1);
+  }
+  const stackScale = additive > 1.1 ? 1.1 / additive : 1;
+
+  for (const L of cfg.layers) {
+    if (!L.enabled) continue;
+    const painter = PAINTERS[L.type];
+    if (!painter) continue;
+    const M = applyReact(L, f, cfg.reactivity);
+    const opacity = clamp(M.opacity ?? L.opacity ?? 1, 0, 1);
+    if (opacity <= 0.002) continue;
+    ctx.save();
+    ctx.globalCompositeOperation = L.blend || 'lighter';
+    ctx.globalAlpha = clamp(opacity * trailNorm * stackScale, 0, 1);
+    ctx.shadowBlur = Math.min(18, 8 * (0.4 + 0.5)) * stackScale;
+    ctx.shadowColor = c1;
+    ctx.strokeStyle = c1; ctx.fillStyle = c1;
+    painter(ctx, f, tSec, M.params, W, H, c1, c2);
+    ctx.restore();
+  }
+}
+
+/* ---------- the audio clock ----------
+   A real audio device delivers on its own clock, so the lab models one: a
+   timer that pushes samples stamped with the REAL elapsed time, plus the
+   jitter and the lag the test injects. The clock is pausable — an
+   un-pausable timer is not something a lab should ship.
+
+   The stamp has to be the time the sample REPRESENTS. (The supplied
+   source stamped a fixed 60 Hz schedule onto a timer that fired every
+   16 ms, so the audio timeline ran ahead of the video and the measured
+   "drift" was hundreds of milliseconds — the lab was measuring its own
+   clock bug.) */
+const AUDIO_HZ = 60;
+const AUDIO_PERIOD = 1000 / AUDIO_HZ;
+
+function pushAudio() {
+  const now_ = performance.now();
+  const tSec = (now_ - state.startAt) / 1000;
+  const lag = state.cfg.injectAudioDrift || 0;
+  const jitter = (Math.random() - 0.5) * 0.004;
+  // the sample represents the audio at (t - lag) and arrives with jitter
+  state.buffer.push(demoSynth(tSec - lag), tSec - lag + jitter);
+}
+function startAudioClock() {
+  if (state.audioTimer) return;
+  state.audioTimer = setInterval(pushAudio, AUDIO_PERIOD);
+}
+function stopAudioClock() {
+  if (!state.audioTimer) return;
+  clearInterval(state.audioTimer);
+  state.audioTimer = null;
+}
+startAudioClock();
+
+/* ---------- render loop ---------- */
+function frame(now) {
+  const dt = now - (state.lastNow || now);
+  state.lastNow = now;
+
+  if (state.recording && dt > 0) state.dtSamples.push(dt);
+
+  const tSec = (now - state.startAt) / 1000;
+  const sample = state.buffer.sampleAt(tSec, state.cfg.interpolate);
+  let f = sample.f;
+  if (!f) f = demoSynth(tSec);
+
+  /* smoothing */
+  const s = state.cfg.smoothing;
+  for (const k in f) {
+    if (typeof f[k] !== 'number') continue;
+    state.smoothing[k] = (state.smoothing[k] ?? f[k]) * s + f[k] * (1 - s);
+    f[k] = state.smoothing[k];
+  }
+
+  if (state.recording) {
+    state.driftSamples.push(sample.drift);
+    state.bassSamples.push(f.bass);
+    if (state.lastBass !== null) state.featureDiffs.push(f.bass - state.lastBass);
+    state.lastBass = f.bass;
+  }
+
+  render(f, tSec, state.cfg);
+
+  /* hud */
+  const instFps = dt > 0 ? 1000 / dt : 60;
+  if (Math.random() < 0.05) {
+    $('#liveFpsBadge').textContent = Math.round(instFps) + ' fps';
+    $('#liveDriftBadge').textContent = 'drift ' + sample.drift.toFixed(1) + ' ms';
+    for (const k of ['bass', 'mid', 'treble', 'rms']) {
+      const el = document.querySelector(`[data-meter="${k}"]`);
+      if (el) el.style.height = Math.round(clamp(f[k] / 1.6, 0, 1) * 100) + '%';
+    }
+  }
+
+  updateBufferView(sample);
+
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   REPORT COMPILATION
+   ============================================================ */
+function scoreReport(metrics) {
+  const render = clamp(metrics.fpsAvg / 60 * 100, 0, 100);
+  const stability = clamp(100 - Math.max(0, metrics.frameP99 - 16.67) * 2, 0, 100);
+  const sync = clamp(100 - metrics.driftAvg * 4, 0, 100);
+  const total = render * 0.4 + stability * 0.3 + sync * 0.3;
+  const grade = total >= 95 ? 'A+' : total >= 90 ? 'A' : total >= 80 ? 'B'
+              : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
+  return { render, stability, sync, total, grade };
+}
+
+function buildReport(testName, startWall, tag) {
+  const frameStats = computeStats(state.dtSamples);
+  const driftStats = computeStats(state.driftSamples);
+  const diffStats = computeStats(state.featureDiffs);
+
+  const metrics = {
+    duration: (Date.now() - startWall) / 1000,
+    videoSamples: state.dtSamples.length,
+    audioSamples: state.buffer.pushes,
+    fpsAvg: frameStats ? 1000 / frameStats.mean : 0,
+    fpsP50: frameStats ? 1000 / frameStats.p50 : 0,
+    fpsP95: frameStats ? 1000 / frameStats.p95 : 0,
+    fpsP99: frameStats ? 1000 / frameStats.p99 : 0,
+    frameAvg: frameStats ? frameStats.mean : 0,
+    frameP50: frameStats ? frameStats.p50 : 0,
+    frameP95: frameStats ? frameStats.p95 : 0,
+    frameP99: frameStats ? frameStats.p99 : 0,
+    jitter: frameStats ? frameStats.sd : 0,
+    driftAvg: driftStats ? driftStats.mean : 0,
+    driftP95: driftStats ? driftStats.p95 : 0,
+    driftMax: state.driftSamples.length ? Math.max(...state.driftSamples) : 0,
+    featureJitter: diffStats ? diffStats.sd : 0,
+    bufferFill: state.buffer.buf.length / state.buffer.capacity,
+    memoryMB: performance.memory ? performance.memory.usedJSHeapSize / 1048576 : null
+  };
+
+  const scores = scoreReport(metrics);
+
+  return {
+    id: uid(),
+    version: tag || ('v-' + new Date(startWall).toISOString().slice(0, 16).replace(/[:T]/g, '-')),
+    testName,
+    timestamp: startWall,
+    config: {
+      layerPreset: state.cfg.layerPreset,
+      layerCount: state.cfg.layers.length,
+      reactivity: state.cfg.reactivity,
+      interpolate: state.cfg.interpolate,
+      injectAudioDrift: state.cfg.injectAudioDrift,
+      smoothing: state.cfg.smoothing,
+      trails: state.cfg.trails,
+      dpr: DPR,
+      bufferCapacity: state.buffer.capacity
+    },
+    metrics,
+    scores
+  };
+}
+
+/* ============================================================
+   TEST RUNNER
+   ============================================================ */
+async function runTest(name, cfgOverride, durationMs) {
+  return new Promise(resolve => {
+    const token = ++state.runToken;
+
+    // the config is built from the layer preset, so the "baseline" test
+    // really is one layer
+    const preset = (cfgOverride && cfgOverride.layerPreset) || state.cfg.layerPreset;
+    const built = defaultCfg(preset, cfgOverride || {});
+    if (cfgOverride && cfgOverride.layers) built.layers = cfgOverride.layers;
+    state.cfg = built;
+    state.buffer.clear();
+    state.startAt = performance.now();
+    state.lastNow = 0;
+    state.audioTick = 0;
+    state.smoothing = {};
+    state.lastBass = null;
+    state.dtSamples = [];
+    state.driftSamples = [];
+    state.bassSamples = [];
+    state.featureDiffs = [];
+    state.recording = true;
+
+    $('#liveCfg').textContent = 'cfg ' + state.cfg.layerPreset;
+    resize();
+
+    const startWall = Date.now();
+    const tag = ($('#tagInput').value.trim() || $('#versionInput').value.trim()) || null;
+
+    const t0 = performance.now();
+    const iv = setInterval(() => {
+      if (token !== state.runToken) { clearInterval(iv); resolve(null); return; }
+      const progress = clamp((performance.now() - t0) / durationMs, 0, 1);
+      $('#runBar').style.width = (progress * 100).toFixed(0) + '%';
+    }, 60);
+
+    setTimeout(() => {
+      clearInterval(iv);
+      if (token !== state.runToken) { resolve(null); return; }
+      state.recording = false;
+      const report = buildReport(name, startWall, tag);
+      report.ai = aiAnalyze(report);
+      saveReport(report);
+      renderReportList();
+      renderCompareSelects();
+      renderAI(report);
+      resolve(report);
+    }, durationMs);
+  });
+}
+
+const TESTS = [
+  { name: 'baseline',      desc: '1 bar layer, no reactivity, interpolation on',  cfg: { layerPreset: 'baseline', reactivity: 0, interpolate: true } },
+  { name: 'reactive',      desc: '3 layers, full reactivity, interpolation on',   cfg: { layerPreset: 'reactive', reactivity: 1.5, interpolate: true } },
+  { name: 'reactive-noint',desc: 'same but interpolation OFF — shows buffer cost',  cfg: { layerPreset: 'reactive', reactivity: 1.5, interpolate: false } },
+  { name: 'stress',        desc: 'all 5 layer types, full reactivity',             cfg: { layerPreset: 'stress', reactivity: 1.5, interpolate: true } },
+  { name: 'sync-stress',   desc: 'reactive + 12ms audio lag — tests buffer recov', cfg: { layerPreset: 'reactive', reactivity: 1.5, interpolate: true, injectAudioDrift: 0.012 } }
+];
+
+function renderTestList() {
+  $('#testList').innerHTML = TESTS.map((t, i) => `
+    <div class="test-item">
+      <div class="name">${t.name}<span class="desc">${t.desc}</span></div>
+      <button data-test="${i}" aria-label="Run ${t.name}">▶</button>
+    </div>
+  `).join('');
+  $$('#testList button[data-test]').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    if (state.activeTest) { toast('Already running'); return; }
+    const t = TESTS[+b.dataset.test];
+    await runSingle(t);
+  }));
+}
+
+async function runSingle(t) {
+  state.activeTest = t.name;
+  $('#runIndicator').classList.add('on');
+  $('#runLabel').textContent = 'running · ' + t.name;
+  $('#runBar').style.width = '0%';
+  $('#runAllBtn').disabled = true;
+  try {
+    const r = await runTest(t.name, t.cfg, currentDuration());
+    if (r) toast(`${t.name} done · grade ${r.scores.grade}`);
+  } finally {
+    state.activeTest = null;
+    $('#runIndicator').classList.remove('on');
+    $('#runAllBtn').disabled = false;
+  }
+}
+
+async function runAll() {
+  if (state.activeTest) return;
+  const duration = currentDuration();
+  const results = [];
+  $('#runAllBtn').disabled = true;
+  $('#runIndicator').classList.add('on');
+
+  for (const t of TESTS) {
+    state.activeTest = t.name;
+    $('#runLabel').textContent = 'running · ' + t.name;
+    $('#runBar').style.width = '0%';
+    const r = await runTest(t.name, t.cfg, duration);
+    if (r) results.push(r);
+  }
+
+  state.activeTest = null;
+  $('#runIndicator').classList.remove('on');
+  $('#runAllBtn').disabled = false;
+
+  if (results.length) {
+    const last = results[results.length - 1];
+    renderAI(last);
+    toast(`Ran ${results.length} tests · latest grade ${last.scores.grade}`);
+  }
+}
+
+function currentDuration() {
+  return $('#runMode').value === 'quick' ? 1500 : 3000;
+}
+
+/* ============================================================
+   ADVISOR (heuristic, rules-based)
+   ============================================================ */
+function aiAnalyze(r) {
+  const m = r.metrics;
+  const suggestions = [];
+  const bottlenecks = [];
+
+  if (m.fpsP95 < 50) {
+    bottlenecks.push({ kind: 'render', severity: 'high', detail: `P95 FPS ${m.fpsP95.toFixed(1)}` });
+    suggestions.push({ id: 'reduce-count', label: 'Reduce particle / grid density', delta: '-40%',
+      detail: 'Heavy layers dominate frame time. Cut particle count and grid rows/cols.' });
+    if (r.config.dpr > 1.25) {
+      suggestions.push({ id: 'cap-dpr', label: 'Cap device pixel ratio at 1.25', delta: '1.25',
+        detail: 'DPR halves fill cost per pixel — biggest single win on retina.' });
+    }
+  }
+  if (m.frameP99 > 28) {
+    bottlenecks.push({ kind: 'stability', severity: 'medium', detail: `Frame P99 ${m.frameP99.toFixed(1)}ms` });
+    suggestions.push({ id: 'increase-trails', label: 'Increase motion trails', delta: '+0.15',
+      detail: 'Trails reuse the previous buffer — longer fades cost less than fresh redraws.' });
+  }
+  if (m.driftAvg > 12) {
+    bottlenecks.push({ kind: 'sync', severity: 'high', detail: `A/V drift ${m.driftAvg.toFixed(1)}ms` });
+    if (!r.config.interpolate) {
+      suggestions.push({ id: 'enable-interp', label: 'Enable frame interpolation', delta: 'on',
+        detail: 'Buffer samples between audio ticks so video never sees stale features.' });
+    }
+    suggestions.push({ id: 'increase-buffer', label: 'Increase buffer capacity', delta: '256',
+      detail: 'More samples decouples audio jitter from video timing at minimal memory cost.' });
+  }
+  if (m.featureJitter > 0.015) {
+    bottlenecks.push({ kind: 'smoothness', severity: 'medium', detail: `Feature jitter ${m.featureJitter.toFixed(4)}` });
+    suggestions.push({ id: 'increase-smoothing', label: 'Raise audio smoothing', delta: '+0.1',
+      detail: 'Dampens per-frame jitter in feature values without affecting the base look.' });
+  }
+  if (m.driftMax > 40) {
+    bottlenecks.push({ kind: 'sync-spike', severity: 'medium', detail: `Drift peak ${m.driftMax.toFixed(0)}ms` });
+  }
+
+  return { grade: r.scores.grade, score: r.scores.total, bottlenecks, suggestions };
+}
+
+function applySuggestions(suggestions, cfg) {
+  const applied = [];
+  for (const s of suggestions) {
+    switch (s.id) {
+      case 'reduce-count':
+        for (const L of cfg.layers) {
+          if (L.type === 'particles' && L.params.count) L.params.count = Math.round(L.params.count * 0.6);
+          if (L.type === 'grid') {
+            if (L.params.cols) L.params.cols = Math.round(L.params.cols * 0.75);
+            if (L.params.rows) L.params.rows = Math.round(L.params.rows * 0.75);
+          }
+        }
+        applied.push(s.id);
+        break;
+      case 'cap-dpr':
+        cfg.dpr = 1.25; applied.push(s.id); break;
+      case 'increase-trails':
+        cfg.trails = Math.min(0.9, (cfg.trails || 0.4) + 0.15); applied.push(s.id); break;
+      case 'enable-interp':
+        cfg.interpolate = true; applied.push(s.id); break;
+      case 'increase-buffer':
+        state.buffer.capacity = Math.max(state.buffer.capacity, 256); applied.push(s.id); break;
+      case 'increase-smoothing':
+        cfg.smoothing = Math.min(0.95, (cfg.smoothing || 0.7) + 0.1); applied.push(s.id); break;
+    }
+  }
+  return applied;
+}
+
+function renderAI(report) {
+  const ai = report.ai || aiAnalyze(report);
+  const sc = report.scores;
+  const gradeClass = 'grade-' + sc.grade.replace('+', 'pos');
+
+  $('#aiContent').innerHTML = `
+    <div class="grade-card">
+      <div class="grade-big ${gradeClass}" style="display:inline-block; padding:6px 18px; border-radius:10px; border:1px solid rgba(255,255,255,.1)">${sc.grade}</div>
+      <div class="grade-score">${sc.total.toFixed(1)} / 100 · ${report.testName}</div>
+      <div class="score-bars">
+        <div>
+          <div class="score-bar-label">Render</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${sc.render.toFixed(0)}%"></div></div>
+          <div class="score-bar-label" style="margin-top:3px; color:var(--txt)">${sc.render.toFixed(0)}</div>
+        </div>
+        <div>
+          <div class="score-bar-label">Stability</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${sc.stability.toFixed(0)}%"></div></div>
+          <div class="score-bar-label" style="margin-top:3px; color:var(--txt)">${sc.stability.toFixed(0)}</div>
+        </div>
+        <div>
+          <div class="score-bar-label">Sync</div>
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${sc.sync.toFixed(0)}%"></div></div>
+          <div class="score-bar-label" style="margin-top:3px; color:var(--txt)">${sc.sync.toFixed(0)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">Bottlenecks</div>
+    ${ai.bottlenecks.length
+      ? ai.bottlenecks.map(b => `
+        <div class="bottleneck ${b.severity}">
+          <div class="kind">${b.kind} · ${b.severity}</div>
+          <div class="detail">${b.detail}</div>
+        </div>`).join('')
+      : '<div class="hint">No bottlenecks detected — the run is within target.</div>'}
+
+    <div class="sec">Suggestions</div>
+    ${ai.suggestions.length
+      ? ai.suggestions.map((s, i) => `
+        <div class="suggestion">
+          <input type="checkbox" data-sug="${i}" checked>
+          <div class="body">
+            <div class="label">${s.label}</div>
+            <div class="detail">${s.detail}</div>
+            <div class="delta">${s.delta}</div>
+          </div>
+        </div>`).join('')
+      : '<div class="hint">Nothing to apply — this preset is already optimal for the current config.</div>'}
+
+    <div class="btnrow" style="margin-top:12px">
+      <button id="applySug" class="primary" ${ai.suggestions.length ? '' : 'disabled'}>✓ Apply selected &amp; re-run</button>
+      <button id="autoOptBtn">⚡ Auto-optimize loop</button>
+    </div>
+  `;
+
+  const applyBtn = $('#applySug');
+  if (applyBtn) applyBtn.addEventListener('click', async () => {
+    const checked = $$('#aiContent input[data-sug]:checked').map(c => ai.suggestions[+c.dataset.sug]);
+    if (!checked.length) { toast('Select at least one suggestion'); return; }
+    const applied = applySuggestions(checked, state.cfg);
+    toast('Applied: ' + applied.join(', '));
+    state.activeTest = 're-optimized';
+    $('#runIndicator').classList.add('on');
+    $('#runLabel').textContent = 're-running · optimized';
+    $('#runBar').style.width = '0%';
+    const before = report;
+    const r = await runTest('optimized', { ...state.cfg }, currentDuration());
+    $('#runIndicator').classList.remove('on');
+    state.activeTest = null;
+    if (r) {
+      toast(`Optimized run · grade ${r.scores.grade} (was ${ai.grade})`);
+      renderAI(r);
+      renderCompareSelects();
+      showCompare(before, r);
+      $$('.tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'compare'));
+      $$('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === 'compare'));
+    }
+  });
+
+  const autoBtn = $('#autoOptBtn');
+  if (autoBtn) autoBtn.addEventListener('click', async () => {
+    await autoOptimizeLoop(report);
+  });
+}
+
+async function autoOptimizeLoop(startReport) {
+  toast('Auto-optimize: pass 1 → analyze → apply → pass 2');
+  const pass1 = startReport || await runTest('auto-pass-1', { ...state.cfg }, currentDuration());
+  if (!pass1) return;
+  const sug = (pass1.ai || aiAnalyze(pass1)).suggestions;
+  const applied = applySuggestions(sug, state.cfg);
+  toast('Applied: ' + (applied.join(', ') || 'none'));
+  const pass2 = await runTest('auto-pass-2', { ...state.cfg }, currentDuration());
+  if (!pass2) return;
+  renderAI(pass2);
+  renderCompareSelects();
+  showCompare(pass1, pass2);
+  $$('.tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'compare'));
+  $$('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === 'compare'));
+}
+
+/* ============================================================
+   PERSISTENCE
+   ============================================================ */
+const REPORT_KEY = 'swr.bench.reports.v1';
+let reports = [];
+
+function loadReportsFromStorage() {
+  try {
+    const raw = localStorage.getItem(REPORT_KEY);
+    if (raw) reports = JSON.parse(raw);
+  } catch (e) { reports = []; }
+}
+function saveAllReports() {
+  try { localStorage.setItem(REPORT_KEY, JSON.stringify(reports)); }
+  catch (e) { toast('Storage full — export instead'); }
+}
+function saveReport(r) {
+  reports.unshift(r);
+  if (reports.length > 60) reports = reports.slice(0, 60);
+  saveAllReports();
+}
+
+/* ============================================================
+   UI: Reports / Compare / Buffer
+   ============================================================ */
+function renderReportList() {
+  const host = $('#reportList');
+  if (!reports.length) {
+    host.innerHTML = '<div class="hint">No reports yet — run a test.</div>';
+    return;
+  }
+  host.innerHTML = reports.map((r) => `
+    <div class="report-card" data-id="${r.id}">
+      <div class="report-head">
+        <b>${escapeHtml(r.version)}</b>
+        <span class="grade-badge ${gradeClass(r.scores.grade)}">${r.scores.grade}</span>
+      </div>
+      <div class="report-meta">
+        ${escapeHtml(r.testName)} · ${r.metrics.fpsAvg.toFixed(1)} fps ·
+        p99 ${r.metrics.frameP99.toFixed(1)}ms ·
+        drift ${r.metrics.driftAvg.toFixed(1)}ms
+      </div>
+    </div>
+  `).join('');
+  $$('#reportList .report-card').forEach(c => c.addEventListener('click', () => {
+    const r = reports.find(x => x.id === c.dataset.id);
+    if (r) { renderAI(r); selectTab('ai'); }
+  }));
+}
+
+function gradeClass(grade) {
+  return 'grade-' + String(grade).replace('+', 'pos');
+}
+
+function renderCompareSelects() {
+  const options = reports.map(r => `<option value="${r.id}">${escapeHtml(r.version)} · ${escapeHtml(r.testName)} · ${r.scores.grade}</option>`).join('');
+  $('#cmpA').innerHTML = '<option value="">— baseline —</option>' + options;
+  $('#cmpB').innerHTML = '<option value="">— candidate —</option>' + options;
+  if (reports.length >= 2) {
+    $('#cmpA').value = reports[1].id;
+    $('#cmpB').value = reports[0].id;
+  }
+  renderCompareTable();
+}
+
+function renderCompareTable() {
+  const a = reports.find(r => r.id === $('#cmpA').value);
+  const b = reports.find(r => r.id === $('#cmpB').value);
+  if (!a || !b) { $('#cmpTable').innerHTML = '<div class="hint">Select two reports to compare.</div>'; return; }
+  showCompare(a, b);
+}
+
+function showCompare(a, b) {
+  const rows = [
+    { label: 'Grade', get: r => r.scores.grade, fmt: v => v, unit: '' },
+    { label: 'FPS avg', get: r => r.metrics.fpsAvg, fmt: v => v.toFixed(1), unit: 'fps', higherBetter: true },
+    { label: 'FPS p95', get: r => r.metrics.fpsP95, fmt: v => v.toFixed(1), unit: 'fps', higherBetter: true },
+    { label: 'Frame p99', get: r => r.metrics.frameP99, fmt: v => v.toFixed(1), unit: 'ms', higherBetter: false },
+    { label: 'Jitter', get: r => r.metrics.jitter, fmt: v => v.toFixed(2), unit: 'ms', higherBetter: false },
+    { label: 'Drift avg', get: r => r.metrics.driftAvg, fmt: v => v.toFixed(1), unit: 'ms', higherBetter: false },
+    { label: 'Drift max', get: r => r.metrics.driftMax, fmt: v => v.toFixed(1), unit: 'ms', higherBetter: false },
+    { label: 'Feature jitter', get: r => r.metrics.featureJitter, fmt: v => v.toFixed(4), unit: '', higherBetter: false },
+    { label: 'Buffer fill', get: r => r.metrics.bufferFill, fmt: v => (v * 100).toFixed(0), unit: '%', higherBetter: true }
+  ];
+
+  let html = '<table class="delta-table"><thead><tr><th>Metric</th><th class="num">Baseline</th><th class="num">Candidate</th><th class="num">Delta</th></tr></thead><tbody>';
+  html += `<tr><td colspan="4" style="color:var(--dim); font-size:10px; padding:4px 8px">
+    ${escapeHtml(a.version)} (${escapeHtml(a.testName)}) → ${escapeHtml(b.version)} (${escapeHtml(b.testName)})
+  </td></tr>`;
+
+  for (const r of rows) {
+    const va = r.get(a), vb = r.get(b);
+    let deltaStr, cls;
+    if (r.label === 'Grade') {
+      const d = gradeNumeric(b) - gradeNumeric(a);
+      deltaStr = d > 0 ? '+' + d : d < 0 ? String(d) : '—';
+      cls = d > 0 ? 'delta-good' : d < 0 ? 'delta-bad' : 'delta-neutral';
+    } else {
+      const d = vb - va;
+      if (Math.abs(d) < 1e-9) { deltaStr = '—'; cls = 'delta-neutral'; }
+      else {
+        deltaStr = (d > 0 ? '+' : '−') + r.fmt(Math.abs(d));
+        if (r.higherBetter) cls = d > 0 ? 'delta-good' : 'delta-bad';
+        else cls = d < 0 ? 'delta-good' : 'delta-bad';
+      }
+    }
+    html += `<tr>
+      <td>${r.label}</td>
+      <td class="num">${r.fmt(va)}<span style="color:var(--dim)"> ${r.unit || ''}</span></td>
+      <td class="num">${r.fmt(vb)}<span style="color:var(--dim)"> ${r.unit || ''}</span></td>
+      <td class="num ${cls}">${deltaStr}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  $('#cmpTable').innerHTML = html;
+}
+
+function gradeNumeric(r) {
+  const g = r.scores.grade;
+  return g === 'A+' ? 6 : g === 'A' ? 5 : g === 'B' ? 4 : g === 'C' ? 3 : g === 'D' ? 2 : 1;
+}
+
+/* ---------- buffer view ---------- */
+const sparkCanvas = $('#sparkCanvas');
+const sparkCtx = sparkCanvas.getContext('2d');
+const sparkData = [];
+
+function updateBufferView(sample) {
+  if (!sparkCanvas.width) {
+    const r = sparkCanvas.getBoundingClientRect();
+    sparkCanvas.width = Math.max(1, Math.round(r.width * (window.devicePixelRatio || 1)));
+    sparkCanvas.height = Math.max(1, Math.round(r.height * (window.devicePixelRatio || 1)));
+  }
+  sparkData.push(sample.drift);
+  if (sparkData.length > 120) sparkData.shift();
+
+  const w = sparkCanvas.width, h = sparkCanvas.height, dpr = window.devicePixelRatio || 1;
+  sparkCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const ww = w / dpr, hh = h / dpr;
+  sparkCtx.clearRect(0, 0, ww, hh);
+  sparkCtx.fillStyle = '#060a10';
+  sparkCtx.fillRect(0, 0, ww, hh);
+
+  const max = Math.max(20, ...sparkData, 5);
+  const bw = ww / sparkData.length;
+  for (let i = 0; i < sparkData.length; i++) {
+    const v = sparkData[i];
+    const bh = clamp(v / max, 0, 1) * (hh - 6);
+    sparkCtx.fillStyle = v > 16 ? '#ff5a5a' : v > 8 ? '#ffb454' : '#4de3d0';
+    sparkCtx.fillRect(i * bw, hh - bh, Math.max(1, bw - 0.5), bh);
+  }
+
+  if (Math.random() < 0.1) {
+    $('#bufFill').innerHTML = Math.round(state.buffer.buf.length / state.buffer.capacity * 100) + '%';
+    $('#bufFillBar').style.width = (state.buffer.buf.length / state.buffer.capacity * 100) + '%';
+    $('#bufInterp').textContent = state.cfg.interpolate ? 'on' : 'off';
+    const drifts = state.buffer.driftSamples;
+    if (drifts.length) {
+      const avg = drifts.reduce((s, x) => s + x, 0) / drifts.length;
+      const mx = Math.max(...drifts);
+      $('#bufDriftAvg').innerHTML = avg.toFixed(1) + ' <small>ms</small>';
+      $('#bufDriftMax').innerHTML = mx.toFixed(1) + ' <small>ms</small>';
+      $('#bufDriftAvg').className = 'stat-val ' + (avg > 16 ? 'bad' : avg > 8 ? '' : 'ok');
+      $('#bufDriftMax').className = 'stat-val ' + (mx > 40 ? 'bad' : mx > 20 ? '' : 'ok');
+    }
+    $('#bufferBadge').textContent = `◉ buffer ${Math.round(state.buffer.buf.length / state.buffer.capacity * 100)}%`;
+  }
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+function selectTab(name) {
+  $$('.tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === name));
+  $$('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === name));
+}
+
+$$('.tabs button').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.tab)));
+
+$('#runAllBtn').addEventListener('click', runAll);
+$('#stopBtn').addEventListener('click', () => {
+  state.runToken++;
+  state.recording = false;
+  state.activeTest = null;
+  $('#runIndicator').classList.remove('on');
+  $('#runAllBtn').disabled = false;
+  toast('Stopped');
+});
+
+$('#toggleInterp').addEventListener('click', () => {
+  state.cfg.interpolate = !state.cfg.interpolate;
+  $('#bufInterp').textContent = state.cfg.interpolate ? 'on' : 'off';
+  toast('Interpolation ' + (state.cfg.interpolate ? 'on' : 'off'));
+});
+$('#resetBuffer').addEventListener('click', () => {
+  state.buffer.clear();
+  sparkData.length = 0;
+  toast('Buffer cleared');
+});
+
+$('#exportReports').addEventListener('click', () => {
+  if (!reports.length) { toast('No reports to export'); return; }
+  const blob = new Blob([JSON.stringify(reports, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'swr-bench-reports-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Exported ' + reports.length + ' reports');
+});
+$('#clearReports').addEventListener('click', () => {
+  if (!reports.length) return;
+  if (!confirm('Delete all saved reports?')) return;
+  reports = [];
+  saveAllReports();
+  renderReportList();
+  renderCompareSelects();
+  toast('Reports cleared');
+});
+
+$('#cmpA').addEventListener('change', renderCompareTable);
+$('#cmpB').addEventListener('change', renderCompareTable);
+
+$('#runMode').addEventListener('change', () => {
+  toast('Mode: ' + $('#runMode').value);
+});
+
+addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault(); saveAllReports(); toast('Reports saved');
+  }
+});
+
+/* ---------- boot ---------- */
+loadReportsFromStorage();
+renderTestList();
+renderReportList();
+renderCompareSelects();
+resize();
+requestAnimationFrame(frame);
+
+/* the advisor shows the most recent report, or an explicit "no run yet" —
+   it never shows a grade for a run that did not happen */
+if (reports.length) {
+  setTimeout(() => renderAI(reports[0]), 300);
+} else {
+  setTimeout(() => {
+    $('#aiContent').innerHTML =
+      '<div class="hint">Nothing measured yet. Run the benchmarks (Run tab) and the advisor will grade the result, list the bottlenecks, and propose optimizations you can apply and re-run.</div>';
+  }, 300);
+}
+
+/* expose for integration */
+window.SWRBench = {
+  get reports() { return reports; },
+  get buffer() { return state.buffer; },
+  get config() { return state.cfg; },
+  runTest, runAll,
+  analyze: aiAnalyze,
+  clear: () => { state.buffer.clear(); sparkData.length = 0; }
+};
+</script>
+<swr-footer></swr-footer>
+<script src="/lib/footer.client.js" defer></script>
+</body>
+</html>

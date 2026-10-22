@@ -15,7 +15,7 @@ Node 20+ required (`.nvmrc` → `20`; `engines` pins `node >=20`, `npm >=10`). n
 ## Project layout
 
 - `engine.html` — main engine, served at `/engine/` (the PWA entrypoint). It is the **only** Rollup input in `vite.config.js`; every other page ships as a static copy.
-- **Page families** (~85 root `*.html`). Beyond the individually-named pages below, root pages fall into families that are easy to miss: `gallery-*.html` (19), `landing-personas-v*.html` (6 — v7–v11 archived 2026-09-29, 301 → /personas), `atlas-*.html` (9), `swr-*.html` (7), `persona-*`, `engine-*` (`engine-demos.html`), plus `versions.html`, `spit.html`, `shop.html`, `photo.html`, `packs.html`, `dashboard.html`, `enhance.html`, `ar-gif.html`, `director-mode-sainted-word.html`, `preset-editor.html`, `sitemap.html`, `share-view.html`, `login.html`, `terms.html`, `404.html`, `offline.html`. (`video_single.html` was deleted; its route still 301s to `/versions` via `site-map.json`'s `redirects`.)
+- **Page families** (~85 root `*.html`). Beyond the individually-named pages below, root pages fall into families that are easy to miss: `gallery-*.html` (19), `landing-personas-v*.html` (6 — v7–v11 archived 2026-09-29, 301 → /personas), `atlas-*.html` (9), `swr-*.html` (7), `persona-*`, `engine-*` (`engine-demos.html`), plus `versions.html`, `spit.html`, `shop.html`, `photo.html`, `packs.html`, `dashboard.html`, `enhance.html`, `ar-gif.html`, `director-mode-sainted-word.html`, `preset-editor.html`, `bench.html`, `sitemap.html`, `share-view.html`, `login.html`, `terms.html`, `404.html`, `offline.html`. (`video_single.html` was deleted; its route still 301s to `/versions` via `site-map.json`'s `redirects`.)
   - Marketing / educational surfaces: `landing.html`, `campaign.html`, `personas.html`, `marketplace.html`, `make-video.html`, `intro.html`, `about.html`, `changelog.html`, `generations.html`, `press.html`, `status.html`, `thanks.html`, `portfolio.html`, `tutorial-30s.html`, `interactive-howto.html`. **`weddings.html` does not exist** (and there is no `verify:weddings` script) — do not trust older docs that list it.
   - `artists/` holds the artist-profile pages (`artists/*.html`, `artists/vodolija/`).
 - `engine-*.client.js`, `presets*.client.js`, `pt*.client.js`, `persona-*.js`, `project.js`, `wizard.js`, `*.client.js` — browser subsystems; each `<name>.client.js` is global-script design (an IIFE attaching exactly one upper-case global to `window`), loaded via `defer`. `engine-reel.client.js` is the auto-advance demo-reel player (`window.SWR_REEL`), loaded by `engine.html` next to `swr-sets.js`; its gate is `check:reel-unit` (in `check`). The engine itself is the inline `<script type="module">` in `engine.html` (`window.SWR` is assembled inside it at ≈L5432). There is no extracted core module.
@@ -269,6 +269,41 @@ head (canonical, description, og:image).
   preset loads with the three blocks off and resolves to exactly its
   authored values.
 
+## The bench & sync lab
+
+`bench.html` (route `/bench`) is the performance lab for the preset editor:
+a live render on the left, and on the right a **Run** tab (five benchmark
+tests), a **Buffer** tab (the A/V ring buffer's live state), **Reports**
+(versioned, persisted), **Compare** (a delta table between two reports) and
+**Advisor** (a heuristic grader that proposes and applies its own
+optimizations).
+
+- **The buffer is auto-created and always running.** Audio features are
+  pushed at 60 Hz into a ring buffer stamped with the time each sample
+  *represents*; the render loop samples the buffer at video time with
+  linear interpolation, so the two clocks never have to agree — drift is
+  measured, not assumed. The audio clock is a real timer (a lab models a
+  real device) but it is pausable, and the samples are stamped with the
+  real elapsed time: stamping a fixed 60 Hz schedule onto a timer that
+  fires faster runs the audio timeline ahead of the video, and the lab
+  then measures its own clock bug instead of the sync.
+- **The lab's render is the editor's render.** The painters, the reactive
+  curves, the demo signal and the render bounds (the lightness band, the
+  trail normalisation, the additive stack cap, the glow cap) are the same
+  code `preset-editor.html` runs. A benchmark of a different renderer
+  measures the wrong thing.
+- **The layer set comes from the test's preset.** `defaultCfg(layerPreset)`
+  builds the layers from the preset; a hardcoded layer set makes the
+  "baseline" test measure the reactive stack and the comparison it exists
+  to make is meaningless.
+- Gate: `check:bench-smoke` (Puppeteer against built `dist/`, in
+  `check:full`) — 18 assertions: the buffer is auto-created and fills on
+  its own, a 12 ms injected lag is measured back as ~12 ms, interpolation
+  lowers the measured drift, each test compiles a graded versioned report,
+  the baseline test is really one layer, the advisor grades, lists
+  bottlenecks and proposes suggestions, a re-run adds a report, the
+  reports survive a reload, and the compare table renders a delta.
+
 ## Code style
 
 - Vanilla JavaScript, ESM (`"type": "module"` in `package.json`). **No TypeScript.**
@@ -280,9 +315,9 @@ head (canonical, description, og:image).
 
 ## Testing instructions
 
-- `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **107 steps**, `storyboard` **5 steps**, `full` **29 steps** (verified with `node scripts/run-steps.mjs <group> --list`; re-measure after adding a step rather than trusting the number here).
+- `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **107 steps**, `storyboard` **5 steps**, `full` **30 steps** (verified with `node scripts/run-steps.mjs <group> --list`; re-measure after adding a step rather than trusting the number here).
 - Quick gate: `npm run check` → the 107-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
-- Full pre-PR gate: `npm run check:full` → the 29-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:invite-redemption-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:layer-groups-smoke` + `check:song-video-layer-smoke` + `check:media-source-smoke` + `check:announcements-smoke` + `check:store-smoke` + `check:preset-editor-smoke` + `check:media-offsite-smoke` + `check:media-input-smoke` + `check:live-input` + `check:spit-live-smoke` + `check:tiktok-smoke` + `check:camera-enhance-smoke` + `check:clip-poster-smoke` + `verify:engine-boot` + `check:variants-smoke` + `check:build-idempotent` + `check:dist-links` + `verify:site-nav`
+- Full pre-PR gate: `npm run check:full` → the 30-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:invite-redemption-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:layer-groups-smoke` + `check:song-video-layer-smoke` + `check:media-source-smoke` + `check:announcements-smoke` + `check:store-smoke` + `check:preset-editor-smoke` + `check:bench-smoke` + `check:media-offsite-smoke` + `check:media-input-smoke` + `check:live-input` + `check:spit-live-smoke` + `check:tiktok-smoke` + `check:camera-enhance-smoke` + `check:clip-poster-smoke` + `verify:engine-boot` + `check:variants-smoke` + `check:build-idempotent` + `check:dist-links` + `verify:site-nav`
 - `check:doc-truth` — the doc-vs-code drift gate (P0.6 of `docs/PLANS/architecture-audit-2026-10.md`, the "mechanism not prose" item). Reads the current-state docs (`README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.kai/conventions/*.md`, `docs/ARCHITECTURE.md`, `docs/automix-architecture.md`, `docs/DEV-SERVER.md` - the list is explicit in the script, NOT a glob over `docs/`, because the dated audits and plans in there legitimately describe states that no longer exist) and verifies every inline-code span that asserts something about the tree: a file path must resolve (`lib/media-store.client.js`, `versions/_*.js`, `scripts/run-steps.mjs:44` - a `file:line` citation asserts the FILE, not the line, so a 20-line move in a hot file cannot red the gate), a trailing-slash directory claim must be a real directory (this is what catches a phantom module family like the `versions/inject/*.js` that never existed), a root-relative route must be a shipped file, a `vercel.json` rewrite or an `api/` handler, and a library/API/global name (`THREE.PropertyBinding`, `navigator.storage`, `SWR_NAV`) must appear in the shipped source. Additive by construction: it fails only what it can PROVE wrong, skips what it cannot (fenced blocks, future-work sections, negations, placeholders, branch names, gitignored paths, pseudocode), and prints an `ACCEPTED_DRIFT` ledger for the rest. It carries its own `--self-test` (14 synthetic cases: the 5 drift shapes must fire, the 9 legitimate-prose controls must stay quiet) because a permanently green gate that can no longer detect anything is the worst outcome a CI check can have. Counts ("32 HTML files", "19 codemods") and stale line numbers are the documented follow-up. ~0.3s. In `check`
 - `check:verify` — the curated 5-verifier smoke that gates PRs. The 5 are fixed in `scripts/check-verify-smoke.mjs`: `cloud-auth`, `hf-publish`, `rotation-enabled`, `autoplay`, `e2e-media-record` (API · admin UI · engine mount · feature smoke · recorder cycle). It bootstraps a Vite dev server on `:5175` with a temp `SWRC_DATA_DIR`. Every other `verify-*.mjs` is a developer aid run on demand
 - `check:capture-unit` / `check:capture-smoke` — node:vm unit coverage and a Puppeteer smoke against built `dist/engine` for the periodic frame capture runtime (URL parse, localStorage, clamp, state machine, blob trigger; toolbar mount, toggle flow, interval two-way binding, URL opt-in). Unit in `check`; smoke in `check:full`

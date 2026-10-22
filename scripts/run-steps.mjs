@@ -331,6 +331,12 @@ const GROUPS = {
     // dispatches swr:preset-applied, and the deep link restores its preset.
     // Needs a built dist/ (ensureDist).
     'npm run check:preset-editor-smoke',
+    // The Bench & Sync Lab in a real browser: the ring buffer is
+    // auto-created and fills on its own, a 12ms injected lag is measured
+    // back as ~12ms, interpolation lowers the measured drift, each test
+    // compiles a graded versioned report, the advisor grades and proposes,
+    // and the reports survive a reload.
+    'npm run check:bench-smoke',
     // The shipped media off-site, end to end: a second build with
     // PACKS_BASE set must ship only the packs manifest, the packs page
     // must resolve every image to the off-site origin, the images must

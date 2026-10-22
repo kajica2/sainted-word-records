@@ -57,6 +57,7 @@
     "check:announcements-smoke": "node scripts/check-announcements-smoke.mjs",
     "check:store-smoke": "node scripts/check-store-smoke.mjs",
     "check:preset-editor-smoke": "node scripts/check-preset-editor-smoke.mjs",
+    "check:bench-smoke": "node scripts/check-bench-smoke.mjs",
     "check:media-offsite-unit": "node scripts/check-media-offsite-unit.mjs",
     "check:media-offsite-smoke": "node scripts/check-media-offsite-smoke.mjs",
     "media:publish": "node scripts/publish-media-offsite.mjs",
