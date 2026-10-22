@@ -318,6 +318,13 @@ const GROUPS = {
     // with a disabled Buy button while the Payment Links are missing, and
     // no page ships a placeholder checkout URL. Needs a built dist/.
     'npm run check:store-smoke',
+    // The NEON preset editor in a real browser: the page boots with the
+    // shared chrome, the stage paints, a control changes both the document
+    // and the pixels, layers add and delete, the JSON tab round-trips (and
+    // rejects invalid data), a preset survives a reload, "Apply to engine"
+    // dispatches swr:preset-applied, and the deep link restores its preset.
+    // Needs a built dist/ (ensureDist).
+    'npm run check:preset-editor-smoke',
     // The shipped media off-site, end to end: a second build with
     // PACKS_BASE set must ship only the packs manifest, the packs page
     // must resolve every image to the off-site origin, the images must

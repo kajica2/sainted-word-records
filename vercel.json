@@ -704,6 +704,14 @@
       "destination": "/shortcuts-movie.html"
     },
     {
+      "source": "/preset-editor",
+      "destination": "/preset-editor.html"
+    },
+    {
+      "source": "/preset-editor/",
+      "destination": "/preset-editor.html"
+    },
+    {
       "source": "/composer",
       "destination": "/composer.html"
     },

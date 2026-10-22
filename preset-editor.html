@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Preset Editor · SWR</title>
+<meta name="description" content="Author, preview and export neon generative presets: layers, LFOs, audio bands and a live audio-reactive canvas." />
+<meta name="color-scheme" content="dark" />
+<meta property="og:title" content="Preset Editor · SWR" />
+<meta property="og:description" content="Author, preview and export neon generative presets with a live audio-reactive canvas." />
+<meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+<link rel="canonical" href="https://sainted-word-records.vercel.app/preset-editor" />
+<link rel="stylesheet" href="/lib/design-tokens.css" />
+<link rel="stylesheet" href="/lib/components.css" />
+<script src="/lib/nav.client.js" defer></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070c'/%3E%3Cpath d='M6 22 L12 10 L16 18 L20 10 L26 22' stroke='%234de3d0' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+  /* The editor's own palette. Scoped to body.swr-pe (not :root) so it does
+     not fight the shared tokens in /lib/design-tokens.css — but it DOES
+     override the tokens the shared chrome reads (--bg, --ink, --muted,
+     --line, --accent), because the nav and the footer are inside <body>.
+     Without them the footer inherited the light theme and rendered as a
+     cream band under a black stage. */
+  body.swr-pe{
+    --bg:#05070c; --panel:#0b1018; --panel2:#0e1622; --line:#1b2432;
+    --txt:#dfe9f5; --dim:#7c8ca3; --neon:#4de3d0; --neon2:#ff4fd8; --warn:#ffb454;
+    /* shared-chrome tokens, dark */
+    --bg-2:#0b1018; --bg-3:#0e1622; --line-2:#2a3a4e;
+    --ink:#dfe9f5; --ink-2:#a9b8cb; --muted:#7c8ca3;
+    --accent:#4de3d0; --accent-2:#ff4fd8; --accent-3:#ffb454;
+  }
+  *{box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--txt);
+    font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    display:flex; flex-direction:column;
+  }
+  header{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:9px 14px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#0a0f16,#070b11);
+  }
+  .brand{
+    font-weight:700; letter-spacing:.16em; color:var(--neon);
+    text-shadow:0 0 14px rgba(77,227,208,.55); white-space:nowrap;
+  }
+  .brand small{color:var(--dim); letter-spacing:.06em; font-weight:400; text-shadow:none}
+  .spacer{flex:1}
+  button,select,input[type=text],input[type=number],textarea{
+    font:inherit; color:var(--txt); background:var(--panel2);
+    border:1px solid var(--line); border-radius:6px; padding:5px 8px; outline:none;
+  }
+  button{cursor:pointer; transition:.15s border-color,.15s color,.15s box-shadow}
+  button:hover{border-color:var(--neon); color:var(--neon); box-shadow:0 0 10px rgba(77,227,208,.18)}
+  button.primary{border-color:rgba(77,227,208,.55); color:var(--neon)}
+  button.danger:hover{border-color:var(--neon2); color:var(--neon2); box-shadow:0 0 10px rgba(255,79,216,.2)}
+  input[type=text]:focus,select:focus,textarea:focus{border-color:var(--neon); box-shadow:0 0 0 2px rgba(77,227,208,.12)}
+  #presetName{width:190px}
+  #presetSelect{max-width:220px}
+  .status{font-size:11px; color:var(--dim); min-width:64px; text-align:right}
+  .status.dirty{color:var(--warn)}
+  .siteExit{
+    color:var(--dim); text-decoration:none; font-size:11px; letter-spacing:.1em;
+    border:1px solid var(--line); border-radius:6px; padding:5px 8px;
+  }
+  .siteExit:hover{color:var(--neon); border-color:var(--neon)}
+
+  /* The editor is a fixed-height application area: the shared nav sits above
+     it and the shared footer below, so the stage never runs under them. */
+  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,1fr) 470px;
+       height:calc(100vh - 190px); min-height:560px}
+  #previewPane{position:relative; display:flex; flex-direction:column; min-height:0}
+  #stageWrap{flex:1; position:relative; min-height:0; overflow:hidden}
+  #stage{position:absolute; inset:0; width:100%; height:100%; display:block}
+  #hud{
+    position:absolute; left:10px; top:10px; display:flex; gap:10px; align-items:flex-end;
+    padding:7px 9px; border:1px solid var(--line); border-radius:7px;
+    background:rgba(6,10,16,.72); backdrop-filter:blur(6px); font-size:10.5px; color:var(--dim);
+    pointer-events:none;
+  }
+  .bar{width:22px; display:flex; flex-direction:column; gap:3px; align-items:center}
+  .bar i{display:block; width:100%; height:26px; background:#101a26; border-radius:2px; position:relative; overflow:hidden}
+  .bar i b{position:absolute; left:0; right:0; bottom:0; height:0%; background:linear-gradient(180deg,var(--neon),rgba(77,227,208,.25)); transition:height .05s linear}
+  .bar span{font-size:9px; letter-spacing:.06em}
+
+  #editorPane{border-left:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; min-height:0}
+  .tabs{display:flex; gap:4px; padding:8px 10px 0; border-bottom:1px solid var(--line)}
+  .tabs button{border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; padding:6px 11px; color:var(--dim); background:transparent}
+  .tabs button.on{color:var(--neon); border-color:var(--line); background:var(--panel2)}
+  .panels{flex:1; overflow:auto; padding:12px}
+  .panel{display:none}
+  .panel.on{display:block}
+
+  .sec{font-size:10.5px; letter-spacing:.16em; color:var(--dim); text-transform:uppercase; margin:14px 0 8px}
+  .sec:first-child{margin-top:0}
+
+  .ctl{display:grid; grid-template-columns:88px 1fr 46px; gap:8px; align-items:center; margin-bottom:7px}
+  .ctl>span{color:var(--dim); font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ctl output{text-align:right; color:var(--neon); font-size:11px}
+  .row{display:grid; grid-template-columns:88px 1fr; gap:8px; align-items:center; margin-bottom:7px}
+  .row>span{color:var(--dim); font-size:11.5px}
+  .row select,.row input{width:100%}
+
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; height:20px; background:transparent; padding:0; border:none; width:100%;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:3px; background:#18222f; border-radius:3px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:12px; height:12px; margin-top:-4.5px; border-radius:50%;
+    background:var(--neon); box-shadow:0 0 10px rgba(77,227,208,.75); cursor:pointer;
+  }
+  input[type=range]::-moz-range-track{height:3px; background:#18222f; border-radius:3px}
+  input[type=range]::-moz-range-thumb{width:12px; height:12px; border:none; border-radius:50%; background:var(--neon); box-shadow:0 0 10px rgba(77,227,208,.75); cursor:pointer}
+
+  .card{border:1px solid var(--line); border-radius:8px; padding:9px; margin-bottom:10px; background:var(--panel2)}
+  .card-head{display:flex; gap:6px; align-items:center; margin-bottom:9px; flex-wrap:wrap}
+  .card-head .dot{width:8px; height:8px; border-radius:50%; flex:none}
+  .card-head select{max-width:130px}
+  .card-head .nm{flex:1; min-width:70px}
+  .card-head button{padding:3px 7px; font-size:11px; line-height:1.2}
+  .chk{display:flex; gap:4px; align-items:center; color:var(--dim); font-size:11px; white-space:nowrap}
+  .chk input{accent-color:#4de3d0}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .grid3{display:grid; grid-template-columns:1fr 1fr; gap:0 12px; margin-top:6px}
+  .empty{color:var(--dim); text-align:center; padding:22px 0; font-size:11.5px}
+  #jsonBox{width:100%; height:calc(100vh - 300px); min-height:260px; resize:vertical; font-size:11.5px; line-height:1.5}
+  .hint{color:var(--dim); font-size:11px; margin:6px 0 10px}
+  .btnrow{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
+  #toast{
+    position:fixed; left:50%; bottom:22px; transform:translate(-50%,14px);
+    padding:8px 15px; border-radius:7px; border:1px solid rgba(77,227,208,.45);
+    background:rgba(8,14,20,.95); color:var(--neon); font-size:11.5px;
+    opacity:0; pointer-events:none; transition:.22s; z-index:99;
+    box-shadow:0 0 22px rgba(77,227,208,.22);
+  }
+  #toast.on{opacity:1; transform:translate(-50%,0)}
+  ::-webkit-scrollbar{width:9px; height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#1c2735; border-radius:6px}
+  ::-webkit-scrollbar-thumb:hover{background:#2a3a4e}
+
+  @media (max-width:920px){
+    main{grid-template-columns:1fr; grid-template-rows:42vh 1fr}
+    #editorPane{border-left:none; border-top:1px solid var(--line)}
+    #jsonBox{height:46vh}
+  }
+</style>
+</head>
+<body class="swr-pe">
+<swr-nav></swr-nav>
+
+<header>
+  <a class="siteExit" href="/" title="Back to the site">← Site</a>
+  <div class="brand">SWR<small> / NEON · PRESET EDITOR</small></div>
+  <select id="presetSelect" title="Load preset" aria-label="Load preset"></select>
+  <input id="presetName" type="text" data-path="name" data-type="string" placeholder="Preset name" aria-label="Preset name">
+  <button data-cmd="new" title="New preset">＋ New</button>
+  <button data-cmd="dup" title="Duplicate preset">⧉ Duplicate</button>
+  <button data-cmd="del" class="danger" title="Delete preset">✕ Delete</button>
+  <div class="spacer"></div>
+  <span class="status" id="status" role="status" aria-live="polite">saved</span>
+  <button data-cmd="push" class="primary" title="Apply to the engine (⌘/Ctrl+S saves)">▶ Apply to engine</button>
+  <button data-cmd="export" title="Download .swr.json">↧ Export</button>
+  <button data-cmd="import" title="Import .swr.json">↥ Import</button>
+  <input type="file" id="fileImport" accept=".json,application/json" hidden>
+</header>
+
+<main id="app">
+  <section id="previewPane" aria-label="Live preview">
+    <div id="stageWrap">
+      <canvas id="stage"></canvas>
+      <div id="hud">
+        <div class="bar"><i><b data-meter="bass"></b></i><span>BASS</span></div>
+        <div class="bar"><i><b data-meter="mid"></b></i><span>MID</span></div>
+        <div class="bar"><i><b data-meter="treble"></b></i><span>TREB</span></div>
+        <div class="bar"><i><b data-meter="rms"></b></i><span>RMS</span></div>
+        <div style="padding-left:6px; border-left:1px solid var(--line)">
+          <div id="fps">– fps</div>
+          <div id="srcLabel">source: demo</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside id="editorPane" aria-label="Preset editor">
+    <nav class="tabs" role="tablist">
+      <button class="on" data-tab="design" role="tab">Design</button>
+      <button data-tab="audio" role="tab">Audio</button>
+      <button data-tab="layers" role="tab">Layers</button>
+      <button data-tab="lfos" role="tab">LFOs</button>
+      <button data-tab="json" role="tab">JSON</button>
+    </nav>
+    <div class="panels">
+
+      <!-- DESIGN -->
+      <div class="panel on" data-panel="design">
+        <div class="sec">Identity</div>
+        <label class="row"><span>Look</span>
+          <select data-path="look" data-type="string">
+            <option value="clean">clean</option>
+            <option value="neon">neon</option>
+            <option value="grain">grain</option>
+            <option value="mono">mono</option>
+          </select>
+        </label>
+        <label class="row"><span>Tags</span>
+          <input type="text" id="tagInput" placeholder="comma, separated, tags" aria-label="Tags">
+        </label>
+
+        <div class="sec">Global</div>
+        <label class="ctl"><span>hue</span>
+          <input type="range" data-path="global.hue" data-type="number" min="0" max="1" step="0.001">
+          <output></output></label>
+        <label class="ctl"><span>saturation</span>
+          <input type="range" data-path="global.saturation" data-type="number" min="0" max="1" step="0.01">
+          <output></output></label>
+        <label class="ctl"><span>bloom</span>
+          <input type="range" data-path="global.bloom" data-type="number" min="0" max="1" step="0.01">
+          <output></output></label>
+        <label class="ctl"><span>contrast</span>
+          <input type="range" data-path="global.contrast" data-type="number" min="0.2" max="2" step="0.01">
+          <output></output></label>
+        <label class="ctl"><span>speed</span>
+          <input type="range" data-path="global.speed" data-type="number" min="0" max="3" step="0.01">
+          <output></output></label>
+        <label class="row"><span>seed</span>
+          <span style="display:flex; gap:6px">
+            <input type="number" data-path="global.seed" data-type="number" min="0" max="999999" step="1" aria-label="Seed">
+            <button data-cmd="seed" title="Randomize seed">⟳</button>
+          </span>
+        </label>
+
+        <div class="sec">Engine</div>
+        <label class="row"><span>webgl</span>
+          <select data-path="webgl" data-type="number">
+            <option value="0">0 · 2D canvas</option>
+            <option value="1">1 · WebGL</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- AUDIO -->
+      <div class="panel" data-panel="audio">
+        <div class="sec">Source</div>
+        <label class="row"><span>input</span>
+          <select data-path="audio.source" data-type="string" id="sourceSelect">
+            <option value="demo">demo (synthetic)</option>
+            <option value="mic">microphone</option>
+            <option value="file">audio file</option>
+          </select>
+        </label>
+        <div class="btnrow">
+          <button data-cmd="pickFile">↥ Load audio file…</button>
+          <input type="file" id="audioFile" accept="audio/*" hidden>
+        </div>
+        <div class="hint" id="audioHint">Demo mode synthesizes a beat from the tempo below — no permissions needed.</div>
+
+        <div class="sec">Analysis</div>
+        <label class="ctl"><span>gain</span>
+          <input type="range" data-path="audio.gain" data-type="number" min="0" max="4" step="0.01">
+          <output></output></label>
+        <label class="ctl"><span>smoothing</span>
+          <input type="range" data-path="audio.smoothing" data-type="number" min="0" max="0.98" step="0.01">
+          <output></output></label>
+
+        <div class="sec">Band weights</div>
+        <label class="ctl"><span>sub</span><input type="range" data-path="audio.bands.sub" data-type="number" min="0" max="3" step="0.01"><output></output></label>
+        <label class="ctl"><span>bass</span><input type="range" data-path="audio.bands.bass" data-type="number" min="0" max="3" step="0.01"><output></output></label>
+        <label class="ctl"><span>mid</span><input type="range" data-path="audio.bands.mid" data-type="number" min="0" max="3" step="0.01"><output></output></label>
+        <label class="ctl"><span>treble</span><input type="range" data-path="audio.bands.treble" data-type="number" min="0" max="3" step="0.01"><output></output></label>
+        <label class="ctl"><span>air</span><input type="range" data-path="audio.bands.air" data-type="number" min="0" max="3" step="0.01"><output></output></label>
+        <label class="ctl"><span>rms</span><input type="range" data-path="audio.bands.rms" data-type="number" min="0" max="3" step="0.01"><output></output></label>
+        <label class="ctl"><span>centroid</span><input type="range" data-path="audio.bands.centroid" data-type="number" min="0" max="3" step="0.01"><output></output></label>
+
+        <div class="sec">Tempo / pulse</div>
+        <label class="ctl"><span>bpm</span>
+          <input type="range" data-path="audio.tempo.bpm" data-type="number" min="40" max="220" step="1">
+          <output></output></label>
+        <label class="row"><span>lock</span>
+          <span class="chk"><input type="checkbox" data-path="audio.tempo.lock" data-type="bool"> quantize LFOs to beat</span>
+        </label>
+      </div>
+
+      <!-- LAYERS -->
+      <div class="panel" data-panel="layers">
+        <div class="btnrow">
+          <button data-cmd="addLayer" class="primary">＋ Add layer</button>
+          <span class="hint" style="margin:0; align-self:center">drawn bottom → top</span>
+        </div>
+        <div id="layers"></div>
+      </div>
+
+      <!-- LFOS -->
+      <div class="panel" data-panel="lfos">
+        <div class="btnrow">
+          <button data-cmd="addLfo" class="primary">＋ Add modulator</button>
+          <span class="hint" style="margin:0; align-self:center">additive offsets, applied per frame</span>
+        </div>
+        <div id="lfos"></div>
+      </div>
+
+      <!-- JSON -->
+      <div class="panel" data-panel="json">
+        <div class="hint">Full preset document. Edit and press <b>Apply JSON</b> — invalid data is rejected.</div>
+        <div class="btnrow">
+          <button data-cmd="jsonLoad">⟳ Refresh from editor</button>
+          <button data-cmd="jsonApply" class="primary">✓ Apply JSON</button>
+          <button data-cmd="copy">⧉ Copy</button>
+        </div>
+        <textarea id="jsonBox" spellcheck="false" aria-label="Preset JSON"></textarea>
+      </div>
+
+    </div>
+  </aside>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   SWR · NEON — User Preset Editor
+   Standalone. Presets persist to localStorage; the document is
+   applied to an embedding engine through a documented event
+   (see pushToEngine) and can be exported as .swr.json.
+   ============================================================ */
+
+/* ---------------- utils ---------------- */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const clone = o => JSON.parse(JSON.stringify(o));
+const uid = p => p + Math.random().toString(36).slice(2, 9);
+const num = (v, d = 0) => Number.isFinite(+v) ? +v : d;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+const getPath = (o, p) => p.split('.').reduce((c, k) => c == null ? undefined : c[k], o);
+function setPath(o, p, v) {
+  const k = p.split('.'); let c = o;
+  for (let i = 0; i < k.length - 1; i++) { if (c[k[i]] == null) c[k[i]] = {}; c = c[k[i]]; }
+  c[k[k.length - 1]] = v;
+}
+const fmt = v => typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v ?? '');
+
+/* base64url for the shareable deep link */
+function b64urlEncode(str) {
+  return btoa(unescape(encodeURIComponent(str)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64urlDecode(str) {
+  const s = str.replace(/-/g, '+').replace(/_/g, '/');
+  return decodeURIComponent(escape(atob(s + '==='.slice((s.length + 3) % 4))));
+}
+
+/* ---------------- schema ---------------- */
+const LAYER_TYPES = {
+  bars:      { label: 'Spectrum Bars',   defaults: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true } },
+  rings:     { label: 'Concentric Rings',defaults: { count: 7, radius: 0.35, thickness: 0.12, spin: 0.4, spread: 0.6 } },
+  waveform:  { label: 'Waveform',        defaults: { amp: 0.35, thickness: 0.06, glow: 0.7, noise: 0.25 } },
+  particles: { label: 'Particles',       defaults: { count: 220, size: 0.012, speed: 0.5, spread: 0.9, jitter: 0.4 } },
+  grid:      { label: 'Warp Grid',       defaults: { cols: 18, rows: 12, warp: 0.35, glow: 0.5 } }
+};
+
+const PARAM_SPEC = {
+  count:     { min: 4,    max: 256,  step: 1 },
+  width:     { min: 0.05, max: 1,    step: 0.01 },
+  gain:      { min: 0,    max: 3,    step: 0.01 },
+  tilt:      { min: -1,   max: 1,    step: 0.01 },
+  mirror:    { bool: true },
+  radius:    { min: 0.05, max: 1,    step: 0.01 },
+  thickness: { min: 0.01, max: 0.5,  step: 0.01 },
+  spin:      { min: -2,   max: 2,    step: 0.01 },
+  spread:    { min: 0,    max: 2,    step: 0.01 },
+  amp:       { min: 0,    max: 1,    step: 0.01 },
+  glow:      { min: 0,    max: 1,    step: 0.01 },
+  noise:     { min: 0,    max: 1,    step: 0.01 },
+  size:      { min: 0.002,max: 0.06, step: 0.001 },
+  speed:     { min: 0,    max: 3,    step: 0.01 },
+  jitter:    { min: 0,    max: 1,    step: 0.01 },
+  cols:      { min: 3,    max: 64,   step: 1 },
+  rows:      { min: 3,    max: 64,   step: 1 },
+  warp:      { min: 0,    max: 1,    step: 0.01 }
+};
+
+const BLENDS = ['lighter', 'screen', 'source-over', 'overlay', 'multiply', 'difference'];
+
+function defaultPreset(name = 'Neon Bloom') {
+  return {
+    id: uid('p_'), name, author: '', version: 1,
+    created: Date.now(), modified: Date.now(),
+    tags: ['neon'], look: 'clean', webgl: 0,
+    audio: {
+      source: 'demo', gain: 1, smoothing: 0.72,
+      bands: { sub: 1, bass: 1, mid: 1, treble: 1, air: 1, rms: 1, centroid: 0.6 },
+      tempo: { bpm: 120, lock: true, offset: 0 }
+    },
+    global: { hue: 0.52, saturation: 0.9, bloom: 0.6, contrast: 1, speed: 1, seed: 1337 },
+    layers: [
+      { id: uid('l_'), name: 'Bars',  type: 'bars',      enabled: true, opacity: 0.55, blend: 'lighter', params: { ...LAYER_TYPES.bars.defaults } },
+      { id: uid('l_'), name: 'Rings', type: 'rings',     enabled: true, opacity: 0.6,  blend: 'lighter', params: { ...LAYER_TYPES.rings.defaults } },
+      { id: uid('l_'), name: 'Dust',  type: 'particles', enabled: true, opacity: 0.5,  blend: 'lighter', params: { ...LAYER_TYPES.particles.defaults } }
+    ],
+    lfos: [
+      { id: uid('m_'), name: 'Hue drift',  enabled: true, shape: 'sine',     rate: 0.05, depth: 0.25, offset: 0, phase: 0, target: 'global.hue' },
+      { id: uid('m_'), name: 'Breathe',    enabled: true, shape: 'triangle', rate: 0.17, depth: 0.18, offset: 0, phase: 0, target: 'global.bloom' }
+    ]
+  };
+}
+
+/* ---------------- store ---------------- */
+const STORE_KEY = 'swr.presets.v1';
+let store, preset;
+
+function loadStore() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && s.presets && Object.keys(s.presets).length) return s;
+    }
+  } catch (e) { /* corrupt → reset */ }
+  const p = defaultPreset();
+  return { presets: { [p.id]: p }, current: p.id };
+}
+
+function persist() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { toast('Storage full — export instead'); }
+}
+
+store  = loadStore();
+preset = store.presets[store.current] || Object.values(store.presets)[0];
+
+/* deep-link: #p=<base64url json> */
+(function deepLink() {
+  const m = location.hash.match(/p=([^&]+)/);
+  if (!m) return;
+  try {
+    const raw = JSON.parse(b64urlDecode(m[1]));
+    const p = normalize(raw);
+    store.presets[p.id] = p; store.current = p.id; preset = p;
+  } catch (e) { /* ignore a malformed link */ }
+})();
+
+/* ---------------- normalization ---------------- */
+function normalize(raw) {
+  const d = defaultPreset(raw.name || 'Imported');
+  const p = {
+    ...d, ...raw,
+    id: raw.id || uid('p_'),
+    audio: { ...d.audio, ...(raw.audio || {}) },
+    global: { ...d.global, ...(raw.global || {}) }
+  };
+  p.audio.bands = { ...d.audio.bands, ...((raw.audio || {}).bands || {}) };
+  p.audio.tempo = { ...d.audio.tempo, ...((raw.audio || {}).tempo || {}) };
+  p.tags = Array.isArray(raw.tags) ? raw.tags : d.tags;
+  p.layers = (Array.isArray(raw.layers) && raw.layers.length ? raw.layers : d.layers).map(L => {
+    const type = LAYER_TYPES[L.type] ? L.type : 'bars';
+    return {
+      id: L.id || uid('l_'),
+      name: L.name || LAYER_TYPES[type].label,
+      type,
+      enabled: L.enabled !== false,
+      opacity: clamp(num(L.opacity, 1), 0, 1),
+      blend: BLENDS.includes(L.blend) ? L.blend : 'lighter',
+      params: { ...LAYER_TYPES[type].defaults, ...(L.params || {}) }
+    };
+  });
+  p.lfos = (Array.isArray(raw.lfos) ? raw.lfos : d.lfos).map(l => ({
+    id: l.id || uid('m_'),
+    name: l.name || 'LFO',
+    enabled: l.enabled !== false,
+    shape: ['sine', 'triangle', 'saw', 'square', 'noise'].includes(l.shape) ? l.shape : 'sine',
+    rate: num(l.rate, 0.2),
+    depth: num(l.depth, 0.3),
+    offset: num(l.offset, 0),
+    phase: num(l.phase, 0),
+    target: l.target || 'global.hue'
+  }));
+  return p;
+}
+
+/* ---------------- editor state ---------------- */
+let dirty = false, saveTimer = null;
+
+function touch(structural = false) {
+  preset.modified = Date.now();
+  if (structural) { renderLayers(); renderLfos(); }
+  dirty = true;
+  const st = $('#status'); st.textContent = 'unsaved'; st.classList.add('dirty');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    store.presets[preset.id] = preset;
+    persist();
+    dirty = false;
+    st.textContent = 'saved'; st.classList.remove('dirty');
+    syncPresetSelect();
+    // Keep the JSON tab honest, but never stomp on a document the user is
+    // mid-edit in the textarea.
+    const box = $('#jsonBox');
+    if (box && document.activeElement !== box) box.value = JSON.stringify(preset, null, 2);
+  }, 500);
+}
+
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1700);
+}
+
+/* ---------------- rendering: header ---------------- */
+function syncPresetSelect() {
+  const sel = $('#presetSelect');
+  sel.innerHTML = Object.values(store.presets)
+    .sort((a, b) => b.modified - a.modified)
+    .map(p => `<option value="${p.id}" ${p.id === preset.id ? 'selected' : ''}>${esc(p.name || 'Untitled')}</option>`)
+    .join('');
+  sel.value = preset.id;
+}
+
+function syncHeader() {
+  $('#presetName').value = preset.name || '';
+  $('#tagInput').value = (preset.tags || []).join(', ');
+  syncPresetSelect();
+}
+
+/* ---------------- rendering: controls ---------------- */
+function rangeHTML(label, value, path, min, max, step) {
+  return `<label class="ctl"><span>${esc(label)}</span>
+    <input type="range" data-path="${path}" data-type="number" min="${min}" max="${max}" step="${step}" value="${value}">
+    <output>${fmt(value)}</output></label>`;
+}
+function selectHTML(label, value, path, opts) {
+  return `<label class="row"><span>${esc(label)}</span>
+    <select data-path="${path}" data-type="string">
+      ${opts.map(o => `<option value="${o}" ${o === value ? 'selected' : ''}>${o}</option>`).join('')}
+    </select></label>`;
+}
+function paramControl(key, value, path) {
+  const s = PARAM_SPEC[key] || { min: 0, max: 1, step: 0.01 };
+  if (s.bool) {
+    return `<label class="row"><span>${esc(key)}</span>
+      <span class="chk"><input type="checkbox" data-path="${path}" data-type="bool" ${value ? 'checked' : ''}> on</span></label>`;
+  }
+  return rangeHTML(key, value, path, s.min, s.max, s.step);
+}
+
+/* ---------------- rendering: layers ---------------- */
+function layerCard(L, i) {
+  const params = Object.entries(L.params)
+    .map(([k, v]) => paramControl(k, v, `layers.${i}.params.${k}`)).join('');
+  return `<div class="card">
+    <div class="card-head">
+      <span class="dot" style="background:${L.enabled ? 'var(--neon)' : '#3a4757'}; box-shadow:${L.enabled ? '0 0 8px rgba(77,227,208,.8)' : 'none'}"></span>
+      <select data-path="layers.${i}.type" data-type="string" aria-label="Layer type">
+        ${Object.entries(LAYER_TYPES).map(([k, v]) => `<option value="${k}" ${k === L.type ? 'selected' : ''}>${v.label}</option>`).join('')}
+      </select>
+      <input class="nm" type="text" data-path="layers.${i}.name" data-type="string" value="${esc(L.name)}" placeholder="layer name" aria-label="Layer name">
+      <label class="chk"><input type="checkbox" data-path="layers.${i}.enabled" data-type="bool" ${L.enabled ? 'checked' : ''}> on</label>
+      <button data-act="up" data-i="${i}" title="Move up" aria-label="Move layer up">↑</button>
+      <button data-act="down" data-i="${i}" title="Move down" aria-label="Move layer down">↓</button>
+      <button data-act="dup" data-i="${i}" title="Duplicate" aria-label="Duplicate layer">⧉</button>
+      <button data-act="del" data-i="${i}" class="danger" title="Delete" aria-label="Delete layer">✕</button>
+    </div>
+    <div class="grid2">
+      ${rangeHTML('opacity', L.opacity, `layers.${i}.opacity`, 0, 1, 0.01)}
+      ${selectHTML('blend', L.blend, `layers.${i}.blend`, BLENDS)}
+    </div>
+    <div class="grid3">${params || '<span class="hint">no parameters</span>'}</div>
+  </div>`;
+}
+
+function renderLayers() {
+  const host = $('#layers');
+  host.innerHTML = preset.layers.length
+    ? preset.layers.map(layerCard).join('')
+    : '<div class="empty">No layers yet — add one to start shaping the look.</div>';
+}
+
+/* ---------------- rendering: LFOs ---------------- */
+function targetOptions(sel) {
+  const globals = ['global.hue', 'global.saturation', 'global.bloom', 'global.contrast', 'global.speed'];
+  let html = `<optgroup label="Global">${globals.map(p =>
+    `<option value="${p}" ${p === sel ? 'selected' : ''}>${p}</option>`).join('')}</optgroup>`;
+
+  html += '<optgroup label="Layers">';
+  preset.layers.forEach((L, i) => {
+    const nm = esc(L.name || L.type);
+    const op = `layers.${i}.opacity`;
+    html += `<option value="${op}" ${op === sel ? 'selected' : ''}>${nm} · opacity</option>`;
+    Object.keys(L.params).forEach(k => {
+      const spec = PARAM_SPEC[k];
+      if (!spec || spec.bool) return;
+      if (['count', 'cols', 'rows'].includes(k)) return;
+      const p = `layers.${i}.params.${k}`;
+      html += `<option value="${p}" ${p === sel ? 'selected' : ''}>${nm} · ${k}</option>`;
+    });
+  });
+  html += '</optgroup>';
+  return html;
+}
+
+function lfoCard(l, i) {
+  return `<div class="card">
+    <div class="card-head">
+      <span class="dot" style="background:${l.enabled ? 'var(--neon2)' : '#3a4757'}; box-shadow:${l.enabled ? '0 0 8px rgba(255,79,216,.8)' : 'none'}"></span>
+      <input class="nm" type="text" data-path="lfos.${i}.name" data-type="string" value="${esc(l.name)}" placeholder="modulator name" aria-label="Modulator name">
+      <label class="chk"><input type="checkbox" data-path="lfos.${i}.enabled" data-type="bool" ${l.enabled ? 'checked' : ''}> on</label>
+      <button data-act="up" data-kind="lfo" data-i="${i}" title="Move up" aria-label="Move modulator up">↑</button>
+      <button data-act="down" data-kind="lfo" data-i="${i}" title="Move down" aria-label="Move modulator down">↓</button>
+      <button data-act="dup" data-kind="lfo" data-i="${i}" title="Duplicate" aria-label="Duplicate modulator">⧉</button>
+      <button data-act="del" data-kind="lfo" data-i="${i}" class="danger" title="Delete" aria-label="Delete modulator">✕</button>
+    </div>
+    <div class="grid2">
+      ${selectHTML('shape', l.shape, `lfos.${i}.shape`, ['sine', 'triangle', 'saw', 'square', 'noise'])}
+      <label class="row"><span>target</span>
+        <select data-path="lfos.${i}.target" data-type="string" aria-label="Modulator target">${targetOptions(l.target)}</select></label>
+    </div>
+    <div class="grid2">
+      ${rangeHTML('rate Hz', l.rate, `lfos.${i}.rate`, 0, 4, 0.005)}
+      ${rangeHTML('depth', l.depth, `lfos.${i}.depth`, -2, 2, 0.01)}
+      ${rangeHTML('offset', l.offset, `lfos.${i}.offset`, -1, 1, 0.01)}
+      ${rangeHTML('phase', l.phase, `lfos.${i}.phase`, 0, 1, 0.01)}
+    </div>
+  </div>`;
+}
+
+function renderLfos() {
+  const host = $('#lfos');
+  host.innerHTML = preset.lfos.length
+    ? preset.lfos.map(lfoCard).join('')
+    : '<div class="empty">No modulators — add one to animate any parameter.</div>';
+}
+
+/* ---------------- sync static inputs ---------------- */
+function syncStatic() {
+  $$('[data-path]').forEach(inp => {
+    if (inp === document.activeElement) return;
+    const v = getPath(preset, inp.dataset.path);
+    if (v === undefined) return;
+    if (inp.type === 'checkbox') inp.checked = !!v;
+    else inp.value = v;
+    const out = inp.parentElement && inp.parentElement.querySelector('output');
+    if (out) out.textContent = fmt(v);
+  });
+}
+
+function renderAll() {
+  renderLayers();
+  renderLfos();
+  syncStatic();
+  syncHeader();
+  updateAudioHint();
+  $('#jsonBox').value = JSON.stringify(preset, null, 2);
+}
+
+/* ---------------- input handling ---------------- */
+function onEdit(e) {
+  const t = e.target;
+  const path = t.dataset && t.dataset.path;
+  if (!path) return;
+
+  const type = t.dataset.type || 'string';
+  let v = t.type === 'checkbox' ? t.checked : t.value;
+  if (type === 'number') v = num(v, 0);
+  if (type === 'bool') v = !!v;
+
+  setPath(preset, path, v);
+
+  const out = t.parentElement && t.parentElement.querySelector('output');
+  if (out) out.textContent = fmt(v);
+
+  /* side-effects */
+  if (path === 'audio.source') setSource(v);
+  if (path.endsWith('.type')) {
+    const base = path.replace(/\.type$/, '.params');
+    setPath(preset, base, { ...LAYER_TYPES[v].defaults });
+    renderLayers();
+    renderLfos();          // targets change
+    toast('Layer type → ' + LAYER_TYPES[v].label);
+  }
+  if (path === 'name') syncPresetSelect();
+
+  touch(false);
+}
+
+document.addEventListener('input', onEdit);
+document.addEventListener('change', onEdit);
+
+/* tag field is special (array) */
+$('#tagInput').addEventListener('input', e => {
+  preset.tags = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+  touch(false);
+});
+
+/* ---------------- button commands ---------------- */
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-act],[data-cmd]');
+  if (!btn) return;
+
+  if (btn.dataset.cmd) return runCommand(btn.dataset.cmd);
+
+  const act = btn.dataset.act;
+  const i = Number(btn.dataset.i);
+  const isLfo = btn.dataset.kind === 'lfo';
+  const arr = isLfo ? preset.lfos : preset.layers;
+  const rerender = isLfo ? renderLfos : renderLayers;
+
+  if (act === 'up' && i > 0) { [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]]; rerender(); touch(false); }
+  else if (act === 'down' && i < arr.length - 1) { [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]]; rerender(); touch(false); }
+  else if (act === 'dup') {
+    const copy = clone(arr[i]);
+    copy.id = uid(isLfo ? 'm_' : 'l_');
+    copy.name = (copy.name || 'copy') + ' copy';
+    arr.splice(i + 1, 0, copy);
+    rerender(); touch(false);
+  }
+  else if (act === 'del') {
+    arr.splice(i, 1);
+    rerender();
+    touch(false);
+  }
+});
+
+function runCommand(cmd) {
+  switch (cmd) {
+    case 'new': {
+      const p = defaultPreset('Untitled ' + (Object.keys(store.presets).length + 1));
+      store.presets[p.id] = p; store.current = p.id; preset = p;
+      persist(); renderAll(); toast('New preset created');
+      break;
+    }
+    case 'dup': {
+      const p = normalize({ ...clone(preset), id: uid('p_'), name: preset.name + ' copy', created: Date.now() });
+      store.presets[p.id] = p; store.current = p.id; preset = p;
+      persist(); renderAll(); toast('Preset duplicated');
+      break;
+    }
+    case 'del': {
+      const ids = Object.keys(store.presets);
+      if (ids.length <= 1) { toast('Cannot delete the last preset'); return; }
+      if (!confirm(`Delete preset "${preset.name}"? This cannot be undone.`)) return;
+      delete store.presets[preset.id];
+      store.current = Object.keys(store.presets)[0];
+      preset = store.presets[store.current];
+      persist(); renderAll(); toast('Preset deleted');
+      break;
+    }
+    case 'export': download(preset); break;
+    case 'import': $('#fileImport').click(); break;
+    case 'seed':
+      preset.global.seed = Math.floor(Math.random() * 999999);
+      syncStatic(); touch(false); toast('Seed → ' + preset.global.seed);
+      break;
+    case 'addLayer': {
+      const type = 'bars';
+      preset.layers.push({
+        id: uid('l_'), name: LAYER_TYPES[type].label, type, enabled: true,
+        opacity: 0.8, blend: 'lighter', params: { ...LAYER_TYPES[type].defaults }
+      });
+      renderLayers(); renderLfos(); touch(false);
+      break;
+    }
+    case 'addLfo':
+      preset.lfos.push({
+        id: uid('m_'), name: 'Modulator', enabled: true, shape: 'sine',
+        rate: 0.2, depth: 0.3, offset: 0, phase: 0, target: 'global.hue'
+      });
+      renderLfos(); touch(false);
+      break;
+    case 'jsonLoad':
+      $('#jsonBox').value = JSON.stringify(preset, null, 2);
+      toast('Loaded from editor');
+      break;
+    case 'jsonApply': {
+      try {
+        const raw = JSON.parse($('#jsonBox').value);
+        const p = normalize({ ...raw, id: preset.id });
+        store.presets[p.id] = p; store.current = p.id; preset = p;
+        persist(); renderAll(); toast('JSON applied');
+      } catch (err) { toast('Invalid JSON: ' + err.message); }
+      break;
+    }
+    case 'copy':
+      navigator.clipboard.writeText(JSON.stringify(preset, null, 2))
+        .then(() => toast('Copied to clipboard'))
+        .catch(() => toast('Clipboard blocked'));
+      break;
+    case 'pickFile': $('#audioFile').click(); break;
+    case 'push': pushToEngine(preset); break;
+    case 'save': persist(); toast('Saved'); break;
+  }
+}
+
+/* keyboard */
+addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault(); persist(); toast('Saved');
+  }
+});
+
+/* ---------------- preset select / import ---------------- */
+$('#presetSelect').addEventListener('change', e => {
+  if (dirty) { store.presets[preset.id] = preset; persist(); }
+  store.current = e.target.value;
+  preset = store.presets[store.current];
+  persist();
+  renderAll();
+});
+
+$('#fileImport').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const p = normalize(JSON.parse(fr.result));
+      store.presets[p.id] = p; store.current = p.id; preset = p;
+      persist(); renderAll(); toast('Imported "' + p.name + '"');
+    } catch (err) { toast('Import failed: ' + err.message); }
+  };
+  fr.readAsText(f);
+  e.target.value = '';
+});
+
+function download(p) {
+  const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (p.name || 'preset').replace(/[^\w\-]+/g, '_') + '.swr.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('Exported ' + a.download);
+}
+
+/* ---------------- tabs ---------------- */
+$$('.tabs button').forEach(b => b.addEventListener('click', () => {
+  $$('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $$('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === b.dataset.tab));
+  if (b.dataset.tab === 'json') $('#jsonBox').value = JSON.stringify(preset, null, 2);
+}));
+
+/* ============================================================
+   AUDIO
+   ============================================================ */
+const audio = {
+  mode: 'demo', ctx: null, analyser: null, data: null,
+  stream: null, el: null, src: null, prevBass: 0
+};
+
+function stopNodes() {
+  try { audio.src && audio.src.disconnect(); } catch (e) {}
+  try { audio.analyser && audio.analyser.disconnect(); } catch (e) {}
+  if (audio.stream) { audio.stream.getTracks().forEach(t => t.stop()); audio.stream = null; }
+  if (audio.el) { audio.el.pause(); audio.el.src = ''; audio.el = null; }
+  audio.src = null; audio.analyser = null; audio.data = null;
+}
+
+async function ensureCtx() {
+  if (!audio.ctx) audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audio.ctx.state === 'suspended') await audio.ctx.resume();
+  return audio.ctx;
+}
+
+function makeAnalyser(ctx) {
+  const an = ctx.createAnalyser();
+  an.fftSize = 2048;
+  an.smoothingTimeConstant = 0.7;
+  return an;
+}
+
+async function useMic() {
+  try {
+    const ctx = await ensureCtx();
+    stopNodes();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+    const src = ctx.createMediaStreamSource(stream);
+    audio.analyser = makeAnalyser(ctx);
+    src.connect(audio.analyser);
+    // Deliberately NOT connected to ctx.destination: a live mic feeding the
+    // speakers is a feedback loop.
+    audio.stream = stream; audio.src = src; audio.mode = 'mic';
+    updateAudioHint();
+  } catch (err) {
+    toast('Mic blocked — falling back to demo');
+    preset.audio.source = 'demo';
+    syncStatic();
+    setSource('demo');
+  }
+}
+
+async function useFile(file) {
+  try {
+    const ctx = await ensureCtx();
+    stopNodes();
+    const el = new Audio(URL.createObjectURL(file));
+    el.loop = true;
+    const src = ctx.createMediaElementSource(el);
+    audio.analyser = makeAnalyser(ctx);
+    src.connect(audio.analyser);
+    audio.analyser.connect(ctx.destination);
+    await el.play();
+    audio.el = el; audio.src = src; audio.mode = 'file';
+    updateAudioHint(file.name);
+  } catch (err) {
+    toast('Could not play file: ' + err.message);
+    preset.audio.source = 'demo';
+    syncStatic();
+    setSource('demo');
+  }
+}
+
+function setSource(v) {
+  if (v === 'mic') useMic();
+  else if (v === 'file') { updateAudioHint('choose a file below'); }
+  else { stopNodes(); audio.mode = 'demo'; updateAudioHint(); }
+}
+
+function updateAudioHint(extra) {
+  const h = $('#audioHint');
+  const s = preset.audio.source;
+  if (s === 'mic') h.textContent = 'Listening to the microphone. Headphones recommended to avoid feedback.';
+  else if (s === 'file') h.textContent = extra || 'Load an audio file — it loops and drives the analyser.';
+  else h.textContent = 'Demo mode synthesizes a beat from the tempo below — no permissions needed.';
+  $('#srcLabel').textContent = 'source: ' + s + (audio.mode === 'mic' && s === 'mic' ? ' ● live' : '');
+}
+
+$('#audioFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  preset.audio.source = 'file';
+  syncStatic();
+  useFile(f);
+  e.target.value = '';
+});
+
+/* ---------------- feature extraction ---------------- */
+const smooth = { sub: 0, bass: 0, mid: 0, treble: 0, air: 0, rms: 0, centroid: 0 };
+
+function demoSynth(t) {
+  const bpm = preset.audio.tempo.bpm || 120;
+  const beat = (t * bpm / 60) % 1;
+  const pulse = Math.exp(-beat * 5.5);
+  const off = Math.exp(-(((beat + 0.5) % 1)) * 5.5);
+  const kick = Math.max(pulse, off);
+  return {
+    sub: 0.35 + kick * 0.55,
+    bass: 0.30 + kick * 0.60,
+    mid: 0.35 + 0.22 * Math.sin(t * 1.9) + 0.10 * Math.sin(t * 5.3),
+    treble: 0.28 + 0.25 * Math.abs(Math.sin(t * 3.1)),
+    air: 0.20 + 0.20 * hash(Math.floor(t * 8)),
+    rms: 0.35 + kick * 0.30,
+    centroid: 0.45 + 0.20 * Math.sin(t * 0.7),
+    pulse
+  };
+}
+
+function readAnalyser() {
+  const a = audio.analyser;
+  if (!audio.data || audio.data.length !== a.frequencyBinCount) audio.data = new Uint8Array(a.frequencyBinCount);
+  a.getByteFrequencyData(audio.data);
+  const d = audio.data, N = d.length;
+  const band = (x, y) => {
+    const i0 = Math.max(0, Math.floor(x * N));
+    const i1 = Math.min(N, Math.max(i0 + 1, Math.floor(y * N)));
+    let s = 0, c = 0;
+    for (let i = i0; i < i1; i++) { s += d[i]; c++; }
+    return c ? s / c / 255 : 0;
+  };
+  let sum = 0;
+  for (let i = 0; i < N; i++) sum += d[i];
+  let wsum = 0, wden = 0;
+  for (let i = 0; i < N; i++) { wsum += i * d[i]; wden += d[i]; }
+  const bass = band(0.03, 0.09);
+  const pulse = clamp((bass - audio.prevBass) * 6, 0, 1);
+  audio.prevBass = bass;
+  return {
+    sub: band(0, 0.03),
+    bass,
+    mid: band(0.09, 0.28),
+    treble: band(0.28, 0.55),
+    air: band(0.55, 0.95),
+    rms: sum / N / 255,
+    centroid: wden ? (wsum / wden) / N : 0,
+    pulse
+  };
+}
+
+function features(t) {
+  const raw = (audio.mode !== 'demo' && audio.analyser) ? readAnalyser() : demoSynth(t);
+  const s = clamp(preset.audio.smoothing ?? 0.7, 0, 0.98);
+  for (const k in smooth) smooth[k] = smooth[k] * s + (raw[k] || 0) * (1 - s);
+  const bw = preset.audio.bands, g = preset.audio.gain ?? 1;
+  const out = { pulse: raw.pulse || 0 };
+  for (const k in smooth) out[k] = clamp(smooth[k] * (bw[k] ?? 1) * g, 0, 3);
+  return out;
+}
+
+/* ============================================================
+   LFO + RENDER
+   ============================================================ */
+function lfoValue(l, t) {
+  const p = (l.phase || 0) + t * (l.rate || 0);
+  const u = ((p % 1) + 1) % 1;
+  let s;
+  switch (l.shape) {
+    case 'triangle': s = 1 - 4 * Math.abs(u - 0.5); break;
+    case 'saw':      s = u * 2 - 1; break;
+    case 'square':   s = u < 0.5 ? 1 : -1; break;
+    case 'noise': {
+      const x = u * 8, i = Math.floor(x), fr = x - i;
+      s = (hash(i * 7.13) * (1 - fr) + hash((i + 1) * 7.13) * fr) * 2 - 1;
+      break;
+    }
+    default: s = Math.sin(u * Math.PI * 2);
+  }
+  return (l.offset || 0) + (l.depth || 0) * s;
+}
+
+function buildMods(t) {
+  const mods = {};
+  for (const l of preset.lfos) {
+    if (!l.enabled) continue;
+    mods[l.target] = (mods[l.target] || 0) + lfoValue(l, t);
+  }
+  return mods;
+}
+
+/* ---------------- layer painters ---------------- */
+function drawBars(L, f, t, c1, c2, W, H, ctx) {
+  const n = Math.max(4, Math.round(L.count));
+  const gap = 1 - L.width;
+  const bw = W / n;
+  const half = Math.ceil(n / 2);
+  for (let i = 0; i < n; i++) {
+    // `mirror` reflects the spectrum about the centre: the left half plays
+    // the right half backwards, so the shape reads as one symmetrical
+    // instrument instead of a spectrum with a seam.
+    const u = L.mirror
+      ? (i < half ? (half - 1 - i) / (half - 1 || 1) : (i - half) / (half - 1 || 1))
+      : i / (n - 1 || 1);
+    // Three lobes, one per band, each a gaussian around its own region of
+    // the spectrum. The old profile (bass*(1-u)^2 + mid*sin + treble*u^2)
+    // summed to nearly the same value at every u, so the bars came out as
+    // one flat wall instead of a spectrum.
+    const lobe = (c, s) => Math.exp(-Math.pow((u - c) / s, 2));
+    let v = f.bass * lobe(0.16, 0.22)
+          + f.mid * lobe(0.5, 0.24)
+          + f.treble * lobe(0.84, 0.26);
+    v = v * L.gain * (1 + L.tilt * (u - 0.5));
+    // The bar's full height is 2h, so h is capped at half the stage: a
+    // louder band must not grow the bar past the frame.
+    const h = clamp(v * 0.7, 0, 1) * H * 0.42;
+    ctx.fillStyle = u < 0.5 ? c1 : c2;
+    ctx.fillRect(i * bw + bw * gap * 0.5, H / 2 - h, bw * (1 - gap), h * 2);
+  }
+}
+
+function drawRings(L, f, t, c1, c2, W, H, ctx) {
+  const cx = W / 2, cy = H / 2;
+  const R = Math.min(W, H) * L.radius;
+  const n = Math.max(1, Math.round(L.count));
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1 || 1);
+    const r = R * (0.3 + u * L.spread) * (0.85 + f.bass * 0.5);
+    const a = t * L.spin * (i % 2 ? 1 : -1);
+    // The stroke is a hairline on the ring's own scale. `thickness` is a
+    // fraction of the ring radius, NOT of the canvas: multiplying the
+    // canvas size instead made a 7-ring stack into one 90px-wide filled
+    // donut that read as a white blob.
+    ctx.lineWidth = Math.max(1, r * L.thickness * (0.35 + u * 0.5));
+    ctx.strokeStyle = i % 2 ? c2 : c1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.max(1, r), a, a + Math.PI * (1.2 + f.mid * 0.8));
+    ctx.stroke();
+  }
+}
+
+function drawWaveform(L, f, t, c1, c2, W, H, ctx) {
+  const cy = H / 2, amp = H * L.amp;
+  ctx.lineWidth = Math.max(1, H * L.thickness);
+  for (let k = 0; k < 2; k++) {
+    ctx.strokeStyle = k ? c2 : c1;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 2) {
+      const u = x / W;
+      const v = Math.sin(u * 8 + t * 2 + k * 1.7) * (0.6 + f.mid * 0.6)
+              + Math.sin(u * 23 - t * 3) * 0.25 * L.noise
+              + Math.sin(u * 3 + t) * f.bass * 0.5;
+      const y = cy + v * amp * (1 - k * 0.5);
+      x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawParticles(L, f, t, c1, c2, W, H, ctx) {
+  const n = Math.max(1, Math.round(L.count));
+  const base = Math.min(W, H) * 0.45;
+  for (let i = 0; i < n; i++) {
+    const r1 = hash(i * 1.7), r2 = hash(i * 3.1 + 9), r3 = hash(i * 5.3 + 4);
+    const ang = r1 * Math.PI * 2 + t * L.speed * (0.4 + r2);
+    const rad = (0.1 + r2 * 0.9) * base * (1 + f.bass * 0.4) * (0.6 + L.spread * 0.4);
+    const x = W / 2 + Math.cos(ang) * rad + (r3 - 0.5) * L.jitter * 40;
+    const y = H / 2 + Math.sin(ang) * rad * 0.9 + (r1 - 0.5) * L.jitter * 40;
+    const s = Math.max(0.5, Math.min(W, H) * L.size * (0.5 + r3));
+    ctx.fillStyle = r3 > 0.5 ? c1 : c2;
+    ctx.beginPath(); ctx.arc(x, y, s, 0, 6.2832); ctx.fill();
+  }
+}
+
+function drawGrid(L, f, t, c1, c2, W, H, ctx) {
+  const cols = Math.max(3, Math.round(L.cols));
+  const rows = Math.max(3, Math.round(L.rows));
+  ctx.lineWidth = Math.max(1, Math.min(W, H) * 0.003 * (1 + L.glow));
+  for (let j = 0; j <= rows; j++) {
+    ctx.strokeStyle = j % 2 ? c2 : c1;
+    ctx.beginPath();
+    for (let i = 0; i <= cols; i++) {
+      const u = i / cols, v = j / rows;
+      const w = Math.sin(u * 6 + t * 1.5 + v * 4) * L.warp * 0.08 * H * (0.5 + f.bass);
+      const x = u * W, y = v * H + w;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
+const PAINTERS = {
+  bars: drawBars, rings: drawRings, waveform: drawWaveform,
+  particles: drawParticles, grid: drawGrid
+};
+
+/* ---------------- canvas ---------------- */
+const stage = $('#stage');
+const ctx = stage.getContext('2d', { alpha: false });
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  const r = stage.parentElement.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(1, Math.round(r.width));
+  H = Math.max(1, Math.round(r.height));
+  stage.width = Math.round(W * DPR);
+  stage.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#05070c';
+  ctx.fillRect(0, 0, W, H);
+}
+new ResizeObserver(resize).observe($('#stageWrap'));
+
+/* ---------------- main loop ---------------- */
+let t0 = performance.now(), fpsAcc = 0, fpsN = 0, lastHud = 0;
+
+function frame(now) {
+  const t = (now - t0) / 1000;
+  const f = features(t);
+  const mods = buildMods(t);
+  const g = preset.global;
+
+  const hue = ((g.hue + (mods['global.hue'] || 0)) % 1 + 1) % 1;
+  const sat = clamp(g.saturation + (mods['global.saturation'] || 0), 0, 1);
+  const bloom = clamp(g.bloom + (mods['global.bloom'] || 0), 0, 1.5);
+  const contrast = clamp(g.contrast + (mods['global.contrast'] || 0), 0.1, 2.5);
+  const speed = Math.max(0, g.speed + (mods['global.speed'] || 0));
+
+  // Lightness stays in the 30-48 band: the layers composite with 'lighter',
+  // so a light base plus a glow plus overlapping shapes adds up fast and
+  // clips to white long before the hue reads.
+  const light1 = clamp((30 + f.bass * 12) * contrast, 10, 48);
+  const c1 = `hsl(${hue * 360} ${sat * 100}% ${light1}%)`;
+  // c2 is a NEARBY hue, not a complement: a complement (teal + magenta)
+  // added together cancels to white under 'lighter', which is exactly how
+  // the bars lost their colour. 0.12 of the wheel keeps both in one family.
+  const c2 = `hsl(${((hue + 0.12) % 1) * 360} ${sat * 100}% ${clamp((34 + f.mid * 10) * contrast, 10, 48)}%)`;
+
+  /* motion-trail fade — the retention has to be low enough that the
+     'lighter' composite of successive frames cannot climb to white. At a
+     19% fade the canvas kept 81% of every previous frame and the bars
+     saturated after a second; at ~40% the trail still reads and the hue
+     survives. */
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = `rgba(5,7,12,${clamp(0.72 - bloom * 0.18, 0.35, 0.8)})`;
+  ctx.fillRect(0, 0, W, H);
+
+  const tt = t * speed;
+
+  preset.layers.forEach((L, i) => {
+    if (!L.enabled) return;
+    const painter = PAINTERS[L.type];
+    if (!painter) return;
+
+    /* merge modulated values into a lightweight per-frame copy */
+    const M = { ...L, params: {} };
+    for (const k in L.params) {
+      M.params[k] = L.params[k] + (mods[`layers.${i}.params.${k}`] || 0);
+    }
+    const opacity = clamp((L.opacity ?? 1) + (mods[`layers.${i}.opacity`] || 0), 0, 1);
+    if (opacity <= 0.001) return;
+
+    ctx.save();
+    ctx.globalCompositeOperation = L.blend || 'lighter';
+    ctx.globalAlpha = opacity;
+    ctx.shadowBlur = bloom * 5;
+    ctx.shadowColor = c1;
+    ctx.strokeStyle = c1;
+    ctx.fillStyle = c1;
+    painter(M.params, f, tt, c1, c2, W, H, ctx);
+    ctx.restore();
+  });
+
+  /* hud */
+  fpsAcc += 1000 / Math.max(1, now - (frame._last || now - 16));
+  frame._last = now; fpsN++;
+  if (now - lastHud > 220) {
+    lastHud = now;
+    $('#fps').textContent = Math.round(fpsAcc / Math.max(1, fpsN)) + ' fps';
+    fpsAcc = 0; fpsN = 0;
+    for (const k of ['bass', 'mid', 'treble', 'rms']) {
+      const el = document.querySelector(`[data-meter="${k}"]`);
+      if (el) el.style.height = Math.round(clamp(f[k] / 1.6, 0, 1) * 100) + '%';
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   ENGINE BRIDGE
+
+   The editor is standalone, so there is no engine object to call
+   into. The contract is a DOM event — the same shape the rest of
+   the site uses for cross-module handshakes — plus a localStorage
+   hand-off and the clipboard as the last resort.
+
+   A host page listens with:
+     window.addEventListener('swr:preset-applied', e => …)
+   and the detail carries the full preset document.
+   ============================================================ */
+function pushToEngine(p) {
+  const payload = clone(p);
+  let delivered = false;
+
+  try {
+    window.dispatchEvent(new CustomEvent('swr:preset-applied', { detail: payload }));
+    delivered = true;
+  } catch (e) { /* keep going */ }
+
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'swr:preset', preset: payload }, '*');
+      delivered = true;
+    }
+  } catch (e) { /* cross-origin parent: nothing to do */ }
+
+  try { localStorage.setItem('swr.activePreset', JSON.stringify(payload)); } catch (e) {}
+  navigator.clipboard?.writeText(JSON.stringify(payload, null, 2)).catch(() => {});
+
+  toast(delivered
+    ? 'Preset applied — copied to the clipboard too'
+    : 'No engine on this page — the preset is in the clipboard');
+}
+
+/* public API for a host page */
+window.SWRPresetEditor = {
+  get preset() { return preset; },
+  get all() { return store.presets; },
+  load(p) { preset = normalize(p); store.presets[preset.id] = preset; store.current = preset.id; persist(); renderAll(); },
+  push: pushToEngine,
+  shareUrl() {
+    return location.origin + location.pathname + '#p=' + b64urlEncode(JSON.stringify(preset));
+  }
+};
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+resize();
+renderAll();
+updateAudioHint();
+requestAnimationFrame(frame);
+</script>
+<swr-footer></swr-footer>
+<script src="/lib/footer.client.js" defer></script>
+</body>
+</html>
