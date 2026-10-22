@@ -3835,7 +3835,14 @@ function pushToEngine(p) {
     bloom: +R.bloom.toFixed(3), contrast: +R.contrast.toFixed(3),
     speed: +R.speed.toFixed(3), palette: R.pal.label,
     paletteAmount: +R.pa.toFixed(3), steerBlend: +R.blend.toFixed(3),
-    filters: R.filters
+    filters: R.filters,
+    // the layer state, so a host knows what it is being handed: how reactive
+    // the preset is, how many layers carry audio maps, and which of them are
+    // frozen or locked.
+    reactivity: p.audio ? (p.audio.reactivity ?? 1) : 1,
+    reactiveLayers: (p.layers || []).filter(L => L.react && L.react.length).length,
+    frozenLayers: (p.layers || []).filter(L => L.frozen).length,
+    lockedLayers: (p.layers || []).filter(L => L.locked).length,
   };
   let delivered = false;
 

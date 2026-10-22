@@ -351,6 +351,15 @@ if (bridged && bridged.resolved && typeof bridged.resolved.hue === 'number' && b
 } else {
   bad('the applied document carries the resolved view', JSON.stringify(bridged && bridged.resolved));
 }
+if (bridged && bridged.resolved
+  && typeof bridged.resolved.reactivity === 'number'
+  && typeof bridged.resolved.reactiveLayers === 'number'
+  && typeof bridged.resolved.frozenLayers === 'number'
+  && typeof bridged.resolved.lockedLayers === 'number') {
+  ok('the resolved view counts the reactive, frozen and locked layers');
+} else {
+  bad('the resolved view counts the reactive, frozen and locked layers', JSON.stringify(bridged && bridged.resolved));
+}
 
 // --- 9) the deep link restores its preset ---------------------------------
 // The link carries whatever is current, so the expectation comes from the
