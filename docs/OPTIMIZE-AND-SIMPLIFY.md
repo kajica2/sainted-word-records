@@ -203,7 +203,7 @@ deletion needs a grep gate that proves no page references the file, because
 
 ### 3.6 The audit's still-open items, re-verified 2026-10-21
 
-`docs/PLANS/architecture-audit-2026-10.md` is the source of truth for the
+`docs/plans/architecture-audit-2026-10.md` is the source of truth for the
 remaining backlog. Re-checked against the live tree:
 
 | Item | Status today |

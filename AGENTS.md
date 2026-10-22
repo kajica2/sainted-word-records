@@ -284,11 +284,14 @@ global script (`window.SWR_BENCH.createSuite(host)`) and it has TWO hosts:
   advisor's suggestions apply to that preset (the particle and grid
   counts, the trails filter, the audio smoothing).
 
-The host contract is four functions: `tests()` (what to measure),
-`sample(tSec)` (the audio side — the features and the time they
-represent), `reportConfig()` (what goes in a report) and
-`supports(id)` / `apply(id)` (what the advisor may change). The host owns
-what it DRAWS; the suite owns the measurement.
+The host contract is eight functions: `tests()` (what to measure),
+`sample(tSec)` (the audio side — the features and the label they
+represent), `audioClock(tSec)` (the audio clock's DETERMINISTIC reading
+at a wall time), `reportConfig()` (what goes in a report),
+`supports(id)` / `apply(id)` / `verify(id)` (what the advisor may change,
+and the value it changed so the suite can prove the apply took) and
+`versionTag()` (the label a new report carries). The host owns what it
+DRAWS; the suite owns the measurement.
 
 The lab's own page carries a **Run** tab (five benchmark tests), a
 **Buffer** tab (the ring buffer's live state), **Reports** (versioned,
@@ -296,36 +299,60 @@ persisted), **Compare** (a delta table between two reports) and **Advisor**
 (a heuristic grader that proposes and applies its own optimizations).
 
 - **The buffer is auto-created and always running.** Features are pushed
-  at 60 Hz into a ring buffer stamped with the time each sample
-  *represents*; the render loop samples the buffer at video time with
-  linear interpolation, so the two clocks never have to agree — drift is
-  measured, not assumed. The audio clock is a real timer (a lab models a
-  real device) but it is pausable, and the samples carry the real elapsed
-  time: stamping a fixed 60 Hz schedule onto a timer that fires faster
-  runs the audio timeline ahead of the video, and the lab then measures
-  its own clock bug instead of the sync. The VIDEO clock is the suite's
-  (`suite.state.startAt`), because it is reset per run — a host clock of
-  its own makes the two timelines drift apart by the length of the run.
+  at 60 Hz into a ring buffer stamped with the LABEL each sample
+  represents (the audio clock's reading at that tick); the render loop
+  samples the buffer at video time. The audio clock is a real timer and
+  the samples carry the real elapsed time: stamping a fixed 60 Hz
+  schedule onto a timer that fires faster runs the audio timeline ahead
+  of the video, and the lab then measures its own clock bug instead of
+  the sync. The VIDEO clock is the suite's (`suite.state.startAt`),
+  because it is reset per run — a host clock of its own makes the two
+  timelines drift apart by the length of the run.
+- **Two quantities, not one "drift".** The A/V **clock offset** is
+  `tVideo - host.audioClock(tVideo)`: how far the audio clock is from
+  the video clock, and it is what an injected lag moves (a 12 ms lag
+  reads as a clean 12 ms on every frame, whatever the buffer's phase).
+  The **sampling error** is how far the presented content is from the
+  ideal label: with interpolation it is ~0, without it is the age of the
+  newest sample (up to one audio period). Interpolation reduces the
+  SAMPLING ERROR and can never reduce the clock offset — a lab that
+  claims otherwise is measuring the wrong thing. The report exposes both
+  (`driftAvg`/`driftMax` and `quantAvg`/`quantMax`) and the panel labels
+  them separately. Conflating them is what made the old "interpolation
+  lowers the drift" assertion unfalsifiable: on the interpolated path the
+  old number was zero by construction, and on the other path it was the
+  age of the newest sample, so a run with no injected drift reported
+  anywhere from 1 to 16 ms depending on the clock phase.
 - **The layer set comes from the host.** The suite carries the
   measurement, not the layers: a hardcoded layer set in the runner makes
   the "baseline" test measure the reactive stack, and the comparison it
-  exists to make is void.
+  exists to make is void. The host also owns the applied overrides: an
+  advisor suggestion that mutates the host's layer set must survive the
+  per-run rebuild, or the "optimized" run measures the original
+  configuration and reports a null result.
 - **The lab's render is the editor's render.** The painters, the reactive
   curves, the demo signal and the render bounds (the lightness band, the
   trail normalisation, the additive stack cap, the glow cap) are the same
   code `preset-editor.html` runs. A benchmark of a different renderer
   measures the wrong thing.
-- **The layer set comes from the test's preset.** `defaultCfg(layerPreset)`
-  builds the layers from the preset; a hardcoded layer set makes the
+- **The layer set comes from the test's preset.** The host builds the
+  layers from the preset the test names; a hardcoded layer set makes the
   "baseline" test measure the reactive stack and the comparison it exists
   to make is meaningless.
 - Gate: `check:bench-smoke` (Puppeteer against built `dist/`, in
-  `check:full`) — 18 assertions: the buffer is auto-created and fills on
-  its own, a 12 ms injected lag is measured back as ~12 ms, interpolation
-  lowers the measured drift, each test compiles a graded versioned report,
-  the baseline test is really one layer, the advisor grades, lists
-  bottlenecks and proposes suggestions, a re-run adds a report, the
-  reports survive a reload, and the compare table renders a delta.
+  `check:full`) — 42 assertions. The ones that matter are the
+  DIFFERENTIALS: a 12 ms injected lag is measured as the DIFFERENCE
+  between a lagged and a clean run of the same test (an absolute band
+  would pass a measurement that ignored the lag entirely), and
+  interpolation is proved to lower the SAMPLING ERROR over three runs
+  per configuration with a 4 ms margin. The rest: the buffer is
+  auto-created and fills at a real rate, each test compiles a graded
+  versioned report, the baseline test is really one layer (checked
+  against the host's own live state), a suggestion the host cannot
+  support is filtered out of the advisor, the advisor's apply really
+  moves the host's state and the re-run adds exactly one report, the
+  compare table's delta arithmetic is right including the sign, and the
+  reports survive a reload.
   The editor's half of the suite is covered by
   `check:preset-editor-smoke` (the Bench tab mounts, the editor measures
   its own render and its own A/V drift, an injected lag shows up, and the
@@ -345,7 +372,7 @@ persisted), **Compare** (a delta table between two reports) and **Advisor**
 - `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **107 steps**, `storyboard` **5 steps**, `full` **30 steps** (verified with `node scripts/run-steps.mjs <group> --list`; re-measure after adding a step rather than trusting the number here).
 - Quick gate: `npm run check` → the 107-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
 - Full pre-PR gate: `npm run check:full` → the 30-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:invite-redemption-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:layer-groups-smoke` + `check:song-video-layer-smoke` + `check:media-source-smoke` + `check:announcements-smoke` + `check:store-smoke` + `check:preset-editor-smoke` + `check:bench-smoke` + `check:media-offsite-smoke` + `check:media-input-smoke` + `check:live-input` + `check:spit-live-smoke` + `check:tiktok-smoke` + `check:camera-enhance-smoke` + `check:clip-poster-smoke` + `verify:engine-boot` + `check:variants-smoke` + `check:build-idempotent` + `check:dist-links` + `verify:site-nav`
-- `check:doc-truth` — the doc-vs-code drift gate (P0.6 of `docs/PLANS/architecture-audit-2026-10.md`, the "mechanism not prose" item). Reads the current-state docs (`README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.kai/conventions/*.md`, `docs/ARCHITECTURE.md`, `docs/automix-architecture.md`, `docs/DEV-SERVER.md` - the list is explicit in the script, NOT a glob over `docs/`, because the dated audits and plans in there legitimately describe states that no longer exist) and verifies every inline-code span that asserts something about the tree: a file path must resolve (`lib/media-store.client.js`, `versions/_*.js`, `scripts/run-steps.mjs:44` - a `file:line` citation asserts the FILE, not the line, so a 20-line move in a hot file cannot red the gate), a trailing-slash directory claim must be a real directory (this is what catches a phantom module family like the `versions/inject/*.js` that never existed), a root-relative route must be a shipped file, a `vercel.json` rewrite or an `api/` handler, and a library/API/global name (`THREE.PropertyBinding`, `navigator.storage`, `SWR_NAV`) must appear in the shipped source. Additive by construction: it fails only what it can PROVE wrong, skips what it cannot (fenced blocks, future-work sections, negations, placeholders, branch names, gitignored paths, pseudocode), and prints an `ACCEPTED_DRIFT` ledger for the rest. It carries its own `--self-test` (14 synthetic cases: the 5 drift shapes must fire, the 9 legitimate-prose controls must stay quiet) because a permanently green gate that can no longer detect anything is the worst outcome a CI check can have. Counts ("32 HTML files", "19 codemods") and stale line numbers are the documented follow-up. ~0.3s. In `check`
+- `check:doc-truth` — the doc-vs-code drift gate (P0.6 of `docs/plans/architecture-audit-2026-10.md`, the "mechanism not prose" item). Reads the current-state docs (`README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.kai/conventions/*.md`, `docs/ARCHITECTURE.md`, `docs/automix-architecture.md`, `docs/DEV-SERVER.md` - the list is explicit in the script, NOT a glob over `docs/`, because the dated audits and plans in there legitimately describe states that no longer exist) and verifies every inline-code span that asserts something about the tree: a file path must resolve (`lib/media-store.client.js`, `versions/_*.js`, `scripts/run-steps.mjs:44` - a `file:line` citation asserts the FILE, not the line, so a 20-line move in a hot file cannot red the gate), a trailing-slash directory claim must be a real directory (this is what catches a phantom module family like the `versions/inject/*.js` that never existed), a root-relative route must be a shipped file, a `vercel.json` rewrite or an `api/` handler, and a library/API/global name (`THREE.PropertyBinding`, `navigator.storage`, `SWR_NAV`) must appear in the shipped source. Additive by construction: it fails only what it can PROVE wrong, skips what it cannot (fenced blocks, future-work sections, negations, placeholders, branch names, gitignored paths, pseudocode), and prints an `ACCEPTED_DRIFT` ledger for the rest. It carries its own `--self-test` (14 synthetic cases: the 5 drift shapes must fire, the 9 legitimate-prose controls must stay quiet) because a permanently green gate that can no longer detect anything is the worst outcome a CI check can have. Counts ("32 HTML files", "19 codemods") and stale line numbers are the documented follow-up. ~0.3s. In `check`
 - `check:verify` — the curated 5-verifier smoke that gates PRs. The 5 are fixed in `scripts/check-verify-smoke.mjs`: `cloud-auth`, `hf-publish`, `rotation-enabled`, `autoplay`, `e2e-media-record` (API · admin UI · engine mount · feature smoke · recorder cycle). It bootstraps a Vite dev server on `:5175` with a temp `SWRC_DATA_DIR`. Every other `verify-*.mjs` is a developer aid run on demand
 - `check:capture-unit` / `check:capture-smoke` — node:vm unit coverage and a Puppeteer smoke against built `dist/engine` for the periodic frame capture runtime (URL parse, localStorage, clamp, state machine, blob trigger; toolbar mount, toggle flow, interval two-way binding, URL opt-in). Unit in `check`; smoke in `check:full`
 - `check:song-video-layer-unit` / `check:song-video-layer-smoke` — the video-song layer. The unit loads `lib/song-video-layer.client.js` in a `node:vm` sandbox and pins the module's decisions (a video song adds exactly one `songBound` layer bound to the song's own element, an audio song adds none, a new song replaces the old one, the song-loaded seam chains). The smoke drives the real engine: it loads the tracked `swr-intro-10s-voice.mp4` as the song, then asserts the stage canvas (`#render`) actually draws the song's `<video>`, that the shared element advances with the sound, that `Audio.seek()` moves the picture with the sound, that the renderer never calls `load()` on the song element (`SWR_VIDEO_SYNC`'s stalled-element recovery would restart the song from zero — the draw path skips it for `songBound` assets), that the layer can be removed while the audio keeps playing, and that an audio song removes the layer. It waits for the default library's own song to settle first, or the library can replace the video song mid-run. Unit in `check`; smoke in `check:full`
@@ -458,12 +485,12 @@ The analyser is named differently on the two surfaces: the shared `lib/audio.cli
 
 ## Local-first
 
-**Plan: move the running surface onto the local device. Use the memory already on disk (`.kai/`, `agents/`, `docs/PLANS/`, `.obsidian-swr/`, the SWR journal via the orchestrator).** Do not reach the external API for anything the engine can answer from the local sources.
+**Plan: move the running surface onto the local device. Use the memory already on disk (`.kai/`, `agents/`, `docs/plans/`, `.obsidian-swr/`, the SWR journal via the orchestrator).** Do not reach the external API for anything the engine can answer from the local sources.
 
 ### What "local memory" is here
 
 - **`.kai/`** — the project's own memory. `memory.yaml` (4 active prevention rules from real incidents), `preferences/user.yaml`, `conventions/` (architecture / coding-style / naming / repo-hygiene / testing), `decisions/` (ADR-001 + ADR-002 with their actual decision rationales and earlier stale-content retractions), `tech-debt/register.md` (12 entries, 8 closed with execution evidence). All entries are written by the project owner and describe the actual codebase; they are not advisory.
-- **`docs/PLANS/`** — design proposals with the same shape as the memory system: a problem statement, a proposed solution, a contract, a verification path, and (where relevant) the rejected alternatives. Read the most recent one (`architecture-audit-2026-10.md`) before starting a new audit.
+- **`docs/plans/`** — design proposals with the same shape as the memory system: a problem statement, a proposed solution, a contract, a verification path, and (where relevant) the rejected alternatives. Read the most recent one (`architecture-audit-2026-10.md`) before starting a new audit.
 - **`agents/`** — the SWR team skills: Ops (orchestrator + TASKS.md), Twin (your digital twin), Check (read-only verifier). These do not call any external API; the Twin in particular is voice-only and the Check is a verifier.
 - **`.obsidian-swr/`** — the Obsidian vault the orchestrator writes to. Daily journal at `Journal/YYYY-MM-DD.md`, Map of Contents at `MOCs/SWR.md`. The journal is appended (never rewritten) and survives across sessions.
 - **`SECURITY.md`**, **`README.md`**, **`AGENTS.md` (this file)** — the curated current-state docs. The `check:doc-truth` gate verifies every inline-code span in them against the source tree on every CI run; a claim that drifts from the code (a phantom file, a misnamed route, a stale line number) flips the gate red.
@@ -503,9 +530,9 @@ node scripts/run-steps.mjs full       # adds the Puppeteer smokes (needs Chrome)
 ### Rules
 
 - **Do not** call the external API from a context that the local sources can answer. If the local knowledge is sufficient, prefer it.
-- **Do not** add new memory paths outside `.kai/`, `agents/`, `docs/PLANS/`, `.obsidian-swr/`. The vault path, the plan path and the SWR path form a closed set: anything outside them is either code, build artifact, or a stale page.
+- **Do not** add new memory paths outside `.kai/`, `agents/`, `docs/plans/`, `.obsidian-swr/`. The vault path, the plan path and the SWR path form a closed set: anything outside them is either code, build artifact, or a stale page.
 - **Do not** introduce a new external dependency without a `check:env-config-mismatch` plan. The `check:doc-truth` gate will fail the next time the claim drifts; the new dep should be enumerated in `.env.example` and in this section.
-- **State transitions** for the local migration go in `docs/PLANS/` with the same shape as the audit reports: a problem statement, a proposed solution, a contract, a verification path, and a list of what was rejected and why.
+- **State transitions** for the local migration go in `docs/plans/` with the same shape as the audit reports: a problem statement, a proposed solution, a contract, a verification path, and a list of what was rejected and why.
 - **The orchestrator** (`tools/swr-journal-log.mjs`) auto-logs every commit and every subagent run. If a local decision is made outside a commit, append a `node tools/swr-journal-log.mjs event ...` event so the journal records it.
 - **The local CI** (`npm run check`) is the contract: a green run means the project is healthy locally. Don't ship to the external deployment without it.
 
