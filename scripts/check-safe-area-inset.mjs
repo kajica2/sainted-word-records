@@ -31,6 +31,16 @@
 // position:fixed .stage-frame shell that ignored every one of them. Hence the
 // shell-padded assertion below.
 //
+// That assertion has to read the fixed chrome out of BOTH places a page can
+// declare it. The 27 renderer variants under versions/ are the reason: their
+// entire <style> can be inset-correct and the page still be broken, because the
+// two overlays that need the inset - the mood reference and the automix debug
+// panel - carry their whole declaration in an inline style="" attribute, while
+// everything the <style> block does position is a full-bleed `inset: 0` overlay
+// that is CORRECTLY inset-unaware because covering the notch is its job. A
+// <style>-only reader sees nothing wrong and the regression walks straight
+// through. See fixedShells().
+//
 // Run: node scripts/check-safe-area-inset.mjs [--verbose] [--self-test]
 
 import fs from 'node:fs';
@@ -39,16 +49,47 @@ import path from 'node:path';
 const VERBOSE = process.argv.includes('--verbose');
 const ROOT = path.resolve(import.meta.dirname, '..');
 
-// The five surfaces P2.3 names. Each is a different case on purpose:
-// engine.html and composer.html are viewport-locked shells, record.html and the
-// two document pages scroll. A gate that only ever saw shells would pass on a
-// blank file.
+// The surfaces P2.3 names. Each is a different CASE on purpose, so the gate
+// cannot pass on a blank file or on one shape only. Three shapes today:
+//
+//   shell   - viewport-locked app surface. engine.html and composer.html are
+//             this: a position:fixed or position:absolute shell that pads
+//             itself, with the insets on that shell rather than on body.
+//   doc     - a scrolling document. record.html, tour.html and
+//             shortcuts-movie.html: no fixed chrome, so overscroll-behavior is
+//             FORBIDDEN here and asserted absent. They need bottom/left/right,
+//             never top (their top chrome is the shared sticky nav, which body
+//             padding cannot reach).
+//   variant - a fullscreen renderer variant: a #app grid pinned to 100vh plus
+//             two or three small position:fixed overlays (the mood reference,
+//             the automix debug panel) whose only inset-aware rule is an inline
+//             style="" attribute. Structurally the tightest case in the file -
+//             its whole <style> can be inset-correct and it still fails if the
+//             overlays are not, because the overlays are what a reader's thumb
+//             actually lands on near the home indicator.
+//
+// The three document pages under versions/ are deliberately NOT here: they are
+// case `doc`, and they mount the shared nav + footer that 112 other pages
+// mount. Their top chrome is shared chrome, so their fix belongs in
+// lib/components.css, not in four page edits - see the note in the run() output.
 const PAGES = [
   { file: 'engine.html',          note: 'engine shell: 19 position:fixed overlays, viewport-locked' },
   { file: 'composer.html',        note: 'composer shell: position:fixed .stage-frame grid shell' },
+  { file: 'swr-app.html',         note: 'app shell: 100dvh flex, viewport-locked, 4 fixed overlays' },
   { file: 'record.html',          note: 'recorder: scrolling document, safe-area only' },
   { file: 'tour.html',            note: 'tour: scrolling document, sticky shared nav' },
   { file: 'shortcuts-movie.html', note: 'shortcuts movie: scrolling document, sticky shared nav' },
+
+  // The fullscreen renderer variants. One line each: every one of them is a
+  // #app grid at height:100vh under html/body overflow:hidden, with the mood
+  // reference and/or the automix debug panel fixed against the viewport.
+  ...[
+    'aurora', 'bachdrop', 'baroque', 'chrome', 'clean', 'collage',
+    'echo-manifold', 'eclipse', 'film', 'fractal', 'glitch', 'grid',
+    'hallucination', 'kraft', 'mosaic', 'music_video', 'music_video_mtv',
+    'neon', 'phosphor', 'pulse', 'simple', 'smoke', 'spectrum', 'tape',
+    'typography', 'void', 'watercolor',
+  ].map((n) => ({ file: `versions/${n}.html`, note: 'renderer variant: 100vh #app grid + fixed overlays' })),
 ];
 
 const SIDES = ['top', 'right', 'bottom', 'left'];
@@ -95,10 +136,27 @@ const viewportMeta = (html) =>
 const declaresInset = (html, side) =>
   new RegExp(`env\\(\\s*safe-area-inset-${side}\\s*,`).test(html);
 
-// Applied: a padding-<side> declaration is fed by that inset, either through
-// the --safe-* token indirection or directly.
+// Applied: a padding declaration is fed by that inset, either through the
+// --safe-* token indirection or directly. The `padding` shorthand counts as
+// well as `padding-<side>`, because a 4-value composed shorthand is the most
+// readable way to write exactly this - swr-app.html's onboarding modal and
+// versions/simple.html's brand modal are both one declaration - and a gate that
+// could not see it would invite someone to "simplify" a longhand back into a
+// shorthand and get a false failure.
+//
+// The value may also be COMPOSED rather than bare. `[^;}]*?` cannot cross a `;`
+// or a `}`, so the token still has to live in this one declaration - but it may
+// sit inside max()/calc() alongside the padding the element already had. That
+// is not a looser reading, it is how every inset is actually applied once a
+// page has real spacing to preserve: versions/echo-manifold.html's scroll pane
+// is `calc(24px + var(--safe-bottom))`. Requiring a bare var() would have
+// called that page unpatched and pushed the fix back to a bare env(), which is
+// the composition this whole gate exists to prevent.
+//
+// Note `padding` (bare) does NOT match inside `padding-top`, because `\\s*:`
+// cannot match the `-top` - so the two forms cannot be confused for each other.
 const appliedRe = (side) => new RegExp(
-  `padding-${side}\\s*:\\s*(?:var\\(\\s*--safe-${side}\\s*\\)|env\\(\\s*safe-area-inset-${side}\\b)`, 'i');
+  `padding(?:-${side})?\\s*:\\s*[^;}]*?(?:var\\(\\s*--safe-${side}\\s*\\)|env\\(\\s*safe-area-inset-${side}\\b)`, 'i');
 
 const appliesInset = (html, side) => appliedRe(side).test(html);
 const appliedSides = (html) => SIDES.filter(s => appliesInset(html, s));
@@ -109,12 +167,32 @@ const appliedSides = (html) => SIDES.filter(s => appliesInset(html, s));
 const rootOverscrollNone = (html) =>
   /(?:^|[,{}\s])(?:html\s*,\s*body|html|body|#app)\s*\{[^}]*overscroll-behavior:\s*none/.test(html);
 
-// The fixed viewport-anchored shells a page owns.
-function shellSelectors(html) {
+// The fixed viewport-anchored shells a page owns, as {sel, block} pairs.
+//
+// Two sources, and both are real:
+//
+//   a) a `position: fixed` rule inside a <style> block
+//   b) a `position:fixed` in an element's inline style="" attribute, where the
+//      attribute IS the whole rule block
+//
+// (b) is not a nicety. The fullscreen renderer variants declare the only two
+// overlays that genuinely need the inset that way and nothing else:
+// neon.html's #mood-overlay and the #automix-debug-panel on all 24 variants
+// that carry one are both bare `style="position:fixed; top:16px; ..."`. A gate
+// that read <style> alone would see nothing but the full-bleed #swr-start /
+// .drop-zone overlays - which are correctly inset-unaware, because they are
+// meant to cover the notch - and would call a fully patched variant broken.
+// Tag-level scan, so it does not care whether id comes before style.
+function fixedShells(html) {
   const out = [];
   const re = /([.#][A-Za-z0-9_-]+)\s*\{[^{}]*position:\s*fixed\s*;/g;
   let m;
-  while ((m = re.exec(html))) out.push(m[1]);
+  while ((m = re.exec(html))) out.push({ sel: m[1], block: blockFor(html, m[1]) });
+  for (const tag of html.match(/<[a-z][a-z0-9-]*\b[^>]*>/gi) || []) {
+    const id = (tag.match(/\bid="([^"]+)"/i) || [])[1];
+    const st = (tag.match(/\bstyle="([^"]*)"/i) || [])[1];
+    if (id && st && /position:\s*fixed/.test(st)) out.push({ sel: `#${id}`, block: st });
+  }
   return out;
 }
 
@@ -199,13 +277,10 @@ function findProblems(html, { file = 'page' } = {}) {
   //     `inset:0` overlay is not inset-aware and does not need to be - it is
   //     meant to cover the notch - but then some OTHER fixed element must be.
   if (fixed) {
-    const shells = shellSelectors(html);
-    const aware = shells.filter(sel => {
-      const b = blockFor(html, sel);
-      return b && isInsetAware(b);
-    });
+    const shells = fixedShells(html);
+    const aware = shells.filter(({ block }) => block && isInsetAware(block));
     if (shells.length && applied.length && !aware.length) {
-      bad('shell-padding', `safe-area padding is applied only to in-flow elements (body), but none of the ${shells.length} fixed elements is inset-aware  -  position:fixed resolves against the viewport, so body's padding box never reaches them. Either pad the shell itself or fold the inset into its bottom/right offset`);
+      bad('shell-padding', `safe-area padding is applied only to in-flow elements, but none of the ${shells.length} fixed elements is inset-aware  -  position:fixed resolves against the viewport, so an in-flow padding box never reaches them. Either pad the shell itself or fold the inset into its bottom/right offset`);
     }
   }
 
@@ -260,17 +335,50 @@ function selfTest() {
     + `/* not a position:fixed element */`
     + `.sheet{position:fixed;left:50%;bottom:max(24px,var(--safe-bottom));transform:translateX(-50%)}</style>`;
 
+  // THIRD SHAPE: a fullscreen renderer variant (versions/neon.html). A #app grid
+  // pinned to 100vh under html/body overflow:hidden, plus exactly two fixed
+  // overlays - one full-bleed, correctly inset-unaware because it is meant to
+  // cover the notch, and one small viewport-anchored overlay whose entire
+  // declaration lives in an inline style="" attribute.
+  //
+  // Modelled separately because it is the tightest case in the file. Its
+  // <style> can be completely inset-correct and the page still be broken,
+  // because the overlays are what a thumb actually lands on near the home
+  // indicator - and a gate that read <style> alone would call the
+  // hardcoded-px variant CLEAN and let the regression straight through.
+  const VARIANT_GRID = `#app{display:grid;grid-template-rows:44px 1fr 36px;height:100vh}`
+    + `#app{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);padding-left:var(--safe-left);padding-right:var(--safe-right)}`
+    + `#swr-start{position:fixed;inset:0;z-index:10000}`;
+  const mood = (top, right) =>
+    `<img id="mood-overlay" alt="mood reference" style="position:fixed;top:${top};right:${right};width:160px;z-index:50;display:none;">`;
+  const MOOD_SAFE = mood('max(16px, var(--safe-top))', 'max(16px, var(--safe-right))');
+  const CLEAN_VARIANT = `${VP_COVER}<style>${TOKENS}html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none}${VARIANT_GRID}</style>`
+    + MOOD_SAFE;
+
   const cases = [
     { name: 'clean shell', html: CLEAN_SHELL, expect: 0 },
     { name: 'clean scrolling document', html: CLEAN_DOC, expect: 0 },
     { name: 'clean fixed sheet, inset in offset', html: CLEAN_SHEET, expect: 0 },
+    { name: 'clean renderer variant', html: CLEAN_VARIANT, expect: 0 },
     { name: 'comment cannot fake fixed chrome', html: CLEAN_DOC.replace('.stage{', '/* position:fixed;inset:0 */.stage{'), expect: 0 },
     { name: 'no viewport-fit=cover', html: CLEAN_SHELL.replace(' viewport-fit=cover', ''), expect: 1, rule: 'viewport-fit' },
+    { name: 'variant without viewport-fit=cover', html: CLEAN_VARIANT.replace(' viewport-fit=cover', ''), expect: 1, rule: 'viewport-fit' },
     { name: 'inset token missing', html: CLEAN_DOC.replace('--safe-bottom:env(safe-area-inset-bottom,0px);', ''), expect: 1, rule: 'declare' },
     { name: 'env() with no fallback', html: CLEAN_DOC.replace('env(safe-area-inset-bottom,0px)', 'env(safe-area-inset-bottom)'), expect: 1, rule: 'declare' },
     { name: 'shell without overscroll', html: CLEAN_SHELL.replace(';overscroll-behavior:none', ''), expect: 1, rule: 'overscroll' },
     { name: 'scrolling doc with overscroll', html: CLEAN_DOC.replace('padding-right:var(--safe-right)', 'padding-right:var(--safe-right);overscroll-behavior:none'), expect: 1, rule: 'overscroll' },
     { name: 'padding only on body, fixed shell', html: CLEAN_SHELL.replace(SHELL, '.shell{position:fixed;inset:0}'), expect: 1, rule: 'shell-padding' },
+    // The exact defect P2.3 fixes on versions/neon.html:512 - the whole
+    // <style> is correct and only the inline overlay is wrong.
+    { name: 'variant overlay at hardcoded px', html: CLEAN_VARIANT.replace(MOOD_SAFE, mood('16px', '16px')), expect: 1, rule: 'shell-padding' },
+    // Same page with the overlay removed: the <style> is still perfect, and the
+    // page is still wrong, because nothing inset-aware is left against the
+    // viewport. This is the assertion that stops a blank file passing.
+    { name: 'variant with no inset-aware overlay', html: CLEAN_VARIANT.replace(MOOD_SAFE, ''), expect: 1, rule: 'shell-padding' },
+    // Composition is application: a padding that keeps its own 24px and adds
+    // the inset on top (versions/echo-manifold.html) counts as applied.
+    { name: 'composed inset in calc()', html: CLEAN_DOC.replace('padding-bottom:var(--safe-bottom);', 'padding-bottom:calc(24px + var(--safe-bottom));'), expect: 0 },
+    { name: 'padding shorthand counts', html: CLEAN_DOC.replace('padding-bottom:var(--safe-bottom);', 'padding:max(24px, var(--safe-top)) max(24px, var(--safe-right)) max(24px, var(--safe-bottom)) max(24px, var(--safe-left));'), expect: 0 },
     { name: 'doc with no bottom inset applied', html: CLEAN_DOC.replace('padding-bottom:var(--safe-bottom);', ''), expect: 1, rule: 'apply' },
     { name: 'shell with no top inset applied', html: CLEAN_SHELL.replaceAll('padding-top:var(--safe-top);', ''), expect: 1, rule: 'apply' },
   ];

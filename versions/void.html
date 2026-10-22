@@ -25,17 +25,44 @@
   <meta name="twitter:title" content="VOID · SWR engine" />
   <meta name="twitter:description" content="Pure black canvas with a faint scan of single-pixel highlights" />
   <meta name="twitter:image" content="/keyart/void.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <style>
     :root {
       --bg: #05030a; --bg-2: #0a0612; --panel: #0e0818; --panel-2: #150b22;
       --ink: #f5e9ff; --muted: #8a7aa0; --line: #2a1d3e;
       --m: #00ffff; --c: #88ccff; --y: #ffffff; --g: #00cccc;
+      /* iPhone safe-area insets, read through custom properties so
+         each fixed overlay can use max(n, var(--safe-bottom)) instead of
+         repeating env(). The 0px fallback keeps every non-notched
+         browser pixel-identical to before. */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: #000; color: var(--ink);
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
     #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
+    /* iPhone safe-area (P2.3): the transport header clears the
+       Dynamic Island and the footer bar clears the home indicator;
+       left/right cover landscape, where the notch side insets 59px
+       and the rounded corners eat the other.
+       The padding lands on #app, not body, for the reason
+       engine.html gives: #app is this page's own 100vh grid, so
+       under the global box-sizing: border-box the padding insets its
+       grid tracks in place. Padding body would stack on top of
+       #app's 100vh box and push the footer off-screen with no way
+       back (html/body are overflow:hidden).
+       position:fixed resolves against the viewport, so no padding on
+       an in-flow element reaches the overlays below - each folds its
+       own inset in with max(n, var(--safe-*)). Full-bleed inset:0
+       overlays (#swr-start, .drop-zone, .swr-load) are meant to cover
+       the notch and correctly stay untouched. */
+    #app { padding-top:    var(--safe-top);
+           padding-bottom: var(--safe-bottom);
+           padding-left:   var(--safe-left);
+           padding-right:  var(--safe-right); }
     header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 14px;
       background: var(--bg-2); border-bottom: 1px solid var(--line); }
     .v { font-weight: 700; letter-spacing: 0.16em; color: var(--m); text-shadow: 0 0 8px var(--m); }
@@ -1396,7 +1423,7 @@ const a = l.asset; if (!a) return;      // [swr-lib fallback] non-blob url on a 
   <script src="../lib/library-persist.client.js" defer></script>
   <script src="../lib/user-media-mount.client.js" defer></script>
 <!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
-<div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+<div id="automix-debug-panel" hidden style="position:fixed; bottom:max(80px, var(--safe-bottom)); right:max(14px, var(--safe-right)); z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
     <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
     <button id="automix-debug-close" title="Close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; line-height:1;">×</button>
