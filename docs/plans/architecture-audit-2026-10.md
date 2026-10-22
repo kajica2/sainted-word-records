@@ -338,3 +338,86 @@ Total: **~7 PRs** to land every P1 and most P2s in the audit.
 The **biggest** of them all is `applyReactor.js`. It's the surgical refactor the
 audit points at, it kills six divergent unit tables, and it makes the
 missing-target bug structurally impossible. It belongs in PR-A.
+
+---
+
+## Status (2026-10-22)
+
+P0, P1 and P2 are closed. P3 is untouched and stays in the backlog.
+
+| Item | State | Commit | Gate |
+|---|---|---|---|
+| 0.1 broken `_lib/paths.js` import | done | pre-audit | `check:api-*` |
+| 0.2 quota-eviction policy | done | pre-audit | `check:media-*` |
+| 0.3 server-side PT key verify | done | pre-audit (`api/license/verify.js`) | `check:auth-unit` |
+| 0.4 engine.html mobile path | verified, no change needed | - | `check:syntax` |
+| 0.5 codemod manifest + verifier | done | `656bc2e` | `check:codemods`, `check:variant-codemods` |
+| 0.6 doc-vs-code drift gate | done | `f6f1645` | `check:doc-truth` (436 claims) |
+| 1.1 `applyReactor` contract | done | `3b63805` | `check:apply-reactor-unit` |
+| 1.2 luma saturation | done | pre-audit | `check:library-unit` |
+| 1.3 section detector | done | `3b63805` | `check:section-detector-unit` (46) |
+| 1.4 `ease()` shared | done | pre-audit | `check:variant-codemods` |
+| 1.5 cross-tab + storage fallback | done | pre-audit | `check:media-store-unit` (36) |
+| 1.6 auto-DPR ratchet TTL | done | pre-audit | `check:render-unit` (32) |
+| 2.1 Vercel-preview CORS | done | `f6f1645` | `check:cors-preview-domain` |
+| 2.2 `Secure` on delete cookie | done | `f6f1645` | `check:session-cookie-secure` |
+| 2.3 safe-area + overscroll | done | `aaf7e39d` + `21e9c693` | `check:safe-area-inset` (33 pages, 25 self-test cases) |
+| 2.4 44px touch targets | done | `f6f1645` | `check:touch-targets` |
+| 2.5 (folded into 1.4) | done | - | - |
+| 2.6 (folded into 1.1) | done | - | - |
+| 2.7 README + .kai reconciliation | done | `f6f1645` | `check:doc-truth` |
+| 2.8 1080p export DPR clamp | done | `f6f1645` | `check:export-dpr-unit` |
+
+### Where the plan's numbers were wrong
+
+Three estimates did not survive contact with the tree, and each one cost
+real work to correct. They are recorded because the *shape* of each error
+is the reusable lesson, not the specific count.
+
+- **"all 13 unpatched variants"** (2.3). There are **27** fullscreen
+  renderers in `versions/`. 13 is the `REACTIVE` set in
+  `check-variant-codemods.mjs` - pages sharing the engine-genops render
+  pipeline, a different concept entirely. Two numbers for two different
+  things, one of them remembered rather than measured.
+- **"4 lines per file"** (2.3). It was 30-40, because the insets have to
+  land on four separate things per page: the viewport meta, the token
+  block, the `overscroll-behavior` declaration, and the padded shell.
+- **"6 divergent unit tables"** (1.1). There were **15** pages, because
+  the divergence had been copy-pasted along with the feature.
+
+### The one that matters: a fix that cannot reach its own target
+
+`aaf7e39d` padded `#app` in every renderer variant to inset the grid
+chrome. It was correct and it was **incomplete**, and the reason is a
+property of the technique rather than an oversight in the execution: a
+box's padding only ever reaches its own content, and for a grid
+container the content box is the tracks. An absolutely positioned
+descendant resolves against the ancestor's *padding* box, inside which
+the padding already lives (CSS 2.1 10.1), so the grid padding can never
+reach it. Making `#app` `position: relative` does not help either -
+`#app` is `100vh` with no border, so its padding box already *is* the
+viewport box.
+
+That produced the one genuinely instructive moment of the audit: a grep
+counted **89** affected overlays and a plausible-looking fix
+(`position: relative`) would have made the naive check go green on an
+unfixed page. Parsing each page into an element tree and resolving every
+absolute element's nearest containing-block ancestor put the real number
+at **6** - the other 95 were always correct, sitting inside
+`section.stage { position: relative }` or an `aside`. Both errors are now
+self-test cases in `check:safe-area-inset`, so neither can recur.
+
+The lesson for the next audit of this shape: **a counter-measure that
+cannot reach the thing it is aimed at still passes a gate written by the
+same person in the same hour.** The gate needed an ancestry resolver, not
+a declaration scan, and only because someone went looking for the case
+the gate could not see.
+
+### Not done
+
+No browser was available in this environment, so every visual claim
+above is static CSS resolution rather than a `getBoundingClientRect`
+differential. The containing-block rule is deterministic CSS and the
+`calc(var(--safe-*) + Npx)` composition is provably `Npx` at zero inset,
+but the on-device confirmation is outstanding. `check:full` needs Chrome
+for the same reason.
