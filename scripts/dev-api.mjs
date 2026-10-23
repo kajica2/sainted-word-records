@@ -39,6 +39,9 @@ const HANDLER_PATHS = {
   // affects `npm run dev` and the hermetic API smokes.
   'invite/redeem': '../api/invite/redeem.js',
   'invite/register': '../api/invite/register.js',
+  // The control centre's data source: system, git, health, state and the
+  // action log behind super-admin.html.
+  'control-centre': '../api/control-centre.js',
 };
 
 function pickHandlerPath(urlPath) {
@@ -115,6 +118,7 @@ function pickHandlerPath(urlPath) {
   }
   if (segs[1] === 'health') return HANDLER_PATHS['manifest'];
   if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files + ?action=health
+  if (segs[1] === 'control-centre') return HANDLER_PATHS['control-centre'];
   return null;
 }
 
