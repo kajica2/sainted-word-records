@@ -20,7 +20,11 @@
 // The branch is reconstructed from the FINAL content of every changed file,
 // so the tree the PR proposes is byte-identical to the local tree.
 //
-// Usage: node scripts/push-branch-via-app.mjs <branch> [--dry-run]
+// Usage: node scripts/push-branch-via-app.mjs <branch> [--dry-run] [--commit=<sha>]
+//
+// --commit=<sha> pushes only that commit's files (the final content of
+// each), for when a follow-up touches a handful of files but the branch as a
+// whole is too large for one connector payload.
 
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -46,11 +50,19 @@ const call = (tool, args) => {
 };
 
 // Local commits, oldest first.
-const shas = sh('git', ['rev-list', '--reverse', `${BASE}..${BRANCH}`]).trim().split('\n').filter(Boolean);
+const onlyCommit = (process.argv.find((a) => a.startsWith('--commit=')) || '').split('=')[1];
+const shas = onlyCommit
+  ? [onlyCommit]
+  : sh('git', ['rev-list', '--reverse', `${BASE}..${BRANCH}`]).trim().split('\n').filter(Boolean);
 
 // Group every changed file by the local commit that FIRST introduced it, so
 // each group carries that commit's message. Content is always the FINAL
 // version, so the pushed tree matches the local tree exactly.
+const onlyFiles = new Set(
+  onlyCommit
+    ? sh('git', ['show', '--name-only', '--format=', onlyCommit]).trim().split('\n').filter(Boolean)
+    : [],
+);
 const groups = [];
 const seen = new Set();
 const deletions = new Set();
@@ -78,6 +90,7 @@ for (const sha of shas) {
     if (status.startsWith('D')) continue;                 // deleted later, or now
     if (deletions.has(p)) continue;                       // never in the final tree
     if (seen.has(p)) continue;
+    if (onlyCommit && !onlyFiles.has(p)) continue;        // --commit: that commit's files only
     seen.add(p);
     group.files.push(p);
   }
