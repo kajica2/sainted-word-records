@@ -98,10 +98,11 @@ once it hits 1.0.
 - The **one shared reactor contract** — `lib/apply-reactors.js` publishes
   `window.SWR_REACTORS`: one `UNIT` table, one `CLAMP` table, one
   `TARGETS` allowlist and one dispatch loop, and all 15 variant pages
-  plus `engine.html` call it — 16 surfaces. Every page used to hand-type
-  its own `applyR()` with its own unit table: `x` was 250 on film, 300 on
-  smoke and 180 on eclipse, `scale` was unclamped on all of them, `opacity`
-  clamped to 1.0 on thirteen pages and 1.5 on two, and `versions/grid.html`
+  plus `engine.html` call it — 16 surfaces. Every surface used to
+  hand-type its own reactor chain with its own unit table: `x` was 250 on
+  film, 300 on smoke and 180 on eclipse, `scale` was unclamped on all of
+  them, `opacity` clamped to 1.0 on fourteen surfaces and 1.5 on two
+  (engine.html and hallucination), and `versions/grid.html`
   dropped `x` and `y` silently, so a preset that said `{target:'x'}` did
   nothing at all and nothing warned. The historical tables are still
   there — one line each — as the named compatibility `UNITS` tables, and
