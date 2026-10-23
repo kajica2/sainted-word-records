@@ -95,6 +95,34 @@ once it hits 1.0.
   library-store, tour-client, debug-overlay, look-filter cycler,
   engine-keys digit filter, engine-keys keypress dispatch, layer
   lifecycle, layer retire, kit-zip.
+- The **one shared reactor contract** — `lib/apply-reactors.js` publishes
+  `window.SWR_REACTORS`: one `UNIT` table, one `CLAMP` table, one
+  `TARGETS` allowlist and one dispatch loop, and all 15 variant pages
+  plus `engine.html` call it — 16 surfaces. Every page used to hand-type
+  its own `applyR()` with its own unit table: `x` was 250 on film, 300 on
+  smoke and 180 on eclipse, `scale` was unclamped on all of them, `opacity`
+  clamped to 1.0 on thirteen pages and 1.5 on two, and `versions/grid.html`
+  dropped `x` and `y` silently, so a preset that said `{target:'x'}` did
+  nothing at all and nothing warned. The historical tables are still
+  there — one line each — as the named compatibility `UNITS` tables, and
+  the gate `scripts/check-apply-reactor-unit.mjs` asserts the shared table
+  and its clamps, so the next page cannot reintroduce a private
+  multiplier.
+- The **section cue** — `client/automix-arc.client.js` now consumes the
+  section the detector finds. The arc is built offline from a decoded
+  buffer while `client/section-detector.client.js` detects boundaries
+  live from the engine's own audio features, so a detected section
+  reached the chapter scheduler but never the arc. A boundary now only
+  BIASES which transition the next act boundary picks, and the cue is
+  additive — a cue's opinion overrides the act plan's, and with no cue
+  armed the original warmth/intensity rule is untouched — and one-shot:
+  the next act transition consumes it, so four boundaries in one section
+  cannot stack four votes into a single pick.
+  `client/section-detector.client.js` also fires `swr-section-reset`, a
+  separate event from `swr-section-change`, carrying
+  `detail: { reason, dropped }`, whenever it restarts its stream: an
+  emptied map is never dressed up as a boundary, and a cue from the
+  previous song cannot bias the new song's first act.
 
 ### Fixed
 - The export hung on browsers without an H.264 encoder (Firefox, and the

@@ -113,6 +113,23 @@ mechanism.
 
 #### 1.1 Reactor contract (the "I rebuilt it" #2)
 
+**DONE** — `3b63805` (2026-10-22). The contract ships as `lib/apply-reactors.js`
+(`window.SWR_REACTORS`): one `UNIT` table, one `CLAMP` table, one `TARGETS`
+allowlist, one dispatch loop, and the historical per-page tables as the named
+compatibility `UNITS` tables. All 15 variant pages plus `engine.html` call it
+— 16 surfaces. Gate: `scripts/check-apply-reactor-unit.mjs`.
+
+Three deliberate deltas from the sketch below: the module is a classic IIFE,
+not an ES module (see "What I will *not* do" below); `hue` is 1, not 40
+(`engine.html`, `neon` and the two music-video cuts read `r.scale` as a
+degree count, so 1 is the only value that is both the contract and
+behaviour-preserving on four surfaces); and `contrast` is clamped to
+[0.1, 2.5] alongside `brightness`. The divergence was also wider than this
+section says — 15 pages, not five (see "Where the plan's numbers were
+wrong" below).
+
+The original finding, for the record:
+
 `versions/grid.html:1023` drops `x`/`y`/`rot` reactors silently. Every page
 has its own `applyR` with its own per-target unit table. Five variants,
 five unit tables, missing clamp on `scale`, per-target missing targets.
@@ -146,12 +163,32 @@ Or: use a log-luminance mapping that doesn't saturate for bright video.
 
 #### 1.3 Section detector wiring
 
-`client/section-detector.client.js` exists (132 lines) but is never
-`import`-ed by the engine. The audit found this:
+**DONE** — `3b63805` (2026-10-22), for the wiring this section meant, plus
+the downstream link the section did not know was missing.
+
+This section's finding was stale. `client/section-detector.client.js` IS
+the sophisticated detector — chroma self-similarity matrix plus a Foote
+checkerboard novelty curve — and it IS the one wired into the engine:
+`engine.html` loads it as a classic deferred script
+(`engine.html:8849`) and calls `window.SWR_SECTION.detect(audioFeatures)`
+once per frame from the render loop (`engine.html:5694`). It is never
+`import`-ed because it is not a module: it is a global script like every
+other engine primitive, and the engine reads the global. The audit's
 *"three section-detection implementations in the repo. The one actually
-wired into the engine is the shallowest."* Wire the sophisticated one
-(it's a self-similarity matrix + novelty curve, the standard technique)
-in place of the coarse energy-threshold segmenter.
+wired into the engine is the shallowest."* was measured before this file
+was rewritten; the rewrite is the file's own header, and it is what
+closed the finding.
+
+What `3b63805` added is the missing DOWNSTREAM link. The detected section
+now reaches `client/automix-arc.client.js`, which consumes
+`swr-section-change` to bias the next act transition — the cue is additive
+(a cue's opinion overrides the act plan's, and with no cue armed the
+original rule is untouched) and one-shot (the act boundary consumes it).
+`client/section-detector.client.js` also fires `swr-section-reset`, a
+SEPARATE event carrying `detail: { reason, dropped }`, whenever it restarts
+its stream, so an emptied map is never dressed up as a boundary and the arc
+drops an armed cue across a song swap. Gate:
+`scripts/check-section-detector-unit.mjs`.
 
 #### 1.4 `ease()` shared
 
