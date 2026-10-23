@@ -468,6 +468,10 @@
       "destination": "/artists/vodolija.html"
     },
     {
+      "source": "/versions/credits-storyline",
+      "destination": "/versions/credits-storyline.html"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },
@@ -1380,8 +1384,8 @@
       "destination": "/terms.html"
     },
     {
-      "source": "/versions/credits-storyline",
-      "destination": "/versions/credits-storyline.html"
+      "source": "/versions/envelope",
+      "destination": "/versions/envelope.html"
     },
     {
       "source": "/login",
