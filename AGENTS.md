@@ -58,7 +58,7 @@ The project uses a single-source-of-truth IA in `site-map.json` and shared desig
 ### Build automation scripts
 
 - `scripts/generate-site-manifest.mjs` — auto-discover HTML pages, populate `site-map.json`. Run with `--dry-run` to preview
-- `scripts/generate-vercel-rewrites.mjs` — generate `vercel.json` rewrites from `site-map.json`. Run after editing `site-map.json`
+- `scripts/generate-vercel-rewrites.mjs` — generate `vercel.json` rewrites from `site-map.json`. Run after editing `site-map.json`. **Build `dist/` first.** A page that is in no `site-map` bucket is picked up by the generator's catch-all, which scans the `dist/` tree — so a new HTML file that has not been built yet gets no rewrite, and `check:sitemap` then throws `route … does not serve this file` and `npm run check` goes red. That happened on 2026-10-23 with `versions/credits-storyline.html` and took `main` down until `npm run build` and the generator were re-run.
 - `scripts/generate-sitemap.mjs` — generate `sitemap.xml` from `site-map.json` + the shipped `dist/` (one `<loc>` per public content page, `lastmod` from the IA's `meta.lastUpdated`). Excludes `redirects`/`archived`/non-public/`noindex` pages; `npm run build:sitemap`. Run after adding or archiving a page
 - `scripts/check-sitemap.mjs` — the sitemap gate (in the `check` group, needs a built `dist/`): regenerates and diffs (drift fails), and asserts no redirected/archived URL, no duplicate, and every shipped content page exactly once
 - `scripts/archive-pages.mjs` — move pages in `site-map.json`'s `"archived"` array to `_archive/`. Run with `--dry-run` first
