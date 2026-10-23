@@ -654,9 +654,9 @@
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-10-22",
-    "totalPages": 172,
-    "corePages": 172,
+    "lastUpdated": "2026-10-23",
+    "totalPages": 173,
+    "corePages": 173,
     "archivedPages": 0
   },
   "discovered": [
@@ -803,6 +803,7 @@
     "versions/clean.html",
     "versions/collage.html",
     "versions/console.html",
+    "versions/credits-storyline.html",
     "versions/echo-manifold.html",
     "versions/eclipse.html",
     "versions/film.html",

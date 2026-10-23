@@ -3,15 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <title>Auto Credits & Storyline · Plugin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="description" content="Auto Credits &amp; Storyline: an interactive plugin prototype that reads a track and lays out its credits and storyline." />
+<link rel="canonical" href="https://sainted-word-records.vercel.app/versions/credits-storyline" />
 <style>
   * { box-sizing: border-box; }
+  :root {
+    /* iPhone safe-area insets, read through custom properties so the
+       body padding can compose max(n, inset) instead of repeating
+       env(). The 0px fallback keeps every non-notched browser
+       pixel-identical to before. */
+    --safe-top:    env(safe-area-inset-top,    0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left:   env(safe-area-inset-left,   0px);
+    --safe-right:  env(safe-area-inset-right,  0px);
+  }
+  html { overscroll-behavior: none; }
   body {
     margin: 0;
     background: #0f1115;
     color: #e6e6e6;
     font-family: system-ui, -apple-system, sans-serif;
     min-height: 100vh;
-    padding: 20px;
+    padding: max(20px, var(--safe-top)) max(20px, var(--safe-right))
+             max(20px, var(--safe-bottom)) max(20px, var(--safe-left));
   }
   h1 { font-size: 22px; margin: 0 0 4px; }
   .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
@@ -272,5 +287,10 @@ document.getElementById('assemble').addEventListener('click', () => {
   }, 1200);
 });
 </script>
+<script src="/lib/home-link.client.js" defer></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
 </body>
 </html>

@@ -1380,6 +1380,10 @@
       "destination": "/terms.html"
     },
     {
+      "source": "/versions/credits-storyline",
+      "destination": "/versions/credits-storyline.html"
+    },
+    {
       "source": "/login",
       "destination": "/login.html"
     },
