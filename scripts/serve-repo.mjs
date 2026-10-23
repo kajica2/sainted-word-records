@@ -119,8 +119,8 @@ const server = createServer(async (req, res) => {
 
     let info = await stat(filePath).catch(() => null);
 
-    // Vercel rewrites the clean URL to the .html file (`/lab/params` →
-    // `/lab/params.html`). Mirror that so a local URL behaves like the
+    // Vercel rewrites the clean URL to the .html file (`/super-admin` →
+    // `/super-admin.html`). Mirror that so a local URL behaves like the
     // deployed one.
     if ((!info || !info.isFile()) && !extname(filePath)) {
       const asHtml = filePath + '.html';

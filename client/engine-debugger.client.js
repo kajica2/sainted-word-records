@@ -442,9 +442,9 @@
     head.appendChild(el('span', null, 'v' + VERSION));
     head.appendChild(el('span', 'sp'));
     // The parameter bench: what every URL parameter does, and which ones
-    // this page actually resolved.
+    // this page actually resolved. It lives on the control centre.
     var bench = el('a', 'd-link', 'params');
-    bench.href = '/lab/params';
+    bench.href = '/super-admin#parameters';
     bench.title = 'Every URL parameter the engine and the site understand';
     head.appendChild(bench);
     var close = el('button', null, '×');

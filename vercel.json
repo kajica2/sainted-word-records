@@ -768,14 +768,6 @@
       "destination": "/lab/media-input.html"
     },
     {
-      "source": "/lab/params",
-      "destination": "/lab/params.html"
-    },
-    {
-      "source": "/lab/params/",
-      "destination": "/lab/params.html"
-    },
-    {
       "source": "/tiktok",
       "destination": "/tiktok.html"
     },
@@ -1078,6 +1070,14 @@
     {
       "source": "/engine-personas/",
       "destination": "/engine-personas.html"
+    },
+    {
+      "source": "/super-admin",
+      "destination": "/super-admin.html"
+    },
+    {
+      "source": "/super-admin/",
+      "destination": "/super-admin.html"
     },
     {
       "source": "/atlas-200-steps",

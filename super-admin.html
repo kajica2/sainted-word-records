@@ -1,11 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Super Admin | SWR Control Center</title>
+  <meta name="description" content="The SWR control centre: live pipeline, instance and health state, and the parameter bench." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0a0a'/%3E%3Cpath d='M9 21V11l7 6 7-6v10' stroke='%233b82f6' stroke-width='2' fill='none'/%3E%3C/svg%3E" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg: #0a0a0a;
       --bg-card: #141414;
@@ -19,196 +21,129 @@
       --blue: #3b82f6;
       --purple: #a855f7;
     }
+    * { box-sizing: border-box; }
     body {
       font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       padding: 20px;
+      margin: 0;
     }
     .header {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid var(--border);
-    }
-    .header h1 {
-      font-size: 24px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
       gap: 12px;
     }
-    .status-badge {
-      background: var(--green);
-      color: #000;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
+    .header h1 {
+      font-size: 20px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .status-badge.warning { background: var(--yellow); }
-    .status-badge.error { background: var(--red); color: #fff; }
-    .clock { font-size: 14px; color: var(--text-dim); }
-    
+    .status-badge {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .status-badge.ok { color: var(--green); border-color: var(--green); }
+    .status-badge.warn { color: var(--yellow); border-color: var(--yellow); }
+    .status-badge.bad { color: var(--red); border-color: var(--red); }
+    .clock { font-size: 12px; color: var(--text-dim); }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
       gap: 16px;
     }
-    
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      transition: background 0.2s;
+      border-radius: 8px;
+      padding: 16px;
     }
-    .card:hover { background: var(--bg-card-hover); }
-    
+    .card.full-width { grid-column: 1 / -1; }
     .card-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 10px;
     }
     .card-title {
-      font-size: 14px;
-      font-weight: 600;
       display: flex;
       align-items: center;
       gap: 8px;
-    }
-    .card-title .icon { font-size: 18px; }
-    
-    .agent-status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
     }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-    }
-    .dot.warning { background: var(--yellow); }
-    .dot.error { background: var(--red); }
-    .dot.idle { background: var(--text-dim); }
-    
-    .metric {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
-    .metric:last-child { border: none; }
+    .card-title .icon { font-size: 16px; }
+    .agent-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-dim); }
+    .dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dot.warn { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+    .dot.bad { background: var(--red); box-shadow: 0 0 6px var(--red); }
+    .metric { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
     .metric-label { color: var(--text-dim); }
     .metric-value { font-weight: 600; }
-    
+    .note { font-size: 10px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+    .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 8px 0; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--blue); transition: width 0.3s ease; }
     .log {
-      background: #000;
-      border-radius: 8px;
-      padding: 12px;
-      height: 150px;
+      background: #0d0d0d;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px;
+      max-height: 190px;
       overflow-y: auto;
       font-size: 11px;
-      line-height: 1.6;
-      margin-top: 12px;
+      margin-top: 10px;
     }
-    .log-entry { color: var(--text-dim); }
-    .log-entry.error { color: var(--red); }
+    .log-entry { padding: 2px 0; color: var(--text-dim); }
     .log-entry.success { color: var(--green); }
     .log-entry.warning { color: var(--yellow); }
-    .log-entry.info { color: var(--blue); }
+    .log-entry.error { color: var(--red); }
     .log-time { color: #555; margin-right: 8px; }
-    
-    .action-bar {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
+    .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
     .btn {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      color: var(--text);
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn:hover { background: var(--bg-card-hover); border-color: var(--text-dim); }
-    .btn.primary { background: var(--blue); border-color: var(--blue); }
-    .btn.primary:hover { background: #2563eb; }
-    .btn.danger { background: var(--red); border-color: var(--red); }
-    .btn.danger:hover { background: #dc2626; }
-    
-    .full-width { grid-column: 1 / -1; }
-    
-    .progress-bar {
-      height: 4px;
       background: var(--border);
-      border-radius: 2px;
-      margin-top: 12px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--blue);
-      border-radius: 2px;
-      transition: width 0.3s;
-    }
-    
-    .notifications {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 1000;
-    }
-    .notification {
-      background: var(--bg-card);
+      color: var(--text);
       border: 1px solid var(--border);
-      border-left: 4px solid var(--blue);
-      padding: 16px 20px;
-      border-radius: 8px;
-      min-width: 300px;
-      animation: slideIn 0.3s ease;
-    }
-    .notification.error { border-left-color: var(--red); }
-    .notification.success { border-left-color: var(--green); }
-    .notification.warning { border-left-color: var(--yellow); }
-    
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    
-    .checkbox-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
+      border-radius: 4px;
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 11px;
       cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
-    .checkbox-label input { accent-color: var(--blue); }
+    .btn:hover { background: var(--bg-card-hover); border-color: #3a3a3a; }
+    .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .btn.primary:hover { filter: brightness(1.1); }
+    .btn.danger { background: transparent; border-color: var(--red); color: var(--red); }
+    .btn.danger:hover { background: var(--red); color: #fff; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn.sm { padding: 4px 9px; font-size: 10px; }
+    .table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .table th {
+      text-align: left; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-dim); font-weight: 600; padding: 0 8px 6px 0; border-bottom: 1px solid var(--border);
+    }
+    .table td { padding: 6px 8px 6px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .table tr:last-child td { border-bottom: none; }
+    .ok { color: var(--green); }
+    .warn { color: var(--yellow); }
+    .bad { color: var(--red); }
+    .muted { color: var(--text-dim); }
+    .mono { font-size: 11px; }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    #params-host { margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -216,380 +151,345 @@
     <h1>
       <span>🎛️</span>
       Super Admin
-      <span class="status-badge" id="systemStatus">All Systems Operational</span>
+      <span class="status-badge" id="systemStatus">checking…</span>
     </h1>
     <div class="clock" id="clock">--:--:--</div>
   </div>
 
   <div class="grid">
-    <!-- Agent Loop -->
+    <!-- Pipeline -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">🤖</span>
-          Persistent Agent Loop
-        </div>
-        <div class="agent-status">
-          <span class="dot" id="agentDot"></span>
-          <span id="agentStatus">Running</span>
-        </div>
+        <div class="card-title"><span class="icon">🔁</span>Pipeline</div>
+        <div class="agent-status"><span class="dot" id="pipeDot"></span><span id="pipeStatus">—</span></div>
       </div>
-      <div class="metric">
-        <span class="metric-label">Uptime</span>
-        <span class="metric-value" id="agentUptime">--</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Tasks Completed</span>
-        <span class="metric-value" id="agentTasks">0</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Last Action</span>
-        <span class="metric-value" id="agentLastAction">--</span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="agentProgress" style="width: 0%"></div>
-      </div>
-      <div class="log" id="agentLog">
-        <div class="log-entry info"><span class="log-time">--:--:--</span>Agent initialized</div>
-      </div>
+      <div class="metric"><span class="metric-label">Last run</span><span class="metric-value" id="pipeLast">—</span></div>
+      <div class="metric"><span class="metric-label">Conclusion</span><span class="metric-value" id="pipeConclusion">—</span></div>
+      <div class="metric"><span class="metric-label">Completed runs</span><span class="metric-value" id="pipeCount">—</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="pipeProgress" style="width:0%"></div></div>
+      <div class="log" id="pipeLog"><div class="log-entry info"><span class="log-time">--:--:--</span>waiting for the pipeline…</div></div>
       <div class="action-bar">
-        <button class="btn" onclick="restartAgent()">Restart</button>
-        <button class="btn" onclick="pauseAgent()">Pause</button>
-        <button class="btn danger" onclick="stopAgent()">Stop</button>
+        <button class="btn" onclick="refresh()">Refresh</button>
+        <button class="btn primary" onclick="runTests()">Run tests</button>
       </div>
+      <p class="note" id="pipeNote"></p>
     </div>
 
-    <!-- Watchers -->
+    <!-- System -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">👁️</span>
-          Active Watchers
-        </div>
-        <div class="agent-status">
-          <span class="dot" id="watchersDot"></span>
-          <span id="watchersStatus">Active</span>
-        </div>
+        <div class="card-title"><span class="icon">💻</span>System</div>
+        <div class="agent-status"><span class="dot" id="sysDot"></span><span id="sysStatus">—</span></div>
       </div>
-      <div class="metric">
-        <span class="metric-label">Chart Watcher</span>
-        <span class="metric-value" id="chartWatcher">Active</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">MJ Watcher</span>
-        <span class="metric-value" id="mjWatcher">Active</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">IG Watcher</span>
-        <span class="metric-value" id="igWatcher">Idle</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Songs Watcher</span>
-        <span class="metric-value" id="songsWatcher">Active</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Reel Watcher</span>
-        <span class="metric-value" id="reelWatcher">Idle</span>
-      </div>
-      <div class="action-bar">
-        <button class="btn" onclick="restartWatchers()">Restart All</button>
-        <button class="btn" onclick="checkWatchers()">Check Status</button>
-      </div>
+      <div class="metric"><span class="metric-label">Load (1m)</span><span class="metric-value" id="sysLoad">—</span></div>
+      <div class="metric"><span class="metric-label">CPU</span><span class="metric-value" id="sysCpu">—</span></div>
+      <div class="metric"><span class="metric-label">Memory</span><span class="metric-value" id="sysMem">—</span></div>
+      <div class="metric"><span class="metric-label">Disk</span><span class="metric-value" id="sysDisk">—</span></div>
+      <div class="metric"><span class="metric-label">Uptime</span><span class="metric-value" id="sysUptime">—</span></div>
+      <div class="metric"><span class="metric-label">Runtime</span><span class="metric-value" id="sysRuntime">—</span></div>
+      <p class="note" id="sysNote"></p>
     </div>
 
-    <!-- System Resources -->
+    <!-- Health -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">💻</span>
-          System Resources
-        </div>
+        <div class="card-title"><span class="icon">🩺</span>Health</div>
+        <div class="agent-status"><span class="dot" id="healthDot"></span><span id="healthStatus">—</span></div>
       </div>
-      <div class="metric">
-        <span class="metric-label">CPU Usage</span>
-        <span class="metric-value" id="cpuUsage">--%</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Memory</span>
-        <span class="metric-value" id="memoryUsage">--%</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Disk</span>
-        <span class="metric-value" id="diskUsage">--%</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Network</span>
-        <span class="metric-value" id="networkStatus">Online</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Services</span>
-        <span class="metric-value" id="servicesStatus">3/5 Running</span>
-      </div>
-    </div>
-
-    <!-- FLUX Pipeline -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="icon">🎨</span>
-          FLUX Pipeline
-        </div>
-        <div class="agent-status">
-          <span class="dot" id="fluxDot"></span>
-          <span id="fluxStatus">Ready</span>
-        </div>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Stills Generated</span>
-        <span class="metric-value" id="fluxStills">7</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Loops Created</span>
-        <span class="metric-value" id="fluxLoops">3</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Queue</span>
-        <span class="metric-value" id="fluxQueue">0</span>
-      </div>
+      <div class="log" id="healthLog" style="max-height:150px"></div>
       <div class="action-bar">
-        <button class="btn primary" onclick="generateStill()">Generate Still</button>
-        <button class="btn" onclick="animateLoop()">Animate</button>
+        <button class="btn" onclick="checkHealth()">Re-check</button>
       </div>
     </div>
 
     <!-- Git & Deploy -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">📦</span>
-          Git & Deploy
-        </div>
+        <div class="card-title"><span class="icon">📦</span>Git</div>
+        <div class="agent-status"><span class="dot" id="gitDot"></span><span id="gitStatus">—</span></div>
       </div>
-      <div class="metric">
-        <span class="metric-label">Branch</span>
-        <span class="metric-value">main</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Last Commit</span>
-        <span class="metric-value" id="lastCommit">--</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">Uncommitted</span>
-        <span class="metric-value" id="uncommitted">0 files</span>
-      </div>
-      <div class="metric">
-        <span class="metric-label">GitHub Pages</span>
-        <span class="metric-value" id="ghPagesStatus">Deployed</span>
-      </div>
+      <div class="metric"><span class="metric-label">Branch</span><span class="metric-value" id="gitBranch">—</span></div>
+      <div class="metric"><span class="metric-label">Last commit</span><span class="metric-value" id="gitCommit">—</span></div>
+      <div class="metric"><span class="metric-label">Message</span><span class="metric-value" id="gitMessage" style="font-weight:400;text-align:right;max-width:60%">—</span></div>
+      <div class="metric"><span class="metric-label">Pushed</span><span class="metric-value" id="gitPushed">—</span></div>
       <div class="action-bar">
-        <button class="btn" onclick="checkGit()">Check Git</button>
-        <button class="btn primary" onclick="deploy()">Deploy</button>
+        <button class="btn" onclick="refresh()">Check git</button>
+        <button class="btn primary" onclick="runTests()">Dispatch CI</button>
       </div>
+      <p class="note" id="gitNote"></p>
     </div>
 
-    <!-- Settings & Notifications -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span class="icon">⚙️</span>
-          Settings
-        </div>
-      </div>
-      <div class="checkbox-group">
-        <label class="checkbox-label">
-          <input type="checkbox" id="notifyErrors" checked>
-          Notify on Errors
-        </label>
-        <label class="checkbox-label">
-          <input type="checkbox" id="notifyComplete" checked>
-          Notify on Completion
-        </label>
-        <label class="checkbox-label">
-          <input type="checkbox" id="autoDeploy">
-          Auto-Deploy on Push
-        </label>
-        <label class="checkbox-label">
-          <input type="checkbox" id="longRunning" checked>
-          Keep Running (Hours)
-        </label>
-      </div>
-      <div style="margin-top: 16px;">
-        <div class="metric-label" style="margin-bottom: 8px;">Notification Sound</div>
-        <select class="btn" style="width: 100%;" id="notifySound">
-          <option value="ding">Ding</option>
-          <option value="chime">Chime</option>
-          <option value="alert">Alert</option>
-          <option value="none">Silent</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
+    <!-- Quick actions -->
     <div class="card full-width">
       <div class="card-header">
-        <div class="card-title">
-          <span class="icon">⚡</span>
-          Quick Actions
-        </div>
+        <div class="card-title"><span class="icon">⚡</span>Quick actions</div>
       </div>
-      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <button class="btn" onclick="runTests()">Run Tests</button>
-        <button class="btn" onclick="checkHealth()">Health Check</button>
-        <button class="btn" onclick="clearLogs()">Clear Logs</button>
-        <button class="btn" onclick="exportState()">Export State</button>
-        <button class="btn" onclick="viewLogs()">View All Logs</button>
-        <button class="btn primary" onclick="emergencyStop()">🛑 Emergency Stop All</button>
+      <div class="row-actions">
+        <button class="btn" onclick="runTests()">Run tests</button>
+        <button class="btn" onclick="checkHealth()">Health check</button>
+        <button class="btn" onclick="exportState()">Export state</button>
+        <button class="btn" onclick="loadLogs()">View all logs</button>
+        <button class="btn danger" onclick="stopPipeline()">Stop pipeline</button>
       </div>
+      <p class="note" id="qaNote"></p>
+    </div>
+
+    <!-- Action log -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🧾</span>Action log</div>
+        <div class="agent-status"><span id="logCount">—</span></div>
+      </div>
+      <div class="log" id="logBox" style="max-height:190px"></div>
+      <div class="action-bar">
+        <button class="btn sm" onclick="loadLogs()">Reload</button>
+        <button class="btn sm" onclick="clearLogs()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Parameters -->
+    <div class="card full-width" id="parameters">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">⚙️</span>Parameters</div>
+        <div class="agent-status"><span class="dot" id="paramsDot"></span><span id="paramsStatus">—</span></div>
+      </div>
+      <div id="params-host"></div>
     </div>
   </div>
 
-  <div class="notifications" id="notifications"></div>
-
+  <script src="/client/engine-params.client.js"></script>
   <script>
-    // Clock
-    function updateClock() {
-      document.getElementById('clock').textContent = new Date().toLocaleTimeString();
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+  (function () {
+    'use strict';
 
-    // Mock data updates
-    function updateMetrics() {
-      // Simulate some changes
-      const cpu = Math.floor(Math.random() * 30) + 10;
-      const mem = Math.floor(Math.random() * 40) + 30;
-      document.getElementById('cpuUsage').textContent = cpu + '%';
-      document.getElementById('memoryUsage').textContent = mem + '%';
-    }
-    setInterval(updateMetrics, 5000);
+    var API = '/api/control-centre';
+    var state = { git: null, system: null };
 
-    // Notification system
-    function notify(message, type = 'info') {
-      const container = document.getElementById('notifications');
-      const notif = document.createElement('div');
-      notif.className = `notification ${type}`;
-      notif.innerHTML = `
-        <div style="font-weight: 600; margin-bottom: 4px;">${type.toUpperCase()}</div>
-        <div>${message}</div>
-      `;
-      container.appendChild(notif);
-      setTimeout(() => notif.remove(), 5000);
+    function $(id) { return document.getElementById(id); }
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      });
     }
+    function bytes(n) {
+      if (!n && n !== 0) return '—';
+      var u = ['B', 'KB', 'MB', 'GB', 'TB'];
+      var i = 0;
+      while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+      return (i === 0 ? n : n.toFixed(1)) + ' ' + u[i];
+    }
+    function ago(iso) {
+      if (!iso) return '—';
+      var s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+      if (s < 60) return Math.round(s) + 's ago';
+      if (s < 3600) return Math.round(s / 60) + 'm ago';
+      if (s < 86400) return Math.round(s / 3600) + 'h ago';
+      return Math.round(s / 86400) + 'd ago';
+    }
+    function dot(el, cls) { el.className = 'dot' + (cls ? ' ' + cls : ''); }
 
-    // Log function
-    function log(agent, message, type = 'info') {
-      const logEl = document.getElementById(agent + 'Log') || document.getElementById('agentLog');
-      const time = new Date().toLocaleTimeString();
-      const entry = document.createElement('div');
-      entry.className = `log-entry ${type}`;
-      entry.innerHTML = `<span class="log-time">${time}</span>${message}`;
-      logEl.insertBefore(entry, logEl.firstChild);
-      if (logEl.children.length > 50) logEl.lastChild.remove();
+    function log(box, level, message, time) {
+      var d = document.createElement('div');
+      d.className = 'log-entry ' + (level || 'info');
+      d.innerHTML = '<span class="log-time">' + esc(time || new Date().toLocaleTimeString()) + '</span>' + esc(message);
+      box.insertBefore(d, box.firstChild);
+      while (box.children.length > 60) box.lastChild.remove();
     }
 
-    // Actions
-    function restartAgent() {
-      log('agent', 'Restarting agent loop...', 'warning');
-      notify('Agent loop restarting...', 'warning');
-      setTimeout(() => {
-        log('agent', 'Agent loop restarted successfully', 'success');
-        notify('Agent loop running', 'success');
-      }, 2000);
+    function get(action) {
+      return fetch(API + '?action=' + encodeURIComponent(action), { cache: 'no-store' })
+        .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); });
+    }
+    function post(action, payload) {
+      return fetch(API + '?action=' + encodeURIComponent(action), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {}),
+      }).then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); });
     }
 
-    function pauseAgent() {
-      log('agent', 'Pausing agent loop...', 'warning');
-      notify('Agent paused', 'info');
+    // ── cards ──────────────────────────────────────────────────────────────
+
+    function renderSystem(sys) {
+      if (!sys) return;
+      state.system = sys;
+      $('sysLoad').textContent = sys.load1 + '  (' + sys.cores + ' cores)';
+      $('sysCpu').textContent = sys.cpuPct + '%';
+      $('sysMem').textContent = bytes(sys.memUsed) + ' / ' + bytes(sys.memTotal) + '  (' + sys.memPct + '%)';
+      $('sysDisk').textContent = sys.disk ? sys.disk.pct + '% of ' + bytes(sys.disk.total) : '—';
+      $('sysUptime').textContent = Math.round(sys.uptimeSec / 60) + 'm';
+      $('sysRuntime').textContent = sys.node + ' · ' + sys.platform;
+      $('sysNote').textContent = 'These are the numbers for ' + sys.scope + ' — the container serving this request, not the machine that pushed the commit.';
+      dot($('sysDot'), 'ok');
+      $('sysStatus').textContent = 'live';
     }
 
-    function stopAgent() {
-      log('agent', 'Stopping agent loop...', 'error');
-      notify('Agent stopped', 'error');
+    function renderGit(git) {
+      if (!git) return;
+      state.git = git;
+      if (git.error) {
+        $('gitBranch').textContent = '—';
+        $('gitStatus').textContent = 'unavailable';
+        dot($('gitDot'), 'bad');
+        $('gitNote').textContent = 'GitHub did not answer — ' + git.error +
+          '. Setting GITHUB_TOKEN on the deployment raises the rate limit and enables the actions above.';
+        return;
+      }
+      $('gitBranch').textContent = git.branch;
+      $('gitCommit').textContent = git.commits[0] ? git.commits[0].sha : '—';
+      $('gitMessage').textContent = git.commits[0] ? git.commits[0].message : '—';
+      $('gitPushed').textContent = ago(git.pushedAt);
+      dot($('gitDot'), 'ok');
+      $('gitStatus').textContent = git.runs.length + ' recent runs';
+      $('gitNote').textContent = 'Commits and workflow runs come from the public GitHub API. Dispatching CI needs GITHUB_TOKEN on the deployment.';
     }
 
-    function restartWatchers() {
-      notify('Restarting all watchers...', 'warning');
-      log('agent', 'Watchers restarted', 'success');
-      notify('All watchers active', 'success');
+    function renderPipeline(git) {
+      if (!git) return;
+      if (git.error) {
+        // GitHub did not answer. Say so on the card rather than leaving it
+        // blank, so an empty card is never mistaken for an idle pipeline.
+        $('pipeStatus').textContent = 'unavailable';
+        dot($('pipeDot'), 'bad');
+        $('pipeNote').textContent = 'GitHub did not answer — ' + git.error;
+        var box = $('pipeLog');
+        box.innerHTML = '';
+        log(box, 'error', 'pipeline unavailable — ' + git.error);
+        return;
+      }
+      var runs = git.runs || [];
+      var done = runs.filter(function (r) { return r.status === 'completed'; });
+      var last = runs[0];
+      $('pipeLast').textContent = last ? last.name + ' · ' + last.sha : '—';
+      var concl = last ? last.conclusion : null;
+      $('pipeConclusion').textContent = concl || (last ? last.status : '—');
+      $('pipeConclusion').className = 'metric-value ' + (concl === 'success' ? 'ok' : concl === 'failure' ? 'bad' : 'warn');
+      $('pipeCount').textContent = done.length;
+      var pct = runs.length ? Math.round((done.length / runs.length) * 100) : 0;
+      $('pipeProgress').style.width = pct + '%';
+      var box = $('pipeLog');
+      box.innerHTML = '';
+      if (!runs.length) {
+        log(box, 'info', 'no workflow runs recorded for ' + git.branch);
+      } else {
+        runs.slice(0, 8).forEach(function (r) {
+          var cls = r.conclusion === 'success' ? 'success' : r.conclusion === 'failure' ? 'error' : 'info';
+          log(box, cls, r.name + ' · ' + r.sha + ' · ' + (r.conclusion || r.status) + ' · ' + ago(r.updatedAt),
+            r.startedAt ? new Date(r.startedAt).toLocaleTimeString() : '');
+        });
+      }
+      var running = runs.filter(function (r) { return r.status !== 'completed'; }).length;
+      dot($('pipeDot'), running ? 'warn' : (last && last.conclusion === 'success') ? 'ok' : 'warn');
+      $('pipeStatus').textContent = running ? running + ' running' : 'idle';
+      $('pipeNote').textContent = 'Real workflow runs from GitHub Actions on ' + git.branch + '.';
     }
 
-    function checkWatchers() {
-      notify('Checking watcher status...', 'info');
+    function renderHealth(h) {
+      var box = $('healthLog');
+      box.innerHTML = '';
+      (h.probes || []).forEach(function (p) {
+        log(box, p.ok ? 'success' : 'error', p.url.replace(/^https?:\/\//, '') + ' → ' + (p.ok ? p.status : (p.error || p.status)) + ' · ' + p.ms + 'ms');
+      });
+      var store = h.store || {};
+      log(box, store.ok === false ? 'error' : 'success', 'store: ' + (store.store || '—') + ' · users ' + (store.users != null ? store.users : '—') + ' · projects ' + (store.projects != null ? store.projects : '—'));
+      var ok = h.ok;
+      dot($('healthDot'), ok ? 'ok' : 'bad');
+      $('healthStatus').textContent = ok ? 'all green' : 'degraded';
+      var badge = $('systemStatus');
+      badge.textContent = ok ? 'All Systems Operational' : 'Degraded';
+      badge.className = 'status-badge ' + (ok ? 'ok' : 'warn');
     }
 
-    function generateStill() {
-      notify('Generating FLUX still...', 'info');
-      log('agent', 'FLUX: Generating new still...', 'info');
-      setTimeout(() => {
-        log('agent', 'FLUX: Still generated successfully', 'success');
-        notify('Still generated!', 'success');
-        document.getElementById('fluxStills').textContent = 
-          parseInt(document.getElementById('fluxStills').textContent) + 1;
-      }, 3000);
-    }
+    // ── actions ────────────────────────────────────────────────────────────
 
-    function animateLoop() {
-      notify('Animating to video loop...', 'info');
-      setTimeout(() => {
-        notify('Loop created!', 'success');
-        document.getElementById('fluxLoops').textContent = 
-          parseInt(document.getElementById('fluxLoops').textContent) + 1;
-      }, 4000);
-    }
-
-    function checkGit() {
-      notify('Checking git status...', 'info');
-    }
-
-    function deploy() {
-      notify('Deploying to GitHub Pages...', 'info');
-      log('agent', 'Deploy: Starting deployment...', 'info');
-      setTimeout(() => {
-        log('agent', 'Deploy: Deployed successfully', 'success');
-        notify('Deployed!', 'success');
-      }, 3000);
-    }
-
-    function runTests() {
-      notify('Running test suite...', 'info');
-      log('agent', 'Tests: Running...', 'info');
-      setTimeout(() => {
-        log('agent', 'Tests: All passed (23/23)', 'success');
-        notify('All tests passed!', 'success');
-      }, 5000);
+    function refresh() {
+      get('status').then(function (r) {
+        if (r.body && r.body.system) renderSystem(r.body.system);
+        if (r.body && r.body.git) { renderGit(r.body.git); renderPipeline(r.body.git); }
+      }).catch(function (e) {
+        log($('pipeLog'), 'error', 'status failed: ' + e.message);
+      });
     }
 
     function checkHealth() {
-      notify('Running health check...', 'info');
-      setTimeout(() => {
-        notify('All systems healthy', 'success');
-      }, 2000);
+      get('health').then(function (r) {
+        if (r.body && r.body.health) renderHealth(r.body.health);
+        else log($('healthLog'), 'error', 'health failed');
+      }).catch(function (e) { log($('healthLog'), 'error', String(e)); });
     }
 
-    function clearLogs() {
-      document.querySelectorAll('.log').forEach(l => l.innerHTML = '');
-      notify('Logs cleared', 'info');
+    function runTests() {
+      $('qaNote').textContent = 'Dispatching the CI suite…';
+      post('run-tests').then(function (r) {
+        var b = r.body || {};
+        $('qaNote').textContent = b.message || (b.ok ? 'Dispatched.' : 'Could not dispatch.');
+        log($('pipeLog'), b.ok ? 'success' : 'error', b.message || 'CI dispatch');
+        if (b.ok) setTimeout(refresh, 2500);
+      }).catch(function (e) { $('qaNote').textContent = String(e); });
+    }
+
+    function stopPipeline() {
+      if (!confirm('Stop in-flight CI runs?')) return;
+      $('qaNote').textContent = 'Stopping in-flight runs…';
+      post('stop').then(function (r) {
+        var b = r.body || {};
+        $('qaNote').textContent = b.message || (b.ok ? 'Stopped.' : 'Could not stop.');
+        log($('pipeLog'), b.ok ? 'warning' : 'error', b.message || 'stop');
+      }).catch(function (e) { $('qaNote').textContent = String(e); });
     }
 
     function exportState() {
-      notify('Exporting system state...', 'info');
+      get('state').then(function (r) {
+        var blob = new Blob([JSON.stringify(r.body, null, 2)], { type: 'application/json' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'swr-control-state-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+        $('qaNote').textContent = 'State exported.';
+      }).catch(function (e) { $('qaNote').textContent = String(e); });
     }
 
-    function viewLogs() {
-      notify('Opening full logs...', 'info');
+    function loadLogs() {
+      get('logs').then(function (r) {
+        var box = $('logBox');
+        box.innerHTML = '';
+        var logs = (r.body && r.body.logs) || [];
+        $('logCount').textContent = logs.length + ' entries';
+        if (!logs.length) { log(box, 'info', 'no actions recorded yet'); return; }
+        logs.forEach(function (l) {
+          log(box, l.level, l.message, l.at ? new Date(l.at).toLocaleTimeString() : '');
+        });
+      }).catch(function (e) { $('qaNote').textContent = String(e); });
     }
 
-    function emergencyStop() {
-      if (confirm('EMERGENCY STOP - Are you sure? This will stop all agents and watchers.')) {
-        notify('EMERGENCY STOP ACTIVATED', 'error');
-        log('agent', 'EMERGENCY STOP', 'error');
-      }
+    function clearLogs() {
+      if (!confirm('Clear the action log?')) return;
+      post('clear-logs').then(function () { loadLogs(); });
     }
 
-    // Initialize
-    log('agent', 'Super Admin dashboard loaded', 'info');
-    log('agent', 'All systems initialized', 'success');
-    notify('Super Admin ready', 'success');
+    // ── boot ───────────────────────────────────────────────────────────────
+
+    function tick() {
+      $('clock').textContent = new Date().toLocaleTimeString();
+    }
+    setInterval(tick, 1000);
+    tick();
+
+    if (window.SWR_PARAMS) {
+      SWR_PARAMS.mount($('params-host'));
+      dot($('paramsDot'), 'ok');
+      $('paramsStatus').textContent = SWR_PARAMS.data.length + ' parameters';
+    } else {
+      $('paramsStatus').textContent = 'module missing';
+      dot($('paramsDot'), 'bad');
+    }
+
+    refresh();
+    checkHealth();
+    loadLogs();
+    setInterval(refresh, 30000);
+  })();
   </script>
 </body>
 </html>
