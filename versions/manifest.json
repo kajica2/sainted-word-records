@@ -1,6 +1,6 @@
 {
   "schema": "swr-codemod-manifest/v1",
-  "generated_at": "2026-10-21T00:22:44.855Z",
+  "generated_at": "2026-10-23T04:58:52.230625Z",
   "generated_by": "node versions/verify-codemods.mjs --update",
   "pending_max_age_days": 30,
   "ENGINES": [
@@ -1008,6 +1008,45 @@
       "pending": [],
       "dry_run_flag": true,
       "partial": []
+    },
+    "_command-center-inject": {
+      "script": "versions/_command-center-inject.js",
+      "markers": [
+        "command-center.client.js"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Adds the shared Studio Command Center (lib/command-center.css + lib/command-center.client.js) to the 13 full engine surfaces — the ones with a Layers stack, a Library and a live output canvas. One control surface bound to the API every variant already publishes, so the deep controls (live spectrum, the FX stack, the hook detector, the render-cost ledger) are not re-implemented per variant. Renders nothing until opened: a launcher button in the corner, or ?cc=1.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ]
     }
   },
   "variants": {
@@ -1018,6 +1057,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1033,7 +1073,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "bachdrop.html": {
       "codemods_applied": [
@@ -1061,6 +1101,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1076,7 +1117,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "clean.html": {
       "codemods_applied": [
@@ -1120,6 +1161,7 @@
         "_audio-damp-inject",
         "_audio-overlay-inject",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1134,7 +1176,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "film.html": {
       "codemods_applied": [
@@ -1143,6 +1185,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1158,7 +1201,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "fractal.html": {
       "codemods_applied": [
@@ -1167,6 +1210,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1182,7 +1226,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "gallery.html": {
       "codemods_applied": [
@@ -1199,6 +1243,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1214,7 +1259,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "grid.html": {
       "codemods_applied": [
@@ -1223,6 +1268,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1237,7 +1283,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "hallucination.html": {
       "codemods_applied": [
@@ -1246,6 +1292,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_genops-inject",
         "_image-evolve-inject",
@@ -1260,7 +1307,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "index.html": {
       "codemods_applied": [
@@ -1341,6 +1388,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1356,7 +1404,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "phosphor.html": {
       "codemods_applied": [
@@ -1375,6 +1423,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1390,7 +1439,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "simple.html": {
       "codemods_applied": [
@@ -1409,6 +1458,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_genops-inject",
         "_image-load-inject",
@@ -1423,7 +1473,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "spectrum.html": {
       "codemods_applied": [
@@ -1470,6 +1520,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1485,7 +1536,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "watercolor.html": {
       "codemods_applied": [
@@ -1494,6 +1545,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1508,7 +1560,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-23T04:58:52.230625Z"
     },
     "music-video-gallery.html": {
       "codemods_applied": [
