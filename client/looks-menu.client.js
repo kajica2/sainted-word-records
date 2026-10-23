@@ -21,13 +21,14 @@
 //   Motion presets  — engine.html's VISUAL_PRESETS (the old #preset set)
 //
 // Deliberate non-goals:
-//   - It does NOT invent entries for the 17 artistic variants that
-//     variant-switcher cannot drive. Those pages ship their own
-//     drawFx and automix wiring; adding them to #variant means authoring
-//     17 new VARIANTS records, which is a separate change.
 //   - It does NOT sync with #variant / #preset. Those selects keep their
 //     own change handlers and their own tests; this control is additive.
 //     Both directions are mirrored (see below) but neither replaces.
+//   - It does NOT promote a navigation-only entry into the engine's
+//     in-place switcher. Picking "Grid" from the engine navigates to
+//     /versions/grid.html rather than trying to run grid's DOM-overlay
+//     identity as a canvas pass — the switcher owns that decision, and
+//     it says no.
 //
 // Apply paths, and why each is what it is:
 //   Grade presets go through window.FX.setPersona() — the same call
@@ -92,39 +93,76 @@
     return out;
   }
 
-  // Hardcoded fallback for the "Variant looks" group. On engine.html,
-  // SWR_VARIANTS is provided by client/variant-switcher.client.js
-  // and the dropdown applies variants in-place (loadVariant() +
-  // compile()). On a versions/*.html page, SWR_VARIANTS is not loaded
-  // — picking a variant should NAVIGATE to that variant's page so the
-  // user lands on the engine-equivalent of their pick. The list below
-  // mirrors client/variant-switcher.client.js's VARIANTS table
-  // (the 14 entrypoints the switcher knows), enough to populate the
-  // dropdown everywhere.
-  const VARIANT_NAV = [
-    { id: 'neon',          name: 'Neon' },
-    { id: 'film',          name: 'Film' },
-    { id: 'smoke',         name: 'Smoke' },
-    { id: 'hallucination', name: 'Hallucination' },
-    { id: 'music_video',   name: 'Music Video' },
-    { id: 'glitch',        name: 'Glitch' },
-    { id: 'aurora',        name: 'Aurora' },
-    { id: 'pulse',         name: 'Pulse' },
-    { id: 'void',          name: 'Void' },
-    { id: 'chrome',        name: 'Chrome' },
-    { id: 'watercolor',    name: 'Watercolor' },
-    { id: 'fractal',       name: 'Fractal' },
-    { id: 'eclipse',       name: 'Eclipse' },
-    { id: 'music_video_mtv', name: 'Music Video MTV' },
+  // The catalogue of shipped version pages — the single source of truth for
+  // the "Variant looks" group, on the engine and on every /versions/*.html
+  // page alike.
+  //
+  // This was a 14-entry mirror of client/variant-switcher.client.js's
+  // VARIANTS table, used only as a fallback on version pages, and it drifted
+  // twice. The switcher grew to 22 when the eight decorative visual
+  // languages (collage, echo-manifold, kraft, mosaic, phosphor, spectrum,
+  // tape, typography) each gained a canvas drawFx pass. And three more
+  // versions shipped without ever being listed anywhere: clean, simple and
+  // console. The visible symptom was a version page whose own dropdown did
+  // not list it.
+  //
+  // Two lists, two jobs, and the difference matters:
+  //
+  //   THIS catalogue — every shipped version page. Picking one NAVIGATES
+  //     to /versions/<id>.html.
+  //   SWR_VARIANTS.list() — only the pages that carry a canvas drawFx pass
+  //     the engine can compile and run in place.
+  //
+  // An id in the catalogue but not in SWR_VARIANTS is still a valid pick:
+  // applyVariant() navigates to it from the engine too. The engine's own
+  // legacy #variant select stays activatable-only — that control asks
+  // "what can I apply here", this one asks "what can I open".
+  //
+  // scripts/check-versions-dropdown.mjs keeps the three in step: this
+  // catalogue, the switcher's table, and the files in versions/.
+  const VARIANT_CATALOG = [
+    { id: 'neon',          name: 'Neon',          desc: 'Scanlines · magenta beat flash · center glow pulse' },
+    { id: 'film',          name: 'Film',          desc: 'Per-pixel grain · projector flicker · warm overlay · vignette' },
+    { id: 'smoke',         name: 'Smoke',         desc: 'Warm haze · amber chromatic-aberration ghost' },
+    { id: 'hallucination', name: 'Hallucination', desc: 'Lighter flash · RGB torn-signal ghosts · noise punch' },
+    { id: 'music_video',   name: 'Music Video',   desc: 'Gradient · automix · session-private' },
+    { id: 'glitch',        name: 'Glitch',        desc: 'Snap-beat · corrupt' },
+    { id: 'aurora',        name: 'Aurora',        desc: 'Soft · pastel' },
+    { id: 'pulse',         name: 'Pulse',         desc: 'Beat · ring' },
+    { id: 'void',          name: 'Void',          desc: 'Black · isolation' },
+    { id: 'chrome',        name: 'Chrome',        desc: 'Reflective · metallic' },
+    { id: 'watercolor',    name: 'Watercolor',    desc: 'Soft · bleed' },
+    { id: 'fractal',       name: 'Fractal',       desc: 'Recursive · organic' },
+    { id: 'music_video_mtv', name: 'MTV',         desc: '90s retro · VHS / CRT' },
+    { id: 'eclipse',       name: 'Eclipse',       desc: 'Corona · legacy' },
+
+    // The eight decorative visual languages. Each page carried a bespoke
+    // render loop with no drawFx; every one of them now carries a canvas
+    // drawFx written for the engine's variant contract, so the switcher
+    // can run them in place.
+    { id: 'collage',       name: 'Collage',       desc: 'Cut-paper · torn edges' },
+    { id: 'echo-manifold', name: 'Echo Manifold', desc: 'Cyan · purple folds' },
+    { id: 'kraft',         name: 'Kraft',         desc: 'Paper · printed grain' },
+    { id: 'mosaic',        name: 'Mosaic',        desc: 'Tiles · colour grid' },
+    { id: 'phosphor',      name: 'Phosphor',      desc: 'Green CRT · scanlines' },
+    { id: 'spectrum',      name: 'Spectrum',      desc: 'Bars · gradient sweep' },
+    { id: 'tape',          name: 'Tape',          desc: 'VHS · tracking noise' },
+    { id: 'typography',    name: 'Typography',    desc: 'Kinetic type · grid' },
+
+    // Navigation-only: shipped version pages with no in-engine canvas pass.
+    // grid and baroque are deliberate carve-outs from the switcher (grid's
+    // identity is its #grid + #flash DOM overlays, baroque paints an
+    // opaque full frame) and both stay reachable as standalone pages.
+    { id: 'grid',          name: 'Grid',          desc: 'Hard cells · heavy posterize · snap to the beat' },
+    { id: 'baroque',       name: 'Baroque',       desc: 'Gilded ornament · gold filigree' },
+    { id: 'simple',        name: 'Simple',        desc: 'Bare minimum · spectrum only, no chrome' },
+    { id: 'clean',         name: 'Clean',         desc: 'Linear editor · CSS transitions, no WebGL' },
+    { id: 'console',       name: 'Console',       desc: 'Precision oscilloscope · industrial' },
+    { id: 'bachdrop',      name: 'Bachdrop',      desc: 'Counterpoint-reactive · gold on velvet' },
   ];
 
   function variantEntries() {
-    if (window.SWR_VARIANTS && typeof window.SWR_VARIANTS.list === 'function') {
-      return window.SWR_VARIANTS.list().map((v) => ({ id: v.id, name: v.name, desc: v.desc || '' }));
-    }
-    // No SWR_VARIANTS — likely a versions/*.html page. Show the
-    // nav-only fallback so the user can still jump between variants.
-    return VARIANT_NAV.map((v) => ({ id: v.id, name: v.name, desc: '' }));
+    return VARIANT_CATALOG.map((v) => ({ id: v.id, name: v.name, desc: v.desc || '' }));
   }
 
   // True when the page is the engine: it has #variant/#preset (so
@@ -203,8 +241,14 @@
   }
 
   function applyVariant(id) {
-    // Engine path: in-place activate via the variant switcher.
-    if (window.SWR_VARIANTS && typeof window.SWR_VARIANTS.activate === 'function') {
+    // Engine path: in-place activate via the variant switcher — but only
+    // for ids the switcher can actually run in place, i.e. pages that
+    // carry a canvas drawFx pass. Everything else in the catalogue is a
+    // navigation target and falls through to the version-page path below.
+    if (window.SWR_VARIANTS
+        && typeof window.SWR_VARIANTS.activate === 'function'
+        && typeof window.SWR_VARIANTS.list === 'function'
+        && window.SWR_VARIANTS.list().some((v) => v.id === id)) {
       // Activate is async (it fetches the page); a rejected fetch must not
       // surface as an unhandled rejection, and the UI already shows the pick.
       window.SWR_VARIANTS.activate(id).catch((e) => {

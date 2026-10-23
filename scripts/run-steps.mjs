@@ -172,6 +172,12 @@ const GROUPS = {
     // is worse than no gate.
     'npm run check:doc-truth',
     'npm run check:looks-menu-unit',
+    // The versions dropdown, the engine's variant switcher and the files
+    // in versions/ describe the same set and drifted apart twice: a
+    // version page shipped and its own dropdown did not list it. This
+    // re-derives the truth from the tree — a shipped version page that
+    // is not in the dropdown fails the gate.
+    'npm run check:versions-dropdown',
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
     'npm run check:invite-api-smoke',
