@@ -50,7 +50,12 @@ function isFile(p) {
 
 // Does a root-relative path resolve to something Vercel would serve from dist/?
 function resolvesInDist(url) {
-  const rel = String(url).replace(/^\/+/, '');
+  // A query string is not part of the path a rewrite resolves to — Vercel
+  // serves the file named before the "?" and passes the query through to
+  // the page. "/engine.html?chain=1" is served by dist/engine.html, with
+  // ?chain=1 delivered to the client. This mirrors the fragment handling
+  // in servedInDist() below: strip it before resolving the path.
+  const rel = String(url).split('#')[0].split('?')[0].replace(/^\/+/, '');
   if (!rel) return true;
   if (isFile(path.join(DIST, rel))) return true;
   if (isFile(path.join(DIST, rel, 'index.html'))) return true;
