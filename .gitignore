@@ -15,6 +15,8 @@ data/auth/
 # Local invite-code store (the CSV above is the source of truth; the store
 # itself is runtime state and lives in Postgres in production)
 data/invite-store/
+# Local control-centre action log (runtime state; Postgres in production)
+data/control/
 _vinyl-sample/
 .vercel
 

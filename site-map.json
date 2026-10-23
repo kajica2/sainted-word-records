@@ -357,11 +357,6 @@
       "description": "Live camera + mic demo for the SWRMediaInput primitive"
     },
     {
-      "label": "Parameter Bench",
-      "href": "/lab/params",
-      "description": "Every URL parameter the engine and the site understand, and what each one actually does"
-    },
-    {
       "label": "TikTok Studio",
       "href": "/tiktok",
       "description": "Vertical 9:16 studio: drop a track, pick a vibe, export four lengths"
@@ -639,7 +634,8 @@
     "/buy",
     "/font-vault",
     "/bookings",
-    "/engine-personas"
+    "/engine-personas",
+    "/super-admin"
   ],
   "archived": [],
   "meta": {
@@ -707,7 +703,6 @@
     "interactive-howto.html",
     "intro.html",
     "lab/media-input.html",
-    "lab/params.html",
     "landing-personas-v1-editorial.html",
     "landing-personas-v2-dark.html",
     "landing-personas-v3-friendly.html",

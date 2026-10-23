@@ -224,9 +224,22 @@ It deliberately **does not model each variant's draw convention** — cover fit 
 
 **Scope** — the overlay observes the shared `SWR_RENDER` engine, so it covers the **variant pages** (`/versions/*.html` — neon, film, aurora, watercolor and the rest). `engine.html` runs its own renderer (`window.SWR.Renderer`: its own stage canvas, layer geometry and drift system) and is **not** covered; the overlay says so on that page rather than failing silently. Extending it to `engine.html` means a second renderer integration, not another hook.
 
-**Reaching it** — the footer's utility row on `versions/neon.html` carries an **Inspect** control pointing at `?swrdebug=1`. A six-line bootstrap on that page injects the overlay only when the parameter is present, so without it the page does not fetch the tool at all. The link is a real URL, so the view is shareable. The overlay's header links to the parameter bench.
+**Reaching it** — the footer's utility row on `versions/neon.html` carries an **Inspect** control pointing at `?swrdebug=1`. A six-line bootstrap on that page injects the overlay only when the parameter is present, so without it the page does not fetch the tool at all. The link is a real URL, so the view is shareable. The overlay's header links to the parameter bench on the control centre.
 
-**Parameter bench** — `lab/params.html` (`/lab/params`) is the developer reference for every URL parameter the engine and the site read: what it applies to, the values it accepts, what it actually does, and a link that opens the page that consumes it with that value applied. It also builds a URL from a chosen set of parameters and reports what the current page *resolved*, not what was asked for — a parameter that is accepted but ignored looks identical to one that works until you check. Registered in `site-map.json` under `tools`, like the media input lab.
+**Parameter bench** — `client/engine-params.client.js` (`window.SWR_PARAMS`) is the developer reference for every URL parameter the engine and the site read: what it applies to, the values it accepts, what it actually does, and a link that opens the page that consumes it with that value applied. It also builds a URL from a chosen set of parameters and reports what the current page *resolved*, not what was asked for — a parameter that is accepted but ignored looks identical to one that works until you check. It mounts into any host with `SWR_PARAMS.mount(el)`, and takes its colours from the host's own tokens, so it reads as native wherever it sits. It lives on the **control centre** (`super-admin.html`, `/super-admin`) as the Parameters card.
+
+## Control centre
+
+`super-admin.html` (`/super-admin`) is the operator's view of the site. It is **unlisted** — shipped and reachable by URL, with no nav entry, like `/make-video`, `/photo` and `/atlas` — and it carries `noindex, nofollow`.
+
+`api/control-centre.js` is its only data source, and every action it offers goes through there. `?action=` takes `status`, `system`, `git`, `health`, `state`, `logs`, `clear-logs`, `run-tests`, `stop` and `log`.
+
+Two rules the endpoint follows:
+
+- **It never reports a success it did not have.** `run-tests` and `stop` need `GITHUB_TOKEN` (or `GH_TOKEN`) on the deployment; without it they refuse and say so, rather than pretending to have dispatched anything. Reads need no token — the repository is public, so the GitHub API answers unauthenticated.
+- **"System resources" means *this serving instance*.** A serverless function's `os` stats describe the container that served the request, not the machine that pushed the commit, and the card says so.
+
+The action log is a real ring buffer in the real store (Postgres `kv` in production, JSON locally) — 200 entries, newest first, written under the store's control bucket.
 
 **Relationship to `client/debug-overlay.client.js`** — the two are complementary, not duplicates. The engine's own overlay (loaded by `engine.html`, enabled with `?debug=1`) is a *key-action log*: the last 12 keys and UI actions, the look filter, a coarse audio and layer summary. This one is a *state inspector*: live feature values, per-layer resolved transforms, reactor wiring, the audio's contribution per layer, and each layer's footprint on the stage. They use different globals (`SWR_DEBUG_OVERLAY` vs `SWR_DEBUGGER`) and neither binds a key the other uses — but both would sit in the bottom-right corner of `engine.html`, so this panel stops above the engine's overlay when it is present.
 
