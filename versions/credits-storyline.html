@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Auto Credits & Storyline · Plugin</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0f1115;
+    color: #e6e6e6;
+    font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
+  .plugin {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #1a1d23;
+    border: 1px solid #2a2e35;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .header {
+    background: #15181e;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #2a2e35;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 260px 1fr 280px;
+    gap: 16px;
+    padding: 16px;
+  }
+  .panel {
+    background: #12141a;
+    border: 1px solid #2a2e35;
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge {
+    background: #ff2d95;
+    color: white;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .badge.cyan { background: #00e5ff; color: #000; }
+  label { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
+  input, select {
+    width: 100%;
+    background: #1a1d23;
+    border: 1px solid #2a2e35;
+    color: #e6e6e6;
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1d23;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .stat strong { color: #ff2d95; }
+  .preview {
+    background: #0a0c10;
+    border-radius: 10px;
+    padding: 16px;
+    min-height: 180px;
+    border: 1px solid #2a2e35;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .preview .title { font-size: 18px; color: #ff2d95; font-weight: 600; margin-bottom: 4px; }
+  .preview .sub { color: #00e5ff; margin-bottom: 10px; }
+  .scene-list { display: flex; flex-direction: column; gap: 6px; }
+  .scene {
+    background: #1a1d23;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    display: flex;
+    justify-content: space-between;
+  }
+  .scene:hover, .scene.active { border-color: #ff2d95; }
+  .scene .energy { color: #00e5ff; font-size: 10px; }
+  button {
+    background: #ff2d95;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    width: 100%;
+    margin-top: 8px;
+  }
+  button.secondary {
+    background: #252830;
+    border: 1px solid #3a3f48;
+    color: #e6e6e6;
+  }
+  .footer {
+    padding: 12px 16px;
+    background: #15181e;
+    border-top: 1px solid #2a2e35;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #888;
+  }
+  .status { color: #00e5ff; }
+</style>
+</head>
+<body>
+  <div class="plugin">
+    <div class="header">
+      <div>
+        <h1>AUTO CREDITS & STORYLINE</h1>
+        <div class="subtitle">Sainted Word Records · Lifeline Console Series</div>
+      </div>
+      <div class="badge">v1.0</div>
+    </div>
+
+    <div class="grid">
+      <!-- Analysis -->
+      <div class="panel">
+        <h2>TRACK ANALYSIS <span class="badge">AUTO</span></h2>
+        <div class="stat"><span>BPM</span><strong id="bpm">128.00</strong></div>
+        <div class="stat"><span>KEY</span><strong id="key">F# Minor</strong></div>
+        <div class="stat"><span>ENERGY</span><strong id="energy">High</strong></div>
+        <div class="stat"><span>COMPLEXITY</span><strong id="complexity">Medium</strong></div>
+        <button class="secondary" id="reanalyze">RE-ANALYZE TRACK</button>
+      </div>
+
+      <!-- Credits -->
+      <div class="panel">
+        <h2>CREDITS ASSEMBLER</h2>
+        <label>Artist</label>
+        <input id="artist" value="Kxntrol">
+        <label>Title</label>
+        <input id="title" value="Lifeline (Original Mix)">
+        <label>Produced By</label>
+        <input id="produced" value="Kxntrol">
+        <label>Written By</label>
+        <input id="written" value="Kxntrol">
+        <label>Label</label>
+        <input id="label" value="Lifeline Records">
+        <div class="preview" id="preview">
+          <div class="title">Kxntrol</div>
+          <div class="sub">Lifeline (Original Mix)</div>
+          <div>Produced By: Kxntrol</div>
+          <div>Written By: Kxntrol</div>
+          <div>Label: Lifeline Records</div>
+          <div style="margin-top:8px;color:#666;font-size:11px;">BPM 128 · Key F# Minor · Energy High</div>
+        </div>
+      </div>
+
+      <!-- Storyline -->
+      <div class="panel">
+        <h2>STORYLINE TIMELINE <span class="badge cyan">AUTO</span></h2>
+        <div class="scene-list" id="scenes">
+          <div class="scene active" data-id="1"><span>1 · Intro</span><span class="energy">LOW</span></div>
+          <div class="scene" data-id="2"><span>2 · Build</span><span class="energy">RISING</span></div>
+          <div class="scene" data-id="3"><span>3 · Drop</span><span class="energy">PEAK</span></div>
+          <div class="scene" data-id="4"><span>4 · Breakdown</span><span class="energy">LOW</span></div>
+          <div class="scene" data-id="5"><span>5 · Outro</span><span class="energy">FADE</span></div>
+        </div>
+        <button class="secondary" id="regen">REGENERATE STORYLINE</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span class="status" id="status">Ready to assemble</span>
+      <button id="assemble" style="width:auto;margin:0;padding:8px 24px;">ASSEMBLE & RENDER</button>
+    </div>
+  </div>
+
+<script>
+const fields = ['artist','title','produced','written','label'];
+const preview = document.getElementById('preview');
+
+function updatePreview() {
+  const artist = document.getElementById('artist').value;
+  const title = document.getElementById('title').value;
+  const produced = document.getElementById('produced').value;
+  const written = document.getElementById('written').value;
+  const label = document.getElementById('label').value;
+  const bpm = document.getElementById('bpm').textContent;
+  const key = document.getElementById('key').textContent;
+  const energy = document.getElementById('energy').textContent;
+  preview.innerHTML = `
+    <div class="title">${artist}</div>
+    <div class="sub">${title}</div>
+    <div>Produced By: ${produced}</div>
+    <div>Written By: ${written}</div>
+    <div>Label: ${label}</div>
+    <div style="margin-top:8px;color:#666;font-size:11px;">BPM ${bpm} · Key ${key} · Energy ${energy}</div>
+  `;
+}
+
+fields.forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePreview);
+});
+
+document.getElementById('reanalyze').addEventListener('click', () => {
+  const energies = ['Low','Medium','High','Peak'];
+  const complexities = ['Simple','Medium','Complex'];
+  document.getElementById('energy').textContent = energies[Math.floor(Math.random()*energies.length)];
+  document.getElementById('complexity').textContent = complexities[Math.floor(Math.random()*complexities.length)];
+  document.getElementById('bpm').textContent = (120 + Math.random()*16).toFixed(2);
+  updatePreview();
+  document.getElementById('status').textContent = 'Track re-analyzed';
+});
+
+document.getElementById('regen').addEventListener('click', () => {
+  const names = ['Intro','Rise','Build','Drop','Breakdown','Outro','Final Drop','Sting'];
+  const energies = ['LOW','RISING','PEAK','MEDIUM','FADE'];
+  const list = document.getElementById('scenes');
+  list.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const name = names[Math.floor(Math.random()*names.length)];
+    const en = energies[Math.floor(Math.random()*energies.length)];
+    const div = document.createElement('div');
+    div.className = 'scene' + (i===1?' active':'');
+    div.innerHTML = `<span>${i} · ${name}</span><span class="energy">${en}</span>`;
+    div.addEventListener('click', () => {
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      div.classList.add('active');
+    });
+    list.appendChild(div);
+  }
+  document.getElementById('status').textContent = 'Storyline regenerated';
+});
+
+document.querySelectorAll('.scene').forEach(s => {
+  s.addEventListener('click', () => {
+    document.querySelectorAll('.scene').forEach(x => x.classList.remove('active'));
+    s.classList.add('active');
+  });
+});
+
+document.getElementById('assemble').addEventListener('click', () => {
+  const status = document.getElementById('status');
+  status.textContent = 'Assembling credits & storyline…';
+  setTimeout(() => {
+    status.textContent = 'Render complete · Ready for export';
+    status.style.color = '#00e5ff';
+  }, 1200);
+});
+</script>
+</body>
+</html>
