@@ -213,6 +213,20 @@ once it hits 1.0.
   to the current frame if the clip cannot be seeked.
 
 ### Changed
+- The **parameter bench** moved into the **control centre** at
+  `/super-admin`. The bench is unchanged in substance — the same fourteen
+  URL parameters, the same URL builder, the same reference table — but it
+  now mounts as a card and takes the host's colours, so it reads as part
+  of the page instead of a page of its own. The standalone `/lab/params`
+  page is gone, and the debugger's header link points at the new home.
+- The **control centre** (`super-admin.html`, `/super-admin`) is wired to
+  real endpoints instead of simulated cards. Pipeline reads the real
+  workflow runs, Git the real branch and commits, Health probes the real
+  pages, System reports the instance it is running on and says so. The
+  header badge is derived from those probes rather than asserted, and the
+  actions that need a token refuse and explain themselves rather than
+  pretending. It ships unlisted and `noindex`, like `/make-video` and
+  `/atlas`.
 - Bare 1..9 no longer selects layers (the previous behaviour
   surfaced audio rot reactors and caused accidental rotation).
 - Help text remapped: digit row = filter slots, T-prefix = alias.
