@@ -126,6 +126,18 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- Every audio frame was ingested **twice** by the section detector, so the
+  song's structure was computed over a self-similarity matrix with every
+  row duplicated — the boundaries it found were weaker and noisier than the
+  music deserved. The detector dedupes on the frame's timestamp, but the
+  live feature object carried no timestamp, so it fell back to a wall clock,
+  and the wall clock differs between the engine's render loop and the
+  automix runtime's own tick: two callers, one frame, two "different"
+  frames. The producer now stamps `feat.tMs` — the **media** clock, in
+  milliseconds — on every frame, so both callers carry the same timestamp
+  for the same frame and the second call is a no-op. The media clock (not a
+  wall clock) also means a paused song **freezes** the analysis instead of
+  feeding the detector the same frozen frame over and over.
 - The export hung on browsers without an H.264 encoder (Firefox, and the
   Chromium builds that ship without the proprietary codecs): the WebCodecs
   worker reported the unusable codec **asynchronously**, so the promise

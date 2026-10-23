@@ -5684,12 +5684,17 @@
         // and reports boundaries as peaks of a Foote novelty curve, so a
         // loudness ramp inside one section does not cut it (which is what the
         // energy-threshold segmenter this replaced did). One call per frame is
-        // enough; the detector dedupes on the timestamp, so the automix
-        // runtime's own tickSection() call with the same live feat object
-        // cannot double-count. It publishes window.SWR_SECTIONS and fires
-        // `swr-section-change`, which client/section-scheduler.client.js
-        // listens for. Wrapped: a section detector fault must not take the
-        // render loop with it.
+        // enough: the PRODUCER stamps the frame's identity. lib/audio.client.js
+        // writes feat.tMs (the media clock, in milliseconds) onto the shared
+        // feature object in sample(), so this loop and the automix runtime's
+        // own tickSection() call — which passes the same live feat object —
+        // carry the SAME timestamp for the same frame, and the detector's
+        // dedupe on that timestamp makes the second call a no-op. (Without the
+        // stamp the detector fell back to a wall clock, which differs between
+        // the two callers, and every frame was ingested twice.) It publishes
+        // window.SWR_SECTIONS and fires `swr-section-change`, which
+        // client/section-scheduler.client.js listens for. Wrapped: a section
+        // detector fault must not take the render loop with it.
         if (window.SWR_SECTION) {
           try { window.SWR_SECTION.detect(a); } catch (_) {}
         }
