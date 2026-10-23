@@ -5534,7 +5534,9 @@
       // Hit test uses a centered circle of radius R, ignoring rotation.
       pickLayer(cx, cy) {
         // Hidden layers are not on the stage, so they are not pickable.
-        const sorted = Layers.visibleList().sort((a, b) => b.z - a.z);
+        // Layers is a deferred global (lib/layers.client.js), so a renderer
+        // tick can land before it exists — the same guard the draw path uses.
+        const sorted = (Layers && Layers.visibleList() || []).sort((a, b) => b.z - a.z);
         for (const l of sorted) {
           if (!l.asset) continue;
           const r = this.applyReactors(l);
@@ -5781,7 +5783,7 @@
         // Hidden layers (a hidden group writes `hidden` on its members)
         // do not draw at all — and they do not consume the top-N budget
         // either, so hiding a group frees a slot for the next layer down.
-        const sorted = Layers.visibleList().sort((a, b) => a.z - b.z);
+        const sorted = (Layers && Layers.visibleList() || []).sort((a, b) => a.z - b.z);
         const _activeCap = (Layers && Layers.activeCount) || 0;
         const _drawFrom = _activeCap > 0 ? Math.max(0, sorted.length - _activeCap) : 0;
         for (let i = _drawFrom; i < sorted.length; i++) {
@@ -6680,6 +6682,10 @@
           const inc = $('layer-count-inc');
           const val = $('layer-count-val');
           function sync() {
+            // Layers is a deferred global (lib/layers.client.js). This IIFE
+            // runs while the document is still parsing, so Layers may not
+            // exist yet — the same guard the renderer uses.
+            if (!window.Layers) return;
             // Hidden layers do not draw, so the stepper counts the
             // visible stack only.
             const total = Layers.visibleList().length || 0;
@@ -6689,6 +6695,7 @@
             if (inc) inc.disabled = !(total && n < total);
           }
           function setCount(n) {
+            if (!window.Layers) return;
             const total = Layers.visibleList().length || 0;
             if (!total) return;
             const next = Math.max(1, Math.min(total, n));
@@ -6696,15 +6703,15 @@
             try { localStorage.setItem('swr.layers.active', String(next)); } catch (_) {}
             sync();
           }
-          if (dec) dec.addEventListener('click', () => setCount((Layers.activeCount || Layers.visibleList().length) - 1));
-          if (inc) inc.addEventListener('click', () => setCount((Layers.activeCount || Layers.visibleList().length) + 1));
+          if (dec) dec.addEventListener('click', () => setCount((Layers && Layers.activeCount || (Layers && Layers.visibleList().length) || 0) - 1));
+          if (inc) inc.addEventListener('click', () => setCount((Layers && Layers.activeCount || (Layers && Layers.visibleList().length) || 0) + 1));
           // Hiding or showing a group changes how many layers draw.
           document.addEventListener('swr-layers-changed', sync);
           // Restore once the default library seeds the stack (async).
           let tries = 0;
           const iv = setInterval(() => {
             tries += 1;
-            if (Layers.list.length) {
+            if (window.Layers && Layers.list.length) {
               clearInterval(iv);
               let saved = 0;
               try { saved = parseInt(localStorage.getItem('swr.layers.active') || '0', 10) || 0; } catch (_) {}
