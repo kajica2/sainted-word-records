@@ -8,6 +8,35 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- The **Studio Command Center** — one extended frontend for every engine
+  surface. The 13 full variants (the ones with a Layers stack, a Library
+  and a live output canvas) each grew their own chrome, and the depth an
+  operator wants — live spectrum, the FX stack, the hook detector, the
+  render-cost ledger — was duplicated per variant or missing. The Command
+  Center is a single control surface bound to the API the variants
+  already publish: `SWR.Audio/Library/Layers`, `Audio.feat`, `FX.state`,
+  `SWR_STATS`, `SWR_HOOK_DETECTOR`, `SWR_LOOKS`. Nothing in it is
+  mocked — the filters drive the surface's own `FX.set*`, the cost ledger
+  reads `SWR_STATS.summary()`, and the personas are the surface's own
+  looks. It opens with a `◈` launcher or `?cc=1`, and Escape closes it.
+  Injected by the codemod system, so `versions/manifest.json` records it
+  and `versions/verify-codemods.mjs` re-runs it in a sandbox.
+- The **`/alternate` "Chain" view** — an Ozone-style mastering surface
+  over the same engine. Five module cards, a three-position mode knob,
+  threshold / ceiling / character, four output faders with live Peak and
+  LUFS, and a live response curve. The Ozone controls are not decorative:
+  the eight reactor targets in `lib/apply-reactors.js` are partitioned
+  across the modules, so powering one off removes exactly its own
+  contribution, and the mode knob swaps the engine's own ease curve. It
+  wraps `applyReactor` rather than forking the engine, and the default
+  state leaves every target active — mounting the chain must not change
+  what the engine does until the user asks it to. Reachable at
+  `/alternate`, `/engine.html?chain=1` and `/engine.html#chain`.
+- The **`/play` deep-link variant** — the engine with three URL toggles
+  (`?video`, `?loop`, `?photo_slide`). The URL is the source of truth
+  and the toolbar pills mirror it. It reuses the engine rather than
+  copying it, so it inherits upstream engine fixes instead of needing a
+  re-port after every upstream move.
 - The **Media Source** panel — where the audio comes from, next to the
   loaded video instead of buried in a global settings page. The source is
   the video's own track, a separate audio file, or nothing; the panel also
@@ -97,6 +126,25 @@ once it hits 1.0.
   lifecycle, layer retire, kit-zip.
 
 ### Fixed
+- The **canvas vanished on every narrow window reached by resizing**.
+  `#timeline-host` carries an inline `grid-column: 2 / 3` (it sits under
+  the layers column on the desktop template); in the narrow single-column
+  template that inline placement creates an implicit ~389px column,
+  which squeezes the `1fr` column holding `#stage` to 0px. Loading *at*
+  390px was fine, which is why `check:engine-mobile` never caught it —
+  it loaded each viewport fresh instead of resizing. The gate now
+  resizes as well.
+- `drawLayer` composited **from a 0x0 canvas**. It draws from
+  `this.proc`, the offscreen processing canvas, which is 0x0 while the
+  stage is `display:none` in Basic mode. `drawImage()` with a 0x0 canvas
+  source is illegal, and the throw escaped into the render loop and
+  killed the whole frame.
+- The **rotation pre-pass built a 0x0 canvas** when the source asset had
+  no intrinsic size — an image still decoding, or one that failed to
+  load. Same illegal `drawImage`, same killed frame.
+- `versions/play.html` carried **two `<link rel="canonical">` tags**,
+  which failed the site-chrome gate. It now carries one, pointing at
+  `/versions/play`.
 - The export hung on browsers without an H.264 encoder (Firefox, and the
   Chromium builds that ship without the proprietary codecs): the WebCodecs
   worker reported the unusable codec **asynchronously**, so the promise
@@ -213,6 +261,22 @@ once it hits 1.0.
   to the current frame if the clip cannot be seeked.
 
 ### Changed
+- The build no longer ships **138 KB of orphaned assets**. Vite built
+  `engine.html` as its only Rollup input so that `transformIndexHtml`
+  would fire on it, but `copy-static` ships `dist/engine.html` as a plain
+  file copy — so Vite's output for that page was overwritten anyway, and
+  the extracted `dist/assets/engine-*.js` and `engine-*.css` were
+  referenced by nothing. Vite still needs one input, so
+  `scripts/vite-noop-entry.js` is an empty module and a plugin removes
+  the chunk it emits. Headroom against the 180 MB build budget went from
+  20 KB to 158 KB.
+- `scripts/generate-vercel-rewrites.mjs` **no longer deletes the `/play`
+  rules**. The generator emitted nothing for `/play` (it only emits a
+  rule when the target file exists at the path the route implies, and
+  `/play.html` does not), so the two hand-written rules were the only
+  thing keeping the route alive — and the next run would have 404'd
+  `/play` in production. Both variants' rules now live in the generator,
+  which is the single source of truth.
 - Bare 1..9 no longer selects layers (the previous behaviour
   surfaced audio rot reactors and caused accidental rotation).
 - Help text remapped: digit row = filter slots, T-prefix = alias.
