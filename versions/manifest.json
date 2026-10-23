@@ -1,6 +1,6 @@
 {
   "schema": "swr-codemod-manifest/v1",
-  "generated_at": "2026-10-23T14:10:54.299928Z",
+  "generated_at": "2026-10-23T16:20:33.812928Z",
   "generated_by": "node versions/verify-codemods.mjs --update",
   "pending_max_age_days": 30,
   "ENGINES": [
@@ -1012,7 +1012,7 @@
     "_command-center-inject": {
       "script": "versions/_command-center-inject.js",
       "markers": [
-        "command-center.client.js"
+        "command-center-launcher.client.js"
       ],
       "marker_mode": "all",
       "scope": "engines",
@@ -1031,7 +1031,7 @@
         "void",
         "watercolor"
       ],
-      "notes": "Adds the shared Studio Command Center (lib/command-center.css + lib/command-center.client.js) to the 13 full engine surfaces — the ones with a Layers stack, a Library and a live output canvas. One control surface bound to the API every variant already publishes, so the deep controls (live spectrum, the FX stack, the hook detector, the render-cost ledger) are not re-implemented per variant. Renders nothing until opened: a launcher button in the corner, or ?cc=1.",
+      "notes": "Adds the shared Studio Command Center to the 13 full engine surfaces — the ones with a Layers stack, a Library and a live output canvas. The six stub pages (baroque, gallery, kraft, mosaic, phosphor, tape) have none of those, so the Command Center would open onto empty panels there. This is the same allowlist _genops-inject.js uses. What it injects is the LAUNCHER (lib/command-center-launcher.client.js, ~2 KB), not the implementation: the implementation and its stylesheet load on demand the first time the button is used, so a variant visitor who never opens the Command Center does not download its 67 KB. Renders nothing until opened: a launcher button in the corner, or ?cc=1.",
       "variants_processed": [
         "aurora.html",
         "chrome.html",
