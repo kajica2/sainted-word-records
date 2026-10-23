@@ -420,6 +420,11 @@
       "label": "Gumroad",
       "href": "https://kaidjuric.gumroad.com",
       "description": "The store — presets, packs and stills, with checkout and delivery handled by Gumroad"
+    },
+    {
+      "label": "Play",
+      "href": "/play",
+      "description": "Deep-link engine variant. Toggle video, loop and photo_slide modes via URL parameters."
     }
   ],
   "store": {
@@ -649,7 +654,8 @@
     "/buy",
     "/font-vault",
     "/bookings",
-    "/engine-personas"
+    "/engine-personas",
+    "/alternate"
   ],
   "archived": [],
   "meta": {
