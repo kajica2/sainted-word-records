@@ -8,11 +8,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Visual languages — Sainted Word Records</title>
-  <meta name="description" content="Seven visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <meta name="description" content="Nine visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
   <link rel="canonical" href="https://sainted-word-records.vercel.app/visual-languages">
   <meta property="og:title" content="Visual languages — Sainted Word Records">
   <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/gallery.png">
-  <meta property="og:description" content="Seven visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <meta property="og:description" content="Nine visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -170,6 +170,8 @@
       <a href="/versions/smoke"           data-v="smoke">Smoke</a>
       <a href="/versions/hallucination"   data-v="hallucination">Hallucination</a>
       <a href="/versions/aurora"          data-v="aurora">Aurora</a>
+      <a href="/versions/envelope"        data-v="envelope">Envelope</a>
+      <a href="/versions/credits-storyline" data-v="credits">Credits</a>
       <span class="sep" aria-hidden="true"></span>
       <a href="/versions/music_video"     data-v="music_video">Music Video</a>
       <a href="/versions/glitch"          data-v="glitch">Glitch</a>
@@ -194,15 +196,15 @@
 
     <header class="page-head">
       <span class="kicker">Versions</span>
-      <h1>Seven <em>visual languages</em>, one engine.</h1>
+      <h1>Nine <em>visual languages</em>, one engine.</h1>
       <p class="lede">Same controls, same library, same MP4 export. Pick the aesthetic that fits the song. Switch anytime — projects carry across versions.</p>
 
       <div class="version-meta">
-        <span><b>7</b>versions live</span>
+        <span><b>9</b>versions live</span>
         <span><b>1</b>engine</span>
         <span><b>MIT</b>licensed</span>
         <span><b>v1</b>schema stable</span>
-        <span><b>new</b>preset dropdown · autoplay with muted fallback</span>
+        <span><b>new</b>envelope editor · credits storyline</span>
       </div>
     </header>
 
@@ -331,7 +333,7 @@
       <a class="version-card is-console" href="/versions/console">
         <div class="visual" aria-hidden="true"><canvas id="vconsole"></canvas></div>
         <div class="body">
-          <span class="num">07 · CONSOLE</span>
+          <span class="num">08 · CONSOLE</span>
           <h2>Console</h2>
           <p>Precision oscilloscope aesthetic. Black canvas, single accent, geometric primitives, persistent data overlay.</p>
           <div class="tags">
@@ -339,6 +341,40 @@
             <span class="tag">experimental</span>
             <span class="tag">industrial</span>
             <span class="tag">mono</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 09 — Envelope (NEW) -->
+      <a class="version-card" href="/versions/envelope">
+        <div class="visual" aria-hidden="true"><canvas id="venvelope"></canvas></div>
+        <div class="body">
+          <span class="num">09 · ENVELOPE<span class="badge-new">NEW</span></span>
+          <h2>Envelope</h2>
+          <p>Interactive LFO envelope editor. Drag points, change duration, switch curves, live play preview, text editor, and undo.</p>
+          <div class="tags">
+            <span class="tag">lfo</span>
+            <span class="tag">envelope</span>
+            <span class="tag">interactive</span>
+            <span class="tag">auto-adapt</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 10 — Credits & Storyline (NEW) -->
+      <a class="version-card" href="/versions/credits-storyline">
+        <div class="visual" aria-hidden="true"><canvas id="vcredits"></canvas></div>
+        <div class="body">
+          <span class="num">10 · CREDITS<span class="badge-new">NEW</span></span>
+          <h2>Credits & Storyline</h2>
+          <p>Auto-assemble credits and generate storyline timelines from track analysis. Lifeline Console series plugin.</p>
+          <div class="tags">
+            <span class="tag">credits</span>
+            <span class="tag">storyline</span>
+            <span class="tag">auto</span>
+            <span class="tag">plugin</span>
           </div>
           <span class="open">Open version</span>
         </div>
@@ -435,13 +471,11 @@
     ctx.globalAlpha = 1;
   }
 
-  /* SIMPLE — spectrum bars with waveform */
   function simple(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
     const h = c.height = c.clientHeight * 2;
     ctx.fillStyle = '#050811'; ctx.fillRect(0, 0, w, h);
-    // bars
     const bands = 32;
     const barW = w / bands;
     for (let i = 0; i < bands; i++) {
@@ -451,7 +485,6 @@
       ctx.fillStyle = `hsl(${hue},80%,50%)`;
       ctx.fillRect(i * barW + 1, h - bh, barW - 2, bh);
     }
-    // waveform
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 1;
@@ -494,46 +527,73 @@
     ctx.fillText('BPM 120', 8, 14); ctx.fillText('A min', w - 40, 14);
   }
 
-  // Clean — CSS-style gradient animation
   function clean(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
     const h = c.height = c.clientHeight * 2;
     const t = Date.now() / 1000;
-    const g = ctx.createLinearGradient(0, 0, w * Math.sin(t * 0.5) + w, h);
+    const g = ctx.createLinearGradient(0, 0, w, h);
     g.addColorStop(0, '#0a0d18');
-    g.addColorStop(0.5, '#00ffa3');
-    g.addColorStop(1, '#00c8ff');
+    g.addColorStop(1, '#00ffa3');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
-    // Minimalist play icon
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  }
+
+  function envelope(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0f1115';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#ff2d95';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(w * 0.4, h * 0.3);
-    ctx.lineTo(w * 0.4, h * 0.7);
-    ctx.lineTo(w * 0.7, h * 0.5);
-    ctx.closePath();
-    ctx.fill();
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40;
+      const y = Math.pow(t, 1.8);
+      const px = t * w;
+      const py = h - y * h * 0.8;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  function credits(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0f1115';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ff2d95';
+    ctx.font = '600 14px Inter, sans-serif';
+    ctx.fillText('CREDITS', 16, h/2);
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillText('STORYLINE', 16, h/2 + 24);
   }
 
   const map = {
-    vneon: neon, vfilm: film, vgrid: grid, vspectrum: spectrum,
-    vaurora: aurora, vsimple: simple, vclean: clean, vconsole: consoleV,
+    vneon: neon,
+    vfilm: film,
+    vgrid: grid,
+    vspectrum: spectrum,
+    vaurora: aurora,
+    vsimple: simple,
+    vclean: clean,
+    vconsole: consoleV,
+    venvelope: envelope,
+    vcredits: credits
   };
-  Object.entries(map).forEach(([id, fn]) => {
-    const el = document.getElementById(id);
-    if (el) fn(el);
-  });
+
+  function paint() {
+    Object.entries(map).forEach(([id, fn]) => {
+      const c = document.getElementById(id);
+      if (c) fn(c);
+    });
+  }
+  paint();
+  window.addEventListener('resize', paint);
 })();
   </script>
-
-  <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
-      <button id="automix-debug-close" title="Close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; line-height:1;">×</button>
-    </div>
-    <div id="automix-debug-body" style="color:#aaa;">idle</div>
-  </div>
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
   <script src="../lib/audio-damp.client.js"></script>
