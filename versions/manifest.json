@@ -1,6 +1,6 @@
 {
   "schema": "swr-codemod-manifest/v1",
-  "generated_at": "2026-10-23T04:58:52.230625Z",
+  "generated_at": "2026-10-23T14:10:54.299928Z",
   "generated_by": "node versions/verify-codemods.mjs --update",
   "pending_max_age_days": 30,
   "ENGINES": [
@@ -1569,6 +1569,14 @@
       ],
       "skipped": [],
       "last_verified": "2026-10-21T00:22:44.855Z"
+    },
+    "credits-storyline.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-23T14:10:54.299928Z"
     }
   },
   "extra_pages": {

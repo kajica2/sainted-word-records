@@ -1040,6 +1040,14 @@
       "destination": "/gallery-vintage.html"
     },
     {
+      "source": "/versions/credits-storyline",
+      "destination": "/versions/credits-storyline.html"
+    },
+    {
+      "source": "/versions/credits-storyline/",
+      "destination": "/versions/credits-storyline.html"
+    },
+    {
       "source": "/slots-admin",
       "destination": "/slots-admin.html"
     },
