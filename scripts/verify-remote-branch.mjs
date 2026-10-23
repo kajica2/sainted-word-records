@@ -27,7 +27,12 @@ const call = (tool, args) => {
   finally { try { fs.unlinkSync(tmp); } catch (_) {} }
 };
 
-const changed = sh('git', ['diff', '--name-only', `${BASE}..${BRANCH}`]).trim().split('\n').filter(Boolean);
+// Compare against the MERGE BASE, not origin/main: main moves on while the
+// branch is open, and the files main added are not this branch's proposal.
+// `git diff main..branch` would list them as deletions.
+const mergeBase = sh('git', ['merge-base', BASE, BRANCH]).trim();
+const changed = sh('git', ['diff', '--name-only', `${mergeBase}..${BRANCH}`]).trim().split('\n').filter(Boolean);
+console.log(`merge base: ${mergeBase.slice(0, 10)}`);
 console.log(`verifying ${changed.length} changed file(s) on ${OWNER}/${REPO}:${BRANCH}\n`);
 
 let ok = 0, bad = 0;

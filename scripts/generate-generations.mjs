@@ -75,10 +75,12 @@ let FFPROBE_OK = null;
 function ffprobeAvailable() {
   if (FFPROBE_OK !== null) return FFPROBE_OK;
   try {
-    execFileSync('ffprobe', ['-version'], { stdio: 'ignore' });
+    const v = execFileSync('ffprobe', ['-version'], { encoding: 'utf8' });
     FFPROBE_OK = true;
+    process.stdout.write(`[generate-generations] measuring the credits with ${v.split('\n')[0].trim()}\n`);
   } catch (_) {
     FFPROBE_OK = false;
+    process.stdout.write('[generate-generations] ffprobe is not installed — the credits cannot be measured\n');
   }
   return FFPROBE_OK;
 }
