@@ -26,7 +26,7 @@
 
   if (window.SWR && window.SWR.Dropzone) return;
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
 
   const STYLE_ID = 'swr-dropzone-styles';
   function injectStyles() {
@@ -162,6 +162,26 @@
     });
   }
 
+  // Proactive quota guard. Returns true if the user confirmed (or no check needed).
+  async function checkQuota(files) {
+    if (!navigator.storage || typeof navigator.storage.estimate !== 'function') return true;
+    try {
+      const est = await navigator.storage.estimate();
+      const usage = est.usage || 0;
+      const quota = est.quota || 0;
+      if (!quota) return true;
+      const batchBytes = files.reduce((s, f) => s + (f.size || 0), 0);
+      // Rough 4x headroom for possible PNG amplification on images.
+      const projected = usage + batchBytes * 4;
+      if (projected / quota > 0.8) {
+        const pct = Math.round((usage / quota) * 100);
+        const msg = `Storage is ~${pct}% full. This batch may fill the origin and cause silent eviction.\n\nContinue anyway?`;
+        return confirm(msg);
+      }
+    } catch (_) {}
+    return true;
+  }
+
   async function processOne(file, curator) {
     if (curator && /image\/(png|jpeg|jpg)/.test(file.type)) {
       try {
@@ -179,6 +199,12 @@
     const accept = (opts.accept || defaultAccept()).split(',').map((s) => s.trim()).filter(Boolean);
     const max = parseInt(opts.maxFiles || '0', 10);
     const filtered = files.filter((f) => matchesAccept(f, accept)).slice(0, max || Infinity);
+    if (!filtered.length) return [];
+
+    // Proactive quota check before any heavy work.
+    const ok = await checkQuota(filtered);
+    if (!ok) return [];
+
     const results = [];
     // Run sequentially to avoid hammering the curator.
     for (const f of filtered) {
