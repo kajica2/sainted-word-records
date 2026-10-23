@@ -9,7 +9,9 @@ once it hits 1.0.
 
 ### Added
 - The **Studio Command Center** — one extended frontend for every engine
-  surface. The 13 full variants (the ones with a Layers stack, a Library
+  surface. It loads ON DEMAND: a 2 KB launcher draws the ◈ button and pulls
+  the implementation the first time it is used, so a variant visitor who
+  never opens the Command Center does not download its 67 KB. The 13 full variants (the ones with a Layers stack, a Library
   and a live output canvas) each grew their own chrome, and the depth an
   operator wants — live spectrum, the FX stack, the hook detector, the
   render-cost ledger — was duplicated per variant or missing. The Command

@@ -81,7 +81,7 @@ const CODEMODS = [
   // pages (baroque, gallery, kraft, mosaic, phosphor, tape) have none of
   // those, so the Command Center would open onto empty panels there. This
   // is the same allowlist _genops-inject.js uses.
-  { file: 'versions/_command-center-inject.js',  marker: 'command-center.client.js',  targets: COMMAND_CENTER_SURFACES },
+  { file: 'versions/_command-center-inject.js',  marker: 'command-center-launcher.client.js',  targets: COMMAND_CENTER_SURFACES },
 ];
 
 const ALL_VARIANTS = readdirSync(VARIANTS_DIR)

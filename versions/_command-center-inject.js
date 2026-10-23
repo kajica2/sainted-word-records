@@ -38,8 +38,13 @@ const DIR = path.dirname(fileURLToPath(import.meta.url));
 // them instead of trusting a dry run.
 const dry = process.argv.includes('--dry-run');
 
-const CSS_TAG = '  <link rel="stylesheet" href="../lib/command-center.css" />\n';
-const JS_TAG = '  <script src="../lib/command-center.client.js" defer></script>\n';
+// The LAUNCHER, not the implementation. The implementation is ~47 KB of
+// JS plus ~20 KB of CSS, and it is loaded on demand the first time the
+// button is used. Injecting the whole thing made every variant's first page
+// load carry 67 KB it almost never needs — and it was enough to push
+// neon's render loop past the variants smoke's two-frame window (neon is
+// walked first, so it eats the cold-start cost).
+const JS_TAG = '  <script src="../lib/command-center-launcher.client.js" defer></script>\n';
 
 let patched = 0, skipped = 0, failed = 0;
 
@@ -48,30 +53,30 @@ for (const name of ENGINES) {
   if (!fs.existsSync(file)) { console.log(`  ${name}.html: MISSING`); failed++; continue; }
 
   let src = fs.readFileSync(file, 'utf8');
-  if (src.includes('command-center.client.js')) {
-    console.log(`  ${name}.html: skipped`);
+  if (src.includes('command-center-launcher.client.js')) {
+    console.log(`  ${name}.html: skipped (already patched)`);
     skipped++;
     continue;
   }
+  // Migrate a page patched by the earlier, eager version: drop the
+  // stylesheet link (the implementation loads its own CSS on demand) and
+  // swap the implementation tag for the launcher.
+  if (src.includes('command-center.client.js')) {
+    const before = src;
+    src = src.replace(/[ \t]*<link rel="stylesheet" href="\.\.\/lib\/command-center\.css" \/>\n?/g, '');
+    src = src.replace(
+      /<script src="\.\.\/lib\/command-center\.client\.js" defer><\/script>/,
+      '<script src="../lib/command-center-launcher.client.js" defer></script>',
+    );
+    if (src !== before) {
+      fs.writeFileSync(file, src);
+      console.log(`  ${name}.html: migrated to the lazy launcher`);
+      patched++;
+      continue;
+    }
+  }
 
   const before = src;
-
-  // The stylesheet goes with the other <link>s in <head>; the script goes
-  // after the engine's own deferred scripts so the Command Center can see
-  // window.FX / window.Audio by the time it is asked for.
-  if (/<link rel="stylesheet" href="\.\.\/lib\/[^"]+" \/>/.test(src)) {
-    src = src.replace(
-      /(<link rel="stylesheet" href="\.\.\/lib\/[^"]+" \/>)/,
-      '$1\n' + CSS_TAG.replace(/\n$/, ''),
-    );
-  } else if (/<link rel="stylesheet"[^>]*>/.test(src)) {
-    src = src.replace(
-      /(<link rel="stylesheet"[^>]*>)/,
-      '$1\n' + CSS_TAG.replace(/\n$/, ''),
-    );
-  } else if (/<head>/.test(src)) {
-    src = src.replace('<head>', '<head>\n' + CSS_TAG.replace(/\n$/, ''));
-  }
 
   if (/<script src="\.\.\/engine-genops\.client\.js"><\/script>/.test(src)) {
     src = src.replace(

@@ -34,7 +34,7 @@ async function shoot(variant, viewport, tag, withAudio) {
     if (u.startsWith(BASE) || u.startsWith('data:') || u.startsWith('blob:')) return req.continue();
     return req.abort();
   });
-  await page.goto(`${BASE}/versions/${variant}.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.goto(`${BASE}/versions/${variant}.html?cc=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await new Promise((r) => setTimeout(r, 3500));
 
   if (withAudio) {
@@ -51,7 +51,7 @@ async function shoot(variant, viewport, tag, withAudio) {
     }
   }
 
-  await page.evaluate(() => { if (window.SWR_COMMAND_CENTER) window.SWR_COMMAND_CENTER.open(); });
+  await page.waitForFunction(() => window.SWR_COMMAND_CENTER && window.SWR_COMMAND_CENTER.isOpen(), { timeout: 30000 }).catch(() => {});
   await new Promise((r) => setTimeout(r, 3500));
 
   await page.screenshot({ path: `${OUT}/${tag}.png` });

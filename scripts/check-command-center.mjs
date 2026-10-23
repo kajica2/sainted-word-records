@@ -138,7 +138,31 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     consoleErrs.push(m.text());
   });
 
+  // The LAZY contract, asserted before anything else: without ?cc=1 the
+  // implementation must NOT be loaded. The Command Center is ~67 KB of JS
+  // and CSS, and every variant used to carry it whether the visitor wanted
+  // it or not — which was enough to push neon's render loop past the
+  // variants smoke's two-frame window (neon is walked first, so it ate the
+  // cold-start cost).
+  await page.goto(`${BASE}/versions/${VARIANT}.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await new Promise((r) => setTimeout(r, 2500));
+  const lazy = await page.evaluate(() => ({
+    launcher: !!document.getElementById('swr-cc-launch'),
+    implementation: !!window.SWR_COMMAND_CENTER,
+    implementationTag: !!document.querySelector('script[data-swr-cc]'),
+    stylesheet: !!document.querySelector('link[data-swr-cc-css]'),
+  }));
+  check(lazy.launcher, 'A0 the ◈ launcher is present on the surface');
+  check(!lazy.implementation && !lazy.implementationTag && !lazy.stylesheet,
+    'A0b the implementation is NOT loaded until it is asked for',
+    JSON.stringify(lazy));
+
+  // Now ask for it: ?cc=1 makes the launcher inject the implementation.
   await page.goto(`${BASE}/versions/${VARIANT}.html?cc=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForFunction(
+    () => !!window.SWR_COMMAND_CENTER && window.SWR_COMMAND_CENTER.isOpen(),
+    { timeout: 30000 },
+  ).catch(() => {});
   await settle(page);
   await new Promise((r) => setTimeout(r, 2500));
 
