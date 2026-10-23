@@ -46,6 +46,13 @@
   <link rel="stylesheet" href="/lib/presets-dropdown.css" />
   <link rel="stylesheet" href="/brandkit.css" />
   <link rel="stylesheet" href="/lib/drive-modal.css" />
+  <!-- Chain view (Ozone-style mastering surface over the same engine).
+       Inert unless the URL carries ?chain=1 — see lib/chain-ui.client.js.
+       The script is cheap and always loaded; the stylesheet is fetched on
+       demand by that script, so a normal engine visit never downloads it.
+       A copied engine.html for the variant would not fit the dist budget,
+       so the view is the same engine.html with a query parameter. -->
+  <script src="/lib/chain-ui.client.js" defer></script>
   <style>
     :root {
       /* === ENGINE PALETTE === */
@@ -174,6 +181,17 @@
       aside#layers      { max-height: 30vh; overflow-y: auto; border-left: none;
                           border-right: none; border-top: 1px solid var(--line); }
       section#stage    { min-height: 320px; }
+      /* #timeline-host is NOT one of the named areas above, and it carries
+         an INLINE `grid-column: 2 / 3` (it sits under the layers column on
+         the desktop template). In the narrow single-column layout that
+         inline placement creates an implicit 389px column, which squeezes
+         the 1fr column holding #stage down to 0px — the canvas vanished
+         on every narrow window reached by RESIZING. (At the desktop
+         template the same placement lands in an existing column, which is
+         harmless, which is why only the narrow layout broke.)
+         !important because the placement is an inline style and no
+         stylesheet rule can outrank it otherwise. */
+      #timeline-host   { grid-column: 1 !important; }
     }
 
     /* 480px and below — even tighter, plus icons-only transport pass.
@@ -5072,6 +5090,14 @@
       },
       drawLayer(layer, cx, w, h) {
         const TIMING = window.SWR_TIMING;
+        // The offscreen processing canvas is sized from the stage, and the
+        // stage is display:none in Basic mode — so `this.proc` can
+        // legitimately be 0x0. Compositing FROM a 0x0 canvas is illegal:
+        // drawImage() throws "the image argument is a canvas element with a
+        // width or height of 0", and because the throw escapes drawLayer
+        // into the render loop, it killed the whole frame. There is
+        // nothing to composite into a 0x0 surface anyway, so skip.
+        if (!this.proc || !this.proc.width || !this.proc.height) return;
         // Crossfade state. Lazily initialised at the layer's own opacity so
         // adding a layer behaves exactly as before (no surprise fade-in);
         // only SWR_TIMING.crossfade() sets _targetOpacity=0 to drive a
@@ -5232,7 +5258,7 @@
           // and the hue branch (further down) draws `drawSrc = src` through `r`.
           // To keep behavior symmetric across both branches, we cache a CSS-style
           // pre-rotated Image once per asset per rotation change.
-          if (!a._rotated || a._rotated.deg !== a.rotation) {
+          if ((!a._rotated || a._rotated.deg !== a.rotation) && drawW > 0 && drawH > 0) {
             const sw = drawW, sh = drawH;
             const r = document.createElement('canvas');
             r.width = sw; r.height = sh;
@@ -5246,7 +5272,15 @@
             rc.drawImage(src, -ow / 2, -oh / 2);
             a._rotated = { deg: a.rotation, canvas: r };
           }
-          drawSrc = a._rotated.canvas;
+          // Fall back to the un-rotated source when the asset has no
+          // intrinsic size yet — an image that is still decoding, or one
+          // that failed to load (an off-origin demo clip behind a blocked
+          // or dead CDN). A canvas sized 0x0 is not a legal drawImage
+          // source and throws "the image argument is a canvas element with
+          // a width or height of 0", which killed the whole render frame.
+          // A 0x0 <img> source draws as nothing instead, which is the
+          // correct "nothing to show yet" behaviour.
+          drawSrc = (a._rotated && a._rotated.canvas) ? a._rotated.canvas : src;
         }
           let r = this.applyReactors(layer);
           // Advance the crossfade and let the eased opacity drive globalAlpha.
