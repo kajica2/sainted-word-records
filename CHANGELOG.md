@@ -213,6 +213,26 @@ once it hits 1.0.
   to the current frame if the clip cannot be seeked.
 
 ### Changed
+- **The sign-in page now says what an account is for.** The headline is
+  "Save it here. Open it on any device." and the one-sentence value prop is
+  a four-line list: your song stays in your browser, your Drive files stay
+  in your Drive, no password, your projects open on any device, one link to
+  share. The old line claimed "Your audio never leaves your browser" — an
+  absolute the platform could not keep.
+- **The Drive browser now states where the files are**: "We read from your
+  Drive. Your files stay there." Importing one file still copies that file.
+- **The in-engine sign-in banner no longer argues against signing up.** The
+  notes keep their persona line and gain a benefit clause — "Free, no signup
+  — sign in to keep it." — and the CTA reads "Save this" instead of naming
+  the magic-link mechanic. The stale "Twenty-nine looks" in the
+  version-hopper note is now "Dozens of looks" (24 variant pages, 22 in the
+  engine's dropdown), and the gallery-curator note's "Everything stays on
+  your machine" is scoped to "Your clips".
+- **`legal/privacy.html` now matches the product.** It says what leaves your
+  device: the account and the projects you save to it, the read-only Drive
+  connection, and the `.zip` we build when you publish a project to the
+  marketplace. "We can't see your library" is now scoped to the two cases
+  where we do hold a file.
 - Bare 1..9 no longer selects layers (the previous behaviour
   surfaced audio rot reactors and caused accidental rotation).
 - Help text remapped: digit row = filter slots, T-prefix = alias.
