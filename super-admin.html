@@ -468,6 +468,17 @@
       post('clear-logs').then(function () { loadLogs(); });
     }
 
+    // The cards' buttons carry inline onclick handlers, and an inline
+    // handler resolves against the global scope — so the actions they call
+    // have to be reachable there. Everything else stays inside this IIFE.
+    window.refresh = refresh;
+    window.checkHealth = checkHealth;
+    window.runTests = runTests;
+    window.stopPipeline = stopPipeline;
+    window.exportState = exportState;
+    window.loadLogs = loadLogs;
+    window.clearLogs = clearLogs;
+
     // ── boot ───────────────────────────────────────────────────────────────
 
     function tick() {
