@@ -7,7 +7,7 @@
 // and the Anonymous provider enabled in the Firebase console.
 
 import { readJsonBody, sendJson, setCors, setSessionCookie } from '../_lib/http.js';
-import { createSession, linkAccount, resolveFirebaseUser } from '../_lib/db.js';
+import { createSession, createUser, findUserByProvider, linkAccount } from '../_lib/db.js';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
@@ -26,6 +26,22 @@ function getAdmin() {
   }
   initializeApp(options);
   return getAuth();
+}
+
+async function resolveAnonymousUser(decoded) {
+  const uid = decoded.uid;
+  let user = await findUserByProvider('firebase-anon', uid);
+  if (user) return user;
+
+  // Create a guest user. Email is synthetic so it doesn't collide with real accounts.
+  const email = `anon-${uid.slice(0, 8)}@guest.swr.local`;
+  user = await createUser({
+    email,
+    name: 'Guest',
+    provider: 'firebase-anon',
+  });
+  await linkAccount({ userId: user.id, provider: 'firebase-anon', providerAccountId: uid });
+  return user;
 }
 
 export default async function handler(req, res) {
@@ -58,7 +74,7 @@ export default async function handler(req, res) {
 
   let user;
   try {
-    user = await resolveFirebaseUser(decoded);
+    user = await resolveAnonymousUser(decoded);
   } catch (e) {
     return sendJson(res, e && e.status ? e.status : 400, { error: e && e.message ? e.message : 'resolve_failed' });
   }
