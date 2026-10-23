@@ -50,6 +50,13 @@ const REACTIVE = new Set([
   'eclipse.html',
 ]);
 
+// The full engine surfaces: Layers + Library + a live output canvas.
+const COMMAND_CENTER_SURFACES = [
+  'aurora.html', 'chrome.html', 'eclipse.html', 'film.html', 'fractal.html',
+  'glitch.html', 'grid.html', 'hallucination.html', 'neon.html', 'pulse.html',
+  'smoke.html', 'void.html', 'watercolor.html',
+];
+
 const CODEMODS = [
   // Reactive codemods — apply to all 13 reactive variants by policy.
   { file: 'versions/_mobile-header-inject.js', marker: 'SWR-MOBILE-HEADER-MARKER', targets: REACTIVE },
@@ -69,6 +76,12 @@ const CODEMODS = [
   // reports "inject" for as the expected set.
   { file: 'versions/_watermark-inject.js',       marker: 'SWR-WATERMARK-MARKER',      targets: null },
   { file: 'versions/_audio-damp-inject.js',      marker: 'SWR-AUDIO-DAMP-MARKER',     targets: null },
+  // The Studio Command Center rides the 13 full engine surfaces — the ones
+  // with a Layers stack, a Library and a live output canvas. The six stub
+  // pages (baroque, gallery, kraft, mosaic, phosphor, tape) have none of
+  // those, so the Command Center would open onto empty panels there. This
+  // is the same allowlist _genops-inject.js uses.
+  { file: 'versions/_command-center-inject.js',  marker: 'command-center.client.js',  targets: COMMAND_CENTER_SURFACES },
 ];
 
 const ALL_VARIANTS = readdirSync(VARIANTS_DIR)
