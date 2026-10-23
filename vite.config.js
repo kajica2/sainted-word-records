@@ -909,6 +909,16 @@ export default defineConfig(({ command, mode }) => {
   const outDir = mode === 'development' ? 'dist-dev' : 'dist';
   return {
     plugins: [
+      // drop-noop-entry — removes the chunk Rollup emits for
+      // scripts/vite-noop-entry.js. See the rollupOptions.input comment.
+      {
+        name: 'drop-noop-entry',
+        generateBundle(_options, bundle) {
+          for (const file of Object.keys(bundle)) {
+            if (file.includes('vite-noop-entry')) delete bundle[file];
+          }
+        },
+      },
       copyStatic(),
       // M1: route /api/* through the same handlers that run on Vercel.
       // This is a Vite plugin (NOT a server.configureServer — that doesn't
@@ -1038,7 +1048,19 @@ export default defineConfig(({ command, mode }) => {
       // it; the plugin wipes dist/ itself before its buildStart run.
       emptyOutDir: false,
       rollupOptions: {
-        input: 'engine.html',
+        // engine.html used to be the only Rollup input so that Vite's HTML
+        // transform would run on it. It does not need to be: copy-static
+        // ships dist/engine.html as a plain file copy, so Vite's output for
+        // it was overwritten anyway, and the extracted
+        // dist/assets/engine-*.js + engine-*.css were referenced by NOTHING
+        // (145 KB of dead weight in every build). The three
+        // transformIndexHtml plugins that still matter all key off
+        // engine-genops.client.js, which only the VARIANT pages carry —
+        // and the variants are copies, not inputs, so those plugins have
+        // always been applied to them on disk instead.
+        //
+        // A throwaway entry keeps Rollup happy without producing a page.
+        input: resolve(__dirname, 'scripts/vite-noop-entry.js'),
         // The engine's index.html should never pull api/ code in. Treat
         // everything under api/ as external so Rollup leaves it alone.
         external: [/^api\//],
