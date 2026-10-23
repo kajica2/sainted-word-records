@@ -98,6 +98,12 @@ const GROUPS = {
     // never render a dead checkout URL, and the publish script must write
     // the off-site URL back into the manifest without reformatting it.
     'npm run check:store-unit',
+    // The shipped media off-site: the curated packs (582 files, 39.6 MB)
+    // can be served from an off-site host instead of the deploy. The
+    // build then ships only packs/manifest.json, with its base pointing
+    // at the host. The unit pins the base normalisation, the manifest
+    // rewrite, the copy plan and the publish plan.
+    'npm run check:media-offsite-unit',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.
@@ -110,6 +116,19 @@ const GROUPS = {
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
+    // A video loaded as the song becomes a layer that shares the song's own
+    // <video> element, so the picture and the sound are one clock. The unit
+    // pins the module's decisions (a video song adds one songBound layer
+    // bound to the song's element, an audio song adds none, a new song
+    // replaces the old one, the song-loaded seam chains).
+    'npm run check:song-video-layer-unit',
+    // The Media Source panel: one clock for the picture and the sound. The
+    // unit pins the engine's decisions (the source node is built on
+    // loadedmetadata, the bar counter and the beat phase run on the media
+    // clock, the external file becomes the master clock, a positive offset
+    // delays the audio, and every export path records the analyser, so the
+    // export inherits the preview).
+    'npm run check:media-source-unit',
     // These were reachable from NO gate: six `check:*` unit suites plus
     // check:unit's four members (check:unit itself is a `&&` chain, so its
     // members are listed individually here — same short-circuit reasoning as
@@ -164,6 +183,12 @@ const GROUPS = {
     'npm run check:storage-blob-unit',
     'npm run check:cross-tab-unit',
     'npm run check:dpr-ratchet-unit',
+    // P1.1: the one shared reactor contract (lib/apply-reactors.js). Fifteen
+    // surfaces each carried their own applyR with their own unit table,
+    // `scale` was unclamped everywhere, and versions/grid.html silently
+    // dropped every x / y reactor. This gate pins the unit table, the clamp
+    // table, the malformed-input cases AND the sixteen call sites.
+    'npm run check:apply-reactor-unit',
     // P2.2: set + clear session cookies both carry Secure. The plan
     // (docs/PLANS/architecture-audit-2026-10.md) called out that the
     // delete cookie was missing the flag; this is the gate that
@@ -198,6 +223,18 @@ const GROUPS = {
     'npm run check:glyph-forge-unit',
     'npm run check:camera-enhance-unit',
     'npm run check:capture-unit',
+    // The DPR=1 wrap around the periodic frame capture in
+    // client/capture-runtime.client.js (P2.8 fix from
+    // docs/PLANS/architecture-audit-2026-10.md). The recorder in engine.html
+    // already wraps with the same pattern; this is the sibling for the
+    // periodic PNG capture path.
+    'npm run check:export-dpr-unit',
+    // The CORS allowlist now accepts a regex namespace for Vercel preview
+    // deploys (*.vercel.app) with an httpsOnly + hostname-only guard
+    // (P2.1 fix). The unit covers exact origins, regex matches, the
+    // rejection paths (path / query / http / suffix-attack), the
+    // always-set response headers and the no-origin/no-throw call paths.
+    'npm run check:cors-preview-domain',
     'npm run check:reel-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
@@ -266,6 +303,18 @@ const GROUPS = {
     // the group header, hide/collapse/ungroup, and the proof that a hidden
     // member stops drawing on the stage. Needs a built dist/ (ensureDist).
     'npm run check:layer-groups-smoke',
+    // A video song on the real stage: the song's own <video> element becomes
+    // a layer, the stage canvas draws it, the shared element advances with
+    // the sound, a seek moves the picture with it, and the renderer never
+    // re-loads the element. Needs a built dist/ (ensureDist).
+    'npm run check:song-video-layer-smoke',
+    // The Media Source panel in a real browser: the panel is mounted, the
+    // source node is built only once the media is ready, the clock follows
+    // the media element, the bar counter freezes with it (no wall clock),
+    // "None" silences the analyser, an external file becomes the clock and
+    // is what the analyser hears, and a positive offset delays the audio.
+    // Needs a built dist/ (ensureDist).
+    'npm run check:media-source-smoke',
     // The auto-post feed in a real browser: the changelog and the
     // marketplace paint the posts, and the footer's "New — …" link reaches
     // every page that mounts <swr-footer>. Needs a built dist/.
@@ -275,6 +324,24 @@ const GROUPS = {
     // with a disabled Buy button while the Payment Links are missing, and
     // no page ships a placeholder checkout URL. Needs a built dist/.
     'npm run check:store-smoke',
+    // The NEON preset editor in a real browser: the page boots with the
+    // shared chrome, the stage paints, a control changes both the document
+    // and the pixels, layers add and delete, the JSON tab round-trips (and
+    // rejects invalid data), a preset survives a reload, "Apply to engine"
+    // dispatches swr:preset-applied, and the deep link restores its preset.
+    // Needs a built dist/ (ensureDist).
+    'npm run check:preset-editor-smoke',
+    // The Bench & Sync Lab in a real browser: the ring buffer is
+    // auto-created and fills on its own, a 12ms injected lag is measured
+    // back as ~12ms, interpolation lowers the measured drift, each test
+    // compiles a graded versioned report, the advisor grades and proposes,
+    // and the reports survive a reload.
+    'npm run check:bench-smoke',
+    // The shipped media off-site, end to end: a second build with
+    // PACKS_BASE set must ship only the packs manifest, the packs page
+    // must resolve every image to the off-site origin, the images must
+    // load, and a cross-origin fetch of a pack file must succeed.
+    'npm run check:media-offsite-smoke',
     'npm run check:media-input-smoke',
     // The Live control end to end in a real browser: a synthetic camera
     // (--use-fake-device-for-media-stream) actually playing, the stage

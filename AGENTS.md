@@ -15,7 +15,7 @@ Node 20+ required (`.nvmrc` → `20`; `engines` pins `node >=20`, `npm >=10`). n
 ## Project layout
 
 - `engine.html` — main engine, served at `/engine/` (the PWA entrypoint). It is the **only** Rollup input in `vite.config.js`; every other page ships as a static copy.
-- **Page families** (~85 root `*.html`). Beyond the individually-named pages below, root pages fall into families that are easy to miss: `gallery-*.html` (19), `landing-personas-v*.html` (6 — v7–v11 archived 2026-09-29, 301 → /personas), `atlas-*.html` (9), `swr-*.html` (7), `persona-*`, `engine-*` (`engine-demos.html`), plus `versions.html`, `spit.html`, `shop.html`, `photo.html`, `packs.html`, `dashboard.html`, `enhance.html`, `ar-gif.html`, `director-mode-sainted-word.html`, `sitemap.html`, `share-view.html`, `login.html`, `terms.html`, `404.html`, `offline.html`. (`video_single.html` was deleted; its route still 301s to `/versions` via `site-map.json`'s `redirects`.)
+- **Page families** (~85 root `*.html`). Beyond the individually-named pages below, root pages fall into families that are easy to miss: `gallery-*.html` (19), `landing-personas-v*.html` (6 — v7–v11 archived 2026-09-29, 301 → /personas), `atlas-*.html` (9), `swr-*.html` (7), `persona-*`, `engine-*` (`engine-demos.html`), plus `versions.html`, `spit.html`, `shop.html`, `photo.html`, `packs.html`, `dashboard.html`, `enhance.html`, `ar-gif.html`, `director-mode-sainted-word.html`, `preset-editor.html`, `bench.html`, `sitemap.html`, `share-view.html`, `login.html`, `terms.html`, `404.html`, `offline.html`. (`video_single.html` was deleted; its route still 301s to `/versions` via `site-map.json`'s `redirects`.)
   - Marketing / educational surfaces: `landing.html`, `campaign.html`, `personas.html`, `marketplace.html`, `make-video.html`, `intro.html`, `about.html`, `changelog.html`, `generations.html`, `press.html`, `status.html`, `thanks.html`, `portfolio.html`, `tutorial-30s.html`, `interactive-howto.html`. **`weddings.html` does not exist** (and there is no `verify:weddings` script) — do not trust older docs that list it.
   - `artists/` holds the artist-profile pages (`artists/*.html`, `artists/vodolija/`).
 - `engine-*.client.js`, `presets*.client.js`, `pt*.client.js`, `persona-*.js`, `project.js`, `wizard.js`, `*.client.js` — browser subsystems; each `<name>.client.js` is global-script design (an IIFE attaching exactly one upper-case global to `window`), loaded via `defer`. `engine-reel.client.js` is the auto-advance demo-reel player (`window.SWR_REEL`), loaded by `engine.html` next to `swr-sets.js`; its gate is `check:reel-unit` (in `check`). The engine itself is the inline `<script type="module">` in `engine.html` (`window.SWR` is assembled inside it at ≈L5432). There is no extracted core module.
@@ -26,10 +26,10 @@ Node 20+ required (`.nvmrc` → `20`; `engines` pins `node >=20`, `npm >=10`). n
 - `api/` — **39** Vercel serverless route files (`find api -name '*.js' -not -path '*_lib*' | wc -l`), grouped as `auth/{magic,verify,session,google}.js` + `auth/google/callback.js`, `storage/{object,sign-upload,sign-download}.js`, `projects/{index,[id],share/[shareId]}.js`, `users/[id].js`, `manifest.js`, `hf-upload.js`, plus the product trees `catalogue/`, `kits/`, `drive/`, `slots/`, `invite/`, `pt/`, `checkout/`, `bookings/`, `connect/`, `library/`, `license/`, `marketplace/`, `admin/`, `webhooks/`, and `_lib/{db,email,http,session,google}.js`. **There is no `api/health.js`** — the health probe was folded (P3.8) into `manifest.js?action=health`, and `scripts/dev-api.mjs` rewrites `/api/health` to the manifest handler so callers keep working. `_lib/db.js` switches between Postgres + Vercel Blob and local-FS/JSON.
   - **Google sign-in (`api/_lib/google.js`)** — `GET /api/auth/google?intent=signin|drive` starts the flow: it builds the consent URL, signs a `state` with HMAC-SHA256 (`GOOGLE_CLIENT_SECRET`, 10-minute TTL, timing-safe compare) and carries the same-origin return path, the flow mode and the exact `redirect_uri` in it. `POST /api/auth/google` exchanges the code: **no session → resolve the user (provider account → email → create) and issue a session cookie; a session → link Drive.** Drive scopes (`drive.readonly`) and offline tokens are requested **only** for `intent=drive`, and Drive tokens are stored only in that branch. The registered redirect URI is `api/auth/google/callback.js`: it verifies the state, exchanges, signs in, sets the cookie and 302s to the sanitised return path (`?auth=google`); in `mode=popup` it answers with a page that `postMessage`s `swr-google-oauth-callback`. Unconfigured → 302 `/auth/login?error=google_oauth_not_configured`. Gate: `check:auth-google-signin-unit`.
 - `auth/` — magic-link `login.html` + `login.client.js` and `verify.html` + `verify.client.js`; `auth/google-callback.html` is the page form of the Google callback (it posts the code to `/api/auth/google` instead of exchanging it server-side).
-- **`lib/` (81 `.js`/`.css` files, `ls lib/*.js lib/*.css | wc -l`) and `client/` (89 `.js` files + `client/vendor/`)** are two distinct trees, not one pool:
-  - `lib/` — engine primitives and plumbing: `audio.client.js`, `media-feat.client.js` (canonical 12-field audio feat extraction from any media element, `SWR_MEDIA_FEAT.attach(el)`, used by tape for real automix features), `media-store`, `gif-decoder`, `recorder*`, `persist*`, `library-persist`, `playlist`, `storage`, `migrate`, `reset-state`, `tier-runtime`, `adaptive-guard`, `intensity-slider.client.js` (two-way FX master intensity control), `announcements.client.js` (the auto-post feed — reads `site-map.json`'s `announcements` from the inlined `#swr-footer-data` slice, or from `/site-map.json` when the slice is absent, and paints every `[data-announcements]` container; the newest post also leads the footer's bottom bar), the design assets `design-tokens.css` / `design-base.css` / `components.css`, and vendored `three.module.min.js` / `omggif.js` / `mp4-muxer.js`.
+- **`lib/` (83 `.js`/`.css` files, `ls lib/*.js lib/*.css | wc -l`) and `client/` (89 `.js` files + `client/vendor/`)** are two distinct trees, not one pool:
+  - `lib/` — engine primitives and plumbing: `audio.client.js` (the audio engine: the `MediaElementAudioSourceNode` is built on `loadedmetadata`/`canplay` and cached per element, the **clock** is the element that carries the audio — the media element, or the external file when one is loaded — and the bar counter, the beat timestamps and the beat phase all read that clock instead of a wall clock; `setAudioSource('video'|'external'|'none')`, `loadExternalAudio(file)`, `setSync(bool)` and `setOffsetMs(ms)` are the Media Source panel's verbs, and every change fires the `swr:media-source` window event), `media-feat.client.js` (canonical 12-field audio feat extraction from any media element, `SWR_MEDIA_FEAT.attach(el)`, used by tape for real automix features), `media-store`, `gif-decoder`, `recorder*`, `persist*`, `library-persist`, `playlist`, `storage`, `migrate`, `reset-state`, `tier-runtime`, `adaptive-guard`, `intensity-slider.client.js` (two-way FX master intensity control), `announcements.client.js` (the auto-post feed — reads `site-map.json`'s `announcements` from the inlined `#swr-footer-data` slice, or from `/site-map.json` when the slice is absent, and paints every `[data-announcements]` container; the newest post also leads the footer's bottom bar), `song-video-layer.client.js` (a **video song becomes a layer**: it adds the song's own `<video>` element to the layer stack and marks the asset `songBound`, so the picture and the sound are one clock — the element is shared, never a second one, so play/pause/seek/rate move both together), the design assets `design-tokens.css` / `design-base.css` / `components.css`, and vendored `three.module.min.js` / `omggif.js` / `mp4-muxer.js`.
   - **`client/engine-debugger.client.js`** — the SWR **visual debugger**: a standalone overlay (`window.SWR_DEBUGGER`) that exposes the engine's live internal state — audio features, the layer stack, each layer's resolved transform, the reactor wiring, per-layer geometry drawn on the stage canvas, and the loaded module registry. It is **not loaded by any page**; it is injected on demand (bookmarklet, console paste, CDP) and works on any page that exposes `window.SWR` + `window.SWR_RENDER`. It observes the engine through two existing seams — the `applyR` argument of `SWR_RENDER.frame` and the exported `SWR_RENDER.imageEvolve` — and forwards both unchanged, so it adds no calls into the engine's stateful audio damper and cannot alter what the engine renders. See "SWR visual debugger" below.
-  - `client/` — higher-level feature stacks: automix (`automix-runtime`, `automix-arc`, `automix-composition`, `automix-session-store`, `preset-anchor-map`, `last-mix-store`), live media (`swr-media-input`, `swr-camera-preview`, `swr-mic-meter`, `swr-spit-runtime`, `swr-spit-fx`, `capture-runtime`), storyboard (`storyboard*.client.js`), dashboard (`dashboard-engine*`, `dashboard-presets` — publishes `window.__SWR_LAYER_PRESETS`, *not* the `window.__SWR_PRESETS` preset catalogue from `versions-presets.js`), mesh (`meshify`, `mesh-renderer`, `mesh-scene`), `visualizer-controller.js` (loaded by the artistic variants, **not** from `lib/`), `looks-menu.client.js` (the engine's grouped **looks** dropdown — see below), `media-grouping.client.js` (the ONE rule for "which media belong together" — videos grouped by filename prefix, every static graphic in one group; shared by the media panel's group-by-name toggle and the automix layer pool), and page controllers (`dropzone`, `asset-curator`, `variant-switcher`, `library-packs`, `default-library`).
+  - `client/` — higher-level feature stacks: automix (`automix-runtime`, `automix-arc`, `automix-composition`, `automix-session-store`, `preset-anchor-map`, `last-mix-store`), live media (`swr-media-input`, `swr-camera-preview`, `swr-mic-meter`, `swr-spit-runtime`, `swr-spit-fx`, `capture-runtime`), storyboard (`storyboard*.client.js`), dashboard (`dashboard-engine*`, `dashboard-presets` — publishes `window.__SWR_LAYER_PRESETS`, *not* the `window.__SWR_PRESETS` preset catalogue from `versions-presets.js`), mesh (`meshify`, `mesh-renderer`, `mesh-scene`), `visualizer-controller.js` (loaded by the artistic variants, **not** from `lib/`), `looks-menu.client.js` (the engine's grouped **looks** dropdown — see below), `media-grouping.client.js` (the ONE rule for "which media belong together" — videos grouped by filename prefix, every static graphic in one group; shared by the media panel's group-by-name toggle and the automix layer pool), `media-source.client.js` (the engine's **Media Source** panel — `window.SWR_MEDIA_SOURCE`, mounted into `#media-source` at the top of the library panel: the loaded media, the audio source (the video's own track / an external file / none), the sync toggle and the audio offset in ms; it owns no audio graph, it drives `window.Audio` and listens for the engine's `swr:media-source` event), and page controllers (`dropzone`, `asset-curator`, `variant-switcher`, `library-packs`, `default-library`).
   - **`client/looks-menu.client.js`** — the engine's `#looks` select: one control listing every shipped look in three `<optgroup>`s. Exists because **three unsynchronised catalogues** were previously reachable by no single control — (1) `#variant` (5 entries, `neon/film/grid/smoke/hallucination`, the only ones `variant-switcher` can drive since it `fetch`es `/versions/<id>.html` and compiles that page's `drawFx` verbatim), (2) `#preset` (5 entries backed by `engine.html`'s private `VISUAL_PRESETS` — reactors/blends, not a grade), (3) `versions-presets.js`'s 23 grade presets, which the version pages read but **no engine control exposed**. The dropdown maps them 1:1: **Variant looks** → `SWR_VARIANTS.activate()`, **Grade presets** → `FX.setPersona()` (plus slider mirroring; the FX keys `temp`/`mut` are `#temperature`/`#mutations` in the DOM), **Motion presets** → sets `#preset` and dispatches `change`. Option values are group-qualified (`grade:aurora`) because `film, grid, neon, smoke, hallucination` exist in two groups at once. `gallery` and `mtv` are excluded from Grade presets by `GRADE_EXCLUDE`. The 17 artistic variants are **not** listed — variant-switcher cannot drive them without authoring 17 new `VARIANTS` records.
   - **`versions-presets.js` data-only mode** — `window.SWR_PRESETS_DATA_ONLY = 1` (set by `engine.html` before the script tag) makes the module expose `window.__SWR_PRESETS` and return **before** `init()`, because the engine already drives `#fx-canvas` via `fx-postprocess.js` and a second WebGL overlay would steal the canvas or stack two FX passes. Without this the engine would render with duplicated post-processing.
   - Two nav modules exist but only one is live: `lib/nav.client.js` — loaded by **112 pages** — defines the `<swr-nav>` Web Component + `window.SWR_NAV` (nav data fetched from `/site-map.json`); root `nav.client.js` is a separate self-contained header injector guarded by `window.__swrTopnav` that **no page loads any more** (it survives in Vite's `rootFiles` list and in a `personas.html` comment). A bare `grep nav.client.js` matches both — check which one the page in front of you actually links.
@@ -39,7 +39,7 @@ Node 20+ required (`.nvmrc` → `20`; `engines` pins `node >=20`, `npm >=10`). n
 - **`versions/_shared.css`** — shared stylesheet for the marketing-style visual-language pages. Loaded **only** by `versions/index.html` and `versions/console.html`; not loaded by engine variants. Page-specific tokens live in each page's `:root`.
 - `versions/_*.js` — 19 standalone Node codemod scripts (render/library/shuffle/tone-slider injectors; the 20th `_*` file is `_shared.css`, the stylesheet). They are **not loaded by any page**; run them manually (`node versions/_render-inject.js`). Each adds a `SWR-*-MARKER` comment to pages it touches; `scripts/check-variant-codemods.mjs` runs each in dry-run mode and reports drift.
 - `variants/` — per-variant automix + curator config maps (one JSON per variant, 17 files). Inlined into the matching `versions/<name>.html` at build time by the `inline-automix-config` Vite plugin (as `<script type="application/json" id="swrc-automix-config">` — that id does not exist in source), so configs never need a runtime fetch (offline-first, matches the PWA shell ethos).
-- `site-map.json` — canonical IA. Top-level keys: `nav`, `footer`, `footerNav` (the shared footer's columns/tagline/social, consumed by `lib/footer.client.js` — `footer` itself is the three-item nav CTA data), `auth`, `legal`, `tools`, `redirects` (declared 301s, emitted by `generate-vercel-rewrites.mjs` before the archived 404s), `unlisted` (shipped pages deliberately kept OUT of the navigation — owner request 2026-09-29 removed Make a video / Photo studio / Enhance / Atlas / Galleries / Artists / Shop from the nav; both `generate-vercel-rewrites.mjs` and `vite.config.js`'s rootFiles read this array, so an unlisted page keeps its route AND still ships — dropping a page from the nav without adding it here leaves a rewrite pointing at a file that never reaches `dist/`, which `check-dist-links` catches), `announcements` (the auto-post feed — an array of `{date, title, body, href, label}`; the first entry is the newest and it is published site-wide by `lib/announcements.client.js`: the footer's bottom bar shows it as "New — …" and every `[data-announcements]` container (the changelog, the marketplace) paints the list; publishing is adding an entry and deploying, never an HTML edit), `store` (the storefront — `gumroad` (the store URL/label/description), `downloads[]` (the products sold as downloads: `source` (the repo dirs to package), `price`, `gumroadUrl` (the checkout page), `downloadUrl` (the off-site file URL once published)) and `products[]` (the Stripe products: `surface` — `shop` or `campaign` — and `stripeUrl` (the Payment Link)); the catalogue is published by `lib/store.client.js`, so adding a product to this block puts it on the marketplace with no HTML edit), `archived`, `meta`, `discovered` (140 auto-discovered pages), plus `_maintenance` prose. Source of truth for `vercel.json` rewrites and Vite `rootFiles`. `archived` is currently **empty** — nothing is archived, even though `_archive/` holds 26 older files. `discovered` is **informational only** — nothing derives rewrites or `rootFiles` from it — but `sitemap.html` renders every entry as a live link, so a stale entry or a page that does not ship becomes a 404. `scripts/generate-site-manifest.mjs` rebuilds the bucket from the tracked tree (gitignore-aware, sorted, pruned) and skips the tracked pages that are deliberately not deployed: `market-study.html`, `profit-plan.html`, `engine-ar-loop.html` and everything under `scripts/` (`scripts/_analyze-stub.html`, `scripts/_grade-smoke-fixture.html`). Run it after adding or removing a page; it also refreshes `meta.totalPages` (deployable tracked pages, currently 144). Then run `scripts/generate-vercel-rewrites.mjs` to regenerate `vercel.json`.
+- `site-map.json` — canonical IA. Top-level keys: `nav`, `footer`, `footerNav` (the shared footer's columns/tagline/social, consumed by `lib/footer.client.js` — `footer` itself is the three-item nav CTA data), `auth`, `legal`, `tools`, `redirects` (declared 301s, emitted by `generate-vercel-rewrites.mjs` before the archived 404s), `unlisted` (shipped pages deliberately kept OUT of the navigation — owner request 2026-09-29 removed Make a video / Photo studio / Enhance / Atlas / Galleries / Artists / Shop from the nav; both `generate-vercel-rewrites.mjs` and `vite.config.js`'s rootFiles read this array, so an unlisted page keeps its route AND still ships — dropping a page from the nav without adding it here leaves a rewrite pointing at a file that never reaches `dist/`, which `check-dist-links` catches), `announcements` (the auto-post feed — an array of `{date, title, body, href, label}`; the first entry is the newest and it is published site-wide by `lib/announcements.client.js`: the footer's bottom bar shows it as "New — …" and every `[data-announcements]` container (the changelog, the marketplace) paints the list; publishing is adding an entry and deploying, never an HTML edit), `store` (the storefront — `gumroad` (the store URL/label/description), `downloads[]` (the products sold as downloads: `source` (the repo dirs to package), `price`, `gumroadUrl` (the checkout page), `downloadUrl` (the off-site file URL once published)) and `products[]` (the Stripe products: `surface` — `shop` or `campaign` — and `stripeUrl` (the Payment Link)); the catalogue is published by `lib/store.client.js`, so adding a product to this block puts it on the marketplace with no HTML edit), `archived`, `meta`, `discovered` (140 auto-discovered pages), plus `_maintenance` prose. Source of truth for `vercel.json` rewrites and Vite `rootFiles`. `archived` is currently **empty** — nothing is archived, even though `_archive/` holds 26 older files. `discovered` is **informational only** — nothing derives rewrites or `rootFiles` from it — but `sitemap.html` renders every entry as a live link, so a stale entry or a page that does not ship becomes a 404. `scripts/generate-site-manifest.mjs` rebuilds the bucket from the tracked tree (gitignore-aware, sorted, pruned) and skips the tracked pages that are deliberately not deployed: `market-study.html`, `profit-plan.html`, `engine-ar-loop.html`, `booking.html`, `super-admin.html`, and everything under `scripts/` (`scripts/_analyze-stub.html`, `scripts/_grade-smoke-fixture.html`), `pages/`, `packs/covers/` and `swr-pipeline/`. Those five extra names are tracked but have no deploy route — no `site-map` entry, so vite's copy-static never copies them into `dist/` and no rewrite points at them; listing them in `discovered` would render dead links on `sitemap.html` (`check-dist-links` asserts every `site-map` entry resolves). Run it after adding or removing a page; it also refreshes `meta.totalPages` (deployable tracked pages, currently 171). Then run `scripts/generate-vercel-rewrites.mjs` to regenerate `vercel.json`.
 - `_archive/` — gitignored experimental pages (landing-personas variants, internal docs, dev tools, an older `404.html`/`offline.html`). Excluded from deploy.
 - `score-app/` — a **separate Expo / React Native app** vendored in-repo for local dev only (its own `package.json`, `node_modules`, `app.json`, and agent files). It is `.gitignore`d and must never be part of the Vite + Vercel static deploy; its `node_modules` would blow past the size cap.
 - `.worktrees/` — gitignored worktrees for in-progress parallel work.
@@ -154,6 +154,183 @@ deliberately **not** in it.
 - Gates: `check:store-unit` (node:vm, in `check`) and `check:store-smoke`
   (Puppeteer over the built `dist/`, in `check:full`).
 
+## The shipped media off-site
+
+`packs/` is 582 files and 39.6 MB — a quarter of the build. The packs are
+opt-in content and the only thing the deploy needs to serve them is
+`packs/manifest.json` (the engine's library drawer, `/packs.html` and
+`/photo-scrolls.html` all fetch that manifest and then load the media it
+lists). That single file is the seam.
+
+- `PACKS_BASE` (build env) — when set to an absolute URL, `vite.config.js`'s
+  `copy-static` ships **only** `packs/manifest.json`, with its `base`
+  rewritten to that URL; the 582 media files stay out of the build. Unset
+  (the default) the whole directory ships exactly as before, so the local
+  build, the CI build and the dev server are unchanged.
+- `npm run media:publish` → `scripts/publish-media-offsite.mjs` uploads the
+  packs to the host and prints the `PACKS_BASE=` line for the deploy env.
+  The host is **Vercel Blob** (`BLOB_READ_WRITE_TOKEN`) or the **Hugging
+  Face Hub** (`HF_TOKEN` + `HF_REPO`, pushed with the `hf` CLI). With
+  neither credential it prints `(env skip: …)` and exits 0. After the
+  upload it **verifies the CORS header** on an uploaded file: the engine
+  fetches the media from its own origin, so a host without
+  `access-control-allow-origin` would break the packs at runtime.
+- `scripts/lib/packs-offsite.mjs` holds the shared logic: base
+  normalisation, the manifest rewrite, the copy plan and the file walk.
+- Gates: `check:media-offsite-unit` (in `check`) and
+  `check:media-offsite-smoke` (in `check:full`) — the smoke builds with
+  `PACKS_BASE` set into a separate output directory, asserts the built
+  packs directory holds the manifest and nothing else, and drives a real
+  browser against a stand-in off-site host on a **different origin**: the
+  pack images must point at that origin, load, and a cross-origin `fetch()`
+  of a pack file must succeed.
+- The manifest itself stays in the deploy — the browser fetches it
+  same-origin — so the site keeps working with no off-site host at all.
+
+## The preset editor
+
+`preset-editor.html` (route `/preset-editor`) is a standalone NEON preset
+authoring surface: a live audio-reactive canvas on the left, the preset
+document on the right. The **Direction** tab is the surface the page opens
+on — it is where a preset is *shaped* rather than authored (Design / Audio
+/ Layers / LFOs / JSON edit the document itself). It is a **page**, not an
+app surface — it mounts the shared nav and footer and carries the standard
+head (canonical, description, og:image).
+
+- **Steering is additive, and the multipliers are neutral at zero.** The
+  preset document holds a `steer` block (`blend`, five bipolar `mood`
+  axes, `palette` + `paletteAmount`, seven `filters`) and the render
+  resolves it on top of the preset every frame — the document itself is
+  never rewritten. `resolve()` is the whole mechanism and it is exposed as
+  `window.SWRPresetEditor.resolve()`. Every multiplier (`countMul`,
+  `opacityMul`, `jitterMul`, `thickMul`) is **1 at density 0**, so at
+  `steer.blend = 0` the picture is the preset exactly as authored — the
+  panel promises that, and the gate asserts it.
+- **The library, the reactive maps and the layer state.** The **Library**
+  tab holds six starter presets (Tidal, Nebula, Gridlock, Pulse Engine,
+  Shatter, Riot — subtle → maximum); loading one creates a copy. A layer
+  carries `react` maps (feature → parameter, through one of seven curves:
+  linear, sqrt, exp, pulse, thresh, inv, log) and the document carries
+  `audio.reactivity`, the master that scales all of them. A layer can be
+  **locked** (`⚿` — every control on the card is disabled, the drag handle
+  is inert, and edits are refused) or **frozen** (`❄` — the geometry,
+  the motion and the parameters are held from the snapshot, while the
+  colour pipeline and the alpha keep running).
+- **The render is bounded, and the bounds are not cosmetic.** Four
+  numbers decide whether the composition survives: the lightness band
+  (10–48) the two layer colours sit in, the trail fade (0.30–0.62 alpha),
+  the per-frame trail normalisation (a trail is a LENGTH, not a
+  brightness: the residue is worth `1/(1-retention)` of a frame, so each
+  frame draws at `alpha × (1-retention)` and the settled brightness is the
+  authored alpha whatever the trail), the additive stack cap (layers that
+  ADD are scaled so their opacities cannot sum past 1.1), and the
+  aberration pass's alpha (0.28 × amount — that pass adds the *whole
+  frame* twice more, so its alpha is the picture's brightness
+  multiplier; at the first value tried (0.55) the `Hyper` vibe clipped
+  24% of the frame to white). `c2` is a NEARBY hue (0.12 of the wheel),
+  not a complement: teal + magenta added together cancels to white under
+  `lighter`.
+
+- **Its own palette, scoped to `body.swr-pe`.** The page is dark by
+  design, but the shared chrome reads the tokens in
+  `/lib/design-tokens.css`. The page therefore overrides `--bg`, `--ink`,
+  `--muted`, `--line`, `--accent` (and the `--bg-2`/`--bg-3` the footer
+  uses) on `body.swr-pe` — the nav and the footer are inside `<body>`, so
+  without that the footer inherited the light theme and rendered as a
+  cream band under a black stage.
+- **The engine bridge is an event, not an object.** The editor is
+  standalone, so there is no engine to call into. "Apply to engine"
+  dispatches `swr:preset-applied` on `window` with the preset document as
+  the detail — plus a `resolved` view of what the direction actually
+  produced (hue, saturation, bloom, contrast, speed, the palette and the
+  filter values) — posts the same payload to a parent frame when
+  embedded, and copies the JSON to the clipboard. A host page listens with
+  `window.addEventListener('swr:preset-applied', …)`.
+- **Presets live in `localStorage` under `swr.presets.v1`**; a preset is
+  shareable as a deep link (`#p=<base64url of the document>`), produced by
+  `window.SWRPresetEditor.shareUrl()`.
+- Gate: `check:preset-editor-smoke` (Puppeteer against built `dist/`, in
+  `check:full`) — 59 assertions: the page boots with the shared chrome and
+  opens on the Direction tab, the stage paints, a control changes both the
+  document and the pixels, layers add and delete, the JSON tab round-trips
+  and rejects invalid data, the steering is additive (at steer 0 the
+  resolved values are the preset's own and the multipliers are neutral), a
+  palette and a vibe both change the picture, "keep my direction" carries
+  across presets, a preset survives a reload, the bridge event fires with
+  the steer block and the resolved view, the deep link restores its
+  preset, the library offers six reactive starters and loading one keeps
+  its maps, a locked layer is inert and a frozen layer holds its geometry
+  while an unfrozen one keeps moving, a dragged layer lands where it was
+  dropped, a rule fires and changes the render (and its `else` branch
+  runs), the tick stays inside its 2ms budget, a manual edit holds the
+  rules off, a scene eases in, the playhead jumps, drift stays inside the
+  deviation cap and reverts in one click, breeding produces a lineage, the
+  same seed replays the same stream after export → import, and an old
+  preset loads with the three blocks off and resolves to exactly its
+  authored values.
+
+## The bench & sync lab
+
+`lib/bench-suite.client.js` is the shared suite: the A/V ring buffer, the
+measurement, the report compiler, the advisor and the panel UI. It is a
+global script (`window.SWR_BENCH.createSuite(host)`) and it has TWO hosts:
+
+- `bench.html` (route `/bench`) — the lab on its own page. It supplies its
+  own layer sets, its own renderer and the demo signal, and it measures
+  itself.
+- `preset-editor.html` — a **Bench** tab. The editor supplies its LIVE
+  feature vector and its OWN preset, so the suite measures the editor's
+  real render and the preset the user is actually editing, and the
+  advisor's suggestions apply to that preset (the particle and grid
+  counts, the trails filter, the audio smoothing).
+
+The host contract is four functions: `tests()` (what to measure),
+`sample(tSec)` (the audio side — the features and the time they
+represent), `reportConfig()` (what goes in a report) and
+`supports(id)` / `apply(id)` (what the advisor may change). The host owns
+what it DRAWS; the suite owns the measurement.
+
+The lab's own page carries a **Run** tab (five benchmark tests), a
+**Buffer** tab (the ring buffer's live state), **Reports** (versioned,
+persisted), **Compare** (a delta table between two reports) and **Advisor**
+(a heuristic grader that proposes and applies its own optimizations).
+
+- **The buffer is auto-created and always running.** Features are pushed
+  at 60 Hz into a ring buffer stamped with the time each sample
+  *represents*; the render loop samples the buffer at video time with
+  linear interpolation, so the two clocks never have to agree — drift is
+  measured, not assumed. The audio clock is a real timer (a lab models a
+  real device) but it is pausable, and the samples carry the real elapsed
+  time: stamping a fixed 60 Hz schedule onto a timer that fires faster
+  runs the audio timeline ahead of the video, and the lab then measures
+  its own clock bug instead of the sync. The VIDEO clock is the suite's
+  (`suite.state.startAt`), because it is reset per run — a host clock of
+  its own makes the two timelines drift apart by the length of the run.
+- **The layer set comes from the host.** The suite carries the
+  measurement, not the layers: a hardcoded layer set in the runner makes
+  the "baseline" test measure the reactive stack, and the comparison it
+  exists to make is void.
+- **The lab's render is the editor's render.** The painters, the reactive
+  curves, the demo signal and the render bounds (the lightness band, the
+  trail normalisation, the additive stack cap, the glow cap) are the same
+  code `preset-editor.html` runs. A benchmark of a different renderer
+  measures the wrong thing.
+- **The layer set comes from the test's preset.** `defaultCfg(layerPreset)`
+  builds the layers from the preset; a hardcoded layer set makes the
+  "baseline" test measure the reactive stack and the comparison it exists
+  to make is meaningless.
+- Gate: `check:bench-smoke` (Puppeteer against built `dist/`, in
+  `check:full`) — 18 assertions: the buffer is auto-created and fills on
+  its own, a 12 ms injected lag is measured back as ~12 ms, interpolation
+  lowers the measured drift, each test compiles a graded versioned report,
+  the baseline test is really one layer, the advisor grades, lists
+  bottlenecks and proposes suggestions, a re-run adds a report, the
+  reports survive a reload, and the compare table renders a delta.
+  The editor's half of the suite is covered by
+  `check:preset-editor-smoke` (the Bench tab mounts, the editor measures
+  its own render and its own A/V drift, an injected lag shows up, and the
+  advisor's suggestion lands on the editor's own preset).
+
 ## Code style
 
 - Vanilla JavaScript, ESM (`"type": "module"` in `package.json`). **No TypeScript.**
@@ -165,12 +342,14 @@ deliberately **not** in it.
 
 ## Testing instructions
 
-- `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **101 steps**, `storyboard` **5 steps**, `full` **25 steps** (verified with `node scripts/run-steps.mjs <group> --list`; re-measure after adding a step rather than trusting the number here).
-- Quick gate: `npm run check` → the 101-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
-- Full pre-PR gate: `npm run check:full` → the 25-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:invite-redemption-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:layer-groups-smoke` + `check:announcements-smoke` + `check:store-smoke` + `check:media-input-smoke` + `check:live-input` + `check:spit-live-smoke` + `check:tiktok-smoke` + `check:camera-enhance-smoke` + `check:clip-poster-smoke` + `verify:engine-boot` + `check:variants-smoke` + `check:build-idempotent` + `check:dist-links` + `verify:site-nav`
+- `check`, `check:full` and `check:storyboard` all route through `scripts/run-steps.mjs`, which executes every step in a named group and exits non-zero if ANY failed. They deliberately do **not** use `&&` chains: a chain short-circuits, so the first failure silently skipped every later step. That was not hypothetical — `check:full` truncated at `check:verify` (CI run 36323771785), silently skipping `check:automix-smoke`, `check:automix-arc-smoke`, `check:storyboard`, `verify:automix`, `check:capture-smoke`, `check:media-input-smoke` and `check:spit-live-smoke`; and `check` used to be an `&&` chain, so an early failure hid up to 38 suites. `node scripts/run-steps.mjs <check|storyboard|full> [--list]` runs or lists a group; `STEPS_ONLY=a,b` runs a subset. Groups contain exactly: `check` **107 steps**, `storyboard` **5 steps**, `full` **30 steps** (verified with `node scripts/run-steps.mjs <group> --list`; re-measure after adding a step rather than trusting the number here).
+- Quick gate: `npm run check` → the 107-step group (syntax + bundle + the unit suites + API tests + the smokes that need no browser interaction)
+- Full pre-PR gate: `npm run check:full` → the 30-step group: `check` + `check:verify` + `check:automix-smoke` + `check:automix-arc-smoke` + `check:invite-redemption-smoke` + `check:storyboard` + `verify:automix` + `verify:genops` + `verify:story-graph` + `check:capture-smoke` + `check:targeting-smoke` + `check:layer-groups-smoke` + `check:song-video-layer-smoke` + `check:media-source-smoke` + `check:announcements-smoke` + `check:store-smoke` + `check:preset-editor-smoke` + `check:bench-smoke` + `check:media-offsite-smoke` + `check:media-input-smoke` + `check:live-input` + `check:spit-live-smoke` + `check:tiktok-smoke` + `check:camera-enhance-smoke` + `check:clip-poster-smoke` + `verify:engine-boot` + `check:variants-smoke` + `check:build-idempotent` + `check:dist-links` + `verify:site-nav`
 - `check:doc-truth` — the doc-vs-code drift gate (P0.6 of `docs/PLANS/architecture-audit-2026-10.md`, the "mechanism not prose" item). Reads the current-state docs (`README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.kai/conventions/*.md`, `docs/ARCHITECTURE.md`, `docs/automix-architecture.md`, `docs/DEV-SERVER.md` - the list is explicit in the script, NOT a glob over `docs/`, because the dated audits and plans in there legitimately describe states that no longer exist) and verifies every inline-code span that asserts something about the tree: a file path must resolve (`lib/media-store.client.js`, `versions/_*.js`, `scripts/run-steps.mjs:44` - a `file:line` citation asserts the FILE, not the line, so a 20-line move in a hot file cannot red the gate), a trailing-slash directory claim must be a real directory (this is what catches a phantom module family like the `versions/inject/*.js` that never existed), a root-relative route must be a shipped file, a `vercel.json` rewrite or an `api/` handler, and a library/API/global name (`THREE.PropertyBinding`, `navigator.storage`, `SWR_NAV`) must appear in the shipped source. Additive by construction: it fails only what it can PROVE wrong, skips what it cannot (fenced blocks, future-work sections, negations, placeholders, branch names, gitignored paths, pseudocode), and prints an `ACCEPTED_DRIFT` ledger for the rest. It carries its own `--self-test` (14 synthetic cases: the 5 drift shapes must fire, the 9 legitimate-prose controls must stay quiet) because a permanently green gate that can no longer detect anything is the worst outcome a CI check can have. Counts ("32 HTML files", "19 codemods") and stale line numbers are the documented follow-up. ~0.3s. In `check`
 - `check:verify` — the curated 5-verifier smoke that gates PRs. The 5 are fixed in `scripts/check-verify-smoke.mjs`: `cloud-auth`, `hf-publish`, `rotation-enabled`, `autoplay`, `e2e-media-record` (API · admin UI · engine mount · feature smoke · recorder cycle). It bootstraps a Vite dev server on `:5175` with a temp `SWRC_DATA_DIR`. Every other `verify-*.mjs` is a developer aid run on demand
 - `check:capture-unit` / `check:capture-smoke` — node:vm unit coverage and a Puppeteer smoke against built `dist/engine` for the periodic frame capture runtime (URL parse, localStorage, clamp, state machine, blob trigger; toolbar mount, toggle flow, interval two-way binding, URL opt-in). Unit in `check`; smoke in `check:full`
+- `check:song-video-layer-unit` / `check:song-video-layer-smoke` — the video-song layer. The unit loads `lib/song-video-layer.client.js` in a `node:vm` sandbox and pins the module's decisions (a video song adds exactly one `songBound` layer bound to the song's own element, an audio song adds none, a new song replaces the old one, the song-loaded seam chains). The smoke drives the real engine: it loads the tracked `swr-intro-10s-voice.mp4` as the song, then asserts the stage canvas (`#render`) actually draws the song's `<video>`, that the shared element advances with the sound, that `Audio.seek()` moves the picture with the sound, that the renderer never calls `load()` on the song element (`SWR_VIDEO_SYNC`'s stalled-element recovery would restart the song from zero — the draw path skips it for `songBound` assets), that the layer can be removed while the audio keeps playing, and that an audio song removes the layer. It waits for the default library's own song to settle first, or the library can replace the video song mid-run. Unit in `check`; smoke in `check:full`
+- `check:media-source-unit` / `check:media-source-smoke` — the **Media Source** panel and the single-clock playback engine. The unit loads `lib/audio.client.js` in a `node:vm` sandbox (with fake media elements and a fake `AudioContext`) and pins the engine's decisions: no source node is built before the media is ready, the node is built on `loadedmetadata`, it is created once per element and reused, the clock is the element that carries the audio, the bar counter and the beat phase follow that clock (a frozen media freezes the counter; a seek does not run it backwards), "none" disconnects the analyser while the element stays captured, an external file becomes the master clock with the picture corrected onto it (a positive offset delays the audio, an 80 ms threshold stops it jittering), the transport drives both elements, and all three export paths record `Audio.analyser` (so the export inherits the preview) with no export-side audio control anywhere. The smoke drives the real engine in a browser: it loads the tracked `swr-intro-10s-voice.mp4` as the song, records every `createMediaElementSource()` call with the element's `readyState` at that moment, and asserts the panel is mounted with its four rows, the source node appears only after the metadata, the clock advances with playback, the bar counter freezes with the media (no independent wall clock), "none" silences the analyser while the picture runs, an external file becomes the clock and is what the analyser hears, a +500 ms offset puts the picture half a second ahead of the music, and the panel's controls drive the engine. Unit in `check`; smoke in `check:full`
 - `check:variants-unit` / `check:variants-smoke` — full 22-variant switcher coverage. The unit loads `client/variant-switcher.client.js` in a `node:vm` sandbox with a fetch stub that reads `versions/<id>.html` from disk, then for every entry in `SWR_VARIANTS.list()` asserts the `function drawFx(` source compiles, `state.fx` is non-null and `fx.run()` does not throw against a mock canvas + `A.feat` whose known feature set is `{bass, mid, treble, beat, onset, beatPulse, rms, centroid}` (a guarded `Proxy` makes a future drawFx that reads a feature outside this set fail the gate with a clear error). The smoke boots `dist/engine` via `serveDist()`, walks every id in the runtime list, activates it, loads the variant's `audios/<id>.mp3` via `window.Audio.loadFile()` + `play()` so the engine's audio features move, then wraps `state.fx.run` with a counter and a before/after pixel check: requires the drawFx to be invoked at least twice in two rAFs AND to write to the canvas (a no-op drawFx — a body that compiles, runs without throwing, but does nothing — is caught because the 200-pixel sample of the canvas is identical before vs. after the call). Unit in `check`; smoke in `check:full`
 - `check:media-input-unit` / `check:media-input-smoke` — live-camera-mic foundation (MediaInput factory + codec + audio features, Camera Preview + Mic Meter contracts); smoke verifies the 3 module globals load and the factory returns an instance, skipping real camera/mic permissions. Unit in `check`; smoke in `check:full`
 - `check:spit-live-unit` / `check:spit-live-smoke` — Spit Live page (`SWR_SPIT` factory + state machine + loadBeat/toggleMic/triggerFx, `SWR_SPIT_FX` validation + concurrency); smoke runs against built `dist/spit`. Unit in `check`; smoke in `check:full`
@@ -289,6 +468,59 @@ Three things the engine does that the live input has to work around:
 The analyser is named differently on the two surfaces: the shared `lib/audio.client.js` calls it `analyser` and hangs off `window.Audio`; a variant's inline engine calls it `an` and hangs off `window.SWR.Audio`, and only builds its audio graph when a song is loaded — so the graph has to be asked for before there is anything to route into.
 
 `npm run check:live-input` (`scripts/check-live-input.mjs`) drives headless Chrome with a **synthetic** camera and microphone (`--use-fake-device-for-media-stream`), so it runs on a machine with no camera. It asserts the control appears, the camera becomes a live layer whose frames are decoded and which reaches the stage, the mic is routed into the engine's analyser with a live meter, and stopping both releases the devices and removes the layer. The browser is launched in its own process group and torn down as one — Chrome spawns children, and leaving them behind holds the fake camera and makes the next run flaky.
+
+## Local-first
+
+**Plan: move the running surface onto the local device. Use the memory already on disk (`.kai/`, `agents/`, `docs/PLANS/`, `.obsidian-swr/`, the SWR journal via the orchestrator).** Do not reach the external API for anything the engine can answer from the local sources.
+
+### What "local memory" is here
+
+- **`.kai/`** — the project's own memory. `memory.yaml` (4 active prevention rules from real incidents), `preferences/user.yaml`, `conventions/` (architecture / coding-style / naming / repo-hygiene / testing), `decisions/` (ADR-001 + ADR-002 with their actual decision rationales and earlier stale-content retractions), `tech-debt/register.md` (12 entries, 8 closed with execution evidence). All entries are written by the project owner and describe the actual codebase; they are not advisory.
+- **`docs/PLANS/`** — design proposals with the same shape as the memory system: a problem statement, a proposed solution, a contract, a verification path, and (where relevant) the rejected alternatives. Read the most recent one (`architecture-audit-2026-10.md`) before starting a new audit.
+- **`agents/`** — the SWR team skills: Ops (orchestrator + TASKS.md), Twin (your digital twin), Check (read-only verifier). These do not call any external API; the Twin in particular is voice-only and the Check is a verifier.
+- **`.obsidian-swr/`** — the Obsidian vault the orchestrator writes to. Daily journal at `Journal/YYYY-MM-DD.md`, Map of Contents at `MOCs/SWR.md`. The journal is appended (never rewritten) and survives across sessions.
+- **`SECURITY.md`**, **`README.md`**, **`AGENTS.md` (this file)** — the curated current-state docs. The `check:doc-truth` gate verifies every inline-code span in them against the source tree on every CI run; a claim that drifts from the code (a phantom file, a misnamed route, a stale line number) flips the gate red.
+- **`scripts/run-steps.mjs`** + **`scripts/check-*.mjs`** + the 100+-step `npm run check` group — the local CI. The user does not need an external CI provider to know whether a change broke anything; the gate runs in Node and exits non-zero on any failure.
+
+### What "external" is here, and how to reduce it
+
+| Surface | Today | Local alternative |
+|---|---|---|
+| Vercel serverless routes (`api/`) | The Vercel edge runs every `api/*.js` handler | `scripts/dev-api.mjs` already rewrites `/api/*` to local file handlers in dev. For production, `npm run serve:local` (below) + a `serve-repo` mirror covers the same surface without a cloud provider. |
+| Vercel Blob (`api/storage/{object,sign-upload,sign-download}.js`) | Signed-URL storage for user media | Local filesystem at `data/storage/<userId>/...` (the existing `api/_lib/db.js` local-FS branch is the default in dev). Production users on Vercel keep using Blob until the local mirror is hardened. |
+| Postgres (`api/_lib/db.js`) | The `DATABASE_URL` env sets Postgres on | When `DATABASE_URL` is unset, `db.js` falls back to local-FS JSON at `./data/`. The fallback is the same code path the dev server uses, so the two are already equivalent. |
+| Stripe (`api/_lib/stripe.js`) | Server-side Connect for the marketplace pilot | When `STRIPE_SECRET_KEY` is unset, every Connect route returns 503 with a clean error; the pilot is opt-in only. |
+| Google OAuth for Drive (`api/_lib/google.js`) | The "Connect Google Drive" button | When `GOOGLE_CLIENT_ID` is unset, the OAuth start returns 302 to `/auth/login?error=google_oauth_not_configured`. The button is honest about its state. |
+| Hugging Face (`api/_lib/hf-publish.js`) | The publish pipeline | Without `HF_TOKEN`, the publish is skipped with `(env skip: ...)`. The orchestrator does not use it. |
+| 3rd-party API for the engine UI (`engine.html`) | None — the render loop is local | The engine is already local-only. No change. |
+
+### Local dev loop (the entire surface, zero external)
+
+```bash
+# 1. one-time
+cp .env.example .env            # leaves every env var unset; local-FS paths apply
+npm install
+node tools/local-dns-system.sh install  # optional: sainted-word.test -> 127.0.0.1
+
+# 2. daily
+npm run dev                       # http://localhost:5174 with full /api/* on the dev middleware
+# or
+node tools/swr-vault-init.mjs    # creates .obsidian-swr/ (only if the path resolves)
+npm run vault:log event test --summary "first event"  # log to the local journal
+
+# 3. pre-PR
+node scripts/run-steps.mjs check      # 100+ steps, ~30s on a laptop
+node scripts/run-steps.mjs full       # adds the Puppeteer smokes (needs Chrome)
+```
+
+### Rules
+
+- **Do not** call the external API from a context that the local sources can answer. If the local knowledge is sufficient, prefer it.
+- **Do not** add new memory paths outside `.kai/`, `agents/`, `docs/PLANS/`, `.obsidian-swr/`. The vault path, the plan path and the SWR path form a closed set: anything outside them is either code, build artifact, or a stale page.
+- **Do not** introduce a new external dependency without a `check:env-config-mismatch` plan. The `check:doc-truth` gate will fail the next time the claim drifts; the new dep should be enumerated in `.env.example` and in this section.
+- **State transitions** for the local migration go in `docs/PLANS/` with the same shape as the audit reports: a problem statement, a proposed solution, a contract, a verification path, and a list of what was rejected and why.
+- **The orchestrator** (`tools/swr-journal-log.mjs`) auto-logs every commit and every subagent run. If a local decision is made outside a commit, append a `node tools/swr-journal-log.mjs event ...` event so the journal records it.
+- **The local CI** (`npm run check`) is the contract: a green run means the project is healthy locally. Don't ship to the external deployment without it.
 
 ## Local server
 

@@ -449,6 +449,174 @@ assert(S.history.length === 0, 'reset() clears the transition history');
     `automix=${state.current}, detector saw ${[...seen].join(' / ')}`);
 }
 
+// ── 11. the arc reads the live boundary as a soft cue (plan P1.3) ──────────
+// The arc is built OFFLINE from a decoded buffer; the detector runs LIVE off
+// the engine's features. Nothing on the data path connects them, so the
+// connector is the `swr-section-change` event. Load the real arc module in
+// the same sandbox and prove the three properties that make the cue safe:
+// it biases only the next act transition, it is one shot, and a boundary
+// with no confidence cannot arm one at all.
+{
+  const ARC_SRC = path.join(ROOT, 'client/automix-arc.client.js');
+  // The arc guards its DOM use at load (`typeof document`), so it loads
+  // clean here. Reuse `win`, whose addEventListener now carries this test's
+  // own collector from section 2, so a boundary dispatched by the detector
+  // below also reaches the arc exactly as it would on a real page.
+  vm.runInContext(fs.readFileSync(ARC_SRC, 'utf8'), ctx, { filename: 'automix-arc.client.js' });
+  const ARC = win.SWR_AUTOMIX_ARC;
+  assert(!!(ARC && ARC.__loaded), 'SWR_AUTOMIX_ARC loaded in the sandbox');
+
+  const I = ARC._internals;
+  // 'pure-crossfade' is the catalog spelling of the subtle pick
+  // 'cross-dissolve': fireActTransition normalizes the alias before the
+  // lookup, so it is what actually lands in the fired list.
+  const subtle = new Set([...I.SUBTLE, 'pure-crossfade']);
+  const dynamic = new Set(I.DYNAMIC);
+  assert(I.SUBTLE.length === 3 && I.DYNAMIC.length === 5,
+    'the arc transition vocabulary is unchanged (3 subtle / 5 dynamic)',
+    `${I.SUBTLE.length} / ${I.DYNAMIC.length}`);
+
+  // The bias itself, as a pure read over many draws: a chorus boundary must
+  // win every time even against a cold act, and a breakdown even against a
+  // hot one. This is the assertion that the cue is real and not decorative.
+  const allSubtle = [];
+  const allDynamic = [];
+  for (let i = 0; i < 200; i++) {
+    allSubtle.push(I.pickTransition(0.95, 0.95, { cls: 'subtle' }));   // hot act
+    allDynamic.push(I.pickTransition(0.05, 0.05, { cls: 'dynamic' })); // cold act
+  }
+  assert(allSubtle.every((n) => subtle.has(n)),
+    'a subtle cue overrides a hot act (soft transition cue honoured)', allSubtle[0]);
+  assert(allDynamic.every((n) => dynamic.has(n)),
+    'a dynamic cue overrides a cold act (soft transition cue honoured)', allDynamic[0]);
+
+  // A neutral or absent cue must leave the original warmth/intensity rule
+  // exactly as it was: the cue is additive, never a replacement.
+  const cold = new Set();
+  const hot = new Set();
+  for (let i = 0; i < 200; i++) {
+    cold.add(I.pickTransition(0.1, 0.1, null));
+    cold.add(I.pickTransition(0.1, 0.1, { cls: null }));
+    hot.add(I.pickTransition(0.9, 0.9, null));
+  }
+  assert([...cold].every((n) => subtle.has(n)),
+    'with no cue a cold act still picks subtle', [...cold].join(' / '));
+  assert([...hot].every((n) => dynamic.has(n)),
+    'with no cue a hot act still picks dynamic', [...hot].join(' / '));
+
+  // Arming: an event-shaped detail, with and without usable confidence.
+  ARC.onSectionChange({ detail: { from: 'intro', to: 'chorus', confidence: 0.8, novelty: 0.12 } });
+  assert(ARC.sectionCue && ARC.sectionCue.to === 'chorus',
+    'a confident chorus boundary arms the cue', ARC.sectionCue && ARC.sectionCue.to);
+  assert(ARC.sectionCue && ARC.sectionCue.cls === 'dynamic',
+    'the armed cue carries the class the picker reads', ARC.sectionCue && ARC.sectionCue.cls);
+
+  // Reading does not consume.
+  assert(ARC.sectionCue !== null, 'reading sectionCue does not consume it');
+
+  ARC.onSectionChange({ detail: { from: 'chorus', to: 'verse', confidence: 0.9 } });
+  assert(ARC.sectionCue && ARC.sectionCue.to === 'chorus',
+    'a neutral section (verse) does not overwrite a live cue',
+    ARC.sectionCue && ARC.sectionCue.to);
+
+  ARC.onSectionChange({ detail: { from: 'chorus', to: 'breakdown', confidence: 0.1 } });
+  assert(ARC.sectionCue && ARC.sectionCue.to === 'chorus',
+    'a low-confidence boundary cannot arm or replace a cue',
+    ARC.sectionCue && ARC.sectionCue.to);
+
+  ARC.onSectionChange({ detail: { from: 'chorus', to: 'nonsense', confidence: 0.9 } });
+  assert(ARC.sectionCue && ARC.sectionCue.to === 'chorus',
+    'an unknown section name does not arm a cue',
+    ARC.sectionCue && ARC.sectionCue.to);
+
+  // One shot: consumed by an act transition, and only by one. Drive the real
+  // tick() over a real three-act arc (sampleAt needs acts and a duration),
+  // with a transitions stub that records what was fired. Every act is COLD
+  // (warmth/intensity 0.1), so a dynamic pick can only come from the cue.
+  ARC.onSectionChange({ detail: { from: 'intro', to: 'chorus', confidence: 0.8 } });
+  const fired = [];
+  // The catalog must actually CONTAIN the pick, or fireActTransition bails on
+  // its "unknown name -> skip, never reject" guard and nothing is recorded.
+  // Alias targets (pure-crossfade) are listed too, since the picker may
+  // normalise 'cross-dissolve' before the lookup.
+  const catalogNames = [...I.SUBTLE, ...I.DYNAMIC, 'pure-crossfade'];
+  win.SWRTransitions = {
+    _TRANSITIONS: catalogNames.reduce((acc, n) => { acc[n] = {}; return acc; }, {}),
+    fire(name) {
+      fired.push(name);
+      return Promise.resolve();
+    },
+  };
+  const coldAct = { anchorId: 'a', coords: { warmth: 0.1, intensity: 0.1 }, preset: null, rampMs: 0 };
+  const arc = {
+    duration: 15,
+    acts: [
+      Object.assign({ t0: 0, t1: 5 }, coldAct),
+      Object.assign({ t0: 5, t1: 10 }, coldAct),
+      Object.assign({ t0: 10, t1: 15 }, coldAct),
+    ],
+  };
+
+  ARC.tick(arc, 1); // arms tracking on act 0, no boundary crossed
+  ARC.tick(arc, 2); // still act 0
+  assert(fired.length === 0, 'an armed cue fires nothing on its own (soft)', fired.length);
+  assert(ARC.sectionCue !== null, 'the cue survives ticks that cross no boundary');
+
+  ARC.tick(arc, 6); // crosses act 0 -> act 1: the one transition
+  assert(fired.length === 1, 'the act boundary fired exactly one transition', fired.length);
+  assert(dynamic.has(fired[0]),
+    'the armed chorus cue made a cold act fire dynamic', fired[0]);
+  assert(ARC.sectionCue === null,
+    'the act transition consumed the cue (one shot)', ARC.sectionCue);
+
+  ARC.tick(arc, 7); // still act 1, cue already spent
+  assert(fired.length === 1, 'no second transition inside the same act', fired.length);
+
+  ARC.tick(arc, 11); // crosses act 1 -> act 2 with nothing armed
+  assert(fired.length === 2, 'the next act boundary fires from the plan', fired.length);
+  assert(subtle.has(fired[1]),
+    'with the cue spent, a cold act is subtle again', fired[1]);
+
+  delete win.SWRTransitions;
+
+  // End to end: boundaries published by the REAL detector on the REAL event
+  // reach the arc. The fixture's boundaries land on intro -> chorus and
+  // chorus -> verse; only the first has an opinion, so the armed cue must be
+  // exactly that one, or null if the detector's damped confidence held it back.
+  S.reset();
+  ARC.onSectionChange({ detail: { from: 'x', to: 'breakdown', confidence: 0 } }); // no-op
+  drive(TOTAL_BEATS, 1, () => {});
+  const published = win.SWR_SECTIONS.map((s) => s.name);
+  const cue = ARC.sectionCue;
+  assert(!cue || published.indexOf(cue.to) >= 0,
+    'the arc cue, if armed, names a section the detector actually published',
+    `cue=${cue ? cue.to : 'null'} published=${published.join(' / ')}`);
+
+  // A song swap must not leave the previous song's opinion armed. The
+  // detector empties its map on reset() and says so on `swr-section-reset`,
+  // which is a SEPARATE event from `swr-section-change` precisely so no
+  // existing consumer has to learn to parse an empty boundary.
+  const changeEvents = [];
+  const resetEvents = [];
+  win.addEventListener('swr-section-change', (ev) => changeEvents.push(ev.detail));
+  win.addEventListener('swr-section-reset', (ev) => resetEvents.push(ev.detail));
+  ARC.onSectionChange({ detail: { from: 'chorus', to: 'breakdown', confidence: 0.9 } });
+  assert(ARC.sectionCue !== null, 'a cue is armed before the swap', ARC.sectionCue.to);
+
+  S.reset();
+  assert(resetEvents.length === 1, 'reset() dispatches exactly one swr-section-reset', resetEvents.length);
+  assert(resetEvents[0] && resetEvents[0].reason === 'reset',
+    'the reset event names its reason', resetEvents[0] && resetEvents[0].reason);
+  assert(resetEvents[0] && typeof resetEvents[0].dropped === 'string',
+    'the reset event names the section it dropped', resetEvents[0] && resetEvents[0].dropped);
+  assert(changeEvents.length === 0,
+    'reset() fires NO swr-section-change (an empty map is not a boundary)', changeEvents.length);
+  assert(ARC.sectionCue === null,
+    'the arc dropped the stale cue across the song swap', ARC.sectionCue);
+  assert(ARC.lastResetReason === 'reset',
+    'the arc records why it dropped the cue', ARC.lastResetReason);
+}
+
 // ── summary ────────────────────────────────────────────────────────────────
 console.log('');
 console.log(`PASS: ${pass}`);

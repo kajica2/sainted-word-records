@@ -331,7 +331,8 @@
         $('gitBranch').textContent = '—';
         $('gitStatus').textContent = 'unavailable';
         dot($('gitDot'), 'bad');
-        $('gitNote').textContent = git.error;
+        $('gitNote').textContent = 'GitHub did not answer — ' + git.error +
+          '. Setting GITHUB_TOKEN on the deployment raises the rate limit and enables the actions above.';
         return;
       }
       $('gitBranch').textContent = git.branch;
@@ -344,7 +345,18 @@
     }
 
     function renderPipeline(git) {
-      if (!git || git.error) return;
+      if (!git) return;
+      if (git.error) {
+        // GitHub did not answer. Say so on the card rather than leaving it
+        // blank, so an empty card is never mistaken for an idle pipeline.
+        $('pipeStatus').textContent = 'unavailable';
+        dot($('pipeDot'), 'bad');
+        $('pipeNote').textContent = 'GitHub did not answer — ' + git.error;
+        var box = $('pipeLog');
+        box.innerHTML = '';
+        log(box, 'error', 'pipeline unavailable — ' + git.error);
+        return;
+      }
       var runs = git.runs || [];
       var done = runs.filter(function (r) { return r.status === 'completed'; });
       var last = runs[0];

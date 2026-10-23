@@ -371,6 +371,7 @@
   <script src="../lib/library-persist.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
 <script src="/lib/ease.js"></script>
+<script src="/lib/apply-reactors.js"></script>
   <script src="../engine-render.client.js"></script>
 
   <!-- Automix + asset-curator stack (Phase 2 port from music_video) -->
@@ -1016,50 +1017,46 @@ d.addEventListener('click', (e) => {
       W = m.cssW; H = m.cssH;
       ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
     }
+    // The reactor loop now lives once in the shared /lib/apply-reactors.js
+    // contract (plan P1.1). This page's historical per-target unit table is
+    // SWR_REACTORS.UNITS.grid; the clamp table, the target dispatch,
+    // the rotation gate and the missing-target fallback are the shared ones,
+    // so there is no second copy of any of them on this page any more. See
+    // lib/apply-reactors.js for the full contract, for why the per-surface
+    // unit tables still exist, and for exactly what the unification changes.
+    const RX = window.SWR_REACTORS;
     function applyR(l) {
-      const sens=A.params.sens;
-      const out = { scale:l.baseScale, x:0, y:0, rot:0, opacity:l.opacity, hue:l.hue, brightness:l.brightness, contrast:l.contrast };
-
-      // Master transformations toggle (swr-tx-master, ⏸): when the user has
-      // muted all audio reactors globally, skip the entire reactor loop and
-      // return the static baseScale/opacity/hue/etc. shape. Per-layer
-      // override: l.reactorsEnabled = true re-enables reactors for that
-      // layer even when the master is OFF (checked first, so the layer
-      // opt-out survives the global mute).
+      const out = RX.baseTransform(l);
+      // The narrative drift bias below reads `sens` directly, so this page
+      // keeps the local the old applyR used to declare.
+      const sens = A.params.sens;
+      // Master transformations toggle (swr-tx-master, the pause glyph): when
+      // the user has muted all audio reactors globally, skip the reactor loop
+      // and return the static baseScale/opacity/hue/etc. shape. Per-layer
+      // override: l.reactorsEnabled = true re-enables reactors for that layer
+      // even when the master is OFF (checked first, so the layer opt-out
+      // survives the global mute).
       const _txOn = (l.reactorsEnabled !== false)
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
       if (!_txOn) return out;
-      // Mirror the engine.html pattern: rot-target reactors are silenced
-      // by the per-layer rotationEnabled toggle. Without this guard the
-      // angle accumulates frame-to-frame and the layer tumbles even when
-      // the user has explicitly turned rotation off.
-      const _rotOn = l.rotationEnabled === true;  // rotation is ON by default (the rot-master defaults to enabled); when false, reactors targeting 'rot' are silenced
-      for (const r of l.reactors) {
-        let v = A.feat[r.feature] ?? 0;
-        v = ease(r.ease, clamp(v,0,1)) * r.scale * sens;
-        if (l.mutate > 0) v += (_rnd() - 0.5) * 2 * l.mutate * Math.abs(r.scale);
-        if (r.target==='scale') out.scale += v;
-        else if (r.target==='opacity') out.opacity = clamp(out.opacity * (1 - v) + (v>0?1:0), 0, 1);
-        else if (r.target==='hue') out.hue += v * 180;
-        else if (r.target==='rot') { if (_rotOn) out.rot += v * 12; }
-      }
-      // Wrap accumulated rot into (-180, 180] so it stays continuous across many audio frames.
-      // The previous asin(sin(x)) clamp produced sign flips every ~180° of accumulation,
-      // which read as the layer "tumbling" / facing the wrong direction. The new formula
-      // ((x + 540) % 360) - 180 preserves the angle sign and only wraps at the +/-180° boundary
-      // so rotation stays continuous.
-      if (out.rot) out.rot = ((out.rot + 540) % 360) - 180;
+      RX.applyReactor(l, A, 0, {
+        base: out,
+        units: RX.UNITS.grid,
+        ease: ease,
+        random: _rnd,
+        // The rot-master toggle (swr-rot-master): when rotation is OFF for
+        // this layer, rot-target reactors are silenced so audio cannot
+        // compound the canvas into 180-degree flips. Rotation is ON by
+        // default (the rot-master defaults to enabled).
+        allowRotation: l.rotationEnabled === true
+      });
 
-      // Narrative-state drift bias (ADR-001 rollout): biases layer
-      // position by the song's accumulated drift walker. Guarded by
-      // if (window.SWR_NARRATIVE) so applyR is no-op without the module.
       if (window.SWR_NARRATIVE) {
         const n = window.SWR_NARRATIVE;
         const phase = n.phaseMultiplier((A.el && A.el.duration) || 0);
         out.x += n.state.drift.x * phase.driftAmp * sens * 80 * n.getMicroAmp();
         out.y += n.state.drift.y * phase.driftAmp * sens * 60 * n.getMicroAmp();
       }
-
       out._v = "0";
       return out;
     }

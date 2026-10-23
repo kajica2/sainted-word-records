@@ -39,8 +39,25 @@ const SKIP_PREFIXES = ['_candidates'];
 //     standalone paused-timeline render asset with no page chrome
 //     (check-site-chrome.mjs ignores the dir for that reason) and it does not
 //     ship, so listing it would only add a dead link to sitemap.html.
-const NOT_DEPLOYED = new Set(['market-study.html', 'profit-plan.html', 'engine-ar-loop.html']);
-const NOT_DEPLOYED_PREFIXES = ['scripts/', 'packs/covers/'];
+//   booking.html / super-admin.html — tracked, but neither is in site-map's
+//     nav/tools/unlisted, so vite's copy-static never copies them into dist/
+//     and no rewrite points at them. (/bookings → bookings.html IS the
+//     shipped route; booking.html is a stray sibling with no route.)
+//   pages/** — standalone reference/tool pages with no shared chrome. They
+//     are not in site-map and vite ships no `pages/` directory, so they never
+//     reach dist/; listing them in `discovered` would render dead links on
+//     sitemap.html (check-dist-links asserts every site-map entry resolves).
+//   swr-pipeline/** — the internal pipeline-engineer dashboard, reachable
+//     locally only (check-site-chrome.mjs ignores the dir for that reason).
+//
+// Each of these was found by the rebuild itself: the `discovered` bucket is
+// derived from the tracked tree, and the five files above are tracked but
+// have no deploy route. The bucket must only name pages that resolve.
+const NOT_DEPLOYED = new Set([
+  'market-study.html', 'profit-plan.html', 'engine-ar-loop.html',
+  'booking.html', 'super-admin.html',
+]);
+const NOT_DEPLOYED_PREFIXES = ['scripts/', 'packs/covers/', 'pages/', 'swr-pipeline/'];
 const isNotDeployed = (f) => NOT_DEPLOYED.has(f) || NOT_DEPLOYED_PREFIXES.some((p) => f.startsWith(p));
 
 // Load existing site-map.json

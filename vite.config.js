@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 import { handleApi } from './scripts/dev-api.mjs';
+import { PACKS_MANIFEST, normalizeBase, rewriteManifest } from './scripts/lib/packs-offsite.mjs';
 
 // Load site-map.json to generate rootFiles dynamically. This avoids
 // maintaining a brittle manual list of ~150 files. Falls back to empty
@@ -710,7 +711,9 @@ function copyStatic() {
     { src: 'default-library', dst: 'default-library' },
     // Opt-in curated media packs (packs/manifest.json + packs/<name>/*).
     // Tracked in git, unlike library/ which is gitignored and stripped.
-    { src: 'packs', dst: 'packs' },
+    // `offsite: true` marks the one directory that can be served from an
+    // off-site host instead of the deploy — see PACKS_BASE below.
+    { src: 'packs', dst: 'packs', offsite: true },
     // The layer scheduler worker is fetched from /versions/<file>
     // (not /<file>) because the engine's worker init resolves the URL
     // relative to the engine page's directory. Ship a copy in both
@@ -789,18 +792,48 @@ function copyStatic() {
     // PRDs and audit notes that must stay out of the deploy.
     { src: 'docs/atlas-assets', dst: 'docs/atlas-assets' },
   ];
-  // Style preview thumbnails referenced from versions/*.html (13 small PNGs)
-  const styleThumbs = ['neon','film','grid','smoke','hallucination',
-                       'glitch','aurora','pulse','void','chrome','watercolor','fractal',
-                       'eclipse'].map((n) => ({
-    src: resolve('verify-screenshots', n + '.png'),
-    dst: resolve(outDir, 'verify-screenshots', n + '.png'),
-  }));
+  // Style preview thumbnails referenced from versions/*.html (13 small PNGs).
+  // Resolved inside doCopy(), not at plugin creation: outDir is only known
+  // after configResolved(), so a build with a custom --outDir used to copy
+  // the thumbs into dist/ and leave the real output without them.
+  const styleThumbNames = ['neon','film','grid','smoke','hallucination',
+                            'glitch','aurora','pulse','void','chrome','watercolor','fractal',
+                            'eclipse'];
   function doCopy() {
     const log = (m) => process.stdout.write('[copy-static] ' + m + '\n');
     log('outDir = ' + outDir);
-    for (const { src, dst } of dirs.map((d) => ({ src: resolve(d.src), dst: resolve(outDir, d.dst) }))) {
+    // PACKS_BASE points the curated packs at an off-site host. When it is
+    // set, the build ships ONLY packs/manifest.json (rewritten to point
+    // there) and the 582 media files — 39.6 MB — stay out of the deploy.
+    // Unset, the whole directory ships exactly as before, so the local
+    // build, the CI build and the dev server are unchanged.
+    const packsBase = normalizeBase(process.env.PACKS_BASE || '');
+    for (const d of dirs) {
+      const src = resolve(d.src);
+      const dst = resolve(outDir, d.dst);
       if (!existsSync(src)) continue;
+      if (d.offsite && packsBase && statSync(src).isDirectory()) {
+        const manifestSrc = resolve(PACKS_MANIFEST);
+        if (!existsSync(manifestSrc)) {
+          log('packs: PACKS_BASE is set but ' + PACKS_MANIFEST + ' is missing — copied nothing');
+          continue;
+        }
+        mkdirSync(dst, { recursive: true });
+        writeFileSync(
+          join(dst, 'manifest.json'),
+          rewriteManifest(readFileSync(manifestSrc, 'utf8'), packsBase),
+        );
+        // The closeBundle copy runs after Vite's copyPublicDir, and a
+        // stale public/packs/ (gitignored, but present on some dev
+        // machines) would otherwise put the media back into the build.
+        // The manifest-only build must be exactly that: manifest only.
+        for (const name of readdirSync(dst)) {
+          if (name === 'manifest.json') continue;
+          rmSync(join(dst, name), { recursive: true, force: true });
+        }
+        log('packs: manifest only — the media is served from ' + packsBase);
+        continue;
+      }
       if (statSync(src).isDirectory()) {
         copyDirRecursive(src, dst);
       } else {
@@ -811,7 +844,9 @@ function copyStatic() {
     // The curated library/ copy is done in closeBundle (after Vite's
     // copyPublicDir has run) so the public/library/ mirror doesn't
     // overwrite it.
-    for (const { src, dst } of styleThumbs) {
+    for (const n of styleThumbNames) {
+      const src = resolve('verify-screenshots', n + '.png');
+      const dst = resolve(outDir, 'verify-screenshots', n + '.png');
       if (!existsSync(src)) continue;
       mkdirSync(dirname(dst), { recursive: true });
       copyFileSync(src, dst);

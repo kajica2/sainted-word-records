@@ -23,6 +23,45 @@
 //     (window.SWRTransitions.fire) the first tick an act boundary is crossed.
 //   arc.acts → [{ t0, t1, anchorId, coords, preset, rampMs }]
 //
+// Section cue (plan P1.3, architecture-audit-2026-10)
+//   client/section-detector.client.js detects a boundary LIVE, from the
+//   engine's own audio features, and announces it as `swr-section-change`.
+//   The arc is built OFFLINE from a decoded buffer, so the two never meet on
+//   the data path: the arc knows where its acts are, the detector knows what
+//   the material just changed into, and nothing connected them. This is the
+//   connection, and it is deliberately SOFT:
+//
+//     - a section boundary NEVER fires a transition. Only an act boundary
+//       does, exactly as before. The detector can retime nothing and break
+//       nothing: with no arc on the page (or no act boundary ahead) a
+//       boundary has no effect at all.
+//     - a boundary only BIASES which transition the next act boundary picks.
+//       Entering a chorus biases toward the dynamic vocabulary; entering a
+//       breakdown, intro or outro biases toward the subtle one; a verse or
+//       prechorus is neutral and leaves the act's own warmth/intensity to
+//       decide, because the act plan is a better signal there.
+//     - the cue is ONE SHOT. The next act transition consumes it, so a busy
+//       section with four boundaries cannot stack four votes into one pick.
+//     - a boundary the detector is not confident about does not arm a cue at
+//       all, at the same 0.5 threshold client/automix.client.js's own
+//       tickSection() hysteresis already uses.
+//
+//   window.SWR_AUTOMIX_ARC.onSectionChange(detail)   the listener, also
+//       callable directly (a page that republishes boundaries itself).
+//   window.SWR_AUTOMIX_ARC.sectionCue               the armed cue, or null.
+//   window.SWR_AUTOMIX_ARC.lastResetReason          why the last cue was
+//       dropped ('gap' / 'silence' / 'reset'), or null if none was.
+//
+//     `swr-section-reset` is a SEPARATE event from `swr-section-change`, and
+//     deliberately so: it fires when the detector empties its map (a song
+//     swap, a seek, a hole in the clock, the end of a track) and carries
+//     { reason, dropped }. Dressing an empty map up as a boundary to a chorus
+//     would be a lie, and other consumers already parse detail.to. The arc
+//     uses it to drop an armed cue, so a cue from the previous song cannot
+//     bias the new song's first act boundary.
+//   window.SWR_AUTOMIX_ARC._internals.pickTransition(warmth, intensity, cue)
+//       the pure picker, so the bias is testable without a page.
+//
 // Movement budget: consecutive acts must differ by ≥ ARC_MIN_DISPLACEMENT
 // (0.25 Euclidean on the anchor map) — the executable form of "changes over
 // time are visible". build() returns null if the map can't satisfy it.
@@ -317,13 +356,92 @@
   // samples, and the first tick an act boundary is crossed fires the
   // inter-act transition. Tracking lives on the arc object, so a rebuilt
   // arc (new song) arms fresh with no extra bookkeeping.
-  function pickTransition(warmth, intensity) {
-    if (warmth < 0.3 || intensity < 0.3) {
-      var subtle = ['fade-to-black', 'cross-dissolve', 'warp-dissolve'];
-      return subtle[Math.floor(Math.random() * subtle.length)];
+  // ---- section cue (live detector -> offline arc) --------------------------
+  // Which vocabulary a section argues for. verse/prechorus are deliberately
+  // absent: they map to null, i.e. "no opinion", because the act plan's own
+  // warmth/intensity is a better signal through the middle of a song.
+  var SECTION_CLASS = {
+    chorus: 'dynamic',
+    breakdown: 'subtle',
+    intro: 'subtle',
+    outro: 'subtle',
+  };
+
+  // Same threshold client/automix.client.js uses to accept a label, so the
+  // arc never trusts a boundary automix has already refused.
+  var MIN_CUE_CONFIDENCE = 0.5;
+
+  var SUBTLE = ['fade-to-black', 'cross-dissolve', 'warp-dissolve'];
+  var DYNAMIC = ['glitch-burst', 'chromatic-split', 'circle-wipe', 'linear-wipe-lr', 'vhs-tracking'];
+
+  var pendingCue = null;
+
+  function clamp01(v) {
+    return v < 0 ? 0 : (v > 1 ? 1 : v);
+  }
+
+  // Arm the one-shot cue from a `swr-section-change` detail. A boundary with
+  // no usable name, or one the detector is unsure about, leaves whatever was
+  // already armed alone: it does not clear a good cue with a weak one.
+  function noteSection(detail) {
+    var d = detail || {};
+    var to = d.to;
+    if (!to || !SECTION_CLASS[to]) return pendingCue;
+    var conf = (typeof d.confidence === 'number' && isFinite(d.confidence)) ? d.confidence : 0;
+    if (conf < MIN_CUE_CONFIDENCE) return pendingCue;
+    pendingCue = {
+      from: d.from || null,
+      to: to,
+      cls: SECTION_CLASS[to],
+      confidence: clamp01(conf),
+      novelty: (typeof d.novelty === 'number' && isFinite(d.novelty)) ? d.novelty : 0,
+      tMs: (typeof d.tMs === 'number' && isFinite(d.tMs)) ? d.tMs : 0,
+    };
+    return pendingCue;
+  }
+
+  function onSectionChange(ev) {
+    var d = (ev && ev.detail) ? ev.detail : ev;
+    try {
+      noteSection(d);
+    } catch (_) { /* a cue is a hint: never let it break the render loop */ }
+  }
+
+  function onSectionReset(ev) {
+    var d = (ev && ev.detail) ? ev.detail : {};
+    try {
+      // The analysis that produced this cue has ended: a song swap, a seek, a
+      // hole in the clock, or the end of the track. An armed cue from the
+      // previous stream would otherwise bias the new song's first act
+      // boundary, which is the one boundary where a stale opinion is least
+      // defensible.
+      pendingCue = null;
+      lastResetReason = d.reason || 'reset';
+    } catch (_) { /* ignore */ }
+  }
+
+  var lastResetReason = null;
+
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    try {
+      window.addEventListener('swr-section-change', onSectionChange);
+      window.addEventListener('swr-section-reset', onSectionReset);
+    } catch (_) { /* no event surface: the arc simply runs cue-less */ }
+  }
+
+  function pickTransition(warmth, intensity, cue) {
+    // The cue has an opinion and the act plan does not get a say. One vote,
+    // consumed by the caller.
+    if (cue && cue.cls === 'subtle') {
+      return SUBTLE[Math.floor(Math.random() * SUBTLE.length)];
     }
-    var dynamic = ['glitch-burst', 'chromatic-split', 'circle-wipe', 'linear-wipe-lr', 'vhs-tracking'];
-    return dynamic[Math.floor(Math.random() * dynamic.length)];
+    if (cue && cue.cls === 'dynamic') {
+      return DYNAMIC[Math.floor(Math.random() * DYNAMIC.length)];
+    }
+    if (warmth < 0.3 || intensity < 0.3) {
+      return SUBTLE[Math.floor(Math.random() * SUBTLE.length)];
+    }
+    return DYNAMIC[Math.floor(Math.random() * DYNAMIC.length)];
   }
 
   // The plan's picker names 'cross-dissolve'; the shipped vocabulary calls
@@ -335,7 +453,14 @@
     var tx = (typeof window !== 'undefined') && window.SWRTransitions;
     if (!tx || typeof tx.fire !== 'function') return;
     var coords = sample.coords || {};
-    var name = pickTransition(coords.warmth, coords.intensity);
+    // Consume the armed cue here, not in pickTransition(): pickTransition is
+    // a pure read that the unit gate calls directly, and a pure function
+    // must not be able to spend a one-shot. Whether or not the name resolves
+    // to a catalog entry below, the vote is spent either way, so the next act
+    // boundary is decided by the plan again.
+    var cue = pendingCue;
+    pendingCue = null;
+    var name = pickTransition(coords.warmth, coords.intensity, cue);
     if (TRANSITION_ALIASES[name]) name = TRANSITION_ALIASES[name];
     var catalog = tx._TRANSITIONS;
     if (catalog && !catalog[name]) return; // unknown → skip, never reject
@@ -367,6 +492,25 @@
     build: build,
     sampleAt: sampleAt,
     tick: tick,
+    // Live section cue (plan P1.3). onSectionChange is the `swr-section-change`
+    // listener and is also callable directly; sectionCue is the armed vote, or
+    // null. Reading it does not consume it: only an act transition spends it.
+    onSectionChange: onSectionChange,
+    onSectionReset: onSectionReset,
+    get sectionCue() {
+      return pendingCue;
+    },
+    get lastResetReason() {
+      return lastResetReason;
+    },
+    _internals: {
+      pickTransition: pickTransition,
+      noteSection: noteSection,
+      SECTION_CLASS: SECTION_CLASS,
+      MIN_CUE_CONFIDENCE: MIN_CUE_CONFIDENCE,
+      SUBTLE: SUBTLE,
+      DYNAMIC: DYNAMIC,
+    },
     // Generic analysis for pages whose Audio object lacks .analyzeFull
     // (the variant stubs, e.g. tape). Ensures audio-analysis-v2.js is
     // loaded (variants don't ship it), fetches the element's src (blob

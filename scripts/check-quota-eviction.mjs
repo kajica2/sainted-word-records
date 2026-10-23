@@ -51,7 +51,11 @@ import http from 'node:http';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const MODULE_PATH = join(ROOT, 'lib/media-store.client.js');
-const PORT = 5197;
+// An ephemeral port by default: a fixed one collides with whatever else the
+// machine happens to be serving, and the gate then fails on EADDRINUSE
+// before it asserts anything (it did exactly that against a stray server
+// from an unrelated repo on 5197). Set QUOTA_EVICTION_PORT to pin one.
+const PORT = Number(process.env.QUOTA_EVICTION_PORT || 0);
 
 const moduleSrc = readFileSync(MODULE_PATH, 'utf8');
 
@@ -118,6 +122,7 @@ server.on('error', (err) => {
   process.exit(1);
 });
 await new Promise((resolve) => server.listen(PORT, '127.0.0.1', resolve));
+const boundPort = server.address().port;
 
 let browser;
 try {
@@ -136,7 +141,7 @@ page.on('pageerror', (e) => pageErrors.push(String(e && e.message)));
 // The auto-clean path logs console.warn on purpose; only page errors matter.
 page.on('console', (m) => { if (m.type() === 'error') pageErrors.push(m.text()); });
 
-await page.goto('http://127.0.0.1:' + PORT + '/', { waitUntil: 'domcontentloaded' });
+await page.goto('http://127.0.0.1:' + boundPort + '/', { waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => !!window.SWR_MEDIA, { timeout: 15000 });
 
 // Everything below runs in the page: the fault injector, the fixture and

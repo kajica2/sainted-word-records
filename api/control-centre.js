@@ -26,7 +26,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { readJson, writeJson, withLock, health, DATA_ROOT } from './_lib/db.js';
-import { send, sendJson, setCors, readJsonBody } from './_lib/http.js';
+import { send, sendJson, setCors, readJsonBody, appOrigin } from './_lib/http.js';
 
 const REPO = 'kajica2/sainted-word-records';
 const GH = 'https://api.github.com';
@@ -115,7 +115,17 @@ async function gh(pathname, init = {}) {
   if (TOKEN) headers.Authorization = `Bearer ${TOKEN}`;
   const res = await fetch(GH + pathname, { ...init, headers: { ...headers, ...(init.headers || {}) } });
   if (!res.ok) {
-    const err = new Error(`github ${res.status}`);
+    // Unauthenticated reads get 60 requests an hour per IP, and a serverless
+    // deployment shares its egress IP. Say that, rather than "github 403".
+    let detail = `github ${res.status}`;
+    if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
+      const reset = Number(res.headers.get('x-ratelimit-reset')) * 1000;
+      const mins = reset ? Math.max(1, Math.round((reset - Date.now()) / 60000)) : null;
+      detail = mins
+        ? `github rate limit reached (60/hour unauthenticated), resets in ~${mins} min`
+        : 'github rate limit reached (60/hour unauthenticated)';
+    }
+    const err = new Error(detail);
     err.status = res.status;
     throw err;
   }
@@ -262,26 +272,6 @@ async function stopRuns() {
   return { ok: true, cancelled, message: cancelled.length ? `Cancelled ${cancelled.length} run(s).` : 'No runs were in flight.' };
 }
 
-// ── the site's own origin ─────────────────────────────────────────────────
-// The health probe fetches the site's own pages, so it needs the origin
-// the site is actually served from.
-//
-// The Origin header is deliberately NOT used here. A same-origin GET does
-// not send one, so it would be absent exactly when it matters — and it is
-// caller-controlled, so following it would turn the probe into a request to
-// wherever the caller asked. The platform's forwarded headers are the
-// trustworthy source.
-function siteOrigin(req) {
-  const fwdProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
-  const fwdHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
-  const host = fwdHost || req.headers.host || 'sainted-word-records.vercel.app';
-  // Behind Vercel the socket is plain HTTP (TLS is terminated upstream) and
-  // x-forwarded-proto carries the real scheme. Locally there is no forwarded
-  // header, and the socket tells the truth.
-  const proto = fwdProto || (req.socket && req.socket.encrypted ? 'https' : 'http');
-  return `${proto}://${host}`;
-}
-
 // ── handler ───────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -301,7 +291,10 @@ export default async function handler(req, res) {
     action = q.get('action') || 'status';
   } catch (e) { /* keep the default */ }
 
-  const site = siteOrigin(req);
+  // The site's own origin, from the platform's forwarded headers — not from
+  // the caller's Origin header, which is caller-controlled and absent on a
+  // same-origin GET anyway.
+  const site = appOrigin(req);
 
   try {
     if (action === 'status') {
@@ -318,7 +311,8 @@ export default async function handler(req, res) {
     }
 
     if (action === 'git') {
-      return sendJson(res, 200, { ok: true, at: nowIso(), git: await gitInfo() });
+      const git = await gitInfo().catch((e) => ({ error: e.message }));
+      return sendJson(res, 200, { ok: !git.error, at: nowIso(), git });
     }
 
     if (action === 'health') {

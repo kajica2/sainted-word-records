@@ -30,11 +30,15 @@ import { dirname, resolve } from 'node:path';
 import { ensureDist, serveDist } from './with-dist.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const PORT = Number(process.env.VARIANTS_SMOKE_PORT || 5392);
-const BASE = `http://127.0.0.1:${PORT}`;
+// Port 0 binds an ephemeral port. A fixed port can be handed to an
+// unrelated outbound connection by the OS, and the smoke then dies with
+// EADDRINUSE before it asserts anything. Set VARIANTS_SMOKE_PORT to pin one.
+const PORT = Number(process.env.VARIANTS_SMOKE_PORT || 0);
 
 ensureDist();
-const { close } = await serveDist(PORT);
+const served = await serveDist(PORT);
+const BASE = served.url;
+const close = served.close;
 
 const results = [];
 function ok(name) { results.push('  ✓ ' + name); }

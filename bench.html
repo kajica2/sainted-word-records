@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bench &amp; Sync Lab · SWR</title>
+<meta name="description" content="Benchmark the preset editor: frame rate, A/V sync through a timestamped ring buffer, versioned performance reports and a heuristic advisor that applies its own optimizations." />
+<meta name="color-scheme" content="dark" />
+<meta property="og:title" content="Bench &amp; Sync Lab · SWR" />
+<meta property="og:description" content="Frame rate, A/V sync, versioned reports and an advisor that applies its own optimizations." />
+<meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+<link rel="canonical" href="https://sainted-word-records.vercel.app/bench" />
+<link rel="stylesheet" href="/lib/design-tokens.css" />
+<link rel="stylesheet" href="/lib/components.css" />
+<script src="/lib/nav.client.js" defer></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305070c'/%3E%3Cpath d='M6 22 L11 10 L16 18 L21 10 L26 22' stroke='%234de3d0' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+  /* The lab's own palette, scoped to body.swr-bench so it does not fight the
+     shared tokens the nav and the footer read. */
+  body.swr-bench{
+    --bg:#05070c; --panel:#0b1018; --panel2:#0e1622; --line:#1b2432;
+    --txt:#dfe9f5; --dim:#7c8ca3; --neon:#4de3d0; --neon2:#ff4fd8; --warn:#ffb454;
+    --ice:#8fd4ff; --ok:#57e39a; --bad:#ff5a5a;
+    /* shared-chrome tokens, dark */
+    --bg-2:#0b1018; --bg-3:#0e1622; --line-2:#2a3a4e;
+    --ink:#dfe9f5; --ink-2:#a9b8cb; --muted:#7c8ca3;
+    --accent:#4de3d0; --accent-2:#ff4fd8; --accent-3:#ffb454;
+  }
+  *{box-sizing:border-box}
+  html,body{min-height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--txt);
+    font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    display:flex; flex-direction:column;
+  }
+  header{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:9px 14px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#0a0f16,#070b11);
+  }
+  .brand{font-weight:700; letter-spacing:.16em; color:var(--neon); text-shadow:0 0 14px rgba(77,227,208,.55); white-space:nowrap}
+  .brand small{color:var(--dim); letter-spacing:.06em; font-weight:400; text-shadow:none}
+  .spacer{flex:1}
+  button,select,input[type=text]{
+    font:inherit; color:var(--txt); background:var(--panel2);
+    border:1px solid var(--line); border-radius:6px; padding:5px 8px; outline:none;
+  }
+  button{cursor:pointer; transition:.15s border-color,.15s color,.15s box-shadow}
+  button:hover{border-color:var(--neon); color:var(--neon); box-shadow:0 0 10px rgba(77,227,208,.18)}
+  button.primary{border-color:rgba(77,227,208,.55); color:var(--neon)}
+  button:disabled{cursor:not-allowed; opacity:.35; box-shadow:none}
+  button:disabled:hover{border-color:var(--line); color:var(--txt)}
+  input[type=text]:focus,select:focus{border-color:var(--neon); box-shadow:0 0 0 2px rgba(77,227,208,.12)}
+  #versionInput{width:170px}
+  .siteExit{
+    color:var(--dim); text-decoration:none; font-size:11px; letter-spacing:.1em;
+    border:1px solid var(--line); border-radius:6px; padding:5px 8px;
+  }
+  .siteExit:hover{color:var(--neon); border-color:var(--neon)}
+  .badge{
+    font-size:10px; padding:2px 8px; border-radius:10px; letter-spacing:.08em;
+    border:1px solid rgba(77,227,208,.35); color:var(--neon); display:inline-block;
+  }
+  .badge.warn{border-color:rgba(255,180,84,.4); color:var(--warn)}
+  .badge.bad{border-color:rgba(255,90,90,.4); color:var(--bad)}
+  .badge.ok{border-color:rgba(87,227,154,.4); color:var(--ok)}
+
+  main{flex:1 1 auto; display:grid; grid-template-columns:minmax(0,1fr) 460px;
+       height:calc(100vh - 190px); min-height:560px}
+  #stageWrap{position:relative; min-height:0; overflow:hidden; background:#05070c}
+  #stage{position:absolute; inset:0; width:100%; height:100%; display:block}
+  #hud{
+    position:absolute; left:12px; top:12px; display:flex; gap:10px; align-items:flex-end;
+    padding:8px 10px; border:1px solid var(--line); border-radius:7px;
+    background:rgba(6,10,16,.72); backdrop-filter:blur(6px); font-size:10.5px; color:var(--dim);
+    pointer-events:none;
+  }
+  .meter{width:22px; display:flex; flex-direction:column; gap:3px; align-items:center}
+  .meter i{display:block; width:100%; height:26px; background:#101a26; border-radius:2px; position:relative; overflow:hidden}
+  .meter i b{position:absolute; left:0; right:0; bottom:0; height:0%; background:linear-gradient(180deg,var(--neon),rgba(77,227,208,.25)); transition:height .05s linear}
+  .meter span{font-size:9px; letter-spacing:.06em}
+  #runIndicator{
+    position:absolute; right:12px; top:12px; padding:8px 12px; border-radius:7px;
+    border:1px solid rgba(255,79,216,.4); background:rgba(6,10,16,.72); backdrop-filter:blur(6px);
+    font-size:10.5px; color:var(--neon2); letter-spacing:.08em; display:none; text-align:right;
+  }
+  #runIndicator.on{display:block}
+  #runIndicator .progress{height:3px; background:#1a2230; border-radius:2px; margin-top:6px; overflow:hidden}
+  #runIndicator .progress b{display:block; height:100%; width:0%; background:var(--neon2); transition:width .1s linear; box-shadow:0 0 8px var(--neon2)}
+
+  #panel{border-left:1px solid var(--line); background:var(--panel); display:flex; flex-direction:column; min-height:0}
+  #toast{
+    position:fixed; left:50%; bottom:22px; transform:translate(-50%,14px);
+    padding:8px 15px; border-radius:7px; border:1px solid rgba(77,227,208,.45);
+    background:rgba(8,14,20,.95); color:var(--neon); font-size:11.5px;
+    opacity:0; pointer-events:none; transition:.22s; z-index:99;
+    box-shadow:0 0 22px rgba(77,227,208,.22);
+  }
+  #toast.on{opacity:1; transform:translate(-50%,0)}
+  ::-webkit-scrollbar{width:9px; height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#1c2735; border-radius:6px}
+  ::-webkit-scrollbar-thumb:hover{background:#2a3a4e}
+
+  @media (max-width:980px){
+    main{grid-template-columns:1fr; grid-template-rows:38vh 1fr}
+    #panel{border-left:none; border-top:1px solid var(--line)}
+  }
+</style>
+<script src="/lib/bench-suite.client.js" defer></script>
+<link rel="stylesheet" href="/lib/bench-suite.css">
+</head>
+<body class="swr-bench">
+<swr-nav></swr-nav>
+
+<header>
+  <a class="siteExit" href="/" title="Back to the site">← Site</a>
+  <div class="brand">SWR<small> / BENCH &amp; SYNC LAB</small></div>
+  <span class="badge ok" id="liveFpsBadge">60 fps</span>
+  <span class="badge" id="liveDriftBadge">drift 0.0 ms</span>
+  <div class="spacer"></div>
+  <input id="versionInput" type="text" placeholder="version tag (e.g. v2.1-baseline)" aria-label="Version tag">
+  <span class="badge" id="bufferBadge">◉ buffer auto</span>
+</header>
+
+<main id="app">
+  <section id="stageWrap" aria-label="Benchmark preview">
+    <canvas id="stage"></canvas>
+    <div id="hud">
+      <div class="meter"><i><b data-meter="bass"></b></i><span>BASS</span></div>
+      <div class="meter"><i><b data-meter="mid"></b></i><span>MID</span></div>
+      <div class="meter"><i><b data-meter="treble"></b></i><span>TREB</span></div>
+      <div class="meter"><i><b data-meter="rms"></b></i><span>RMS</span></div>
+      <div style="padding-left:6px; border-left:1px solid var(--line)">
+        <div id="liveDpr">dpr –</div>
+        <div id="liveCfg">cfg –</div>
+      </div>
+    </div>
+    <div id="runIndicator">
+      <div id="runLabel">running…</div>
+      <div class="progress"><b id="runBar"></b></div>
+    </div>
+  </section>
+
+  <aside id="panel" aria-label="Benchmark panel"></aside>
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   SWR · BENCH & SYNC LAB — a thin host over the shared suite
+   (lib/bench-suite.client.js). The lab owns what it DRAWS; the suite
+   owns the buffer, the measurement, the reports and the advisor.
+   ============================================================ */
+/* ---------- utils ---------- */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+const variance = arr => {
+  if (arr.length < 2) return 0;
+  const m = arr.reduce((s, x) => s + x, 0) / arr.length;
+  return arr.reduce((s, x) => s + (x - m) ** 2, 0) / arr.length;
+};
+const pct = (sorted, p) => {
+  if (!sorted.length) return 0;
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
+};
+const computeStats = arr => {
+  if (!arr.length) return null;
+  const sorted = [...arr].sort((a, b) => a - b);
+  const mean = arr.reduce((s, x) => s + x, 0) / arr.length;
+  const sd = Math.sqrt(variance(arr));
+  return { mean, sd, p50: pct(sorted, 0.5), p95: pct(sorted, 0.95), p99: pct(sorted, 0.99) };
+};
+const uid = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1700);
+}
+
+
+/* ---------- demo synth (the editor's signal) ---------- */
+function demoSynth(t) {
+  const bpm = 120;
+  const beat = (t * bpm / 60) % 1;
+  const phrase = (t * bpm / 60) % 4;
+  const pulse = Math.exp(-beat * 5.5);
+  // The off-beat half of the pulse. (This constant was a stray emoji in the
+  // supplied source — a syntax error that stopped the whole script parsing.)
+  const off = Math.exp(-(((beat + 0.5) % 1)) * 5.5);
+  const kick = Math.max(pulse, off);
+  // The phrase downbeat holds the low end, so a "held for 300ms" condition
+  // is reachable on the demo signal.
+  const hold = phrase < 1.5 ? 0.55 : 0;
+  return {
+    sub: 0.35 + kick * 0.75 + hold * 0.4,
+    bass: 0.28 + kick * 1.15 + hold,
+    mid: 0.35 + 0.22 * Math.sin(t * 1.9) + 0.10 * Math.sin(t * 5.3),
+    treble: 0.28 + 0.25 * Math.abs(Math.sin(t * 3.1)),
+    air: 0.20 + 0.20 * hash(Math.floor(t * 8)),
+    rms: 0.35 + kick * 0.45 + hold * 0.3,
+    centroid: 0.45 + 0.20 * Math.sin(t * 0.7),
+    pulse
+  };
+}
+
+
+/* ---------- painters (parity with the editor) ---------- */
+const PARAM_SPEC = {
+  count: { min: 4, max: 256, step: 1 }, width: { min: 0.05, max: 1, step: 0.01 },
+  gain: { min: 0, max: 3, step: 0.01 }, tilt: { min: -1, max: 1, step: 0.01 },
+  radius: { min: 0.05, max: 1, step: 0.01 }, thickness: { min: 0.01, max: 0.5, step: 0.01 },
+  spin: { min: -2, max: 2, step: 0.01 }, spread: { min: 0, max: 2, step: 0.01 },
+  amp: { min: 0, max: 1, step: 0.01 }, glow: { min: 0, max: 1, step: 0.01 },
+  noise: { min: 0, max: 1, step: 0.01 }, size: { min: 0.002, max: 0.06, step: 0.001 },
+  speed: { min: 0, max: 3, step: 0.01 }, jitter: { min: 0, max: 1, step: 0.01 },
+  cols: { min: 3, max: 64, step: 1 }, rows: { min: 3, max: 64, step: 1 },
+  warp: { min: 0, max: 1, step: 0.01 },
+};
+
+const PAINTERS = {
+  bars(ctx, f, t, P, W, H, c1, c2) {
+    const n = Math.max(4, Math.round(P.count || 56));
+    const gap = 1 - (P.width || 0.72);
+    const bw = W / n;
+    const half = Math.ceil(n / 2);
+    for (let i = 0; i < n; i++) {
+      // mirrored spectrum + three band lobes (the editor's profile)
+      const u = P.mirror === false
+        ? i / (n - 1 || 1)
+        : (i < half ? (half - 1 - i) / (half - 1 || 1) : (i - half) / (half - 1 || 1));
+      const lobe = (c, s) => Math.exp(-Math.pow((u - c) / s, 2));
+      let v = f.bass * lobe(0.16, 0.22) + f.mid * lobe(0.5, 0.24) + f.treble * lobe(0.84, 0.26);
+      v = v * (P.gain || 1) * (1 + (P.tilt || 0) * (u - 0.5));
+      const h = clamp(v * 0.7, 0, 1) * H * 0.42;
+      ctx.fillStyle = u < 0.5 ? c1 : c2;
+      ctx.fillRect(i * bw + bw * gap * 0.5, H / 2 - h, bw * (1 - gap), h * 2);
+    }
+  },
+  rings(ctx, f, t, P, W, H, c1, c2) {
+    const cx = W / 2, cy = H / 2;
+    const R = Math.min(W, H) * (P.radius || 0.35);
+    const n = Math.max(1, Math.round(P.count || 8));
+    for (let i = 0; i < n; i++) {
+      const u = i / (n - 1 || 1);
+      const r = R * (0.3 + u * (P.spread || 0.6)) * (0.85 + f.bass * 0.5);
+      const a = t * (P.spin || 0.4) * (i % 2 ? 1 : -1);
+      // the stroke is a hairline on the ring's own scale
+      ctx.lineWidth = Math.max(1, r * (P.thickness || 0.1) * (0.35 + u * 0.5));
+      ctx.strokeStyle = i % 2 ? c2 : c1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.max(1, r), a, a + Math.PI * (1.2 + f.mid * 0.8));
+      ctx.stroke();
+    }
+  },
+  waveform(ctx, f, t, P, W, H, c1, c2) {
+    const cy = H / 2, amp = H * (P.amp || 0.3);
+    ctx.lineWidth = Math.max(1, H * (P.thickness || 0.06));
+    for (let k = 0; k < 2; k++) {
+      ctx.strokeStyle = k ? c2 : c1;
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 2) {
+        const u = x / W;
+        const v = Math.sin(u * 8 + t * 2 + k * 1.7) * (0.6 + f.mid * 0.6)
+                + Math.sin(u * 23 - t * 3) * 0.25 * (P.noise || 0.2)
+                + Math.sin(u * 3 + t) * f.bass * 0.5;
+        const y = cy + v * amp * (1 - k * 0.5);
+        x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  },
+  particles(ctx, f, t, P, W, H, c1, c2) {
+    const n = Math.max(1, Math.round(P.count || 200));
+    const base = Math.min(W, H) * 0.45;
+    for (let i = 0; i < n; i++) {
+      const r1 = hash(i * 1.7), r2 = hash(i * 3.1 + 9), r3 = hash(i * 5.3 + 4);
+      const ang = r1 * Math.PI * 2 + t * (P.speed || 0.5) * (0.4 + r2);
+      const rad = (0.1 + r2 * 0.9) * base * (1 + f.bass * 0.4) * (0.6 + (P.spread || 0.9) * 0.4);
+      const x = W / 2 + Math.cos(ang) * rad + (r3 - 0.5) * (P.jitter || 0.4) * 40;
+      const y = H / 2 + Math.sin(ang) * rad * 0.9 + (r1 - 0.5) * (P.jitter || 0.4) * 40;
+      const s = Math.max(0.5, Math.min(W, H) * (P.size || 0.012) * (0.5 + r3));
+      ctx.fillStyle = r3 > 0.5 ? c1 : c2;
+      ctx.beginPath(); ctx.arc(x, y, s, 0, 6.2832); ctx.fill();
+    }
+  },
+  grid(ctx, f, t, P, W, H, c1, c2) {
+    const cols = Math.max(3, Math.round(P.cols || 18));
+    const rows = Math.max(3, Math.round(P.rows || 12));
+    ctx.lineWidth = Math.max(1, Math.min(W, H) * 0.003 * (1 + (P.glow || 0.5)));
+    for (let j = 0; j <= rows; j++) {
+      ctx.strokeStyle = j % 2 ? c2 : c1;
+      ctx.beginPath();
+      for (let i = 0; i <= cols; i++) {
+        const u = i / cols, v = j / rows;
+        const w = Math.sin(u * 6 + t * 1.5 + v * 4) * (P.warp || 0.35) * 0.08 * H * (0.5 + f.bass);
+        const x = u * W, y = v * H + w;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+};
+
+
+/* ---------- reactivity (the editor's curves) ---------- */
+const CURVES = {
+  linear: f => f,
+  sqrt: f => Math.sqrt(Math.max(0, f)),
+  exp: f => (Math.exp(clamp(f, 0, 3) * 2.2) - 1) / (Math.exp(6.6) - 1),
+  pulse: f => f * f,
+  thresh: f => f > 0.4 ? 1 : 0,
+  inv: f => 1 - Math.min(1, f),
+  log: f => Math.log(1 + Math.max(0, f) * 9) / Math.log(10)
+};
+
+function applyReact(L, f, mul) {
+  const out = { ...L, params: { ...L.params } };
+  if (!L.react || !L.react.length || mul <= 0) return out;
+  for (const r of L.react) {
+    const fv = clamp(f[r.feature] ?? 0, 0, 3);
+    const amt = (CURVES[r.curve] || CURVES.linear)(fv) * (r.amount ?? 1) * mul;
+    const key = r.param;
+    if (key === 'opacity') { out.opacity = clamp((out.opacity ?? 1) + amt, 0, 2); continue; }
+    if (!(key in out.params)) continue;
+    const base = out.params[key] ?? 0;
+    let v = r.mode === 'mul' ? base * (1 + amt) : base + amt;
+    const spec = PARAM_SPEC[key];
+    // the editor clamps every reactive parameter to its own range; a
+    // benchmark that renders unclamped values is not benchmarking the editor
+    if (spec) {
+      v = clamp(v, spec.min, spec.max);
+      if (key === 'count' || key === 'cols' || key === 'rows') v = Math.max(3, Math.round(v));
+    }
+    out.params[key] = v;
+  }
+  return out;
+}
+
+
+/* ============================================================
+   CONFIG + LAYER SETS
+   ============================================================ */
+function defaultLayers(preset) {
+  if (preset === 'baseline') {
+    return [{ type: 'bars', enabled: true, opacity: 0.85, blend: 'lighter',
+      params: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true },
+      react: [] }];
+  }
+  if (preset === 'reactive') {
+    return [
+      { type: 'bars', enabled: true, opacity: 0.85, blend: 'lighter',
+        params: { count: 56, width: 0.72, gain: 0.85, tilt: 0.3, mirror: true },
+        react: [{ feature: 'bass', param: 'gain', amount: 1.2, curve: 'exp' }] },
+      { type: 'rings', enabled: true, opacity: 0.6, blend: 'lighter',
+        params: { count: 8, radius: 0.35, thickness: 0.12, spin: 0.4, spread: 0.6 },
+        react: [{ feature: 'rms', param: 'radius', amount: 0.3, curve: 'sqrt' }] },
+      { type: 'particles', enabled: true, opacity: 0.55, blend: 'lighter',
+        params: { count: 220, size: 0.012, speed: 0.5, spread: 0.9, jitter: 0.4 },
+        react: [{ feature: 'treble', param: 'speed', amount: 0.6, curve: 'linear' }] }
+    ];
+  }
+  if (preset === 'stress') {
+    return [
+      { type: 'bars', enabled: true, opacity: 0.85, blend: 'lighter',
+        params: { count: 64, width: 0.6, gain: 0.85, tilt: 0.4, mirror: true },
+        react: [{ feature: 'bass', param: 'gain', amount: 1.4, curve: 'exp' }] },
+      { type: 'rings', enabled: true, opacity: 0.6, blend: 'lighter',
+        params: { count: 10, radius: 0.35, thickness: 0.12, spin: 0.4, spread: 0.6 },
+        react: [{ feature: 'rms', param: 'radius', amount: 0.3, curve: 'sqrt' }] },
+      { type: 'waveform', enabled: true, opacity: 0.5, blend: 'screen',
+        params: { amp: 0.35, thickness: 0.06, glow: 0.7, noise: 0.25 },
+        react: [{ feature: 'mid', param: 'amp', amount: 0.3, curve: 'linear' }] },
+      { type: 'particles', enabled: true, opacity: 0.5, blend: 'lighter',
+        params: { count: 320, size: 0.01, speed: 1.2, spread: 1.2, jitter: 0.6 },
+        react: [{ feature: 'treble', param: 'speed', amount: 0.8, curve: 'linear' }] },
+      { type: 'grid', enabled: true, opacity: 0.45, blend: 'screen',
+        params: { cols: 26, rows: 16, warp: 0.4, glow: 0.6 },
+        react: [{ feature: 'bass', param: 'warp', amount: 0.8, curve: 'pulse' }] }
+    ];
+  }
+  return [];
+}
+
+/* The config is built FROM the layer preset. (The supplied source set
+ * `layers: defaultLayers('reactive')` and then merged the test's override
+ * on top, so the "baseline" test ran the three reactive layers and the
+ * baseline it claimed to measure never happened.) */
+function defaultCfg(layerPreset = 'reactive', overrides) {
+  const cfg = {
+    layerPreset,
+    layers: defaultLayers(layerPreset),
+    reactivity: 1.5,
+    interpolate: true,
+    injectAudioDrift: 0,
+    dpr: 0,          // 0 = auto
+    smoothing: 0.7,
+    trails: 0.4,
+  };
+  return Object.assign(cfg, overrides || {});
+}
+
+
+/* ============================================================
+   CANVAS + RENDER
+   ============================================================ */
+const stage = $('#stage');
+const ctx = stage.getContext('2d', { alpha: false });
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  const r = stage.parentElement.getBoundingClientRect();
+  const want = labCfg.dpr || window.devicePixelRatio || 1;
+  DPR = Math.min(want, 2.5);
+  W = Math.max(1, Math.round(r.width));
+  H = Math.max(1, Math.round(r.height));
+  stage.width = Math.round(W * DPR);
+  stage.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#05070c';
+  ctx.fillRect(0, 0, W, H);
+  $('#liveDpr').textContent = 'dpr ' + DPR.toFixed(2);
+}
+new ResizeObserver(resize).observe($('#stageWrap'));
+
+function render(f, tSec, cfg) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  // the editor's trail fade and its per-frame trail normalisation
+  const retention = clamp(0.52 - cfg.trails * 0.38, 0.30, 0.62);
+  ctx.fillStyle = `rgba(5,7,12,${retention})`;
+  ctx.fillRect(0, 0, W, H);
+  const trailNorm = 1 - retention;
+
+  const hue = 0.52, sat = 0.9, contrast = 1;
+  const light1 = clamp((30 + f.bass * 12) * contrast, 10, 48);
+  const c1 = `hsl(${hue * 360} ${sat * 100}% ${light1}%)`;
+  const c2 = `hsl(${((hue + 0.12) % 1) * 360} ${sat * 100}% ${clamp((34 + f.mid * 10) * contrast, 10, 48)}%)`;
+
+  // the editor's additive stack cap
+  let additive = 0;
+  for (const L of cfg.layers) {
+    if (!L.enabled) continue;
+    const blend = L.blend || 'lighter';
+    if (blend !== 'lighter' && blend !== 'screen') continue;
+    additive += clamp(L.opacity ?? 1, 0, 1);
+  }
+  const stackScale = additive > 1.1 ? 1.1 / additive : 1;
+
+  for (const L of cfg.layers) {
+    if (!L.enabled) continue;
+    const painter = PAINTERS[L.type];
+    if (!painter) continue;
+    const M = applyReact(L, f, cfg.reactivity);
+    const opacity = clamp(M.opacity ?? L.opacity ?? 1, 0, 1);
+    if (opacity <= 0.002) continue;
+    ctx.save();
+    ctx.globalCompositeOperation = L.blend || 'lighter';
+    ctx.globalAlpha = clamp(opacity * trailNorm * stackScale, 0, 1);
+    ctx.shadowBlur = Math.min(18, 8 * (0.4 + 0.5)) * stackScale;
+    ctx.shadowColor = c1;
+    ctx.strokeStyle = c1; ctx.fillStyle = c1;
+    painter(ctx, f, tSec, M.params, W, H, c1, c2);
+    ctx.restore();
+  }
+}
+
+
+/* ---------- the host adapter ---------- */
+var suite = null;
+var labCfg = { layerPreset: 'reactive', layers: [], reactivity: 1.5, interpolate: true, injectAudioDrift: 0, dpr: 0, smoothing: 0.7, trails: 0.4 };
+
+function cfgFor(preset, over) {
+  var cfg = Object.assign({}, labCfg, over || {});
+  cfg.layerPreset = preset;
+  cfg.layers = defaultLayers(preset);
+  return cfg;
+}
+
+var TESTS = [
+  { name: 'baseline',      desc: '1 bar layer, no reactivity, interpolation on',  cfg: cfgFor('baseline', { reactivity: 0, interpolate: true }) },
+  { name: 'reactive',      desc: '3 layers, full reactivity, interpolation on',   cfg: cfgFor('reactive', { reactivity: 1.5, interpolate: true }) },
+  { name: 'reactive-noint',desc: 'same but interpolation OFF — shows buffer cost',  cfg: cfgFor('reactive', { reactivity: 1.5, interpolate: false }) },
+  { name: 'stress',        desc: 'all 5 layer types, full reactivity',             cfg: cfgFor('stress', { reactivity: 1.5, interpolate: true }) },
+  { name: 'sync-stress',   desc: 'reactive + 12ms audio lag — tests buffer recov', cfg: cfgFor('reactive', { reactivity: 1.5, interpolate: true, injectAudioDrift: 0.012 }) }
+];
+
+function demoFeatures(tSec) {
+  var lag = labCfg.injectAudioDrift || 0;
+  var jitter = (Math.random() - 0.5) * 0.004;
+  return { features: demoSynth(tSec - lag), audioTime: tSec - lag + jitter };
+}
+
+var HOST = {
+  tests: function () { return TESTS; },
+  sample: demoFeatures,
+  reportConfig: function () {
+    return {
+      layerPreset: labCfg.layerPreset,
+      layerCount: labCfg.layers.length,
+      reactivity: labCfg.reactivity,
+      interpolate: labCfg.interpolate,
+      injectAudioDrift: labCfg.injectAudioDrift,
+      smoothing: labCfg.smoothing,
+      trails: labCfg.trails,
+      dpr: DPR,
+      bufferCapacity: suite ? suite.buffer.capacity : 128
+    };
+  },
+  supports: function (id) {
+    return ['reduce-count', 'cap-dpr', 'increase-trails', 'increase-smoothing'].indexOf(id) >= 0;
+  },
+  apply: function (id) {
+    if (id === 'reduce-count') {
+      labCfg.layers.forEach(function (L) {
+        if (L.type === 'particles' && L.params.count) L.params.count = Math.round(L.params.count * 0.6);
+        if (L.type === 'grid') {
+          if (L.params.cols) L.params.cols = Math.round(L.params.cols * 0.75);
+          if (L.params.rows) L.params.rows = Math.round(L.params.rows * 0.75);
+        }
+      });
+      return true;
+    }
+    if (id === 'cap-dpr') { labCfg.dpr = 1.25; return true; }
+    if (id === 'increase-trails') { labCfg.trails = Math.min(0.9, (labCfg.trails || 0.4) + 0.15); return true; }
+    if (id === 'increase-smoothing') { labCfg.smoothing = Math.min(0.95, (labCfg.smoothing || 0.7) + 0.1); return true; }
+    return false;
+  },
+  onTestStart: function (cfg) {
+    // the HOST owns its layers: the suite carries the measurement, the
+    // host applies the configuration to whatever it draws
+    Object.assign(labCfg, cfg);
+    labCfg.layers = defaultLayers(labCfg.layerPreset);
+    $('#liveCfg').textContent = 'cfg ' + labCfg.layerPreset;
+    resize();
+  },
+  optimizedConfig: function () { return Object.assign({}, labCfg); },
+  toast: function (m) { toast(m); }
+};
+
+/* ---------- the lab's own render loop ---------- */
+function frame(now) {
+  var dt = now - (state_lastNow || now);
+  state_lastNow = now;
+  // the VIDEO clock is the suite's: it is reset at the start of every run,
+  // and the buffer's samples are stamped on it. (Using a clock of the lab's
+  // own made the two timelines drift apart by the length of the run — the
+  // lab measured its own bookkeeping instead of its sync.)
+  var tSec = suite ? (now - suite.state.startAt) / 1000 : 0;
+
+  var f;
+  if (suite) {
+    var sample = suite.sampleAt(tSec);
+    f = sample.f;
+    suite.updateBufferView(sample);
+  }
+  if (!f) f = demoSynth(tSec);
+
+  render(f, tSec, labCfg);
+
+  var instFps = dt > 0 ? 1000 / dt : 60;
+  if (Math.random() < 0.05) {
+    $('#liveFpsBadge').textContent = Math.round(instFps) + ' fps';
+    var drift = suite ? suite.driftAvg : 0;
+    $('#liveDriftBadge').textContent = 'drift ' + drift.toFixed(1) + ' ms';
+    for (var k of ['bass', 'mid', 'treble', 'rms']) {
+      var el = document.querySelector('[data-meter="' + k + '"]');
+      if (el) el.style.height = Math.round(clamp(f[k] / 1.6, 0, 1) * 100) + '%';
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+var state_lastNow = 0;
+var labStartAt = performance.now();
+
+/* ---------- boot ----------
+   The suite is a deferred script, so the inline boot waits for the DOM to
+   be ready — deferred scripts run before DOMContentLoaded, so the factory
+   is guaranteed to be there by then. */
+function boot() {
+  suite = window.SWR_BENCH.createSuite(HOST);
+  suite.mount(document.getElementById('panel'));
+  labCfg.layers = defaultLayers('reactive');
+  render(demoSynth(0), 0, labCfg);
+  requestAnimationFrame(frame);
+
+  /* the public API — a host (or a gate) drives the lab through this */
+  window.SWRBench = {
+    get reports() { return suite.reports; },
+    get buffer() { return suite.buffer; },
+    get config() { return labCfg; },
+    get suite() { return suite; },
+    tests: function () { return TESTS; },
+    runTest: suite.runTest,
+    runAll: suite.runAll,
+    analyze: suite.analyze,
+    clear: function () { suite.buffer.clear(); }
+  };
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+</script>
+<swr-footer></swr-footer>
+<script src="/lib/footer.client.js" defer></script>
+</body>
+</html>

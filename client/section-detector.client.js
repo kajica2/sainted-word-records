@@ -665,9 +665,25 @@
   // meaningless. Drop the analysis and publish an empty map. The engine also
   // calls reset() on an explicit song load, which covers a hard cut with no
   // silence between the tracks.
-  function restartStream(state) {
+  function restartStream(state, reason) {
+    const dropped = state.sections.length
+      ? state.sections[state.sections.length - 1].name
+      : null;
     resetState(state);
     publish(state);
+    try {
+      // A SEPARATE event name, deliberately. `swr-section-change` is a
+      // contract other modules already parse (client/section-scheduler
+      // .client.js reads detail.to, and the unit gate counts its events), so
+      // an empty map must not be dressed up as a boundary to a chorus.
+      // `swr-section-reset` means what it says: whatever a consumer derived
+      // from the analysis that just ended is now stale. The automix arc uses
+      // it to drop an armed section cue, which would otherwise survive a song
+      // swap and bias the new song's first act boundary.
+      window.dispatchEvent(new window.CustomEvent('swr-section-reset', {
+        detail: { reason: reason || 'reset', dropped: dropped },
+      }));
+    } catch (e) { /* no DOM: the map is already empty, which is the contract */ }
   }
 
   function detect(feat) {
@@ -685,7 +701,7 @@
       // rather than compute a novelty curve across it.
       if (live.lastIngestMs >= 0 &&
           (tMs - live.lastIngestMs > live.options.gapMs || tMs < live.lastIngestMs)) {
-        restartStream(live);
+        restartStream(live, 'gap');
         live.lastTMs = tMs;
       }
       live.lastIngestMs = tMs;
@@ -722,7 +738,7 @@
         if (meanRms < SILENCE_RMS) {
           live.silent++;
           if (live.silent >= SILENT_FRAMES && live.rows.length > live.options.minFrames) {
-            restartStream(live);
+            restartStream(live, 'silence');
             live.lastTMs = tMs;
             live.lastIngestMs = tMs;
           }

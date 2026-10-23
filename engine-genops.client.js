@@ -43,7 +43,11 @@
   const TARGETS  = ['scale', 'x', 'y', 'rot', 'opacity', 'hue', 'brightness', 'contrast'];
   const EASES    = ['linear', 'soft', 'sharp', 'smooth'];
 
-  // Sane reactor amount ranges per target, matching applyR()'s multipliers in the pages.
+  // Sane reactor amount ranges per target. The unit these amounts get
+  // multiplied by is the shared contract in lib/apply-reactors.js: the
+  // engine's presets read `r.scale` as a gain in the target's NATURAL units
+  // (px, degrees, hue degrees), which is `SWR_REACTORS.UNITS.natural` -
+  // every unit is 1. The variant pages use the other tables in that module.
   const TARGET_RANGE = {
     scale:      [0.10, 1.00],
     x:          [5, 40],
