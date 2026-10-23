@@ -29,18 +29,21 @@
 // The HF Space dependency is optional. When it's reachable, the
 // tag set is richer. When it's not, the local heuristic still
 // produces usable tags for ~12 common asset categories.
+//
+// HF tagging is OFF by default (window.__SWR_HF_ENABLED must be true).
+// Full-resolution uploads to a third-party Space should be explicit.
 
 (function () {
   'use strict';
   if (window.SWR_ASSET_CURATOR) return;
 
-  // ─── Configuration ────────────────────────────────────────────────
+  // ─── Configuration ─────────────────────────────────────────────────────────────────
   const HF_ASSOCIATION_SPACE = 'https://kaidjuric-association.hf.space';
   const HF_TIMEOUT_MS = 3000;
   const BG_THRESHOLD_RGB = 30;   // pixels within this RGB distance of the bg become transparent
   const CORNER_SAMPLE_SIZE = 8;  // pixels averaged per corner (8x8 block)
 
-  // ─── Local tag heuristic ──────────────────────────────────────────
+  // ─── Local tag heuristic ─────────────────────────────────────────────────────────
   // Match filename + dimensions. Returns {tag, score}[] ordered by score desc.
   const TAG_RULES = [
     { tag: 'gift bag',   folder: 'gift-bags',         score: 0.95, test: (f) => /gift|bag|present|ribbon/i.test(f.name) },
@@ -109,7 +112,7 @@
     return tags[0].folder || 'uncategorized';
   }
 
-  // ─── Background detection ─────────────────────────────────────────
+  // ─── Background detection ─────────────────────────────────────────────────────────
   // Sample 4 corner regions. If their average colors are all within ε of
   // each other, we have a uniform background.
   async function detectBackgroundColor(imageData, w, h) {
@@ -146,7 +149,7 @@
     return { r: Math.round(avgR), g: Math.round(avgG), b: Math.round(avgB) };
   }
 
-  // ─── Canvas chroma key ────────────────────────────────────────────
+  // ─── Canvas chroma key ───────────────────────────────────────────────────────────
   // Sets alpha=0 for pixels within BG_THRESHOLD_RGB of the bg color.
   // Modifies imageData in place. Returns true if any alpha was changed.
   function chromaKey(imageData, bg, threshold) {
@@ -164,13 +167,13 @@
     return changed > 0;
   }
 
-  // ─── Optional HF Space tagging ─────────────────────────────────────
+  // ─── Optional HF Space tagging ───────────────────────────────────────────────────
   // Hits kaidjuric/association's /gradio_api/call/tag endpoint with a
   // 3s timeout. Returns [{tag, score}] or null on failure.
+  // OFF by default — set window.__SWR_HF_ENABLED = true to opt in.
   async function tagViaHF(imageBlob) {
-    // Batch-runner opt-out (e.g. verify-curator-batch.mjs sets
-    // window.__SWR_HF_DISABLED = true to keep runs deterministic + offline).
-    if (typeof window !== 'undefined' && window.__SWR_HF_DISABLED) return null;
+    if (typeof window === 'undefined' || !window.__SWR_HF_ENABLED) return null;
+    if (window.__SWR_HF_DISABLED) return null;
     if (typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') {
       return null;
     }
@@ -225,7 +228,7 @@
     }
   }
 
-  // ─── Public API ────────────────────────────────────────────────────
+  // ─── Public API ─────────────────────────────────────────────────────────────────
   const FOLDER_MAP = {
     'gift bag':         'gift-bags',
     'gift':             'gift-bags',
@@ -324,10 +327,15 @@
     }
 
     // ── Render the result (cleaned or original) ──
-    if (cleaned) ctx.putImageData(imageData, 0, 0);
-    const outBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    // Only re-encode to PNG when we actually cleaned (chroma-keyed).
+    // Passthrough keeps the original blob to avoid 6-10x size amplification.
+    let outBlob = file;
+    if (cleaned) {
+      ctx.putImageData(imageData, 0, 0);
+      outBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png')) || file;
+    }
 
-    // ── Tags: local heuristic (always) + HF augmentation (best-effort) ──
+    // ── Tags: local heuristic (always) + HF augmentation (opt-in) ──
     const localList = localTags(file, w, h, !!bg);
     let hfList = null;
     try {
@@ -338,7 +346,7 @@
     const tookMs = performance.now() - start;
 
     return {
-      file: outBlob || file,
+      file: outBlob,
       folder,
       tags: merged,
       status,

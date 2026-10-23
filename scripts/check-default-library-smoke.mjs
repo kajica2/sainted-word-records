@@ -55,9 +55,34 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
 
     await page.goto(`${BASE}/engine.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
+    // Let a service-worker claim settle. The engine's pwa-bootstrap does
+    // skipWaiting + clients.claim, which force-reloads the page once on a
+    // fresh profile; an evaluate landing in that window dies with
+    // "Execution context was destroyed" and crashed the whole chain.
+    await page.evaluate(() => navigator.serviceWorker && navigator.serviceWorker.ready)
+      .catch(() => {});
+    await new Promise((r) => setTimeout(r, 400));
+
+    // Reload-tolerant evaluate: retries when the service-worker claim (or
+    // any navigation) destroys the execution context mid-call. Same fix as
+    // check-media-input-smoke's helper.
+    const ev = async (fn) => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          return await page.evaluate(fn);
+        } catch (err) {
+          const msg = String((err && err.message) || err);
+          if (!/Execution context was destroyed|Cannot find context|Target closed|detached/i.test(msg)) throw err;
+          await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      }
+      return undefined;
+    };
+
     // 1. module installed
     await page.waitForFunction(() => !!window.SWR_DEFAULT_LIBRARY, { timeout: 10000 }).catch(() => {});
-    const installed = await page.evaluate(() => !!window.SWR_DEFAULT_LIBRARY);
+    const installed = await ev(() => !!window.SWR_DEFAULT_LIBRARY);
     if (installed) pass('SWR_DEFAULT_LIBRARY installed');
     else fail('SWR_DEFAULT_LIBRARY missing');
 
@@ -106,9 +131,9 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     } catch (_) {
       // The engine may have restored a saved song from IDB — that's correct
       // behavior (user song wins). Accept 'song already set' as a pass too.
-      const sn = await page.evaluate(() =>
+      const sn = await ev(() =>
         (document.getElementById('song-name') || {}).textContent || '(empty)');
-      pass('no default-song override — existing song respected', sn.slice(0, 60));
+      pass('no default-song override — existing song respected', String(sn || '(empty)').slice(0, 60));
     }
 
     const realErrs = errs.filter((e) =>
