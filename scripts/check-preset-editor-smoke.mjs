@@ -88,7 +88,13 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 async function nav(url) {
-  await page.goto('http://localhost:5186' + url, { waitUntil: 'networkidle2', timeout: 30000 });
+// 'networkidle' never settles on the CI runner: the page keeps a
+// connection open (the service worker, the shared-chrome fetch), so
+// the navigation waits out its whole timeout and the smoke fails on
+// a page that loaded fine. The readiness signal is the page's own
+// global, which the waitForFunction below already waits for — the
+// same reasoning as scripts/check-play-variant.mjs.
+  await page.goto('http://localhost:5186' + url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForFunction(() => !!window.SWRPresetEditor, { timeout: 10000 });
 }
 
@@ -320,7 +326,7 @@ if (stored.names.length >= 2 && stored.current && stored.names.includes(stored.c
 } else {
   bad('a new preset is written to localStorage', JSON.stringify(stored));
 }
-await page.reload({ waitUntil: 'networkidle2' });
+await page.reload({ waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => !!window.SWRPresetEditor, { timeout: 10000 });
 const afterReload = await page.evaluate(() => ({
   count: Object.keys(window.SWRPresetEditor.all).length,
@@ -370,7 +376,7 @@ const link = await page.evaluate(() => ({
   bloom: window.SWRPresetEditor.preset.global.bloom,
 }));
 const hash = link.url.slice(link.url.indexOf('#'));
-await page.goto('http://localhost:5186/preset-editor' + hash, { waitUntil: 'networkidle2' });
+await page.goto('http://localhost:5186/preset-editor' + hash, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => !!window.SWRPresetEditor, { timeout: 10000 });
 const deep = await page.evaluate(() => ({
   name: window.SWRPresetEditor.preset.name,
