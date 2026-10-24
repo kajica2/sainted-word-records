@@ -277,6 +277,16 @@ const GROUPS = {
     'node scripts/check-storyboard-e2e.mjs',
   ],
 
+  // The Software Factory's own gates. Deliberately NOT inside `check` or
+  // `full`: these two run against the router config and the README's FX
+  // claim, and the factory workflow calls them on its own schedule. Adding
+  // them to the pre-PR chain would mean a typo in routing.config.json
+  // blocks a PR that has nothing to do with the factory.
+  factory: [
+    'npm run check:factory-routing',
+    'npm run check:fx-doc-drift',
+  ],
+
   // The pre-PR gate.
   full: [
     'npm run check',

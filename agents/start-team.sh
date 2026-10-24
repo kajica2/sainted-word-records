@@ -1,111 +1,110 @@
 #!/usr/bin/env bash
-# SWR Multi-Agent Team Starter
-# Usage: ./agents/start-team.sh
+# SWR Multi-Agent Team Starter — now on MiniMax.
+# Usage: ./agents/start-team.sh [agent]
+#
+# WHAT CHANGED AND WHY
+# ---------------------
+# This used to launch three `claude` CLI sessions with
+# `--system-role agents/roles/ops.md` / `agents/roles/twin.md` /
+# `agents/roles/check.md`. Two problems with that:
+#
+#   1. Those paths do not exist. The role files are `agents/swr-ops.md`,
+#      `agents/swr-twin.md` and `agents/swr-check.md`, so every agent
+#      started with a missing system role.
+#   2. It pinned the team to Claude. The CI factory now runs on MiniMax
+#      (software-factory/routing.config.json), and a local team that
+#      judges work differently from the one in CI is a trap.
+#
+# Now every agent starts through software-factory/swr-agent.mjs, which
+# reads the same routing config, the same role files and the same model
+# per agent. One source of truth for the laptop and for CI.
+#
+# REQUIREMENTS
+#   export MINIMAX_API_KEY=...            # https://platform.minimax.io
+#   node >= 18                            # the bridge uses global fetch
+#   the twin checkout at ../digital_twin  # for SWR-Twin's voice samples
+#
+# The model per agent comes from agents/team.config.json:
+#   SWR-Ops   → MiniMax-M3         (planning, adaptive thinking)
+#   SWR-Twin  → MiniMax-M2.7       (creative, 8k thinking budget)
+#   SWR-Check → MiniMax-M3.1-Flash (verification, effort=low)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIGITAL_TWIN_ROOT="$REPO_ROOT/../digital_twin"
+BRIDGE="$REPO_ROOT/software-factory/swr-agent.mjs"
 
 echo "════════════════════════════════════════════════════════════"
-echo "  🌀 SWR Multi-Agent Team Starter"
+echo "  🌀 SWR Multi-Agent Team Starter (MiniMax)"
 echo "════════════════════════════════════════════════════════════"
 echo ""
 
-# Check prerequisites
-if [ ! -d "$DIGITAL_TWIN_ROOT" ]; then
-    echo "❌ Error: digital_twin/ not found at $DIGITAL_TWIN_ROOT"
-    echo "   Expected: ../digital_twin/ relative to repo root"
+if [ ! -f "$BRIDGE" ]; then
+    echo "❌ Error: the MiniMax bridge is missing at $BRIDGE"
     exit 1
+fi
+
+if [ -z "${MINIMAX_API_KEY:-}" ]; then
+    echo "❌ Error: MINIMAX_API_KEY is not set."
+    echo "   Get a key at https://platform.minimax.io → Account → API keys"
+    echo "   export MINIMAX_API_KEY=sk-..."
+    exit 1
+fi
+
+if [ ! -d "$DIGITAL_TWIN_ROOT" ]; then
+    echo "⚠️  Warning: digital_twin/ not found at $DIGITAL_TWIN_ROOT"
+    echo "   SWR-Twin can still run, but it has no voice samples to read."
+    echo ""
 fi
 
 LOG_DIR="$REPO_ROOT/tasks/.logs"
 mkdir -p "$LOG_DIR"
 
-# Helper to check if a process is running
-check_process() {
+ONLY_AGENT="${1:-}"
+
+launch() {
     local name="$1"
-    local pattern="$2"
-    if pgrep -f "$pattern" > /dev/null 2>&1; then
-        echo "  ✅ $name"
-        return 0
-    else
-        echo "  ⚪ $name (not running)"
-        return 1
+    local task="$2"
+    local extra="${3:-}"
+
+    if [ -n "$ONLY_AGENT" ] && [ "$ONLY_AGENT" != "$name" ]; then
+        return
     fi
+
+    echo "  ▶ $name ($task)…"
+    (
+        cd "$REPO_ROOT"
+        node "$BRIDGE" chat \
+            --agent "$name" \
+            --task "$task" \
+            $extra \
+            2>&1 | tee "$LOG_DIR/${name,,}-$(date +%Y%m%d-%H%M%S).log"
+    ) &
+    eval "${name//-/_}_PID=$!"
 }
 
-echo "📊 Watcher Status:"
-echo "─────────────────────────────────────────────────────────"
-check_process "Instagram Watcher" "ig-watcher"
-check_process "YouTube Watcher" "youtube-batch"
-check_process "Midjourney Watcher" "mj-watcher"
-check_process "Reel Watcher" "reel-watcher"
-check_process "Chart Watcher" "chart-watcher"
-check_process "Songs Watcher" "songs-watcher"
-echo ""
+# SWR-Ops (orchestrator) — owns agents/TASKS.md
+launch "SWR-Ops" "planning" "--allow-writes"
 
-# Check for Claude CLI
-if ! command -v claude &> /dev/null; then
-    echo "⚠️  Warning: 'claude' CLI not found in PATH"
-    echo "   Install from: https://docs.anthropic.com/en/docs/claude-code"
-    echo ""
-fi
+# SWR-Twin (digital twin) — creative work, decisions
+launch "SWR-Twin" "creative" ""
 
-# Start the team
-echo "🚀 Starting SWR Team Agents..."
-echo "─────────────────────────────────────────────────────────"
-
-# SWR-Ops (orchestrator)
-echo "  ▶ SWR-Ops (orchestrator)..."
-(
-    cd "$REPO_ROOT"
-    claude \
-        --project "$REPO_ROOT" \
-        --system-role "agents/roles/ops.md" \
-        --name "SWR-Ops" \
-        2>&1 | tee "$LOG_DIR/swr-ops-$(date +%Y%m%d-%H%M%S).log"
-) &
-OPS_PID=$!
-
-# SWR-Twin (digital twin)
-echo "  ▶ SWR-Twin (digital twin)..."
-(
-    cd "$DIGITAL_TWIN_ROOT"
-    claude \
-        --project "$DIGITAL_TWIN_ROOT" \
-        --system-role "agents/twin.md" \
-        --name "SWR-Twin" \
-        2>&1 | tee "$LOG_DIR/swr-twin-$(date +%Y%m%d-%H%M%S).log"
-) &
-TWIN_PID=$!
-
-# SWR-Check (verifier)  
-echo "  ▶ SWR-Check (verifier)..."
-(
-    cd "$REPO_ROOT"
-    claude \
-        --project "$REPO_ROOT" \
-        --system-role "agents/roles/check.md" \
-        --name "SWR-Check" \
-        2>&1 | tee "$LOG_DIR/swr-check-$(date +%Y%m%d-%H%M%S).log"
-) &
-CHECK_PID=$!
+# SWR-Check (verifier) — read-only, cannot write
+launch "SWR-Check" "verification" ""
 
 echo ""
 echo "════════════════════════════════════════════════════════════"
-echo "  ✅ Team launched!"
+echo "  ✅ Team launched on MiniMax"
 echo "════════════════════════════════════════════════════════════"
 echo ""
-echo "📝 Log files: $LOG_DIR/"
-echo "   - swr-ops-*.log"
-echo "   - swr-twin-*.log" 
-echo "   - swr-check-*.log"
+echo "📝 Logs: $LOG_DIR/"
+echo "   - swr_ops-*.log"
+echo "   - swr_twin-*.log"
+echo "   - swr_check-*.log"
 echo ""
-echo "🛑 To stop all agents:"
-echo "   kill $OPS_PID $TWIN_PID $CHECK_PID"
+echo "🛑 To stop all agents:  kill $SWR_OPS_PID $SWR_TWIN_PID $SWR_CHECK_PID"
 echo ""
 
-# Wait for all processes
 wait
