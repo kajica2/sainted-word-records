@@ -1,1 +1,815 @@
-PLACEHOLDER
+<!doctype html>
+<html lang="en">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Visual languages — Sainted Word Records</title>
+  <meta name="description" content="Twenty-two visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/visual-languages">
+  <meta property="og:title" content="Visual languages — Sainted Word Records">
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/gallery.png">
+  <meta property="og:description" content="Twenty-two visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/versions/_shared.css">
+  <style>
+:root {
+  --bg:        #FAF7F2;
+  --bg-panel:  #F4F4F0;
+  --bg-elev:   #FFF;
+  --fg:        #1A1612;
+  --fg-mute:   #6B635A;
+  --fg-faint:  #A39B91;
+  --line:      #E8E2D8;
+  --signal:    #E6306B;
+}
+
+.page-head {
+  padding: 56px 0 32px;
+  border-bottom: 1px solid var(--line);
+}
+.page-head .kicker { margin-bottom: 16px; }
+.page-head h1 {
+  font: 400 56px/1.05 var(--f-serif);
+  letter-spacing: -0.02em;
+  max-width: 800px;
+}
+.page-head h1 em { font-style: italic; color: var(--signal); }
+.page-head .lede {
+  margin-top: 20px;
+  max-width: 600px;
+  color: var(--fg-mute);
+  font-size: 17px;
+}
+
+.version-meta {
+  margin-top: 24px;
+  display: flex; flex-wrap: wrap; gap: 24px;
+  font: 500 11px/1 var(--f-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+}
+.version-meta b { color: var(--fg); font-weight: 600; margin-right: 4px; }
+
+.versions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 48px;
+}
+@media (max-width: 900px) { .versions-grid { grid-template-columns: 1fr; } }
+
+.version-card {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 240ms var(--ease), border-color 240ms;
+}
+.version-card:hover { transform: translateY(-2px); border-color: var(--fg-faint); text-decoration: none; }
+@media (max-width: 600px) { .version-card { grid-template-columns: 1fr; } }
+
+.version-card .visual {
+  background: var(--bg-panel);
+  position: relative;
+  aspect-ratio: 1;
+  display: grid; place-items: center;
+}
+.version-card .visual canvas { display: block; width: 100%; height: 100%; }
+.version-card .body {
+  padding: 20px 22px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.version-card .num {
+  font: 500 10px/1 var(--f-mono);
+  letter-spacing: 0.14em;
+  color: var(--fg-faint);
+  text-transform: uppercase;
+}
+.version-card .num .badge-new {
+  margin-left: 8px;
+  padding: 2px 6px;
+  background: var(--signal);
+  color: #fff;
+  border-radius: 3px;
+  font-size: 9px;
+}
+.version-card h2 {
+  font: 500 26px/1.15 var(--f-serif);
+  letter-spacing: -0.01em;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.version-card h2 em { font-style: italic; color: var(--signal); }
+.version-card p {
+  color: var(--fg-mute);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.version-card .tags {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 8px;
+}
+.version-card .tag {
+  font: 500 10px/1.5 var(--f-mono);
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  color: var(--fg-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.version-card .open {
+  margin-top: auto;
+  padding-top: 12px;
+  font: 600 11px/1 var(--f-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+.version-card .open::after {
+  content: " →";
+  transition: margin 240ms var(--ease);
+}
+.version-card:hover .open::after { margin-left: 4px; }
+
+.version-card.is-console .visual { background: #0A0A0B; }
+.version-card.is-console .num .badge-new { background: #FF6B1A; color: #0A0A0B; }
+.version-card.is-simple .visual { background: #050811; }
+.version-card.is-clean .visual { background: linear-gradient(135deg, #0a0d18 0%, #00ffa3 100%); }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <a class="sr" href="#main">Skip to content</a>
+
+  <header class="top">
+      <span class="gctrl" data-looks-mount></span>
+    <a class="brand" href="/" aria-label="Sainted Word Records, home">
+      <span class="sw" aria-hidden="true">SW</span>
+      <span class="brand-text"><b>SAINTED</b><span>WORD RECORDS</span></span>
+    </a>
+
+    <nav class="versions" aria-label="Visual language">
+      <a href="/versions/neon"            data-v="neon">Neon</a>
+      <a href="/versions/film"            data-v="film">Film</a>
+      <a href="/versions/grid"            data-v="grid">Grid</a>
+      <a href="/versions/smoke"           data-v="smoke">Smoke</a>
+      <a href="/versions/hallucination"   data-v="hallucination">Hallucination</a>
+      <a href="/versions/aurora"          data-v="aurora">Aurora</a>
+      <a href="/versions/spectrum"        data-v="spectrum">Spectrum</a>
+      <a href="/versions/simple"          data-v="simple">Simple</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="/versions/glitch"          data-v="glitch">Glitch</a>
+      <a href="/versions/pulse"           data-v="pulse">Pulse</a>
+      <a href="/versions/void"            data-v="void">Void</a>
+      <a href="/versions/chrome"          data-v="chrome">Chrome</a>
+      <a href="/versions/watercolor"      data-v="watercolor">Watercolor</a>
+      <a href="/versions/fractal"         data-v="fractal">Fractal</a>
+      <a href="/versions/eclipse"         data-v="eclipse">Eclipse</a>
+      <a href="/versions/collage"         data-v="collage">Collage</a>
+      <a href="/versions/kraft"           data-v="kraft">Kraft</a>
+      <a href="/versions/mosaic"          data-v="mosaic">Mosaic</a>
+      <a href="/versions/phosphor"        data-v="phosphor">Phosphor</a>
+      <a href="/versions/tape"            data-v="tape">Tape</a>
+      <a href="/versions/typography"      data-v="typography">Type</a>
+      <a href="/versions/echo-manifold"   data-v="echo-manifold">Echo</a>
+      <a href="/versions/music_video"     data-v="music_video">MV</a>
+      <a href="/versions/music_video_mtv" data-v="music_video_mtv">MTV</a>
+      <a href="/versions/console"         data-v="console">Console</a>
+      <a href="/versions/envelope"        data-v="envelope">Envelope</a>
+    </nav>
+
+    <div class="top-right">
+      <a class="btn-open" href="/dashboard">
+        Open editor
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </header>
+
+  <main id="main" class="page">
+
+    <header class="page-head">
+      <span class="kicker">Versions</span>
+      <h1>Twenty-two <em>visual languages</em>, one engine.</h1>
+      <p class="lede">Same controls, same library, same MP4 export. Pick the aesthetic that fits the song. Switch anytime — projects carry across versions.</p>
+
+      <div class="version-meta">
+        <span><b>22</b>versions live</span>
+        <span><b>1</b>engine</span>
+        <span><b>MIT</b>licensed</span>
+        <span><b>v1</b>schema stable</span>
+        <span><b>new</b>envelope editor · credits storyline</span>
+      </div>
+    </header>
+
+    <div class="versions-grid">
+
+      <!-- 01 — Neon -->
+      <a class="version-card" href="/versions/neon">
+        <div class="visual" aria-hidden="true"><canvas id="vneon"></canvas></div>
+        <div class="body">
+          <span class="num">01 · NEON</span>
+          <h2>Neon</h2>
+          <p>Hot club, screen-blend stacks, sharpened easings, scanlines. Cuts on the beat, not after it.</p>
+          <div class="tags">
+            <span class="tag">electronic</span>
+            <span class="tag">dance</span>
+            <span class="tag">screen blend</span>
+            <span class="tag">3 reactors</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 02 — Film -->
+      <a class="version-card" href="/versions/film">
+        <div class="visual" aria-hidden="true"><canvas id="vfilm"></canvas></div>
+        <div class="body">
+          <span class="num">02 · FILM</span>
+          <h2>Film</h2>
+          <p>Handheld warm tone, per-pixel grain, soft vignette, slow drift. Smooth, breathy, low-FX overall.</p>
+          <div class="tags">
+            <span class="tag">jazz</span>
+            <span class="tag">singer-songwriter</span>
+            <span class="tag">grain</span>
+            <span class="tag">vignette</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 03 — Grid -->
+      <a class="version-card" href="/versions/grid">
+        <div class="visual" aria-hidden="true"><canvas id="vgrid"></canvas></div>
+        <div class="body">
+          <span class="num">03 · GRID</span>
+          <h2>Grid</h2>
+          <p>Modular grid compositions, hard monochrome, geometric type. The visualizer that looks like a poster.</p>
+          <div class="tags">
+            <span class="tag">minimal techno</span>
+            <span class="tag">modular</span>
+            <span class="tag">mono</span>
+            <span class="tag">type</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 04 — Spectrum -->
+      <a class="version-card" href="/versions/spectrum">
+        <div class="visual" aria-hidden="true"><canvas id="vspectrum"></canvas></div>
+        <div class="body">
+          <span class="num">04 · SPECTRUM</span>
+          <h2>Spectrum</h2>
+          <p>Frequency-only. No footage, no type, no chrome. Bass → hue, mid → position, treble → size. The audio IS the visual.</p>
+          <div class="tags">
+            <span class="tag">ambient</span>
+            <span class="tag">classical</span>
+            <span class="tag">audio only</span>
+            <span class="tag">32 bands</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 05 — Aurora -->
+      <a class="version-card" href="/versions/aurora">
+        <div class="visual" aria-hidden="true"><canvas id="vaurora"></canvas></div>
+        <div class="body">
+          <span class="num">05 · AURORA</span>
+          <h2>Aurora</h2>
+          <p>Atmospheric color washes, slow drift, bloom-heavy. Soft, dream-like, post-rock energy. Slow onsets, long decays.</p>
+          <div class="tags">
+            <span class="tag">downtempo</span>
+            <span class="tag">post-rock</span>
+            <span class="tag">bloom</span>
+            <span class="tag">drift</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 06 — Simple (NEW) -->
+      <a class="version-card is-simple" href="/versions/simple">
+        <div class="visual" aria-hidden="true"><canvas id="vsimple"></canvas></div>
+        <div class="body">
+          <span class="num">06 · SIMPLE<span class="badge-new">NEW</span></span>
+          <h2>Simple</h2>
+          <p>Bare minimum. Drop a song, get a spectrum. No chrome, no options, no presets. Just audio and visuals.</p>
+          <div class="tags">
+            <span class="tag">minimal</span>
+            <span class="tag">spectrum</span>
+            <span class="tag">no presets</span>
+            <span class="tag">mp4 export</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 07 — Clean (NEW) -->
+      <a class="version-card is-clean" href="/versions/clean">
+        <div class="visual" aria-hidden="true"><canvas id="vclean"></canvas></div>
+        <div class="body">
+          <span class="num">07 · CLEAN<span class="badge-new">NEW</span></span>
+          <h2>Clean</h2>
+          <p>Linear music video creator with CSS transitions. Drop video, apply effects, export. No WebGL, no post-processing.</p>
+          <div class="tags">
+            <span class="tag">linear</span>
+            <span class="tag">css</span>
+            <span class="tag">export</span>
+            <span class="tag">no audio-reactive</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 08 — Console -->
+      <a class="version-card is-console" href="/versions/console">
+        <div class="visual" aria-hidden="true"><canvas id="vconsole"></canvas></div>
+        <div class="body">
+          <span class="num">08 · CONSOLE</span>
+          <h2>Console</h2>
+          <p>Precision oscilloscope aesthetic. Black canvas, single accent, geometric primitives, persistent data overlay.</p>
+          <div class="tags">
+            <span class="tag">IDM</span>
+            <span class="tag">experimental</span>
+            <span class="tag">industrial</span>
+            <span class="tag">mono</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 09 — Envelope (NEW) -->
+      <a class="version-card" href="/versions/envelope">
+        <div class="visual" aria-hidden="true"><canvas id="venvelope"></canvas></div>
+        <div class="body">
+          <span class="num">09 · ENVELOPE<span class="badge-new">NEW</span></span>
+          <h2>Envelope</h2>
+          <p>Interactive LFO envelope editor. Drag points, change duration, switch curves, live play preview, text editor, and undo.</p>
+          <div class="tags">
+            <span class="tag">lfo</span>
+            <span class="tag">envelope</span>
+            <span class="tag">interactive</span>
+            <span class="tag">auto-adapt</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 10 — Credits & Storyline (NEW) -->
+      <a class="version-card" href="/versions/credits-storyline">
+        <div class="visual" aria-hidden="true"><canvas id="vcredits"></canvas></div>
+        <div class="body">
+          <span class="num">10 · CREDITS<span class="badge-new">NEW</span></span>
+          <h2>Credits & Storyline</h2>
+          <p>Auto-assemble credits and generate storyline timelines from track analysis. Lifeline Console series plugin.</p>
+          <div class="tags">
+            <span class="tag">credits</span>
+            <span class="tag">storyline</span>
+            <span class="tag">auto</span>
+            <span class="tag">plugin</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 11 — Glitch -->
+      <a class="version-card" href="/versions/glitch">
+        <div class="visual" aria-hidden="true"><canvas id="vglitch"></canvas></div>
+        <div class="body">
+          <span class="num">11 · GLITCH</span>
+          <h2>Glitch</h2>
+          <p>Snap-beat corrupt. RGB tears, signal noise, hard cuts on the kick.</p>
+          <div class="tags">
+            <span class="tag">glitch</span>
+            <span class="tag">corrupt</span>
+            <span class="tag">RGB</span>
+            <span class="tag">experimental</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 12 — Pulse -->
+      <a class="version-card" href="/versions/pulse">
+        <div class="visual" aria-hidden="true"><canvas id="vpulse"></canvas></div>
+        <div class="body">
+          <span class="num">12 · PULSE</span>
+          <h2>Pulse</h2>
+          <p>Beat-locked radial pulses. Energy expands from the center on every onset.</p>
+          <div class="tags">
+            <span class="tag">pulse</span>
+            <span class="tag">radial</span>
+            <span class="tag">beat</span>
+            <span class="tag">energy</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 13 — Void -->
+      <a class="version-card" href="/versions/void">
+        <div class="visual" aria-hidden="true"><canvas id="vvoid"></canvas></div>
+        <div class="body">
+          <span class="num">13 · VOID</span>
+          <h2>Void</h2>
+          <p>Dark negative space. Sparse highlights, long decays, atmospheric weight.</p>
+          <div class="tags">
+            <span class="tag">void</span>
+            <span class="tag">dark</span>
+            <span class="tag">sparse</span>
+            <span class="tag">ambient</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 14 — Chrome -->
+      <a class="version-card" href="/versions/chrome">
+        <div class="visual" aria-hidden="true"><canvas id="vchrome"></canvas></div>
+        <div class="body">
+          <span class="num">14 · CHROME</span>
+          <h2>Chrome</h2>
+          <p>Reflective metallic surfaces. Hard speculars, cool highlights, industrial sheen.</p>
+          <div class="tags">
+            <span class="tag">metallic</span>
+            <span class="tag">reflective</span>
+            <span class="tag">industrial</span>
+            <span class="tag">cool</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 15 — Watercolor -->
+      <a class="version-card" href="/versions/watercolor">
+        <div class="visual" aria-hidden="true"><canvas id="vwatercolor"></canvas></div>
+        <div class="body">
+          <span class="num">15 · WATERCOLOR</span>
+          <h2>Watercolor</h2>
+          <p>Soft bleed and wash. Edges dissolve, color pools, gentle organic motion.</p>
+          <div class="tags">
+            <span class="tag">watercolor</span>
+            <span class="tag">bleed</span>
+            <span class="tag">soft</span>
+            <span class="tag">organic</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 16 — Fractal -->
+      <a class="version-card" href="/versions/fractal">
+        <div class="visual" aria-hidden="true"><canvas id="vfractal"></canvas></div>
+        <div class="body">
+          <span class="num">16 · FRACTAL</span>
+          <h2>Fractal</h2>
+          <p>Recursive organic forms. Self-similar structures that breathe with the bass.</p>
+          <div class="tags">
+            <span class="tag">fractal</span>
+            <span class="tag">recursive</span>
+            <span class="tag">organic</span>
+            <span class="tag">math</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 17 — Eclipse -->
+      <a class="version-card" href="/versions/eclipse">
+        <div class="visual" aria-hidden="true"><canvas id="veclipse"></canvas></div>
+        <div class="body">
+          <span class="num">17 · ECLIPSE</span>
+          <h2>Eclipse</h2>
+          <p>Corona glow. Dark disk, bright rim, slow orbital drift.</p>
+          <div class="tags">
+            <span class="tag">eclipse</span>
+            <span class="tag">corona</span>
+            <span class="tag">glow</span>
+            <span class="tag">orbital</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 18 — Collage -->
+      <a class="version-card" href="/versions/collage">
+        <div class="visual" aria-hidden="true"><canvas id="vcollage"></canvas></div>
+        <div class="body">
+          <span class="num">18 · COLLAGE</span>
+          <h2>Collage</h2>
+          <p>Cut-paper layers. Torn edges, overlapping planes, tactile texture.</p>
+          <div class="tags">
+            <span class="tag">collage</span>
+            <span class="tag">paper</span>
+            <span class="tag">torn</span>
+            <span class="tag">layered</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+    </div>
+
+  </main>
+
+  <swr-footer></swr-footer>
+
+  <script>
+(function () {
+  const accent = '#E6306B';
+
+  function neon(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#FF1493'); g.addColorStop(1, '#00FFFF');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    for (let y = 0; y < h; y += 4) ctx.fillRect(0, y, w, 1);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(w/2, h/2, h/4, 0, Math.PI*2); ctx.stroke();
+  }
+
+  function film(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const g = ctx.createRadialGradient(w/2, h/2, h/8, w/2, h/2, h/1.5);
+    g.addColorStop(0, '#A47148'); g.addColorStop(1, '#1A0F08');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 400; i++) {
+      ctx.fillStyle = `rgba(255,230,180,${Math.random() * 0.1})`;
+      ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
+    }
+    const v = ctx.createRadialGradient(w/2, h/2, h/3, w/2, h/2, h/1.2);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.7)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
+  }
+
+  function grid(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#F4F4F0'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#1A1612'; ctx.lineWidth = 1;
+    const step = w / 6;
+    for (let i = 0; i <= 6; i++) {
+      ctx.beginPath(); ctx.moveTo(i*step, 0); ctx.lineTo(i*step, h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i*step); ctx.lineTo(w, i*step); ctx.stroke();
+    }
+    ctx.fillStyle = '#1A1612'; ctx.fillRect(step, step, step*2, step*2);
+    ctx.fillStyle = '#E6306B'; ctx.fillRect(step*3, step*3, step, step);
+    ctx.font = '700 14px Fraunces, serif'; ctx.fillStyle = '#1A1612';
+    ctx.fillText('GRID', step/2, h - step/2);
+  }
+
+  function spectrum(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#0A0A1F'); g.addColorStop(0.4, '#2A0A4A');
+    g.addColorStop(0.7, '#FF6B9D'); g.addColorStop(1, '#FFFD87');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    for (let i = 0; i < 16; i++) {
+      const bh = (Math.sin(i * 0.7) * 0.4 + 0.5) * h * 0.4;
+      ctx.fillRect(i * (w/16) + 2, h - bh - 8, (w/16) - 4, bh);
+    }
+  }
+
+  function aurora(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0A0A1F'; ctx.fillRect(0, 0, w, h);
+    const blobs = [
+      { x: 0.2, y: 0.3, c: '#5EEAD4', r: 0.5 },
+      { x: 0.7, y: 0.6, c: '#C084FC', r: 0.5 },
+      { x: 0.5, y: 0.8, c: '#FB7185', r: 0.4 },
+    ];
+    for (const b of blobs) {
+      const r = b.r * Math.min(w, h);
+      const g = ctx.createRadialGradient(b.x * w, b.y * h, 0, b.x * w, b.y * h, r);
+      g.addColorStop(0, b.c); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function simple(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#050811'; ctx.fillRect(0, 0, w, h);
+    const bands = 32;
+    const barW = w / bands;
+    for (let i = 0; i < bands; i++) {
+      const v = Math.sin(i * 0.5) * 0.4 + 0.5;
+      const bh = v * h * 0.6;
+      const hue = 280 + (i / bands) * 60 - v * 30;
+      ctx.fillStyle = `hsl(${hue},80%,50%)`;
+      ctx.fillRect(i * barW + 1, h - bh, barW - 2, bh);
+    }
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      const y = h * (0.3 + i * 0.15);
+      ctx.moveTo(0, y); ctx.lineTo(w, y + Math.sin(i) * 20);
+    }
+    ctx.stroke();
+  }
+
+  function clean(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#0a0d18'); g.addColorStop(1, '#00ffa3');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#fff'; ctx.font = '700 20px Inter';
+    ctx.fillText('CLEAN', w/2 - 40, h/2);
+  }
+
+  function consoleV(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0A0A0B'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#FF6B1A'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x < w; x += 2) {
+      const y = h/2 + Math.sin(x * 0.05) * 40;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function envelope(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    const pts = [[0,0.8],[0.2,0.2],[0.5,0.5],[0.8,0.1],[1,0.9]];
+    pts.forEach(([t,y], i) => {
+      const px = t * w;
+      const py = h - y * h * 0.8;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  }
+
+  function credits(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0f1115';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ff2d95';
+    ctx.font = '600 14px Inter, sans-serif';
+    ctx.fillText('CREDITS', 16, h/2);
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillText('STORYLINE', 16, h/2 + 24);
+  }
+
+  function glitch(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = `hsla(${Math.random()*360},100%,60%,0.7)`;
+      ctx.fillRect(Math.random()*w, Math.random()*h, Math.random()*80+20, 4);
+    }
+  }
+  function pulse(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.min(w,h)/2);
+    g.addColorStop(0, '#ff3d92'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function voidfn(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#050508'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath(); ctx.arc(w*0.6, h*0.4, 8, 0, Math.PI*2); ctx.fill();
+  }
+  function chrome(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#d4af37'); g.addColorStop(0.5, '#c0c0c0'); g.addColorStop(1, '#b87333');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function watercolor(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#f8f0e8'; ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w*0.4, h*0.4, 0, w*0.4, h*0.4, w*0.6);
+    g.addColorStop(0, 'rgba(244,194,194,0.7)'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function fractal(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#ff2d8a'; ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, 20 + i*30, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+  function eclipse(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w/2, h/2, 40, w/2, h/2, 120);
+    g.addColorStop(0, '#000'); g.addColorStop(0.6, '#ffb347'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function collage(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#1a0f08'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#d8232a'; ctx.fillRect(20, 30, 80, 60);
+    ctx.fillStyle = '#fff'; ctx.fillRect(50, 50, 70, 50);
+  }
+
+  const map = {
+    vneon: neon,
+    vfilm: film,
+    vgrid: grid,
+    vspectrum: spectrum,
+    vaurora: aurora,
+    vsimple: simple,
+    vclean: clean,
+    vconsole: consoleV,
+    venvelope: envelope,
+    vcredits: credits,
+    vglitch: glitch,
+    vpulse: pulse,
+    vvoid: voidfn,
+    vchrome: chrome,
+    vwatercolor: watercolor,
+    vfractal: fractal,
+    veclipse: eclipse,
+    vcollage: collage
+  };
+
+  function paint() {
+    Object.entries(map).forEach(([id, fn]) => {
+      const c = document.getElementById(id);
+      if (c) fn(c);
+    });
+  }
+  paint();
+  window.addEventListener('resize', paint);
+})();
+  </script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
+</body>
+</html>
