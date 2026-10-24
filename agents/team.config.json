@@ -1,29 +1,50 @@
 {
   "team": "Sainted Word Records",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "root": ".",
   "twin_root": "../digital_twin",
+  "provider": {
+    "name": "minimax",
+    "base_url": "https://api.minimax.io/anthropic",
+    "api_key_env": "MINIMAX_API_KEY",
+    "note": "Same provider the CI factory uses. The local team and the nightly job must not disagree about which model judges what — software-factory/routing.config.json is the source of truth, and scripts/check-factory-routing.mjs fails the build if the two drift apart."
+  },
   "agents": {
     "SWR-Ops": {
       "role": "orchestrator",
       "prompt": "agents/swr-ops.md",
       "description": "Project manager - decomposes work, owns TASKS.md, routes to teammates",
       "uses_gstack": ["autoplan", "ship", "review", "qa", "investigate"],
-      "writes": ["agents/TASKS.md"]
+      "writes": ["agents/TASKS.md"],
+      "model_default": "MiniMax-M3",
+      "models": {
+        "planning": "MiniMax-M3",
+        "coding": "MiniMax-M2.7",
+        "triage": "MiniMax-M3.1-Flash"
+      }
     },
     "SWR-Twin": {
       "role": "digital-twin",
       "prompt": "agents/swr-twin.md",
       "description": "Your voice and taste - creative work, decisions",
       "reads": ["../digital_twin/voice/", "../digital_twin/cognitive-twin.html"],
-      "confidence_threshold": 0.85
+      "confidence_threshold": 0.85,
+      "model_default": "MiniMax-M2.7",
+      "models": {
+        "creative": "MiniMax-M2.7",
+        "planning": "MiniMax-M3"
+      }
     },
     "SWR-Check": {
       "role": "verifier",
       "prompt": "agents/swr-check.md",
       "description": "Read-only validation - blocks unconfirmed work",
       "uses_gstack": ["review", "qa", "health"],
-      "readonly": true
+      "readonly": true,
+      "model_default": "MiniMax-M3.1-Flash",
+      "models": {
+        "verification": "MiniMax-M3.1-Flash"
+      }
     }
   },
   "gates": {
