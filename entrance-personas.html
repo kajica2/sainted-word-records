@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Who are you making for? · Sainted Word Records</title>
+<meta name="description" content="Choose your entrance. Different layouts for different creators.">
+<link rel="stylesheet" href="/lib/design-tokens.css">
+<style>
+:root { --bg:#faf7f2; --ink:#1a1612; --accent:#e6306b; --line:#e8e2d8; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; }
+.shell { max-width:1100px; margin:0 auto; padding:3rem 1.5rem; }
+h1 { font-weight:300; font-size:clamp(2.2rem,5vw,3.5rem); letter-spacing:-0.02em; margin:0 0 0.5rem; }
+.lede { color:#6b635a; max-width:50ch; margin-bottom:2.5rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1rem; }
+.card {
+  border:1px solid var(--line); border-radius:12px; padding:1.5rem; text-decoration:none; color:inherit;
+  background:#fff; transition:transform .15s, border-color .15s;
+}
+.card:hover { transform:translateY(-3px); border-color:var(--accent); }
+.card h2 { margin:0 0 0.5rem; font-size:1.3rem; font-weight:500; }
+.card p { margin:0; font-size:0.9rem; color:#6b635a; line-height:1.4; }
+.tag { display:inline-block; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--accent); margin-bottom:0.6rem; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1>Who are you making for?</h1>
+  <p class="lede">Pick an entrance. Each one leads to the same engine — just a different first impression and layout.</p>
+  <div class="grid">
+    <a class="card" href="entrance-minimal.html">
+      <span class="tag">Minimal</span>
+      <h2>Drop zone</h2>
+      <p>Almost no chrome. Just the invitation to drop a song and start.</p>
+    </a>
+    <a class="card" href="entrance-cinematic.html">
+      <span class="tag">Cinematic</span>
+      <h2>Breathe</h2>
+      <p>Full-bleed atmosphere. For people who want the feeling first.</p>
+    </a>
+    <a class="card" href="landing-personas-v1-editorial.html">
+      <span class="tag">Editorial</span>
+      <h2>Quarterly</h2>
+      <p>Magazine spread of the people the engine was built for.</p>
+    </a>
+    <a class="card" href="landing-personas-v5-brutalist.html">
+      <span class="tag">Brutalist</span>
+      <h2>PERSONAS.TXT</h2>
+      <p>Raw, direct, no ornament. For the impatient.</p>
+    </a>
+    <a class="card" href="landing-personas-v2-dark.html">
+      <span class="tag">Dark</span>
+      <h2>Night mode</h2>
+      <p>High-contrast dark entrance with persona cards.</p>
+    </a>
+    <a class="card" href="entrance-mobile.html">
+      <span class="tag">Mobile</span>
+      <h2>Touch first</h2>
+      <p>Large targets, safe-area aware, one-handed flow.</p>
+    </a>
+    <a class="card" href="entrance-wizard.html">
+      <span class="tag">Wizard</span>
+      <h2>Three steps</h2>
+      <p>Guided onboarding that ends at the engine.</p>
+    </a>
+    <a class="card" href="entrance-step1.html">
+      <span class="tag">Step 1</span>
+      <h2>Drop a song</h2>
+      <p>Focused audio drop target.</p>
+    </a>
+    <a class="card" href="entrance-step2.html">
+      <span class="tag">Step 2</span>
+      <h2>Add your clips</h2>
+      <p>Focused media drop target.</p>
+    </a>
+    <a class="card" href="entrance-stats.html">
+      <span class="tag">Specs</span>
+      <h2>By the numbers</h2>
+      <p>Engine facts first, for the technically curious.</p>
+    </a>
+    <a class="card" href="/engine">
+      <span class="tag">Direct</span>
+      <h2>Straight to engine</h2>
+      <p>Skip the marketing. Open the studio immediately.</p>
+    </a>
+  </div>
+</div>
+</body>
+</html>

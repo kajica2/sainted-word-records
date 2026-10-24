@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Specs · Sainted Word Records</title>
+<meta name="description" content="The engine in numbers.">
+<link rel="stylesheet" href="/lib/design-tokens.css">
+<style>
+:root { --bg:#050308; --ink:#f5e9ff; --accent:#00e5ff; --muted:#9a8aaa; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+.shell { max-width:900px; margin:0 auto; padding:3rem 1.5rem; }
+h1 { font-family:system-ui,sans-serif; font-weight:300; font-size:2.8rem; letter-spacing:-0.02em; margin:0 0 2rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2.5rem; }
+.stat { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:1.2rem; }
+.stat b { display:block; font-size:2rem; color:var(--accent); font-weight:500; }
+.stat span { font-size:0.75rem; color:var(--muted); letter-spacing:0.05em; text-transform:uppercase; }
+.cta { display:inline-block; padding:0.9rem 1.8rem; background:var(--accent); color:#000; text-decoration:none; border-radius:6px; font-weight:700; font-family:system-ui,sans-serif; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1>One engine. Zero backend.</h1>
+  <div class="grid">
+    <div class="stat"><b>15.6k</b><span>gzipped HTML</span></div>
+    <div class="stat"><b>5</b><span>FFT bands</span></div>
+    <div class="stat"><b>6</b><span>layers</span></div>
+    <div class="stat"><b>23</b><span>personas</span></div>
+    <div class="stat"><b>20</b><span>CSS filters</span></div>
+    <div class="stat"><b>0</b><span>servers</span></div>
+  </div>
+  <a class="cta" href="/engine">Open the engine</a>
+</div>
+</body>
+</html>

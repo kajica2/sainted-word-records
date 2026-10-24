@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Drop · Sainted Word Records</title>
+<meta name="description" content="Drop a song. The engine does the rest.">
+<link rel="stylesheet" href="/lib/design-tokens.css">
+<style>
+:root { --bg:#050308; --ink:#f5e9ff; --accent:#ff3d92; }
+* { box-sizing:border-box; }
+html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; }
+.drop {
+  height:100%; display:grid; place-items:center; text-align:center; padding:2rem;
+  background: radial-gradient(ellipse at center, rgba(255,61,146,0.15), transparent 60%);
+}
+.drop h1 { font-size:clamp(3rem,10vw,8rem); font-weight:300; letter-spacing:-0.04em; margin:0 0 1rem; }
+.drop p { opacity:0.7; font-size:1.1rem; max-width:40ch; margin:0 auto 2rem; }
+.btn {
+  display:inline-block; padding:1rem 2.5rem; background:var(--accent); color:#fff; text-decoration:none;
+  border-radius:999px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; font-size:0.9rem;
+}
+.btn:hover { filter:brightness(1.1); }
+.hint { margin-top:3rem; font-size:0.8rem; opacity:0.5; }
+</style>
+</head>
+<body>
+<div class="drop">
+  <div>
+    <h1>Drop.</h1>
+    <p>A song. A folder of clips. The engine classifies, routes, and composes a music video that breathes with the beat.</p>
+    <a class="btn" href="/engine">Open the engine →</a>
+    <div class="hint">No account · No upload · Browser only</div>
+  </div>
+</div>
+</body>
+</html>
