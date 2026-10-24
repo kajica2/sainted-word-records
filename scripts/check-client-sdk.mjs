@@ -56,6 +56,8 @@ const SURFACE = [
   ['auth.verify',          'GET',   '/api/auth/verify'],
   ['auth.session',         'GET',   '/api/auth/session'],
   ['auth.google',          'POST',  '/api/auth/google'],
+  ['auth.firebaseAnon',    'POST',  '/api/auth/firebase-anon'],
+  ['auth.firebaseConfig',  'GET',   '/api/auth/firebase-anon'],
   ['public.earlyAccess',   'POST',  '/api/early-access'],
   ['public.manifest',      'GET',   '/api/manifest'],
   ['pt.verify',            'GET',   '/api/pt/verify'],
@@ -126,6 +128,29 @@ function makeInProcessClient() {
 
 const api = makeInProcessClient();
 
+// The surface is asserted in both directions: every mock route has an
+// SDK method, and every SDK method has a mock route. A route added to
+// one side and forgotten in the other is the drift this catches.
+await check('the SDK exposes a method for every mock route', () => {
+  const registered = new Set(apiMock.list().map((r) => `${r.method} ${r.path}`));
+  const missing = [];
+  for (const [methodPath, method, route] of SURFACE) {
+    if (!registered.has(`${method} ${route}`)) missing.push(`${methodPath} → ${method} ${route}`);
+    const [group, fn] = methodPath.split('.');
+    const client = api[group];
+    if (!client || typeof client[fn] !== 'function') missing.push(`client.${methodPath} is not a function`);
+  }
+  if (missing.length) throw new Error(`missing: ${missing.join('; ')}`);
+});
+
+await check('every mock route is covered by the SDK surface', () => {
+  const covered = new Set(SURFACE.map(([, method, route]) => `${method} ${route}`));
+  const missing = apiMock.list()
+    .map((r) => `${r.method} ${r.path}`)
+    .filter((k) => !covered.has(k));
+  if (missing.length) throw new Error(`uncovered routes: ${missing.join('; ')}`);
+});
+
 // ---- 2. Canned success — every method returns the contract shape. ----
 await check('auth.magic → { ok: true }', async () => {
   const res = await api.auth.magic({ email: 'me@x.com' });
@@ -151,6 +176,22 @@ await check('auth.google → { ok: true }', async () => {
   const res = await api.auth.google({ code: 'mock-code' });
   assert.equal(res.status, 200);
   assert.equal(res.body.ok, true);
+});
+
+await check('auth.firebaseAnon → the anonymous user', async () => {
+  const res = await api.auth.firebaseAnon({ idToken: 'mock.id.token' });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.equal(res.body.user.anonymous, true);
+  assert.equal(typeof res.body.user.id, 'string');
+});
+
+await check('auth.firebaseConfig → the public web config', async () => {
+  const res = await api.auth.firebaseConfig();
+  assert.equal(res.status, 200);
+  assert.equal(res.body.ok, true);
+  assert.ok(res.body.config.apiKey);
+  assert.ok(res.body.config.projectId);
 });
 
 await check('public.earlyAccess → { ok, queued }', async () => {
@@ -252,6 +293,14 @@ await check('pt.importKeys with bad tier → invalid_input', async () => {
     throw new Error('did not throw');
   } catch (e) {
     if (e.code !== 'invalid_input') throw e;
+  }
+});
+
+await check('auth.firebaseAnon without an idToken → invalid_input', async () => {
+  try { await api.auth.firebaseAnon({}); throw new Error('did not throw'); }
+  catch (e) {
+    if (!(e instanceof ApiError)) throw new Error(`expected ApiError, got ${e.constructor.name}`);
+    assert.equal(e.code, 'invalid_input');
   }
 });
 

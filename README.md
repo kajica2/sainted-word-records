@@ -19,10 +19,10 @@
 | Desktop capture | ✅ `/record` (3 orientation formats: 16:9 / 9:16 / 1:1) |
 | Onboarding / next-step | ✅ 5-step guided tour with toasts + progress pill |
 | Preset + library save | ✅ JSON presets in localStorage + kit-zip distribution |
-| Firestore | ✅ dormant (`SWR_PROJECTS_STORE=firestore`) |
+| Firestore | ✅ opt-in (`SWR_AUTH_STORE=firestore` for auth, `SWR_PROJECTS_STORE=firestore` for projects) |
 | API rules | ✅ rate-limited + auth-gated + invite-code schema v2 |
 | Standards | ✅ LICENSE · CONTRIBUTING · CODE_OF_CONDUCT · CHANGELOG · SECURITY · ISSUE_TEMPLATES · CODEOWNERS |
-| Tests | ✅ 110+ unit checks, `npm run check` (86-step), `check:full` (21-step) |
+| Tests | ✅ 110+ unit checks, `npm run check` (112-step), `check:full` (31-step) |
 | CI | ✅ Pages build deployment · required checks on PRs |
 
 ---

@@ -273,6 +273,22 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
+    /* ── Guest sign-in ──────────────────────────────────────── */
+    /* Reuses the .auth-google-btn family (outline look) so the guest
+       option reads as a secondary way in, next to the filled CTA. */
+    .auth-guest-btn {
+      margin-top: 0.6rem;
+      padding: 0;
+      font-weight: 500;
+    }
+
+    /* .auth-google-btn sets display:inline-flex, which would beat the UA
+       rule for [hidden] — so the guest button needs this to stay hidden
+       until the client confirms the deployment is configured. */
+    .auth-guest-btn[hidden] {
+      display: none;
+    }
+
     /* Helper line under the submit button */
     .auth-field-note {
       margin-top: 0.5rem;
@@ -283,6 +299,10 @@
     }
   </style>
   <script src="/fx-background.client.js" defer></script>
+  <!-- Classic deferred scripts: they run before the deferred module below,
+       so window.SWR_FIREBASE_ANON and window.SWR_AUTH exist by then. -->
+  <script src="/lib/firebase-anon.client.js" defer></script>
+  <script src="/lib/auth.client.js" defer></script>
 </head>
 <body>
       
@@ -347,6 +367,14 @@
       </svg>
       Continue with Google
     </a>
+
+    <!-- Guest sign-in: Firebase anonymous auth. The button ships hidden and
+         is only revealed by auth/login.client.js once the deployment
+         confirms it has a Firebase web config, so a deployment without one
+         never shows a dead button. -->
+    <button type="button" class="auth-google-btn auth-guest-btn" id="guest-btn" hidden>
+      Continue as guest
+    </button>
 
     <p class="auth-footer">
       Want the next engine before everyone else?

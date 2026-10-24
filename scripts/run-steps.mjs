@@ -150,6 +150,20 @@ const GROUPS = {
     // the session cookie and the redirect_uri callback. Google's two
     // endpoints are stubbed; everything else is the real handler.
     'npm run check:auth-google-signin-unit',
+    // Firebase Anonymous Auth: the route over a real HTTP server, with the
+    // Firebase Auth emulator simulated by a node:http stub (no JVM here, so
+    // the real emulator cannot run). Pins the public-config branch, the
+    // error codes and the session cookie.
+    'npm run check:auth-firebase-anon-unit',
+    // The client half of the same feature: the shipped lib/firebase-anon.client.js
+    // in a node:vm sandbox, with the Firebase Web SDK's two dynamic imports stubbed.
+    'npm run check:firebase-anon-client-unit',
+    // The Firestore auth store's own behaviour (users, links, sessions,
+    // verification tokens, the connect blob) over an in-memory Firestore.
+    'npm run check:auth-firestore-unit',
+    // That db.js really delegates to the Firestore store when
+    // SWR_AUTH_STORE=firestore, and really does not when it is off.
+    'npm run check:auth-store-dispatch-unit',
     // The client-IP gate (api/_lib/http.js clientIp). Seven handlers read
     // `x-forwarded-for` directly, so off Vercel - where the header is a
     // string the client chose - every per-IP rate limit was rotatable and
@@ -326,6 +340,11 @@ const GROUPS = {
     // marketplace paint the posts, and the footer's "New — …" link reaches
     // every page that mounts <swr-footer>. Needs a built dist/.
     'npm run check:announcements-smoke',
+    // The "Continue as guest" sign-in on the login page: the button ships
+    // hidden and is revealed only when the server serves a Firebase web
+    // config, the click signs in with the Web SDK and exchanges the ID
+    // token, and a refused exchange leaves the visitor a way forward.
+    'npm run check:firebase-anon-guest-smoke',
     // The store in a real browser: the marketplace paints the download
     // catalogue from site-map.json, the shop renders the shop products
     // with a disabled Buy button while the Payment Links are missing, and

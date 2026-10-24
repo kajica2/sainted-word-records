@@ -8,6 +8,26 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- **Guest sign-in with Firebase Anonymous Auth** — a "Continue as guest"
+  button on the login page: no consent screen, no test-user list. The
+  browser signs in anonymously with the Firebase Web SDK, and the ID
+  token is exchanged at `POST /api/auth/firebase-anon` for an ordinary
+  `swrc_session` cookie — the session model does not change, the token is
+  only an identity assertion at exchange time. The public Firebase web
+  config is **served by the server** (`GET /api/auth/firebase-anon?action=config`),
+  so one build works across projects and the key is rotated by changing
+  an env var; the client never hard-codes one. The button only appears
+  when the server says the feature is configured.
+- **Firestore as the auth store (opt-in)** — `SWR_AUTH_STORE=firestore`
+  moves the users, the provider links, the sessions, the verification
+  tokens and the per-user connect blob into Firestore. `api/_lib/db.js`
+  keeps every export name, so no route changes; the switch is read per
+  call and is **off by default**. The trade-off against the project's
+  "Local-first" rule is stated plainly in
+  `docs/PLANS/firestore-auth-store.md`.
+- `zod` is now a declared **runtime** dependency. The contract layer
+  already imported it at runtime from two routes while it was undeclared,
+  which was a latent production-deploy failure.
 - The **Media Source** panel — where the audio comes from, next to the
   loaded video instead of buried in a global settings page. The source is
   the video's own track, a separate audio file, or nothing; the panel also

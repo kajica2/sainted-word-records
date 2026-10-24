@@ -29,6 +29,7 @@ import {
   MagicReq, MagicRes,
   VerifyReq as AuthVerifyReq, VerifyRes as AuthVerifyRes,
   SessionRes, GoogleRes,
+  FirebaseAnonReq, FirebaseAnonRes, FirebaseConfigRes,
 } from '../api/_lib/contract/auth.mjs';
 import { EarlyAccessReq, EarlyAccessRes, ManifestRes } from '../api/_lib/contract/_public.mjs';
 import {
@@ -68,6 +69,24 @@ const CANNED = {
   },
   authSessionSignedOut: { ok: false },
   googleCallbackOk: { ok: true },
+  firebaseAnonOk: {
+    ok: true,
+    user: {
+      id: '11111111-2222-3333-4444-555555555555',
+      name: 'Guest',
+      email: 'anon-mock@guest.swr.local',
+      anonymous: true,
+    },
+  },
+  firebaseConfigOk: {
+    ok: true,
+    config: {
+      apiKey: 'mock-api-key',
+      authDomain: 'mock-project.firebaseapp.com',
+      projectId: 'mock-project',
+      appId: '1:2:web:mock',
+    },
+  },
   earlyAccessOk: { ok: true, queued: 1 },
   ptVerifyInvalid: { ok: true, valid: false, error: 'key not found' },
   ptVerifyValid: {
@@ -166,6 +185,18 @@ function registerDefaults() {
     method: 'POST', path: '/api/auth/google',
     resSchema: GoogleRes,
     canned: CANNED.googleCallbackOk, status: 200,
+  });
+  // POST /api/auth/firebase-anon — body { idToken } exchanged for a session.
+  apiMock.register({
+    method: 'POST', path: '/api/auth/firebase-anon',
+    reqSchema: FirebaseAnonReq, resSchema: FirebaseAnonRes,
+    canned: CANNED.firebaseAnonOk, status: 200,
+  });
+  // GET /api/auth/firebase-anon?action=config — the public web config.
+  apiMock.register({
+    method: 'GET', path: '/api/auth/firebase-anon',
+    resSchema: FirebaseConfigRes,
+    canned: CANNED.firebaseConfigOk, status: 200,
   });
 
   // ---- PT family ----
