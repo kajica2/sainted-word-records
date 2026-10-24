@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Step 2 · Add your clips · Sainted Word Records</title>
+<meta name="description" content="Drop images or video. The engine classifies them by motion, brightness, and hue.">
+<link rel="stylesheet" href="/lib/design-tokens.css">
+<style>
+:root { --bg:#faf7f2; --ink:#1a1612; --accent:#e6306b; --line:#e8e2d8; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; }
+.shell { max-width:640px; margin:0 auto; padding:2.5rem 1.25rem; text-align:center; }
+.progress { font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase; color:#6b635a; margin-bottom:0.5rem; }
+h1 { font-weight:300; font-size:2.6rem; letter-spacing:-0.03em; margin:0 0 0.6rem; }
+.sub { color:#6b635a; margin:0 auto 2rem; max-width:420px; line-height:1.5; }
+.dropzone {
+  border:2px dashed var(--accent); border-radius:16px; padding:2.5rem 1.5rem; background:#fff;
+  margin:0 auto 1.5rem; max-width:420px; transition:background .15s;
+}
+.dropzone:hover, .dropzone.dragover { background:rgba(230,48,107,0.06); }
+.icon { font-size:2.4rem; color:var(--accent); margin-bottom:0.75rem; }
+.dropzone h2 { margin:0 0 0.3rem; font-size:1.2rem; font-weight:600; }
+.dropzone p { margin:0 0 1.25rem; color:#6b635a; font-size:0.95rem; }
+.btn {
+  display:inline-block; padding:0.9rem 1.8rem; background:var(--accent); color:#fff;
+  text-decoration:none; border-radius:999px; font-weight:700; border:none; cursor:pointer; font-size:1rem;
+}
+.hint { font-size:0.85rem; color:#6b635a; margin-top:1.5rem; }
+.hint a { color:var(--accent); text-decoration:none; margin:0 0.6rem; }
+.hint a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="progress">Step 2 of 3</div>
+  <h1>Add your clips.</h1>
+  <p class="sub">Images or video. The engine classifies them<br>by motion, brightness, and hue.</p>
+
+  <div class="dropzone" id="drop">
+    <div class="icon">▣</div>
+    <h2>Drop clips here</h2>
+    <p>or click to browse</p>
+    <button class="btn" type="button" onclick="document.getElementById('file').click()">Choose clips</button>
+    <input type="file" id="file" accept="image/*,video/*" multiple style="display:none" onchange="window.location.href='/engine'">
+  </div>
+
+  <p class="hint">
+    <a href="entrance-step1.html">← Back to step 1</a>
+    ·
+    <a href="/engine">Skip to engine →</a>
+  </p>
+</div>
+<script>
+document.getElementById('drop').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
+document.getElementById('drop').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
+document.getElementById('drop').addEventListener('drop', e => { e.preventDefault(); window.location.href='/engine'; });
+</script>
+</body>
+</html>
