@@ -1,42 +1,50 @@
 #!/usr/bin/env node
 // software-factory/swr-agent.mjs
 //
-// The bridge between GitHub Actions and MiniMax. It takes an agent name and
-// a task, resolves the route from routing.config.json, and calls the
-// MiniMax Anthropic-compatible Messages endpoint.
+// The bridge between the factory and whatever model is doing the work.
 //
-// WHY THE ANTHROPIC SHAPE
-// -----------------------
-// MiniMax exposes https://api.minimax.io/anthropic/v1/messages, which speaks
-// the Anthropic Messages API. So the wire format stays Anthropic and only the
-// provider block changes: base URL, auth header, model ids, thinking control.
-// Anything that already speaks Anthropic (the Anthropic SDK, Claude Code with
-// a custom base URL, a proxy) can point at the same endpoint.
+// The factory is multi-provider: MiniMax and OpenCode Zen speak the
+// Anthropic Messages API, xAI speaks the OpenAI Responses API, Google
+// Antigravity speaks the Interactions API, and the local agent CLIs
+// (agy, opencode) speak stdout. providers.mjs owns the dialects; this
+// file owns the routing, the tools and the guards.
 //
 // ZERO DEPENDENCIES ON PURPOSE
 // ----------------------------
-// The factory runs in CI on a bare `npm ci` of a repo that has no LLM SDK in
+// The factory runs in CI on a bare `npm ci` of a repo with no LLM SDK in
 // its tree. A global fetch (Node 18+) is the whole transport.
+//
+// MODEL IDS ARE PROVIDER-QUALIFIED
+// -------------------------------
+// `minimax/MiniMax-M3`, `xai/grok-4.7`, `opencode/claude-sonnet-5`,
+// `antigravity/gemini-3.8-flash`. The same convention OpenCode uses for
+// its own config. A bare id is also accepted and resolved by search, but
+// the qualified form is what the router stores — "MiniMax-M3" alone does
+// not say who bills for it.
 //
 // USAGE
 //   node software-factory/swr-agent.mjs run --agent SWR-Ops --task triage
 //   node software-factory/swr-agent.mjs run --agent SWR-Check --task verification \
-//        --diff "$(git diff origin/main...)" --json
+//        --diff-file pr.diff --json
 //   node software-factory/swr-agent.mjs run --agent SWR-Ops --task planning \
-//        --context-file drift.txt --allow-writes
-//   node software-factory/swr-agent.mjs models          # live catalog from MiniMax
-//   node software-factory/swr-agent.mjs show --agent SWR-Ops   # resolved route
-//   node software-factory/swr-agent.mjs run --agent SWR-Ops --task triage --dry-run
+//        --model xai/grok-4.7 --context-file drift.txt --allow-writes
+//   node software-factory/swr-agent.mjs chat --agent SWR-Twin --task creative
+//   node software-factory/swr-agent.mjs show --agent SWR-Ops
+//   node software-factory/swr-agent.mjs models --live
+//   node software-factory/swr-agent.mjs formats
+//   node software-factory/swr-agent.mjs self-test
 //
 // EXIT CODES
 //   0  success
 //   1  runtime / API error
-//   2  usage or configuration error (bad agent, unknown model, missing key)
+//   2  usage or configuration error
 
 import { readFileSync, existsSync, appendFileSync, writeFileSync, statSync } from 'node:fs';
-import { resolve, dirname, relative, isAbsolute } from 'node:path';
+import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface as readline } from 'node:readline';
+import { spawn } from 'node:child_process';
+import { FORMATS } from './providers.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
@@ -45,9 +53,7 @@ const CONFIG_PATH = resolve(HERE, 'routing.config.json');
 // ---------------------------------------------------------------- config ---
 
 function loadConfig() {
-  if (!existsSync(CONFIG_PATH)) {
-    fail(2, `routing config not found at ${CONFIG_PATH}`);
-  }
+  if (!existsSync(CONFIG_PATH)) fail(2, `routing config not found at ${CONFIG_PATH}`);
   try {
     return JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
   } catch (err) {
@@ -77,9 +83,8 @@ function parseArgs(argv) {
     }
     const key = token.slice(2);
     const next = argv[i + 1];
-    if (next === undefined || next.startsWith('--')) {
-      args[key] = true;
-    } else {
+    if (next === undefined || next.startsWith('--')) args[key] = true;
+    else {
       args[key] = next;
       i++;
     }
@@ -87,19 +92,51 @@ function parseArgs(argv) {
   return args;
 }
 
-// ----------------------------------------------------------------- routes ---
+// --------------------------------------------------------------- routing ---
 
-// A task is either one of the agent's model keys (planning / triage / …) or
-// the name of a trigger (issue_opened / pr_opened / …). Triggers win when the
-// name collides, because a trigger carries its own model AND its own prompt.
-function resolveRoute(config, agentName, taskName) {
+// A model ref is "provider/model". A bare "model" is resolved by searching
+// every provider in the registry, first match wins.
+function resolveModelRef(config, ref) {
+  if (!ref) fail(2, 'no model given');
+  const models = config.models || {};
+
+  if (ref.includes('/')) {
+    const [providerName, ...rest] = ref.split('/');
+    const modelId = rest.join('/');
+    const provider = config.providers?.[providerName];
+    if (!provider) {
+      fail(2, `unknown provider "${providerName}" in "${ref}". Known: ${Object.keys(config.providers || {}).join(', ')}`);
+    }
+    const spec = models[ref];
+    if (!spec) fail(2, `model "${ref}" is not in the catalog`);
+    return { ref, providerName, provider, modelId, spec };
+  }
+
+  const hits = Object.keys(models).filter((key) => key.split('/').slice(1).join('/') === ref);
+  if (!hits.length) {
+    const hint = /^claude-/i.test(ref)
+      ? ' A bare Claude id needs a provider — try opencode/claude-sonnet-5.'
+      : '';
+    fail(2, `model "${ref}" is not in the catalog.${hint} Catalog: ${Object.keys(models).join(', ')}`);
+  }
+  if (hits.length > 1) {
+    process.stderr.write(`swr-agent: "${ref}" is ambiguous — using ${hits[0]} of ${hits.join(', ')}\n`);
+  }
+  const key = hits[0];
+  const providerName = key.split('/')[0];
+  return { ref: key, providerName, provider: config.providers[providerName], modelId: key.split('/').slice(1).join('/'), spec: models[key] };
+}
+
+// The chain of models a task may run on, in order. The first one that
+// answers wins; the rest are the fallback when a provider is down, rate
+// limited, or simply not configured.
+function resolveTask(config, agentName, taskName) {
   const agent = config.agents?.[agentName];
   if (!agent) {
-    const known = Object.keys(config.agents || {}).join(', ');
-    fail(2, `unknown agent "${agentName}". Known agents: ${known}`);
+    fail(2, `unknown agent "${agentName}". Known: ${Object.keys(config.agents || {}).join(', ')}`);
   }
   if (!taskName) {
-    return { agent, model: agent.model_default, task: null, trigger: null };
+    return { agent, task: null, chain: [agent.model_default].filter(Boolean), effort: null, maxTokens: null };
   }
 
   const trigger = config.triggers?.[taskName];
@@ -107,35 +144,68 @@ function resolveRoute(config, agentName, taskName) {
     if (trigger.agent !== agentName) {
       fail(2, `trigger "${taskName}" belongs to ${trigger.agent}, not ${agentName}`);
     }
+    const spec = agent.tasks?.[trigger.task];
+    if (!spec) fail(2, `${agentName} has no task "${trigger.task}"`);
     return {
       agent,
-      model: trigger.model,
-      task: trigger.task || taskName,
+      task: trigger.task,
       trigger,
-      maxTokens: trigger.max_tokens,
+      chain: [spec.primary, ...(spec.fallbacks || [])],
+      effort: spec.effort || null,
+      maxTokens: spec.max_tokens || null,
     };
   }
 
-  const model = agent.models?.[taskName] || agent.model_default;
-  return { agent, model, task: taskName, trigger: null };
+  const spec = agent.tasks?.[taskName];
+  if (!spec) {
+    fail(2, `${agentName} has no task "${taskName}". Tasks: ${Object.keys(agent.tasks || {}).join(', ')}`);
+  }
+  return {
+    agent,
+    task: taskName,
+    trigger: null,
+    chain: [spec.primary, ...(spec.fallbacks || [])],
+    effort: spec.effort || null,
+    maxTokens: spec.max_tokens || null,
+  };
 }
 
 function resolveSystemPrompt(agent) {
   const path = agent.system_prompt;
   if (!path) return '';
   const abs = isAbsolute(path) ? path : resolve(REPO_ROOT, path);
-  if (!existsSync(abs)) {
-    fail(2, `system prompt file not found for ${agent.role}: ${path}`);
-  }
+  if (!existsSync(abs)) fail(2, `system prompt file not found for ${agent.role}: ${path}`);
   return readFileSync(abs, 'utf8');
+}
+
+// ------------------------------------------------------------------ auth ---
+
+function providerBaseUrl(provider) {
+  if (provider.base_url_env && process.env[provider.base_url_env]) {
+    return process.env[provider.base_url_env];
+  }
+  return provider.base_url;
+}
+
+// Returns { headers, missing }. `missing` names the env var that is not
+// set — a provider without a key is skipped, not an error, because a
+// factory with one key is still a working factory.
+function providerAuth(provider) {
+  const auth = provider.auth || {};
+  if (!auth.env) return { headers: {}, missing: null };
+  const key = process.env[auth.env];
+  if (!key) return { headers: {}, missing: auth.env };
+  if (auth.type === 'bearer') return { headers: { Authorization: `Bearer ${key}` }, missing: null };
+  if (auth.type === 'header') return { headers: { [auth.header]: key }, missing: null };
+  return { headers: {}, missing: null };
 }
 
 // ------------------------------------------------------------------ cost ---
 
-function estimateCost(model, usage) {
-  const entry = loadConfig().model_catalog?.[model];
-  if (!entry || !usage) return null;
-  const p = entry.pricing || {};
+function estimateCost(modelRef, usage) {
+  const spec = loadConfig().models?.[modelRef];
+  if (!spec || !usage) return null;
+  const p = spec.pricing || {};
   const inTok = usage.input_tokens || 0;
   const outTok = usage.output_tokens || 0;
   const cacheTok = usage.cache_read_input_tokens || 0;
@@ -189,13 +259,8 @@ function readToolSchema() {
   };
 }
 
-// The read roots are deliberately explicit. "repo" is the SWR checkout,
-// "twin" is the sibling digital_twin checkout the twin's voice lives in.
 function readRoots() {
-  return {
-    repo: REPO_ROOT,
-    twin: resolve(REPO_ROOT, '..', 'digital_twin'),
-  };
+  return { repo: REPO_ROOT, twin: resolve(REPO_ROOT, '..', 'digital_twin') };
 }
 
 function executeRead(config, input) {
@@ -208,22 +273,17 @@ function executeRead(config, input) {
   const path = String(input?.path || '');
   if (!path) return { ok: false, message: 'read_file needs a path.' };
   const abs = resolve(base, path);
-  // Refuse anything that escapes the root — a "../" in a model-authored
-  // path must not reach outside the checkout.
   if (!abs.startsWith(base + '/') && abs !== base) {
     return { ok: false, message: `Path escapes the ${rootName} root: ${path}` };
   }
-  if (!existsSync(abs)) {
-    return { ok: false, message: `Not found in the ${rootName} root: ${path}` };
-  }
+  if (!existsSync(abs)) return { ok: false, message: `Not found in the ${rootName} root: ${path}` };
   try {
-    const stat = statSync(abs);
-    if (stat.isDirectory()) {
+    if (statSync(abs).isDirectory()) {
       return { ok: false, message: `${path} is a directory. Read a file inside it.` };
     }
     const content = readFileSync(abs, 'utf8');
     const capped = content.length > 120000 ? `${content.slice(0, 120000)}\n… [truncated]` : content;
-    return { ok: true, message: capped, content: capped };
+    return { ok: true, message: capped };
   } catch (err) {
     return { ok: false, message: `Read failed for ${path}: ${err.message}` };
   }
@@ -235,24 +295,14 @@ function executeTool(config, agent, input, { allowWrites, dryRun }) {
   const content = String(input?.content ?? '');
   const mode = input?.mode === 'overwrite' ? 'overwrite' : 'append';
 
-  if (agent.read_only) {
-    return { ok: false, message: `${agent.role} is read-only and cannot write files.` };
-  }
+  if (agent.read_only) return { ok: false, message: `${agent.role} is read-only and cannot write files.` };
   if (!allowlist.includes(path)) {
-    return {
-      ok: false,
-      message: `Path not on the write allowlist: ${path}. Allowed: ${allowlist.join(', ')}`,
-    };
+    return { ok: false, message: `Path not on the write allowlist: ${path}. Allowed: ${allowlist.join(', ')}` };
   }
   if (!allowWrites) {
-    return {
-      ok: false,
-      message: `Writes are disabled. Re-run with ${config.tools?.write_requires_flag || '--allow-writes'} to permit them.`,
-    };
+    return { ok: false, message: `Writes are disabled. Re-run with ${config.tools?.write_requires_flag || '--allow-writes'} to permit them.` };
   }
-  if (dryRun) {
-    return { ok: true, message: `[dry-run] would ${mode} ${path} (${content.length} bytes)` };
-  }
+  if (dryRun) return { ok: true, message: `[dry-run] would ${mode} ${path} (${content.length} bytes)` };
   try {
     if (mode === 'overwrite') writeFileSync(resolve(REPO_ROOT, path), content, 'utf8');
     else appendFileSync(resolve(REPO_ROOT, path), content, 'utf8');
@@ -264,128 +314,89 @@ function executeTool(config, agent, input, { allowWrites, dryRun }) {
 
 // -------------------------------------------------------------- transport ---
 
-function buildRequestBody(config, { model, agent, task, maxTokens, effort, thinkingBudget, userText, dryRun }) {
-  const catalog = config.model_catalog || {};
-  const entry = catalog[model];
-  if (!entry) {
-    const known = Object.keys(catalog).join(', ');
-    const hint = /^claude-/i.test(model)
-      ? ' That looks like a Claude model id — this factory runs on MiniMax.'
-      : '';
-    fail(2, `unknown model "${model}".${hint} Known models: ${known}`);
+// Effort only exists on some models. Where it does not, the request goes
+// out without it rather than failing — a fallback that cannot honour the
+// effort is still a working fallback.
+function effortFor(spec, effort) {
+  const style = spec.reasoning?.style;
+  if (!effort) return null;
+  if (style === 'anthropic-effort' || style === 'openai-effort') {
+    const values = spec.reasoning?.values;
+    if (values && !values.includes(effort)) return null;
+    return effort;
   }
-
-  // Ceiling = what the model can emit. Target = what we actually ask for.
-  // The model's *recommended* value is a cap, not a target — asking for 128k
-  // on a triage call would let one run spend a fortune on a one-line label.
-  const cap = entry.max_output_tokens || config.defaults?.max_tokens || 16384;
-  const target = config.defaults?.max_tokens || 16384;
-  let tokens = maxTokens || target;
-  if (tokens > cap) tokens = cap;
-
-  const body = {
-    model,
-    max_tokens: tokens,
-    system: resolveSystemPrompt(agent),
-    messages: [{ role: 'user', content: userText }],
-  };
-
-  // Thinking. Flash always thinks and rejects {"type":"disabled"}; M3 defaults
-  // to off and takes {"type":"adaptive"}; the M2.x family takes a budget.
-  if (entry.supports?.thinking) {
-    const thinking = entry.thinking || {};
-    if (thinking.payload) body.thinking = { ...thinking.payload };
-    if (thinking.mode === 'budget' && thinking.payload?.budget_tokens) {
-      body.thinking.budget_tokens = thinking.payload.budget_tokens;
-    }
-    // A per-task budget overrides the model default — that is the only depth
-    // knob the M2.x family has.
-    if (thinkingBudget && thinking.mode === 'budget') {
-      body.thinking.budget_tokens = thinkingBudget;
-    }
-  }
-
-  // Thinking depth. Only MiniMax-M3.1-Flash accepts output_config.effort;
-  // "none" is not a valid value and returns 400.
-  if (effort && entry.supports?.effort) {
-    const allowed = entry.effort_values || ['low', 'medium', 'high', 'xhigh', 'max'];
-    if (!allowed.includes(effort)) {
-      fail(2, `effort "${effort}" is not supported by ${model}. Allowed: ${allowed.join(', ')}`);
-    }
-    body.output_config = { ...(body.output_config || {}), effort };
-  }
-
-  // Every agent may read. Only agents that are not read-only may write,
-  // and even then the path has to be on the allowlist.
-  const tools = [readToolSchema()];
-  if (!agent.read_only) tools.push(writeToolSchema());
-  body.tools = tools;
-  body.tool_choice = { type: 'auto' };
-
-  return body;
+  return null;
 }
 
-async function callMiniMax(config, body, { timeoutMs, retries, dryRun }) {
-  const provider = config.provider;
-  const base = process.env.MINIMAX_BASE_URL || provider.base_url;
-  const url = `${base.replace(/\/+$/, '')}${provider.messages_path}`;
-  const apiKey = process.env[provider.api_key_env || 'MINIMAX_API_KEY'];
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'anthropic-version': provider.anthropic_version || '2023-06-01',
-  };
-  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
-
-  if (dryRun) {
-    return { dryRun: true, url, headers: { ...headers, Authorization: apiKey ? 'Bearer ***' : '(unset)' }, body };
+// Resolve a model ref to its provider, spec and wire format. The format
+// decides which tools the model can be offered, so it gets resolved before
+// the request is built rather than after.
+function resolveFormat(config, modelRef) {
+  const resolved = resolveModelRef(config, modelRef);
+  const format = FORMATS[resolved.spec.format];
+  if (!format) {
+    fail(2, `model "${modelRef}" uses wire format "${resolved.spec.format}", which the bridge does not implement`);
   }
-  if (!apiKey) {
-    fail(2, `${provider.api_key_env || 'MINIMAX_API_KEY'} is not set. Export it or add it as a repo secret.`);
+  return { resolved, format };
+}
+
+function buildTurn(config, { modelRef, agent, system, messages, tools, maxTokens, effort }) {
+  const { resolved, format } = resolveFormat(config, modelRef);
+  const effectiveEffort = effortFor(resolved.spec, effort);
+  const built = format.build({
+    provider: { ...resolved.provider, base_url: providerBaseUrl(resolved.provider) },
+    model: resolved.modelId,
+    system,
+    messages,
+    tools,
+    maxTokens: maxTokens || config.defaults?.max_tokens || 16384,
+    reasoning: resolved.spec.reasoning,
+    effort: effectiveEffort,
+  });
+  return { resolved, format, built, effort: effectiveEffort };
+}
+
+async function httpCall(config, resolved, built, { timeoutMs, retries }) {
+  const { headers: authHeaders, missing } = providerAuth(resolved.provider);
+  if (missing) {
+    return { skipped: true, reason: `${resolved.providerName} has no API key (${missing} is not set)` };
   }
+  const headers = { 'Content-Type': 'application/json', ...(resolved.provider.headers || {}), ...authHeaders };
+  const url = built.url;
+  const retryOn = config.defaults?.retry_on || [429, 500, 502, 503, 504];
 
   let lastError = null;
   for (let attempt = 0; attempt <= (retries ?? 0); attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs || 600000);
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
+      const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(built.body), signal: controller.signal });
       clearTimeout(timer);
-
       const text = await res.text();
       let json;
       try {
         json = JSON.parse(text);
       } catch {
-        fail(1, `MiniMax returned non-JSON (HTTP ${res.status}): ${text.slice(0, 500)}`);
+        return { error: `HTTP ${res.status} with a non-JSON body: ${text.slice(0, 300)}` };
       }
-
       if (!res.ok) {
         const baseResp = json?.base_resp;
         const detail = baseResp
           ? `status_code=${baseResp.status_code} status_msg=${baseResp.status_msg || ''}`
-          : json?.error?.message || text.slice(0, 300);
-        const retryable = (config.defaults?.retry_on || [429, 500, 502, 503, 504]).includes(res.status);
-        lastError = `HTTP ${res.status} from MiniMax: ${detail}`;
-        if (retryable && attempt < (retries ?? 0)) {
+          : json?.error?.message || json?.message || text.slice(0, 300);
+        lastError = `HTTP ${res.status} from ${resolved.providerName}: ${detail}`;
+        if (retryOn.includes(res.status) && attempt < (retries ?? 0)) {
           const backoff = 1000 * 4 ** attempt;
           process.stderr.write(`swr-agent: ${lastError} — retrying in ${backoff}ms\n`);
           await new Promise((r) => setTimeout(r, backoff));
           continue;
         }
-        fail(1, lastError);
+        return { error: lastError, retryable: retryOn.includes(res.status) };
       }
-      return json;
+      return { json };
     } catch (err) {
       clearTimeout(timer);
-      if (err?.name === 'AbortError') {
-        fail(1, `MiniMax request timed out after ${timeoutMs}ms`);
-      }
+      if (err?.name === 'AbortError') return { error: `${resolved.providerName} timed out after ${timeoutMs}ms`, retryable: true };
       lastError = err.message;
       if (attempt < (retries ?? 0)) {
         const backoff = 1000 * 4 ** attempt;
@@ -393,172 +404,253 @@ async function callMiniMax(config, body, { timeoutMs, retries, dryRun }) {
         await new Promise((r) => setTimeout(r, backoff));
         continue;
       }
-      fail(1, `MiniMax request failed: ${lastError}`);
+      return { error: `${resolved.providerName} request failed: ${lastError}`, retryable: true };
     }
   }
-  fail(1, lastError || 'MiniMax request failed');
+  return { error: lastError, retryable: true };
 }
 
-function extractText(content) {
-  if (!Array.isArray(content)) return '';
-  return content
-    .filter((b) => b.type === 'text' && typeof b.text === 'string')
-    .map((b) => b.text)
-    .join('\n')
-    .trim();
+async function cliCall(resolved, built, { timeoutMs }) {
+  const command = built.command;
+  if (!command) return { error: `${resolved.providerName} has no command configured` };
+  return new Promise((resolvePromise) => {
+    const child = spawn(command, built.args, { cwd: REPO_ROOT, env: process.env });
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill('SIGTERM');
+      resolvePromise({ error: `${command} timed out after ${timeoutMs}ms`, retryable: true });
+    }, timeoutMs || 600000);
+    child.stdout.on('data', (d) => (stdout += d.toString()));
+    child.stderr.on('data', (d) => (stderr += d.toString()));
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      resolvePromise({ error: `could not run ${command}: ${err.message}`, retryable: false });
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        resolvePromise({ error: `${command} exited with ${code}: ${stderr.slice(0, 300)}`, retryable: true });
+        return;
+      }
+      resolvePromise({ stdout, stderr });
+    });
+    if (built.stdin) {
+      child.stdin.write(built.stdin);
+      child.stdin.end();
+    }
+  });
 }
 
-function extractThinking(content) {
-  if (!Array.isArray(content)) return '';
-  return content
-    .filter((b) => b.type === 'thinking' && typeof b.thinking === 'string')
-    .map((b) => b.thinking)
-    .join('\n')
-    .trim();
+// ------------------------------------------------------------------ turn ---
+
+// One turn against one model: build, send, parse. Returns the neutral
+// shape every format is normalised into.
+async function runTurn(config, { modelRef, agent, system, messages, tools, maxTokens, effort, transport }) {
+  const { resolved, format, built, effort: effectiveEffort } = buildTurn(config, {
+    modelRef,
+    agent,
+    system,
+    messages,
+    tools,
+    maxTokens,
+    effort,
+  });
+
+  if (format === FORMATS.cli) {
+    const res = await cliCall(resolved, built, transport);
+    if (res.error) return { error: res.error, retryable: res.retryable, modelRef, provider: resolved.providerName };
+    const parsed = format.parse(res.stdout);
+    return { modelRef, provider: resolved.providerName, format: resolved.spec.format, effort: effectiveEffort, ...parsed, usage: parsed.usage };
+  }
+
+  const res = await httpCall(config, resolved, built, transport);
+  if (res.skipped) return { skipped: true, reason: res.reason, modelRef, provider: resolved.providerName };
+  if (res.error) return { error: res.error, retryable: res.retryable, modelRef, provider: resolved.providerName };
+  const parsed = format.parse(res.json);
+  return { modelRef, provider: resolved.providerName, format: resolved.spec.format, effort: effectiveEffort, ...parsed, raw: res.json };
 }
 
-function extractToolCalls(content) {
-  if (!Array.isArray(content)) return [];
-  return content.filter((b) => b.type === 'tool_use').map((b) => ({ id: b.id, name: b.name, input: b.input }));
+// Run a turn against the chain until one of them answers.
+async function runTurnWithFailover(config, chain, ctx) {
+  const attempts = [];
+  for (const modelRef of chain) {
+    const result = await runTurn(config, { ...ctx, modelRef });
+    if (result.skipped) {
+      attempts.push({ model: modelRef, skipped: result.reason });
+      process.stderr.write(`swr-agent: skipping ${modelRef} — ${result.reason}\n`);
+      continue;
+    }
+    if (result.error) {
+      attempts.push({ model: modelRef, error: result.error });
+      process.stderr.write(`swr-agent: ${modelRef} failed — ${result.error}\n`);
+      continue;
+    }
+    attempts.push({ model: modelRef, ok: true });
+    return { result, attempts };
+  }
+  return { result: null, attempts };
 }
 
-// ------------------------------------------------------------- user text ---
+// ------------------------------------------------------------- tool loop ---
+
+function toolDefsFor(config, agent, format) {
+  if (!format.supportsTools) return [];
+  const defs = [{ name: 'read_file', description: readToolSchema().description, parameters: readToolSchema().input_schema }];
+  if (!agent.read_only) {
+    defs.push({ name: 'write_file', description: writeToolSchema().description, parameters: writeToolSchema().input_schema });
+  }
+  return defs;
+}
+
+function runToolCalls(config, agent, response, toolCalls, { allowWrites, toolLog = [] }) {
+  const results = [];
+  for (const call of toolCalls) {
+    let result;
+    if (call.name === 'read_file') result = executeRead(config, call.input);
+    else if (call.name === 'write_file') result = executeTool(config, agent, call.input, { allowWrites, dryRun: false });
+    else result = { ok: false, message: `Unknown tool: ${call.name}` };
+    toolLog.push({ name: call.name, input: call.input, ok: result.ok, message: result.message });
+    results.push({ type: 'tool_result', tool_use_id: call.id, content: result.ok ? result.message : `ERROR: ${result.message}`, is_error: !result.ok });
+  }
+  return results;
+}
+
+// -------------------------------------------------------------- user text ---
 
 function assembleUserText(config, args, route) {
   const parts = [];
-
   const prompt = args.prompt || config.prompts?.[route.task];
   if (prompt) parts.push(prompt);
-
   if (args.context) parts.push(`\n--- CONTEXT ---\n${args.context}`);
   if (args['context-file']) {
     const p = resolve(REPO_ROOT, args['context-file']);
     if (!existsSync(p)) fail(2, `context file not found: ${args['context-file']}`);
     parts.push(`\n--- CONTEXT (${args['context-file']}) ---\n${readFileSync(p, 'utf8')}`);
   }
-
   if (args.files) {
-    const list = String(args.files).split(',').map((s) => s.trim()).filter(Boolean);
-    for (const f of list) {
+    for (const f of String(args.files).split(',').map((s) => s.trim()).filter(Boolean)) {
       const p = resolve(REPO_ROOT, f);
       if (!existsSync(p)) fail(2, `file not found: ${f}`);
       parts.push(`\n--- FILE ${f} ---\n${readFileSync(p, 'utf8')}`);
     }
   }
-
   if (args.diff) parts.push(`\n--- DIFF ---\n${args.diff}`);
   if (args['diff-file']) {
     const p = resolve(REPO_ROOT, args['diff-file']);
     if (!existsSync(p)) fail(2, `diff file not found: ${args['diff-file']}`);
     parts.push(`\n--- DIFF (${args['diff-file']}) ---\n${readFileSync(p, 'utf8')}`);
   }
-
   if (!parts.length) {
     fail(2, 'nothing to send: pass --prompt, --context, --context-file, --files or --diff');
   }
   return parts.join('\n');
 }
 
-// ------------------------------------------------------------------ turns ---
-
-// One model turn: call MiniMax and pull the pieces out of the response.
-async function modelTurn(config, body, transport) {
-  const response = await callMiniMax(config, body, transport);
-  return {
-    response,
-    text: extractText(response.content),
-    thinking: extractThinking(response.content),
-    toolCalls: extractToolCalls(response.content),
-  };
-}
-
-// Execute the tools a turn asked for, then push the assistant turn and the
-// tool results back into the conversation so the model can continue.
-function runToolCalls(config, route, body, response, toolCalls, { allowWrites, toolLog = [] }) {
-  const toolResults = [];
-  for (const call of toolCalls) {
-    let result;
-    if (call.name === 'read_file') {
-      result = executeRead(config, call.input);
-    } else if (call.name === 'write_file') {
-      result = executeTool(config, route.agent, call.input, { allowWrites, dryRun: false });
-    } else {
-      result = { ok: false, message: `Unknown tool: ${call.name}` };
-    }
-    toolLog.push({ name: call.name, input: call.input, ok: result.ok, message: result.message });
-    toolResults.push({
-      type: 'tool_result',
-      tool_use_id: call.id,
-      content: result.ok ? result.message : `ERROR: ${result.message}`,
-      is_error: !result.ok,
-    });
-  }
-  body.messages.push({ role: 'assistant', content: response.content });
-  body.messages.push({ role: 'user', content: toolResults });
-  return toolLog;
-}
-
 // -------------------------------------------------------------- commands ---
 
 async function cmdRun(args) {
   const config = loadConfig();
-  const route = resolveRoute(config, args.agent, args.task);
-  const model = args.model || route.model;
-  const reasoning = route.agent.reasoning?.[route.task] || {};
-  const effort = args.effort || reasoning.effort;
-  const thinkingBudget = args['thinking-budget']
-    ? Number(args['thinking-budget'])
-    : reasoning.thinking_budget_tokens;
-
+  const route = resolveTask(config, args.agent, args.task);
+  const chain = args.model ? [args.model] : route.chain;
   const userText = assembleUserText(config, args, route);
+  const system = resolveSystemPrompt(route.agent);
   const dryRun = Boolean(args['dry-run']);
 
-  let body = buildRequestBody(config, {
-    model,
-    agent: route.agent,
-    task: route.task,
-    maxTokens: args['max-tokens'] ? Number(args['max-tokens']) : route.maxTokens,
-    effort,
-    thinkingBudget,
-    userText,
-    dryRun,
-  });
-
-  const transport = { timeoutMs: Number(args.timeout) || config.defaults?.timeout_ms, retries: config.defaults?.retries, dryRun };
+  const transport = {
+    timeoutMs: Number(args.timeout) || config.defaults?.timeout_ms,
+    retries: config.defaults?.retries,
+  };
 
   if (dryRun) {
-    const preview = await callMiniMax(config, body, transport);
-    process.stdout.write(JSON.stringify(preview, null, 2) + '\n');
+    const previews = [];
+    for (const modelRef of chain) {
+      const { resolved, format } = resolveFormat(config, modelRef);
+      const tools = toolDefsFor(config, route.agent, format);
+      const { built, effort } = buildTurn(config, {
+        modelRef,
+        agent: route.agent,
+        system,
+        messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }],
+        tools,
+        maxTokens: args['max-tokens'] ? Number(args['max-tokens']) : route.maxTokens,
+        effort: route.effort,
+      });
+      const { missing } = providerAuth(resolved.provider);
+      previews.push({
+        model: modelRef,
+        provider: resolved.providerName,
+        format: resolved.spec.format,
+        effort,
+        api_key_env: resolved.provider.auth?.env || null,
+        api_key_present: resolved.provider.auth?.env ? !missing : true,
+        url: built.url,
+        body: built.body,
+        tools: tools.map((t) => t.name),
+      });
+    }
+    process.stdout.write(JSON.stringify({ dryRun: true, chain: previews }, null, 2) + '\n');
     return 0;
   }
 
-  const results = [];
   const toolLog = [];
+  let payload = null;
+  const attempts = [];
 
   for (let turn = 0; turn < 3; turn++) {
-    const { response, text, thinking, toolCalls } = await modelTurn(config, body, transport);
+    const messages = [{ role: 'user', content: [{ type: 'text', text: userText }] }];
+    const ctx = {
+      agent: route.agent,
+      system,
+      messages,
+      maxTokens: args['max-tokens'] ? Number(args['max-tokens']) : route.maxTokens,
+      effort: route.effort,
+      transport,
+    };
 
-    if (thinking && args.verbose) process.stderr.write(`[thinking]\n${thinking}\n`);
+    // The first turn decides the tools; later turns reuse the same format.
+    const probe = resolveFormat(config, chain[0]);
+    const tools = toolDefsFor(config, route.agent, probe.format);
 
-    if (!toolCalls.length) {
-      results.push({
-        model: response.model || model,
-        stop_reason: response.stop_reason,
-        text,
-        thinking: args.verbose ? thinking : undefined,
-        usage: response.usage,
-        cost: estimateCost(response.model || model, response.usage),
+    const { result, attempts: chainAttempts } = await runTurnWithFailover(config, chain, { ...ctx, tools });
+    attempts.push(...chainAttempts);
+    if (!result) {
+      const why = chainAttempts.map((a) => `${a.model}: ${a.error || a.skipped}`).join(' | ');
+      fail(1, `every model in the chain failed — ${why}`);
+    }
+
+    if (result.thinking && args.verbose) process.stderr.write(`[thinking]\n${result.thinking}\n`);
+
+    if (!result.toolCalls?.length) {
+      payload = {
+        model: result.modelRef,
+        provider: result.provider,
+        format: result.format,
+        effort: result.effort,
+        stop_reason: result.stopReason,
+        text: result.text,
+        thinking: args.verbose ? result.thinking : undefined,
+        usage: result.usage,
+        cost: estimateCost(result.modelRef, result.usage),
         tool_calls: toolLog,
-      });
+        attempts,
+      };
       break;
     }
 
-    runToolCalls(config, route, body, response, toolCalls, {
+    const results = runToolCalls(config, route.agent, result, result.toolCalls, {
       allowWrites: Boolean(args['allow-writes']),
       toolLog,
     });
+    // Feed the tool results back and ask again — on the same model that
+    // asked for them, so the plan survives the round trip.
+    messages.push({ role: 'assistant', content: result.toolCalls.map((c) => ({ type: 'tool_use', id: c.id, name: c.name, input: c.input })) });
+    messages.push({ role: 'tool', content: results });
   }
-  const payload = results[0] || { model, text: '', usage: null, cost: null, tool_calls: toolLog };
+
+  if (!payload) {
+    payload = { model: chain[0], text: '', usage: null, cost: null, tool_calls: toolLog, attempts };
+  }
 
   if (args.json) {
     process.stdout.write(JSON.stringify(payload, null, 2) + '\n');
@@ -566,8 +658,7 @@ async function cmdRun(args) {
     if (payload.text) process.stdout.write(payload.text + '\n');
     if (payload.cost) {
       process.stderr.write(
-        `\n[swr-agent] ${payload.model} · in ${payload.cost.input_tokens} / out ${payload.cost.output_tokens}` +
-          ` tokens · $${payload.cost.usd}\n`,
+        `\n[swr-agent] ${payload.provider}/${payload.model} · in ${payload.cost.input_tokens} / out ${payload.cost.output_tokens} tokens · $${payload.cost.usd}\n`,
       );
     }
     for (const call of payload.tool_calls || []) {
@@ -577,45 +668,27 @@ async function cmdRun(args) {
   return 0;
 }
 
-// An interactive session — the local equivalent of the three Claude
-// sessions the old start-team.sh opened. One agent, one model, one
-// conversation, and the same tool rules the CI factory uses.
-async function cmdInteractive(args) {
+async function cmdChat(args) {
   const config = loadConfig();
-  const route = resolveRoute(config, args.agent, args.task);
-  const model = args.model || route.model;
-  const reasoning = route.agent.reasoning?.[route.task] || {};
-  const effort = args.effort || reasoning.effort;
-  const thinkingBudget = args['thinking-budget']
-    ? Number(args['thinking-budget'])
-    : reasoning.thinking_budget_tokens;
+  const route = resolveTask(config, args.agent, args.task);
+  const chain = args.model ? [args.model] : route.chain;
+  const system = resolveSystemPrompt(route.agent);
+  const transport = { timeoutMs: Number(args.timeout) || config.defaults?.timeout_ms, retries: config.defaults?.retries };
 
-  const transport = {
-    timeoutMs: Number(args.timeout) || config.defaults?.timeout_ms,
-    retries: config.defaults?.retries,
-    dryRun: false,
-  };
-
-  const body = buildRequestBody(config, {
-    model,
-    agent: route.agent,
-    task: route.task,
-    maxTokens: args['max-tokens'] ? Number(args['max-tokens']) : route.maxTokens,
-    effort,
-    thinkingBudget,
-    userText:
-      args.prompt ||
-      config.prompts?.[route.task] ||
-      'You are online. Introduce yourself in two sentences, then wait for instructions.',
-    dryRun: false,
-  });
-
-  const banner = `▌ ${args.agent} · ${model}${route.agent.read_only ? ' · read-only' : ''}`;
+  const banner = `▌ ${args.agent} · ${chain[0]}${route.agent.read_only ? ' · read-only' : ''}`;
   process.stderr.write(`${banner}\n  /exit to quit\n`);
 
-  const greeting = await modelTurn(config, body, transport);
-  body.messages.push({ role: 'assistant', content: greeting.response.content });
-  if (greeting.text) process.stdout.write(`${greeting.text}\n`);
+  const history = [];
+  const seed = args.prompt || config.prompts?.[route.task] || 'You are online. Introduce yourself in two sentences, then wait for instructions.';
+  history.push({ role: 'user', content: [{ type: 'text', text: seed }] });
+
+  const probe = resolveFormat(config, chain[0]);
+  const tools = toolDefsFor(config, route.agent, probe.format);
+
+  const first = await runTurnWithFailover(config, chain, { agent: route.agent, system, messages: history, tools, maxTokens: route.maxTokens, effort: route.effort, transport });
+  if (!first.result) fail(1, 'every model in the chain failed on the opening turn');
+  if (first.result.text) process.stdout.write(`${first.result.text}\n`);
+  history.push({ role: 'assistant', content: [{ type: 'text', text: first.result.text }] });
 
   const rl = readline({ input: process.stdin, output: process.stdout, prompt: '> ' });
   rl.prompt();
@@ -627,18 +700,19 @@ async function cmdInteractive(args) {
     }
     if (trimmed === '/exit' || trimmed === '/quit') break;
 
-    body.messages.push({ role: 'user', content: trimmed });
+    history.push({ role: 'user', content: [{ type: 'text', text: trimmed }] });
     for (let turn = 0; turn < 3; turn++) {
-      const t = await modelTurn(config, body, transport);
-      if (t.thinking && args.verbose) process.stderr.write(`[thinking]\n${t.thinking}\n`);
-      if (t.text) process.stdout.write(`${t.text}\n`);
-      if (!t.toolCalls.length) break;
-      const log = runToolCalls(config, route, body, t.response, t.toolCalls, {
-        allowWrites: Boolean(args['allow-writes']),
-      });
-      for (const call of log) {
-        process.stderr.write(`[tool] ${call.name} → ${call.ok ? 'ok' : 'refused'}: ${call.message}\n`);
+      const { result } = await runTurnWithFailover(config, chain, { agent: route.agent, system, messages: history, tools, maxTokens: route.maxTokens, effort: route.effort, transport });
+      if (!result) break;
+      if (result.thinking && args.verbose) process.stderr.write(`[thinking]\n${result.thinking}\n`);
+      if (result.text) process.stdout.write(`${result.text}\n`);
+      if (!result.toolCalls?.length) {
+        history.push({ role: 'assistant', content: [{ type: 'text', text: result.text }] });
+        break;
       }
+      const results = runToolCalls(config, route.agent, result, result.toolCalls, { allowWrites: Boolean(args['allow-writes']) });
+      history.push({ role: 'assistant', content: result.toolCalls.map((c) => ({ type: 'tool_use', id: c.id, name: c.name, input: c.input })) });
+      history.push({ role: 'tool', content: results });
     }
     rl.prompt();
   }
@@ -646,10 +720,108 @@ async function cmdInteractive(args) {
   return 0;
 }
 
-// A local self-test for the guard rails. No API key, no network — this is
-// what the CI selftest job runs, and what you run when you want to know the
-// bridge cannot be talked into writing outside the allowlist.
-async function cmdSelfTest(args) {
+function cmdShow(args) {
+  const config = loadConfig();
+  const route = resolveTask(config, args.agent, args.task);
+  const chain = route.chain.map((ref) => {
+    const spec = config.models?.[ref] || {};
+    const provider = config.providers?.[spec.provider] || {};
+    const { missing } = providerAuth(provider);
+    return {
+      model: ref,
+      provider: spec.provider,
+      format: spec.format,
+      context_window: spec.context_window,
+      reasoning: spec.reasoning,
+      pricing: spec.pricing,
+      api_key_env: provider.auth?.env || null,
+      api_key_present: provider.auth?.env ? !missing : true,
+    };
+  });
+  process.stdout.write(
+    JSON.stringify(
+      {
+        agent: args.agent,
+        role: route.agent.role,
+        task: route.task,
+        system_prompt: route.agent.system_prompt,
+        read_only: Boolean(route.agent.read_only),
+        effort: route.effort,
+        max_tokens: route.maxTokens,
+        chain,
+        prompt: config.prompts?.[route.task] || null,
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+  return 0;
+}
+
+async function cmdModels(args) {
+  const config = loadConfig();
+  const rows = Object.entries(config.models).map(([ref, spec]) => {
+    const provider = config.providers?.[spec.provider] || {};
+    const { missing } = providerAuth(provider);
+    return {
+      model: ref,
+      provider: spec.provider,
+      format: spec.format,
+      context_window: spec.context_window,
+      pricing: spec.pricing,
+      api_key_env: provider.auth?.env || null,
+      api_key_present: provider.auth?.env ? !missing : true,
+    };
+  });
+  const out = { configured: rows };
+
+  if (args.live) {
+    out.live = {};
+    for (const [name, provider] of Object.entries(config.providers || {})) {
+      if (!provider.models_path) {
+        out.live[name] = { skipped: 'no models endpoint' };
+        continue;
+      }
+      const { headers, missing } = providerAuth(provider);
+      if (missing) {
+        out.live[name] = { skipped: `${missing} is not set` };
+        continue;
+      }
+      try {
+        const url = `${providerBaseUrl(provider).replace(/\/+$/, '')}${provider.models_path}`;
+        const res = await fetch(url, { headers: { ...(provider.headers || {}), ...headers } });
+        const text = await res.text();
+        if (!res.ok) {
+          out.live[name] = { error: `HTTP ${res.status}: ${text.slice(0, 200)}` };
+          continue;
+        }
+        const json = JSON.parse(text);
+        const ids = (json.data || json.models || []).map((m) => m.id || m.name).filter(Boolean);
+        out.live[name] = { url, count: ids.length, missing_from_config: ids.filter((id) => !Object.keys(config.models).some((k) => k === `${name}/${id}`)) };
+      } catch (err) {
+        out.live[name] = { error: err.message };
+      }
+    }
+  }
+  process.stdout.write(JSON.stringify(out, null, 2) + '\n');
+  return 0;
+}
+
+function cmdFormats() {
+  process.stdout.write(
+    JSON.stringify(
+      Object.fromEntries(
+        Object.entries(FORMATS).map(([name, f]) => [name, { label: f.label, toolLoop: f.toolLoop, supportsTools: f.supportsTools }]),
+      ),
+      null,
+      2,
+    ) + '\n',
+  );
+  return 0;
+}
+
+// The guard rails, proven without an API key.
+async function cmdSelfTest() {
   const config = loadConfig();
   let failed = 0;
   const ok = (msg) => process.stdout.write(`✓ ${msg}\n`);
@@ -660,46 +832,64 @@ async function cmdSelfTest(args) {
 
   const agent = config.agents['SWR-Ops'];
   const check = config.agents['SWR-Check'];
+  const allowed = (config.tools?.write_allowlist || [])[0];
 
-  // 1. a path that is not on the allowlist is refused
   let r = executeTool(config, agent, { path: 'package.json', content: 'x' }, { allowWrites: true, dryRun: true });
   if (r.ok) bad('write_file allowed a path outside the allowlist');
   else ok(`write refused off-allowlist: ${r.message}`);
 
-  // 2. an allowlisted path is still refused without the flag
-  const allowed = (config.tools?.write_allowlist || [])[0];
   r = executeTool(config, agent, { path: allowed, content: 'x' }, { allowWrites: false, dryRun: false });
   if (r.ok) bad('write_file wrote without --allow-writes');
   else ok(`write refused without the flag: ${r.message}`);
 
-  // 3. with the flag it is permitted (dry run — nothing is touched)
   r = executeTool(config, agent, { path: allowed, content: 'x' }, { allowWrites: true, dryRun: true });
   if (!r.ok) bad(`write refused on an allowlisted path with the flag: ${r.message}`);
   else ok(`write allowed on the allowlist with the flag: ${r.message}`);
 
-  // 4. a read-only agent cannot write at all
   r = executeTool(config, check, { path: allowed, content: 'x' }, { allowWrites: true, dryRun: true });
   if (r.ok) bad('a read-only agent was allowed to write');
   else ok(`read-only agent refused: ${r.message}`);
 
-  // 5. read_file cannot escape its root
   r = executeRead(config, { path: '../../../etc/passwd' });
   if (r.ok) bad('read_file escaped the repo root');
   else ok(`read refused outside the root: ${r.message}`);
 
-  // 6. read_file works inside the root
   r = executeRead(config, { path: 'package.json' });
   if (!r.ok) bad(`read_file failed on a repo file: ${r.message}`);
   else ok('read works inside the root');
 
-  // 7. a Claude model id is rejected with a useful message
+  // Every routed model must exist and speak a format the bridge implements.
+  const routed = new Set();
+  for (const a of Object.values(config.agents || {})) {
+    for (const spec of Object.values(a.tasks || {})) {
+      routed.add(spec.primary);
+      for (const f of spec.fallbacks || []) routed.add(f);
+    }
+  }
+  for (const ref of routed) {
+    const spec = config.models?.[ref];
+    if (!spec) {
+      bad(`routed model "${ref}" is not in the catalog`);
+      continue;
+    }
+    if (!FORMATS[spec.format]) {
+      bad(`routed model "${ref}" uses unimplemented format "${spec.format}"`);
+      continue;
+    }
+    if (!config.providers?.[spec.provider]) {
+      bad(`routed model "${ref}" names unknown provider "${spec.provider}"`);
+    }
+  }
+  ok(`${routed.size} routed models resolve to an implemented format`);
+
+  // A Claude id has to be provider-qualified.
   const { spawnSync } = await import('node:child_process');
   const script = resolve(HERE, 'swr-agent.mjs');
   const res = spawnSync(process.execPath, [script, 'run', '--agent', 'SWR-Ops', '--task', 'planning', '--model', 'claude-3-opus-20240229', '--context', 'x'], { encoding: 'utf8' });
-  if (res.status === 2 && /Claude model id/.test(res.stderr)) {
-    ok('a Claude model id is rejected with a pointed message');
+  if (res.status === 2 && /not in the catalog/.test(res.stderr)) {
+    ok('an unqualified Claude model id is rejected');
   } else {
-    bad(`expected the Claude model id to be rejected (exit 2), got ${res.status}: ${res.stderr?.trim()}`);
+    bad(`expected the unqualified Claude id to be rejected (exit 2), got ${res.status}: ${res.stderr?.trim()}`);
   }
 
   if (failed) {
@@ -707,63 +897,6 @@ async function cmdSelfTest(args) {
     return 1;
   }
   process.stdout.write('✓ bridge self-test OK — the guards hold\n');
-  return 0;
-}
-
-async function cmdModels(args) {  const config = loadConfig();
-  const provider = config.provider;
-  const base = process.env.MINIMAX_BASE_URL || provider.base_url;
-  const url = `${base.replace(/\/+$/, '')}${provider.models_path}`;
-  const apiKey = process.env[provider.api_key_env || 'MINIMAX_API_KEY'];
-  if (!apiKey) fail(2, `${provider.api_key_env || 'MINIMAX_API_KEY'} is not set.`);
-  if (args['dry-run']) {
-    process.stdout.write(JSON.stringify({ url, headers: { 'X-Api-Key': '***' } }, null, 2) + '\n');
-    return 0;
-  }
-  const res = await fetch(url, { headers: { 'X-Api-Key': apiKey, Authorization: `Bearer ${apiKey}` } });
-  const text = await res.text();
-  if (!res.ok) fail(1, `HTTP ${res.status} listing models: ${text.slice(0, 300)}`);
-  const json = JSON.parse(text);
-  const live = (json.data || []).map((m) => m.id);
-  const configured = Object.keys(config.model_catalog || {});
-  process.stdout.write(
-    JSON.stringify(
-      {
-        live,
-        configured,
-        missing_from_live: configured.filter((m) => !live.includes(m)),
-        unknown_to_config: live.filter((m) => !configured.includes(m)),
-      },
-      null,
-      2,
-    ) + '\n',
-  );
-  return 0;
-}
-
-function cmdShow(args) {
-  const config = loadConfig();
-  const route = resolveRoute(config, args.agent, args.task);
-  const entry = config.model_catalog?.[route.model];
-  process.stdout.write(
-    JSON.stringify(
-      {
-        agent: args.agent,
-        role: route.agent.role,
-        task: route.task,
-        trigger: route.trigger ? Object.keys(config.triggers).find((t) => config.triggers[t] === route.trigger) : null,
-        model: route.model,
-        system_prompt: route.agent.system_prompt,
-        read_only: Boolean(route.agent.read_only),
-        reasoning: route.agent.reasoning?.[route.task] || null,
-        max_tokens: route.maxTokens || config.defaults?.max_tokens,        context_window: entry?.context_window,
-        pricing: entry?.pricing,
-        prompt: config.prompts?.[route.task] || null,
-      },
-      null,
-      2,
-    ) + '\n',
-  );
   return 0;
 }
 
@@ -780,39 +913,45 @@ async function main() {
       break;
     case 'chat':
     case 'interactive':
-      process.exit(await cmdInteractive(args));
+      process.exit(await cmdChat(args));
       break;
-    case 'self-test':
-      process.exit(await cmdSelfTest(args));
+    case 'show':
+      process.exit(cmdShow(args));
       break;
     case 'models':
       process.exit(await cmdModels(args));
       break;
-    case 'show':
-      process.exit(cmdShow(args));
+    case 'formats':
+      process.exit(cmdFormats());
+      break;
+    case 'self-test':
+      process.exit(await cmdSelfTest(args));
       break;
     case 'help':
     case '--help':
       process.stdout.write(
         [
-          'swr-agent — MiniMax bridge for the SWR Software Factory',
+          'swr-agent — the SWR Software Factory bridge',
           '',
-          '  run    --agent <name> [--task <task>] [--model <id>] [--prompt <text>]',
+          '  run    --agent <name> [--task <task>] [--model provider/model] [--prompt <text>]',
           '         [--context <text> | --context-file <path>] [--files a,b]',
-          '         [--diff <text>] [--allow-writes] [--json] [--dry-run]',
-          '         [--max-tokens <n>] [--effort low|medium|high|xhigh|max]',
-          '  chat    --agent <name> [--task <task>]   interactive session (same tools, same rules)',
-          '  models          list the live model catalog from MiniMax',
-          '  show    --agent <name> [--task <task>]    print the resolved route',
+          '         [--diff <text> | --diff-file <path>] [--allow-writes] [--json]',
+          '         [--dry-run] [--max-tokens <n>] [--effort low|medium|high|xhigh|max]',
+          '  chat    --agent <name> [--task <task>]      interactive session',
+          '  show    --agent <name> [--task <task>]      print the resolved chain',
+          '  models  [--live]                            the model catalog',
+          '  formats                                   the wire formats the bridge speaks',
+          '  self-test                                 the guard rails (no API key)',
           '',
-          `  Env: ${loadConfig().provider.api_key_env} (required), MINIMAX_BASE_URL (optional)`,
+          '  Env: MINIMAX_API_KEY, OPENCODE_API_KEY, XAI_API_KEY, GEMINI_API_KEY',
+          '       (a provider without a key is skipped, not an error)',
           '',
         ].join('\n'),
       );
       process.exit(0);
       break;
     default:
-      fail(2, `unknown command "${command}". Try: run | models | show | help`);
+      fail(2, `unknown command "${command}". Try: run | chat | show | models | formats | self-test | help`);
   }
 }
 
