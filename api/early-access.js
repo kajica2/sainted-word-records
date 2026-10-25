@@ -11,7 +11,7 @@
 //   - useCase (optional): "personal", "company", "label", "creator"
 //   - agreed (required): must be true to accept beta test terms
 
-import { sendJson } from './_lib/http.js';
+import { sendJson, clientIp } from './_lib/http.js';
 import { readJson, writeJson, DATA_ROOT } from './_lib/db.js';
 
 const EARLY_ACCESS_FILE = `${DATA_ROOT}/early-access-requests.json`;
@@ -49,7 +49,9 @@ export default async function handler(req, res) {
   }
 
   // Rate limit
-  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  // clientIp() only reads `x-forwarded-for` when a trusted proxy wrote it, so
+  // rotating the header cannot mint a fresh bucket for this limiter either.
+  const ip = clientIp(req);
   const rl = checkRateLimit(ip);
   if (!rl.ok) {
     res.setHeader('Retry-After', String(rl.retryAfter));

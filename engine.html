@@ -3579,7 +3579,18 @@
           <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
         </div>
       </div>
-      <div id="3d-picker" class="hidden" style="position:absolute; top: 38px; right: 8px; background: var(--bg-elevated, #1a1208); border: 1px solid var(--line, #3a2a22); border-radius: 6px; padding: 4px; display: flex; gap: 4px; z-index: 50;">
+      <!-- iPhone safe-area: position:absolute with NO positioned ancestor - the
+           #layers aside it sits in is a plain grid item - so the containing
+           block is the viewport and #app's padding cannot reach it.
+           position:relative on #app would not help either: the containing block
+           an absolutely positioned element gets is the PADDING box of its
+           positioned ancestor, which is exactly where the padding lives, so
+           padding on #app insets #app's grid TRACKS and nothing else. 38px is an
+           offset from the top of the layers aside (the transport header's
+           height), so it is composed with --safe-top rather than floored by it:
+           max(38px, var(--safe-top)) would park it inside the header on a
+           notched phone. Desktop is unchanged, --safe-* is 0px without a notch. -->
+      <div id="3d-picker" class="hidden" style="position:absolute; top: calc(var(--safe-top) + 38px); right: calc(var(--safe-right) + 8px); background: var(--bg-elevated, #1a1208); border: 1px solid var(--line, #3a2a22); border-radius: 6px; padding: 4px; display: flex; gap: 4px; z-index: 50;">
         <button class="tbtn ghost" data-3d="sphere"      style="padding:3px 8px; font-size:9px;">Sphere</button>
         <button class="tbtn ghost" data-3d="cube"        style="padding:3px 8px; font-size:9px;">Cube</button>
         <button class="tbtn ghost" data-3d="torus"       style="padding:3px 8px; font-size:9px;">Torus</button>
@@ -5709,12 +5720,17 @@
         // and reports boundaries as peaks of a Foote novelty curve, so a
         // loudness ramp inside one section does not cut it (which is what the
         // energy-threshold segmenter this replaced did). One call per frame is
-        // enough; the detector dedupes on the timestamp, so the automix
-        // runtime's own tickSection() call with the same live feat object
-        // cannot double-count. It publishes window.SWR_SECTIONS and fires
-        // `swr-section-change`, which client/section-scheduler.client.js
-        // listens for. Wrapped: a section detector fault must not take the
-        // render loop with it.
+        // enough: the PRODUCER stamps the frame's identity. lib/audio.client.js
+        // writes feat.tMs (the media clock, in milliseconds) onto the shared
+        // feature object in sample(), so this loop and the automix runtime's
+        // own tickSection() call — which passes the same live feat object —
+        // carry the SAME timestamp for the same frame, and the detector's
+        // dedupe on that timestamp makes the second call a no-op. (Without the
+        // stamp the detector fell back to a wall clock, which differs between
+        // the two callers, and every frame was ingested twice.) It publishes
+        // window.SWR_SECTIONS and fires `swr-section-change`, which
+        // client/section-scheduler.client.js listens for. Wrapped: a section
+        // detector fault must not take the render loop with it.
         if (window.SWR_SECTION) {
           try { window.SWR_SECTION.detect(a); } catch (_) {}
         }

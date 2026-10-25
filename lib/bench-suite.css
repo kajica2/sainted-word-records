@@ -1,105 +1,175 @@
 /* lib/bench-suite.css — the shared stylesheet for the benchmark suite's
    panel. Both hosts (the lab page and the preset editor's Bench tab) mount
-   the same panel, so the styles live here rather than in either page. */
-  .tabs{display:flex; gap:4px; padding:8px 10px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
-  .tabs button{border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; padding:6px 11px; color:var(--dim); background:transparent}
-  .tabs button.on{color:var(--neon); border-color:var(--line); background:var(--panel2)}
-  .panels{flex:1; overflow:auto; padding:12px}
-  .panel{display:none}
-  .panel.on{display:block}
+   the same panel, so the styles live here rather than in either page.
 
-  .sec{font-size:10.5px; letter-spacing:.16em; color:var(--dim); text-transform:uppercase; margin:14px 0 8px}
-  .sec:first-child{margin-top:0}
-  .hint{color:var(--dim); font-size:11px; margin:6px 0 10px; line-height:1.55}
-  .btnrow{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
-  .row{display:grid; grid-template-columns:100px 1fr; gap:8px; align-items:center; margin-bottom:7px}
-  .row>span{color:var(--dim); font-size:11.5px}
+   Every STRUCTURAL class the panel uses is prefixed (bench-tabs,
+   bench-pane, bench-sec, bench-row, ...) and every rule is scoped under
+   .bench-panel: the panel must not inherit a host page's chrome (the
+   editor and the lab both use generic names like .tabs/.panel/.row) and
+   must not leak into the host page either. The element-level classes
+   (stat, report-card, suggestion, ...) are unique to the panel and are
+   only ever matched inside .bench-panel. The colour tokens carry
+   fallbacks, so the panel renders the same on a host that does not define
+   --ok / --bad / --ice (the preset editor does not). */
 
-  .test-item{
-    display:flex; align-items:center; gap:8px; padding:9px 10px; margin-bottom:6px;
-    border:1px solid var(--line); border-radius:7px; background:var(--panel2);
-    transition:.15s; cursor:pointer;
-  }
-  .test-item:hover{border-color:rgba(77,227,208,.4)}
-  .test-item .name{flex:1; font-size:12px}
-  .test-item .desc{font-size:10.5px; color:var(--dim); display:block; margin-top:2px}
-  .test-item button{padding:3px 9px; font-size:10.5px}
+.bench-panel{
+  --suite-txt:var(--txt,#dfe9f5);
+  --suite-dim:var(--dim,#7c8ca3);
+  --suite-line:var(--line,#1b2432);
+  --suite-panel2:var(--panel2,#0e1622);
+  --suite-neon:var(--neon,#4de3d0);
+  --suite-neon2:var(--neon2,#ff4fd8);
+  --suite-warn:var(--warn,#ffb454);
+  --suite-ok:var(--ok,#57e39a);
+  --suite-bad:var(--bad,#ff5a5a);
+  --suite-ice:var(--ice,#8fd4ff);
+  display:flex; flex-direction:column; flex:1 1 auto; min-height:0;
+  color:var(--suite-txt);
+}
+.bench-panel *{box-sizing:border-box}
 
-  .buf-stats{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
-  .stat{border:1px solid var(--line); border-radius:7px; padding:9px; background:var(--panel2)}
-  .stat-label{font-size:10px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase}
-  .stat-val{font-size:16px; color:var(--neon); margin-top:3px; font-weight:600}
-  .stat-val.bad{color:var(--bad)}
-  .stat-val.ok{color:var(--ok)}
-  .stat-val small{font-size:10px; color:var(--dim); font-weight:400; letter-spacing:.02em}
-  #benchSpark{width:100%; height:80px; display:block; border:1px solid var(--line); border-radius:6px; background:#060a10}
-  .fill-bar{height:6px; background:#101a26; border-radius:3px; overflow:hidden; margin-top:4px}
-  .fill-bar b{display:block; height:100%; background:linear-gradient(90deg,var(--neon),var(--neon2)); transition:width .15s linear}
-  .buf-tag{
-    display:inline-flex; align-items:center; gap:5px; font-size:10px; padding:3px 8px;
-    border-radius:10px; border:1px solid rgba(87,227,154,.4); color:var(--ok);
-    letter-spacing:.06em; margin-top:6px;
-  }
-  .buf-tag::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--ok); box-shadow:0 0 8px var(--ok)}
+/* the panel's own controls — the host page may not style them at all */
+.bench-panel button,.bench-panel select,.bench-panel input[type=text]{
+  font:inherit; color:var(--suite-txt); background:var(--suite-panel2);
+  border:1px solid var(--suite-line); border-radius:6px; padding:5px 8px; outline:none;
+}
+.bench-panel button{cursor:pointer; transition:.15s border-color,.15s color,.15s box-shadow}
+.bench-panel button:hover{border-color:var(--suite-neon); color:var(--suite-neon); box-shadow:0 0 10px rgba(77,227,208,.18)}
+.bench-panel button.bench-primary{border-color:rgba(77,227,208,.55); color:var(--suite-neon)}
+.bench-panel button:disabled{cursor:not-allowed; opacity:.35; box-shadow:none}
+.bench-panel button:disabled:hover{border-color:var(--suite-line); color:var(--suite-txt)}
+.bench-panel input[type=text]:focus,.bench-panel select:focus{
+  border-color:var(--suite-neon); box-shadow:0 0 0 2px rgba(77,227,208,.12);
+}
 
-  .report-card{
-    border:1px solid var(--line); border-radius:7px; padding:9px; margin-bottom:7px;
-    background:var(--panel2); cursor:pointer; transition:.15s;
-  }
-  .report-card:hover{border-color:rgba(77,227,208,.4)}
-  .report-card.selected{border-color:var(--neon); box-shadow:0 0 12px rgba(77,227,208,.15)}
-  .report-head{display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px}
-  .report-head b{font-size:12px; font-weight:600}
-  .report-meta{font-size:10.5px; color:var(--dim); letter-spacing:.03em; line-height:1.5}
-  .grade-badge{
-    font-size:13px; font-weight:700; padding:2px 8px; border-radius:6px;
-    border:1px solid; letter-spacing:.02em; min-width:32px; text-align:center;
-  }
-  .grade-A, .grade-Apos{color:var(--ok); border-color:rgba(87,227,154,.5); background:rgba(87,227,154,.08)}
-  .grade-B{color:var(--neon); border-color:rgba(77,227,208,.5); background:rgba(77,227,208,.08)}
-  .grade-C{color:var(--warn); border-color:rgba(255,180,84,.5); background:rgba(255,180,84,.08)}
-  .grade-D{color:var(--neon2); border-color:rgba(255,79,216,.5); background:rgba(255,79,216,.08)}
-  .grade-F{color:var(--bad); border-color:rgba(255,90,90,.5); background:rgba(255,90,90,.08)}
+/* ---- tabs & panes ---- */
+.bench-panel .bench-tabs{display:flex; gap:4px; padding:8px 10px 0; border-bottom:1px solid var(--suite-line); flex-wrap:wrap}
+.bench-panel .bench-tabs button{border:1px solid transparent; border-bottom:none; border-radius:6px 6px 0 0; padding:6px 11px; color:var(--suite-dim); background:transparent}
+.bench-panel .bench-tabs button:hover{color:var(--suite-neon); border-color:var(--suite-line); box-shadow:none}
+.bench-panel .bench-tabs button.bench-on{color:var(--suite-neon); border-color:var(--suite-line); background:var(--suite-panel2)}
+.bench-panel .bench-panes{flex:1 1 auto; min-height:0; overflow:auto; padding:12px}
+.bench-panel .bench-pane{display:none}
+.bench-panel .bench-pane.bench-on{display:block}
 
-  .compare-sel{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
-  .compare-sel select{width:100%}
-  .delta-table{width:100%; border-collapse:collapse; font-size:11px}
-  .delta-table th, .delta-table td{padding:6px 8px; text-align:left; border-bottom:1px solid var(--line)}
-  .delta-table th{color:var(--dim); font-weight:400; letter-spacing:.08em; text-transform:uppercase; font-size:9.5px}
-  .delta-table td.num{text-align:right; font-variant-numeric:tabular-nums}
-  .delta-good{color:var(--ok)}
-  .delta-bad{color:var(--bad)}
-  .delta-neutral{color:var(--dim)}
+/* ---- the run status line ---- */
+.bench-panel .bench-run-status{
+  display:flex; align-items:center; gap:8px; padding:8px 10px 0;
+  font-size:10.5px; letter-spacing:.08em; color:var(--suite-dim);
+}
+.bench-panel .bench-run-status.bench-on{color:var(--suite-neon2)}
+.bench-panel .bench-run-status .bench-progress{flex:1; height:3px; background:#1a2230; border-radius:2px; overflow:hidden}
+.bench-panel .bench-run-status .bench-progress b{display:block; height:100%; width:0%; background:var(--suite-neon2); transition:width .1s linear; box-shadow:0 0 8px var(--suite-neon2)}
 
-  .grade-card{
-    border:1px solid var(--line); border-radius:8px; padding:16px; text-align:center;
-    background:linear-gradient(180deg,rgba(77,227,208,.04),transparent); margin-bottom:12px;
-  }
-  .grade-card .grade-big{font-size:42px; font-weight:700; line-height:1}
-  .grade-card .grade-score{font-size:11px; color:var(--dim); margin-top:4px; letter-spacing:.08em}
-  .score-bars{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; text-align:left}
-  .score-bar-label{font-size:9.5px; color:var(--dim); letter-spacing:.08em; text-transform:uppercase}
-  .score-bar-track{height:4px; background:#101a26; border-radius:2px; overflow:hidden; margin-top:3px}
-  .score-bar-fill{height:100%; background:var(--neon); transition:width .3s}
+/* ---- sections ---- */
+.bench-panel .bench-sec{font-size:10.5px; letter-spacing:.16em; color:var(--suite-dim); text-transform:uppercase; margin:14px 0 8px}
+.bench-panel .bench-sec:first-child{margin-top:0}
+.bench-panel .bench-hint{color:var(--suite-dim); font-size:11px; margin:6px 0 10px; line-height:1.55}
+.bench-panel .bench-btnrow{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0}
+.bench-panel .bench-row{display:grid; grid-template-columns:100px 1fr; gap:8px; align-items:center; margin-bottom:7px}
+.bench-panel .bench-row>span{color:var(--suite-dim); font-size:11.5px}
+.bench-panel .bench-row select,.bench-panel .bench-row input{width:100%}
 
-  .bottleneck{
-    border-left:3px solid var(--warn); background:rgba(255,180,84,.06);
-    padding:8px 10px; margin-bottom:6px; border-radius:4px; font-size:11.5px;
-  }
-  .bottleneck.high{border-left-color:var(--bad); background:rgba(255,90,90,.06)}
-  .bottleneck .kind{font-size:9.5px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase}
-  .bottleneck .detail{color:var(--txt); margin-top:2px}
+/* ---- the test list ---- */
+.bench-panel .test-item{
+  display:flex; align-items:center; gap:8px; padding:9px 10px; margin-bottom:6px;
+  border:1px solid var(--suite-line); border-radius:7px; background:var(--suite-panel2);
+  transition:.15s; cursor:pointer;
+}
+.bench-panel .test-item:hover{border-color:rgba(77,227,208,.4)}
+.bench-panel .test-item .name{flex:1; font-size:12px}
+.bench-panel .test-item .desc{font-size:10.5px; color:var(--suite-dim); display:block; margin-top:2px}
+.bench-panel .test-item button{padding:3px 9px; font-size:10.5px}
 
-  .suggestion{
-    border:1px solid var(--line); border-radius:7px; padding:9px; margin-bottom:6px;
-    background:var(--panel2); display:flex; gap:9px; align-items:flex-start;
-  }
-  .suggestion input[type=checkbox]{accent-color:#4de3d0; margin-top:3px; flex:none}
-  .suggestion .body{flex:1}
-  .suggestion .label{font-size:11.5px; color:var(--txt)}
-  .suggestion .detail{font-size:10.5px; color:var(--dim); margin-top:2px; line-height:1.5}
-  .suggestion .delta{
-    font-size:10px; color:var(--neon2); border:1px solid rgba(255,79,216,.3);
-    padding:1px 6px; border-radius:8px; letter-spacing:.04em; display:inline-block; margin-top:4px;
-  }
+/* ---- the buffer tab ---- */
+.bench-panel .buf-stats{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
+.bench-panel .stat{border:1px solid var(--suite-line); border-radius:7px; padding:9px; background:var(--suite-panel2)}
+.bench-panel .stat-label{font-size:10px; letter-spacing:.1em; color:var(--suite-dim); text-transform:uppercase}
+.bench-panel .stat-val{font-size:16px; color:var(--suite-neon); margin-top:3px; font-weight:600}
+.bench-panel .stat-val.bad{color:var(--suite-bad)}
+.bench-panel .stat-val.ok{color:var(--suite-ok)}
+.bench-panel .stat-val small{font-size:10px; color:var(--suite-dim); font-weight:400; letter-spacing:.02em}
+.bench-panel #benchSpark{width:100%; height:80px; display:block; border:1px solid var(--suite-line); border-radius:6px; background:#060a10}
+.bench-panel .fill-bar{height:6px; background:#101a26; border-radius:3px; overflow:hidden; margin-top:4px}
+.bench-panel .fill-bar b{display:block; height:100%; background:linear-gradient(90deg,var(--suite-neon),var(--suite-neon2)); transition:width .15s linear}
+.bench-panel .buf-tag{
+  display:inline-flex; align-items:center; gap:5px; font-size:10px; padding:3px 8px;
+  border-radius:10px; border:1px solid rgba(87,227,154,.4); color:var(--suite-ok);
+  letter-spacing:.06em; margin-top:6px;
+}
+.bench-panel .buf-tag::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--suite-ok); box-shadow:0 0 8px var(--suite-ok)}
 
+/* ---- the report list ---- */
+.bench-panel .report-card{
+  border:1px solid var(--suite-line); border-radius:7px; padding:9px; margin-bottom:7px;
+  background:var(--suite-panel2); cursor:pointer; transition:.15s;
+}
+.bench-panel .report-card:hover{border-color:rgba(77,227,208,.4)}
+.bench-panel .report-card.selected{border-color:var(--suite-neon); box-shadow:0 0 12px rgba(77,227,208,.15)}
+.bench-panel .report-head{display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:4px}
+.bench-panel .report-head b{font-size:12px; font-weight:600}
+.bench-panel .report-meta{font-size:10.5px; color:var(--suite-dim); letter-spacing:.03em; line-height:1.5}
+.bench-panel .grade-badge{
+  font-size:13px; font-weight:700; padding:2px 8px; border-radius:6px;
+  border:1px solid; letter-spacing:.02em; min-width:32px; text-align:center;
+}
+.bench-panel .grade-A,.bench-panel .grade-Apos{color:var(--suite-ok); border-color:rgba(87,227,154,.5); background:rgba(87,227,154,.08)}
+.bench-panel .grade-B{color:var(--suite-neon); border-color:rgba(77,227,208,.5); background:rgba(77,227,208,.08)}
+.bench-panel .grade-C{color:var(--suite-warn); border-color:rgba(255,180,84,.5); background:rgba(255,180,84,.08)}
+.bench-panel .grade-D{color:var(--suite-neon2); border-color:rgba(255,79,216,.5); background:rgba(255,79,216,.08)}
+.bench-panel .grade-F{color:var(--suite-bad); border-color:rgba(255,90,90,.5); background:rgba(255,90,90,.08)}
+.bench-panel .grade-none{color:var(--suite-dim); border-color:rgba(255,255,255,.14); background:transparent}
+
+/* ---- the compare tab ---- */
+.bench-panel .compare-sel{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px}
+.bench-panel .compare-sel select{width:100%}
+.bench-panel .delta-table{width:100%; border-collapse:collapse; font-size:11px}
+.bench-panel .delta-table th,.bench-panel .delta-table td{padding:6px 8px; text-align:left; border-bottom:1px solid var(--suite-line)}
+.bench-panel .delta-table th{color:var(--suite-dim); font-weight:400; letter-spacing:.08em; text-transform:uppercase; font-size:9.5px}
+.bench-panel .delta-table td.num{text-align:right; font-variant-numeric:tabular-nums}
+.bench-panel .delta-good{color:var(--suite-ok)}
+.bench-panel .delta-bad{color:var(--suite-bad)}
+.bench-panel .delta-neutral{color:var(--suite-dim)}
+
+/* the applied-changes log */
+.bench-panel .apply-row{
+  display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:baseline;
+  font-size:10.5px; padding:5px 0; border-bottom:1px solid var(--suite-line);
+}
+.bench-panel .apply-id{color:var(--suite-txt)}
+.bench-panel .apply-val{color:var(--suite-dim); font-variant-numeric:tabular-nums}
+.bench-panel .apply-why{grid-column:1/-1; color:var(--suite-bad); font-size:10px; line-height:1.45}
+
+/* ---- the advisor ---- */
+.bench-panel .grade-card{
+  border:1px solid var(--suite-line); border-radius:8px; padding:16px; text-align:center;
+  background:linear-gradient(180deg,rgba(77,227,208,.04),transparent); margin-bottom:12px;
+}
+.bench-panel .grade-card .grade-big{font-size:42px; font-weight:700; line-height:1}
+.bench-panel .grade-card .grade-score{font-size:11px; color:var(--suite-dim); margin-top:4px; letter-spacing:.08em}
+.bench-panel .score-bars{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; text-align:left}
+.bench-panel .score-bar-label{font-size:9.5px; color:var(--suite-dim); letter-spacing:.08em; text-transform:uppercase}
+.bench-panel .score-bar-track{height:4px; background:#101a26; border-radius:2px; overflow:hidden; margin-top:3px}
+.bench-panel .score-bar-fill{height:100%; background:var(--suite-neon); transition:width .3s}
+
+.bench-panel .bottleneck{
+  border-left:3px solid var(--suite-warn); background:rgba(255,180,84,.06);
+  padding:8px 10px; margin-bottom:6px; border-radius:4px; font-size:11.5px;
+}
+.bench-panel .bottleneck.high{border-left-color:var(--suite-bad); background:rgba(255,90,90,.06)}
+/* a measurement — not a bottleneck, so it is not coloured as a problem */
+.bench-panel .bottleneck.info{border-left-color:var(--suite-ice); background:rgba(143,212,255,.06)}
+.bench-panel .bottleneck .kind{font-size:9.5px; letter-spacing:.1em; color:var(--suite-dim); text-transform:uppercase}
+.bench-panel .bottleneck .detail{color:var(--suite-txt); margin-top:2px}
+
+.bench-panel .suggestion{
+  border:1px solid var(--suite-line); border-radius:7px; padding:9px; margin-bottom:6px;
+  background:var(--suite-panel2); display:flex; gap:9px; align-items:flex-start;
+}
+.bench-panel .suggestion input[type=checkbox]{accent-color:#4de3d0; margin-top:3px; flex:none}
+.bench-panel .suggestion .body{flex:1}
+.bench-panel .suggestion .label{font-size:11.5px; color:var(--suite-txt)}
+.bench-panel .suggestion .detail{font-size:10.5px; color:var(--suite-dim); margin-top:2px; line-height:1.5}
+.bench-panel .suggestion .delta{
+  font-size:10px; color:var(--suite-neon2); border:1px solid rgba(255,79,216,.3);
+  padding:1px 6px; border-radius:8px; letter-spacing:.04em; display:inline-block; margin-top:4px;
+}

@@ -138,8 +138,13 @@ script (the `migrate-html.mjs` script enforces this — it strips duplicates whe
   - `/api/storage/sign-upload` — 60/min/user
   - `/api/storage/sign-download` — 120/min/user
   - `/api/projects` writes — 30/min/user
-- `TRUSTED_PROXIES` env must be set when deploying outside Vercel, otherwise
-  `x-forwarded-for` is spoofable and bypasses per-IP rate limits.
+- The client IP comes from `clientIp(req)` in `api/_lib/http.js` - never from
+  a handler reading `x-forwarded-for` itself. The header is read only when
+  `req.socket.remoteAddress` is on `TRUSTED_PROXIES`, and the chain is then
+  walked from the right. `TRUSTED_PROXIES` (exact IPs or CIDR) must be set
+  when deploying behind anything that is not the Vercel edge; off Vercel with
+  no list the code fails closed to the peer, which costs per-IP granularity,
+  not safety. Gate: `check:trusted-proxies-unit`.
 
 ## Build Pipeline
 

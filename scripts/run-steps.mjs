@@ -150,6 +150,27 @@ const GROUPS = {
     // the session cookie and the redirect_uri callback. Google's two
     // endpoints are stubbed; everything else is the real handler.
     'npm run check:auth-google-signin-unit',
+    // Firebase Anonymous Auth: the route over a real HTTP server, with the
+    // Firebase Auth emulator simulated by a node:http stub (no JVM here, so
+    // the real emulator cannot run). Pins the public-config branch, the
+    // error codes and the session cookie.
+    'npm run check:auth-firebase-anon-unit',
+    // The client half of the same feature: the shipped lib/firebase-anon.client.js
+    // in a node:vm sandbox, with the Firebase Web SDK's two dynamic imports stubbed.
+    'npm run check:firebase-anon-client-unit',
+    // The Firestore auth store's own behaviour (users, links, sessions,
+    // verification tokens, the connect blob) over an in-memory Firestore.
+    'npm run check:auth-firestore-unit',
+    // That db.js really delegates to the Firestore store when
+    // SWR_AUTH_STORE=firestore, and really does not when it is off.
+    'npm run check:auth-store-dispatch-unit',
+    // The client-IP gate (api/_lib/http.js clientIp). Seven handlers read
+    // `x-forwarded-for` directly, so off Vercel - where the header is a
+    // string the client chose - every per-IP rate limit was rotatable and
+    // the dev-mode admin allowlist was a header away. The unit pins the walk
+    // direction, the peer gate, the normalization and the fail-closed default,
+    // and asserts that no call site parses the header itself any more.
+    'npm run check:trusted-proxies-unit',
     'npm run check:bpm-unit',
     'npm run check:life-unit',
     'npm run check:midi-feat-unit',
@@ -319,6 +340,11 @@ const GROUPS = {
     // marketplace paint the posts, and the footer's "New — …" link reaches
     // every page that mounts <swr-footer>. Needs a built dist/.
     'npm run check:announcements-smoke',
+    // The "Continue as guest" sign-in on the login page: the button ships
+    // hidden and is revealed only when the server serves a Firebase web
+    // config, the click signs in with the Web SDK and exchanges the ID
+    // token, and a refused exchange leaves the visitor a way forward.
+    'npm run check:firebase-anon-guest-smoke',
     // The store in a real browser: the marketplace paints the download
     // catalogue from site-map.json, the shop renders the shop products
     // with a disabled Buy button while the Payment Links are missing, and
@@ -379,6 +405,16 @@ const GROUPS = {
     // in `dist/lib/app-version.js`.
     { cmd: 'npm run check:build-idempotent', timeoutMs: 240000, retries: 0 },
     'npm run check:dist-links',
+    // The /alternate "Chain" view: the Ozone-style mastering surface over
+    // the same engine. Asserts the WIRING, not the markup — powering a
+    // module off removes exactly its reactor targets, the default chain
+    // leaves all eight active, and without ?chain=1 it never mounts.
+    { cmd: 'npm run check:chain-view', timeoutMs: 120000, retries: 1 },
+    // The Studio Command Center: the control surface injected into every
+    // engine variant. Asserts it is bound to REAL engine state (the
+    // panels read the variant's own API), that its canvases actually
+    // painted, and that it stacks above the host surface's own overlays.
+    { cmd: 'npm run check:command-center', timeoutMs: 120000, retries: 1 },
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.
     'npm run verify:site-nav',

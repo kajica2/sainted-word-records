@@ -27,7 +27,7 @@
 // prevent a "free tier" workaround for the media-feature cap, not
 // to defend the key's secrecy.)
 
-import { sendJson, setCors, methodNotAllowed } from '../_lib/http.js';
+import { sendJson, setCors, methodNotAllowed, clientIp } from '../_lib/http.js';
 import { PT_KEY_RE, findPtKeyBySession, listPtKeysForUser, PT_TIERS } from '../_lib/pt-keys.js';
 import { readJson } from '../_lib/db.js';
 import { join } from 'node:path';
@@ -102,8 +102,9 @@ export default async function handler(req, res) {
   }
 
   // Rate limit
-  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
-    .toString().split(',')[0].trim();
+  // clientIp() only reads `x-forwarded-for` when a trusted proxy wrote it, so a
+  // rotated header cannot buy this limiter an unlimited budget of key guesses.
+  const ip = clientIp(req);
   if (!checkRateLimit(ip)) {
     res.setHeader('Retry-After', '2');
     return sendJson(res, 429, { error: 'rate_limited', retryAfterMs: 2000 });
