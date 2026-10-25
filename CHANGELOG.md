@@ -177,6 +177,14 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- `check:live-input` **sampled for the Live control instead of waiting for
+  it**, so it reported a missing control whenever the media panel had not
+  mounted yet. The panel is built by a deferred module which loads three
+  more in order; sampling once as soon as the document is ready measures
+  the machine's load, not the feature, and the step duly failed inside a
+  full 33-step run while passing on its own. It now polls for the control
+  (15 s) — the assertion still requires it, and a mutated selector fails
+  it exactly as before.
 - **The preset editor's ramps ran on the wrong clock**, so a rule or a
   scene transition started from the rulebook could be stamped in the
   future and never arrive. `frame(now)` now keeps `runtime.renderNow`, and
