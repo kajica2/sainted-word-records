@@ -70,6 +70,7 @@ LOG_DIR="$REPO_ROOT/tasks/.logs"
 mkdir -p "$LOG_DIR"
 
 ONLY_AGENT="${1:-}"
+PIDS=()
 
 launch() {
     local name="$1"
@@ -89,7 +90,7 @@ launch() {
             $extra \
             2>&1 | tee "$LOG_DIR/${name,,}-$(date +%Y%m%d-%H%M%S).log"
     ) &
-    eval "${name//-/_}_PID=$!"
+    PIDS+=($!)
 }
 
 # SWR-Ops (orchestrator) — owns agents/TASKS.md
@@ -111,7 +112,9 @@ echo "   - swr_ops-*.log"
 echo "   - swr_twin-*.log"
 echo "   - swr_check-*.log"
 echo ""
-echo "🛑 To stop all agents:  kill $SWR_OPS_PID $SWR_TWIN_PID $SWR_CHECK_PID"
+if [ ${#PIDS[@]} -gt 0 ]; then
+    echo "🛑 To stop all agents:  kill ${PIDS[*]}"
+fi
 echo ""
 
 wait
