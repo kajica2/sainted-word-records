@@ -116,6 +116,20 @@
   gap: 8px;
 }
 
+.swr-drive-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.swr-drive-subtitle {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #7b8496;
+}
+
 .swr-drive-close {
   /* Touch target ≥ 44×44 per WCAG 2.1 AA */
   min-width: 44px;

@@ -28,6 +28,12 @@
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
     "check:auth-unit": "node scripts/check-auth-unit.mjs",
     "check:auth-google-signin-unit": "node scripts/check-auth-google-signin-unit.mjs",
+    "check:auth-firebase-anon-unit": "node scripts/check-auth-firebase-anon-unit.mjs",
+    "check:auth-firestore-unit": "node scripts/check-auth-firestore-unit.mjs",
+    "check:auth-store-dispatch-unit": "node scripts/check-auth-store-dispatch-unit.mjs",
+    "check:firebase-anon-client-unit": "node scripts/check-firebase-anon-client-unit.mjs",
+    "check:firebase-anon-guest-smoke": "node scripts/check-firebase-anon-guest-smoke.mjs",
+    "check:trusted-proxies-unit": "node scripts/check-trusted-proxies-unit.mjs",
     "check:bpm-unit": "node scripts/check-bpm-unit.mjs",
     "check:life-unit": "node scripts/check-life-unit.mjs",
     "check:midi-feat-unit": "node scripts/check-midi-feat-unit.mjs",
@@ -269,6 +275,7 @@
     "nodemailer": "^10.0.8",
     "pg": "^8.23.0",
     "playwright": "^1.64.0",
-    "stripe": "^22.6.2"
+    "stripe": "^22.6.2",
+    "zod": "^3.25.76"
   }
 }

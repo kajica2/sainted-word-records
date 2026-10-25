@@ -23,6 +23,9 @@ const HANDLER_PATHS = {
   // is a nested route, so it gets its own table entry.
   'auth/google': '../api/auth/google.js',
   'auth/google/callback': '../api/auth/google/callback.js',
+  // Firebase Anonymous Auth: GET ?action=config serves the public web
+  // config, POST exchanges an ID token for a swrc_session cookie.
+  'auth/firebase-anon': '../api/auth/firebase-anon.js',
   'storage/sign-upload': '../api/storage/sign-upload.js',
   'storage/sign-download': '../api/storage/sign-download.js',
   'storage/object': '../api/storage/object.js',
@@ -55,6 +58,10 @@ function pickHandlerPath(urlPath) {
   if (segs[1] === 'auth' && segs[2] === 'google') {
     if (segs[3] === 'callback') return HANDLER_PATHS['auth/google/callback'];
     return HANDLER_PATHS['auth/google'];
+  }
+  // Firebase Anonymous Auth: /api/auth/firebase-anon.
+  if (segs[1] === 'auth' && segs[2] === 'firebase-anon') {
+    return HANDLER_PATHS['auth/firebase-anon'];
   }
   // Public waitlist signup (no auth): /api/early-access.
   if (segs[1] === 'early-access' && !segs[2]) return '../api/early-access.js';

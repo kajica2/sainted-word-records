@@ -39,6 +39,14 @@
 //      client/section-scheduler.client.js reads
 //   8. the batch entry point keeps its documented shape
 //   9. reset() clears the stream and republishes an empty map
+//  10. the real consumer (automix.client.js) sees real sections
+//  11. the arc reads the live boundary as a soft cue
+//  12. the REAL producer (lib/audio.client.js) stamps the frame's identity
+//      (feat.tMs, the media clock in milliseconds), so the two production
+//      callers of the same live feature object ingest the frame ONCE —
+//      126 detect() calls over 63 real frames are 63 ingests, not 126.
+//      A self-test proves the assertion can still fail: it strips the
+//      stamp from the shipped producer source and the same check goes RED.
 //
 // Run:  node scripts/check-section-detector-unit.mjs
 // Exit: 0 PASS, 1 FAIL.
@@ -615,6 +623,316 @@ assert(S.history.length === 0, 'reset() clears the transition history');
     'the arc dropped the stale cue across the song swap', ARC.sectionCue);
   assert(ARC.lastResetReason === 'reset',
     'the arc records why it dropped the cue', ARC.lastResetReason);
+}
+
+// ── 12. the REAL producer stamps the frame, so two callers ingest it once ─
+// The detector dedupes on the frame's timestamp, so the stamp has to come
+// from the PRODUCER. lib/audio.client.js stamps feat.tMs (the media clock,
+// in milliseconds) on every frame. Before that stamp existed the detector
+// fell back to performance.now(), which differs between the engine's rAF
+// call and the automix runtime's tick, so every audio frame was ingested
+// TWICE.
+//
+// This section drives the REAL producer (lib/audio.client.js) and the REAL
+// detector in one sandbox: a fake media element whose clock advances half a
+// second a frame, and a fake analyser that emits a non-silent spectrum, so
+// the frames are genuine producer frames and not hand-built fixtures.
+const AUDIO_SRC = path.join(ROOT, 'lib/audio.client.js');
+
+function fakeAudioContext() {
+  return {
+    state: 'running',
+    currentTime: 0,
+    sampleRate: 44100,
+    destination: {},
+    createAnalyser() {
+      return {
+        fftSize: 2048,
+        smoothingTimeConstant: 0.65,
+        frequencyBinCount: 1024,
+        connect(t) { this._out = t; },
+        disconnect(t) { if (!t || this._out === t) this._out = null; },
+        // A real, non-silent spectrum: the detector drops silent frames.
+        getByteFrequencyData(arr) {
+          for (let i = 0; i < arr.length; i++) arr[i] = 60 + ((i * 7) % 120);
+        },
+        getByteTimeDomainData(arr) {
+          for (let i = 0; i < arr.length; i++) arr[i] = 128 + (((i % 32) - 16) * 4);
+        },
+      };
+    },
+    createGain() {
+      return { gain: { value: 1 }, connect(t) { this._out = t; }, disconnect() {} };
+    },
+    resume() {},
+  };
+}
+
+// The producer and the detector in ONE sandbox, so they share a window.
+function loadProducerAndDetector(producerSource) {
+  const listeners = {};
+  const win = {
+    CustomEvent: function CustomEvent(type, init) {
+      this.type = type;
+      this.detail = (init && init.detail) || null;
+    },
+    dispatchEvent(ev) {
+      (listeners[ev.type] || []).forEach((fn) => fn(ev));
+      return true;
+    },
+    addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+    removeEventListener(type, fn) {
+      const arr = listeners[type] || [];
+      const i = arr.indexOf(fn);
+      if (i >= 0) arr.splice(i, 1);
+    },
+    performance: { now: () => 0 },
+    AudioContext: function AudioContext() { return fakeAudioContext(); },
+  };
+  const ctx = vm.createContext({
+    window: win,
+    performance: win.performance,
+    CustomEvent: win.CustomEvent,
+    document: { getElementById: () => null },
+    console,
+  });
+  vm.runInContext(fs.readFileSync(SRC, 'utf8'), ctx, { filename: 'section-detector.client.js' });
+  vm.runInContext(producerSource, ctx, { filename: 'lib/audio.client.js' });
+  return { win, ctx };
+}
+
+// One run of the real producer + the real detector. `frames` real audio
+// frames are produced, and each one is read by the two production callers
+// (the engine's rAF loop and the automix runtime's tick), both passing the
+// SAME live feature object - exactly what engine.html does.
+function runProducerScenario(producerSource, frames) {
+  const { win } = loadProducerAndDetector(producerSource);
+  const A = win.Audio;
+  const S = win.SWR_SECTION;
+  A.unlock();
+
+  // The media element that carries the audio IS the clock: its currentTime
+  // advances half a second per frame.
+  const media = {
+    currentTime: 0,
+    duration: 600,
+    paused: false,
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  A.audioEl = media;
+
+  // A wall clock, the way performance.now() behaves: it moves on. The
+  // engine's rAF call and the automix runtime's tick are two DIFFERENT
+  // instants (the runtime ticks on its own interval), so without a frame
+  // timestamp the detector sees two different frames where there is one.
+  let wall = 0;
+  win.performance.now = () => wall;
+
+  // How many times did the detector ABSORB a frame? The detector reads the
+  // frame's band values exactly once per ingest, inside its per-timestamp
+  // dedupe guard, so one read of an accumulated band value IS an ingest.
+  // Two independent fields are counted so the probe cannot silently depend
+  // on one of them: the detector accumulates bass and rms once each per
+  // ingest.
+  let bassReads = 0;
+  let rmsReads = 0;
+  const live = new Proxy(A.feat, {
+    get(target, prop) {
+      if (prop === 'bass') bassReads++;
+      else if (prop === 'rms') rmsReads++;
+      return target[prop];
+    },
+  });
+
+  for (let i = 0; i < frames; i++) {
+    // The frame: the media clock advances half a second, the producer
+    // re-samples, and the wall clock moves on to the next animation frame.
+    media.currentTime = (i + 1) * 0.5;
+    wall += 16;
+    A.sample();
+
+    wall += 8;                     // the automix tick lands a beat later
+    S.detect(live);                // engine rAF loop
+    wall += 8;                     // ... and the runtime's own tick, later still
+    S.detect(live);                // automix runtime tick
+  }
+  return {
+    ingests: bassReads,
+    bassReads,
+    rmsReads,
+    frames,
+    calls: frames * 2,
+    rows: S.novelty.length,
+    stamped: A.feat.tMs,
+    mediaTime: media.currentTime,
+  };
+}
+
+// The load-bearing expectation: 63 real audio frames, each read by the two
+// production callers, are ingested 63 times - not 126.
+function ingestCheck(run) {
+  const failures = [];
+  if (run.ingests !== run.frames) {
+    failures.push(`expected ${run.frames} ingests over ${run.frames} real frames, got ${run.ingests}`);
+  }
+  return failures;
+}
+
+// A pause is the other half of the clock decision, and it is the reason the
+// stamp is a MEDIA clock and not a wall clock.
+//
+// The engine's loop (engine.html) calls Audio.sample() only while
+// Audio.playing, but it calls SWR_SECTION.detect(Audio.feat) on EVERY frame.
+// So while the media is paused the feature object is FROZEN — the producer
+// is not re-sampling it — and a wall clock would keep handing the detector a
+// brand new timestamp for that frozen frame, so the detector would keep
+// ingesting the same frozen audio, over and over, corrupting the
+// self-similarity matrix with duplicate rows.
+//
+// The media clock does not move while the media is paused, so the frame's
+// timestamp does not move either, and the detector's dedupe guard holds the
+// analysis still: a pause freezes the analysis instead of feeding it.
+//
+// The scenario mirrors the engine exactly: play (sample + detect), pause
+// (detect only, the feature object frozen), resume (sample + detect).
+function runPauseScenario(producerSource) {
+  const { win } = loadProducerAndDetector(producerSource);
+  const A = win.Audio;
+  const S = win.SWR_SECTION;
+  A.unlock();
+  const media = {
+    currentTime: 0,
+    duration: 600,
+    paused: false,
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  A.audioEl = media;
+  let wall = 0;
+  win.performance.now = () => wall;
+  let resets = 0;
+  win.addEventListener('swr-section-reset', (ev) => {
+    if (ev.detail && ev.detail.reason === 'gap') resets++;
+  });
+  let ingests = 0;
+  const live = new Proxy(A.feat, {
+    get(target, prop) {
+      if (prop === 'bass') ingests++;
+      return target[prop];
+    },
+  });
+
+  // Play: the engine samples and detects, once per frame.
+  A.playing = true;
+  for (let i = 0; i < 20; i++) {
+    media.currentTime += 0.5;
+    wall += 16;
+    A.sample();
+    S.detect(live);
+  }
+  const playedRows = S.novelty.length;
+  const ingestsAfterPlay = ingests;
+
+  // Pause: the engine stops sampling (Audio.playing is false) but keeps
+  // calling detect() with the frozen feature object. The wall clock runs on.
+  A.playing = false;
+  media.paused = true;
+  for (let i = 0; i < 100; i++) {
+    wall += 16;
+    S.detect(live);
+  }
+  const ingestsDuringPause = ingests - ingestsAfterPlay;
+  const resetsAfterPause = resets;
+
+  // Resume.
+  A.playing = true;
+  media.paused = false;
+  for (let i = 0; i < 20; i++) {
+    media.currentTime += 0.5;
+    wall += 16;
+    A.sample();
+    S.detect(live);
+  }
+  return {
+    ingests,
+    ingestsAfterPlay,
+    ingestsDuringPause,
+    resetsAfterPause,
+    totalResets: resets,
+    playedRows,
+    rows: S.novelty.length,
+  };
+}
+
+const FRAMES = 63;
+const shippedSource = fs.readFileSync(AUDIO_SRC, 'utf8');
+const shippedRun = runProducerScenario(shippedSource, FRAMES);
+assert(shippedRun.stamped === shippedRun.mediaTime * 1000,
+  'the real producer stamps the frame with the media clock in milliseconds',
+  `${shippedRun.stamped} vs ${shippedRun.mediaTime * 1000}`);
+assert(shippedRun.ingests === FRAMES,
+  'two callers of ONE real audio frame ingest it once',
+  `${shippedRun.ingests} ingests over ${shippedRun.calls} detect() calls`);
+assert(shippedRun.rmsReads === shippedRun.bassReads,
+  'the ingest count does not depend on which accumulated field is counted',
+  `bass ${shippedRun.bassReads} vs rms ${shippedRun.rmsReads}`);
+const oneFrameRun = runProducerScenario(shippedSource, 1);
+assert(oneFrameRun.ingests === 1,
+  'one real audio frame read by both callers is ingested exactly once',
+  `${oneFrameRun.ingests} ingest(s) over ${oneFrameRun.calls} detect() calls`);
+assert(shippedRun.rows > 0,
+  'the real producer frames are loud enough to be committed, not dropped as silence',
+  `${shippedRun.rows} descriptor rows`);
+const shippedIngest = ingestCheck(shippedRun);
+assert(shippedIngest.length === 0,
+  'the real producer stamps the frame: 126 detect() calls over 63 frames ingest 63 frames',
+  shippedIngest[0]);
+
+// The pause: while the media is paused the engine stops sampling but keeps
+// calling detect() with the frozen feature object. A media clock holds the
+// analysis still; a wall clock would keep ingesting the same frozen frame.
+const shippedPause = runPauseScenario(shippedSource);
+assert(shippedPause.ingestsDuringPause === 0,
+  'a paused media clock freezes the analysis instead of re-ingesting the frozen frame',
+  `${shippedPause.ingestsDuringPause} ingest(s) during the pause`);
+assert(shippedPause.resetsAfterPause === 0,
+  'a paused media clock does not trip the detector\'s gap restart',
+  `${shippedPause.resetsAfterPause} gap reset(s) during the pause`);
+assert(shippedPause.rows >= shippedPause.playedRows,
+  'the section map survives a pause',
+  `${shippedPause.playedRows} rows before the pause, ${shippedPause.rows} after`);
+
+// The same proof one level up: the assertion has to be able to fail. Strip
+// the producer's frame timestamp - the exact pre-fix state, no tMs field and
+// no stamp - and the same scenario must go RED. Then restore and go GREEN.
+{
+  const strippedSource = shippedSource
+    .replace(/^[ \t]*tMs: 0,\n/m, '')
+    .replace(/^[ \t]*this\.feat\.tMs = this\.clock \* 1000;\n/gm, '');
+  assert(strippedSource !== shippedSource,
+    'the self-test mutation really changed the producer source');
+  const brokenRun = runProducerScenario(strippedSource, FRAMES);
+  const brokenIngest = ingestCheck(brokenRun);
+  assert(brokenIngest.length > 0,
+    'a producer WITHOUT the frame stamp makes the ingest assertion go RED',
+    brokenIngest[0]);
+  assert(brokenIngest.some((f) => /ingests?/.test(f)),
+    'the RED failure names the ingest assertion',
+    brokenIngest[0]);
+  assert(brokenRun.ingests === FRAMES * 2,
+    'a producer WITHOUT the frame stamp ingests every frame twice',
+    `${brokenRun.ingests} ingests over ${brokenRun.calls} detect() calls`);
+  const brokenPause = runPauseScenario(strippedSource);
+  assert(brokenPause.ingestsDuringPause > 0,
+    'a producer WITHOUT the frame stamp keeps ingesting the frozen frame through a pause',
+    `${brokenPause.ingestsDuringPause} ingest(s) during the pause`);
+  const restoredIngest = ingestCheck(runProducerScenario(shippedSource, FRAMES));
+  assert(restoredIngest.length === 0,
+    'the shipped producer is GREEN again once the mutation is restored',
+    restoredIngest[0]);
+  console.log('  the producer mutation WAS DETECTED (' + brokenIngest.length +
+    ' failures) and the shipped producer is clean');
 }
 
 // ── summary ────────────────────────────────────────────────────────────────

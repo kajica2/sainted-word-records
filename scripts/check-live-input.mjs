@@ -154,7 +154,16 @@ const SCRIPT = `
   });
   window.addEventListener('error', (e) => errs.push('error: ' + e.message));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const btn = document.querySelector('button[title="Camera and microphone input"]');
+  // The media panel is mounted by a deferred module (which loads three more
+  // in order), so the control appears a beat after the document does. Poll
+  // for it: a single sample measures the machine's load, not the feature —
+  // it reported a missing Live control while a 33-step gate was running.
+  let btn = null;
+  const deadline = performance.now() + 15000;
+  while (!btn && performance.now() < deadline) {
+    btn = document.querySelector('button[title="Camera and microphone input"]');
+    if (!btn) await sleep(100);
+  }
   R.push({ step: 'live-button', ok: !!btn });
   if (!btn) return R;
 
