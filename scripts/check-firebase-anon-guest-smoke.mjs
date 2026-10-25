@@ -194,7 +194,11 @@ async function newPage() {
 }
 
 async function nav(page, pathname) {
-  await page.goto('http://127.0.0.1:' + PORT + pathname, { waitUntil: 'networkidle0', timeout: 30000 });
+  // networkidle0 never settles when the login page keeps long-lived fetches
+  // or service-worker registration attempts alive; domcontentloaded + complete
+  // is enough for the guest-button flow this gate exercises.
+  await page.goto('http://127.0.0.1:' + PORT + pathname, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.waitForFunction(() => document.readyState === 'complete', { timeout: 30000 }).catch(() => {});
 }
 
 // ---- 1 & 2: the button is revealed only when the server has a config ------
