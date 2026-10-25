@@ -68,15 +68,20 @@ h1 { font-weight:300; font-size:clamp(2.2rem,5vw,3.5rem); letter-spacing:-0.02em
       <h2>Three steps</h2>
       <p>Guided onboarding that ends at the engine.</p>
     </a>
-    <a class="card" href="entrance-step1.html">
+    <a class="card" href="entrance-step1">
       <span class="tag">Step 1</span>
       <h2>Drop a song</h2>
       <p>Focused audio drop target.</p>
     </a>
-    <a class="card" href="entrance-step2.html">
+    <a class="card" href="entrance-step2">
       <span class="tag">Step 2</span>
       <h2>Add your clips</h2>
       <p>Focused media drop target.</p>
+    </a>
+    <a class="card" href="entrance-step3">
+      <span class="tag">Step 3</span>
+      <h2>Hit record</h2>
+      <p>Open the engine and compose.</p>
     </a>
     <a class="card" href="entrance-stats.html">
       <span class="tag">Specs</span>
@@ -93,5 +98,27 @@ h1 { font-weight:300; font-size:clamp(2.2rem,5vw,3.5rem); letter-spacing:-0.02em
   <script src="/lib/nav.client.js" defer></script>
   <swr-footer></swr-footer>
   <script src="/lib/footer.client.js" defer></script>
+  <script>
+  // Lightweight entrance analytics
+  (function () {
+    function track(event, detail) {
+      try {
+        const payload = { event, page: 'hub', detail: detail || null, ts: Date.now() };
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/entrance-analytics', JSON.stringify(payload));
+        } else {
+          fetch('/api/entrance-analytics', { method: 'POST', body: JSON.stringify(payload), keepalive: true }).catch(() => {});
+        }
+      } catch (e) {}
+    }
+    track('entrance_view');
+    document.querySelectorAll('.card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        const tag = card.querySelector('.tag');
+        track('entrance_click', tag ? tag.textContent.trim() : 'unknown');
+      });
+    });
+  })();
+  </script>
 </body>
 </html>
