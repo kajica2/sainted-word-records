@@ -1,10 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Step 1 · Drop a song · Sainted Word Records</title>
 <meta name="description" content="Drop any audio file. The engine reads BPM, beats, and energy.">
+<link rel="canonical" href="https://sainted-word-records.vercel.app/entrance-step1" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 <link rel="stylesheet" href="/lib/design-tokens.css">
 <style>
 :root { --bg:#faf7f2; --ink:#1a1612; --accent:#e6306b; --line:#e8e2d8; }
@@ -32,7 +35,8 @@ h1 { font-weight:300; font-size:2.6rem; letter-spacing:-0.03em; margin:0 0 0.6re
 </style>
 </head>
 <body>
-<div class="shell">
+  <swr-nav></swr-nav>
+<main class="shell">
   <div class="progress">Step 1 of 3</div>
   <h1>Drop a song.</h1>
   <p class="sub">Any audio format — MP3, WAV, MP4, etc.<br>The engine reads BPM, beats, and energy automatically.</p>
@@ -50,11 +54,14 @@ h1 { font-weight:300; font-size:2.6rem; letter-spacing:-0.03em; margin:0 0 0.6re
     ·
     <a href="/engine">Skip to engine →</a>
   </p>
-</div>
+</main>
 <script>
 document.getElementById('drop').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
 document.getElementById('drop').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
 document.getElementById('drop').addEventListener('drop', e => { e.preventDefault(); window.location.href='/engine'; });
 </script>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

@@ -1,10 +1,13 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Specs · Sainted Word Records</title>
 <meta name="description" content="The engine in numbers.">
+<link rel="canonical" href="https://sainted-word-records.vercel.app/entrance-stats" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 <link rel="stylesheet" href="/lib/design-tokens.css">
 <style>
 :root { --bg:#050308; --ink:#f5e9ff; --accent:#00e5ff; --muted:#9a8aaa; }
@@ -20,7 +23,8 @@ h1 { font-family:system-ui,sans-serif; font-weight:300; font-size:2.8rem; letter
 </style>
 </head>
 <body>
-<div class="shell">
+  <swr-nav></swr-nav>
+<main class="shell">
   <h1>One engine. Zero backend.</h1>
   <div class="grid">
     <div class="stat"><b>15.6k</b><span>gzipped HTML</span></div>
@@ -31,6 +35,9 @@ h1 { font-family:system-ui,sans-serif; font-weight:300; font-size:2.8rem; letter
     <div class="stat"><b>0</b><span>servers</span></div>
   </div>
   <a class="cta" href="/engine">Open the engine</a>
-</div>
+</main>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>

@@ -1,17 +1,20 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="/lib/components.css">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Drop · Sainted Word Records</title>
 <meta name="description" content="Drop a song. The engine does the rest.">
+<link rel="canonical" href="https://sainted-word-records.vercel.app/entrance-minimal" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
 <link rel="stylesheet" href="/lib/design-tokens.css">
 <style>
 :root { --bg:#050308; --ink:#f5e9ff; --accent:#ff3d92; }
 * { box-sizing:border-box; }
-html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; }
+html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; }
 .drop {
-  height:100%; display:grid; place-items:center; text-align:center; padding:2rem;
+  min-height:70vh; display:grid; place-items:center; text-align:center; padding:2rem;
   background: radial-gradient(ellipse at center, rgba(255,61,146,0.15), transparent 60%);
 }
 .drop h1 { font-size:clamp(3rem,10vw,8rem); font-weight:300; letter-spacing:-0.04em; margin:0 0 1rem; }
@@ -25,13 +28,17 @@ html,body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-
 </style>
 </head>
 <body>
-<div class="drop">
+  <swr-nav></swr-nav>
+<main class="drop">
   <div>
     <h1>Drop.</h1>
     <p>A song. A folder of clips. The engine classifies, routes, and composes a music video that breathes with the beat.</p>
     <a class="btn" href="/engine">Open the engine →</a>
     <div class="hint">No account · No upload · Browser only</div>
   </div>
-</div>
+</main>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
 </body>
 </html>
