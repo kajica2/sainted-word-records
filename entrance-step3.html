@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Step 3 · Hit record · Sainted Word Records</title>
+<meta name="description" content="Watch the composition breathe, then export MP4.">
+<link rel="stylesheet" href="/lib/design-tokens.css">
+<style>
+:root { --bg:#faf7f2; --ink:#1a1612; --accent:#e6306b; --line:#e8e2d8; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,sans-serif; }
+.shell { max-width:640px; margin:0 auto; padding:2.5rem 1.25rem; text-align:center; }
+.progress { font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase; color:#6b635a; margin-bottom:0.5rem; }
+h1 { font-weight:300; font-size:2.6rem; letter-spacing:-0.03em; margin:0 0 0.6rem; }
+.sub { color:#6b635a; margin:0 auto 2rem; max-width:420px; line-height:1.5; }
+.panel {
+  border:1px solid var(--line); border-radius:16px; padding:2.5rem 1.5rem; background:#fff;
+  margin:0 auto 1.5rem; max-width:420px;
+}
+.icon { font-size:2.8rem; color:var(--accent); margin-bottom:0.75rem; }
+.panel h2 { margin:0 0 0.5rem; font-size:1.3rem; font-weight:600; }
+.panel p { margin:0 0 1.5rem; color:#6b635a; font-size:0.95rem; }
+.btn {
+  display:inline-block; padding:0.9rem 1.8rem; background:var(--accent); color:#fff;
+  text-decoration:none; border-radius:999px; font-weight:700; border:none; cursor:pointer; font-size:1rem;
+}
+.hint { font-size:0.85rem; color:#6b635a; margin-top:1.5rem; }
+.hint a { color:var(--accent); text-decoration:none; margin:0 0.6rem; }
+.hint a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="progress">Step 3 of 3</div>
+  <h1>Hit record.</h1>
+  <p class="sub">Watch the composition breathe with the music,<br>then export an MP4.</p>
+
+  <div class="panel">
+    <div class="icon">▶</div>
+    <h2>Ready to compose</h2>
+    <p>Your song and clips are set. Open the engine and press record.</p>
+    <a class="btn" href="/engine">Open the engine</a>
+  </div>
+
+  <p class="hint">
+    <a href="entrance-step2">← Back to step 2</a>
+    ·
+    <a href="/engine">Skip to engine →</a>
+  </p>
+</div>
+<script>
+// Lightweight analytics beacon
+(function () {
+  try {
+    const data = { event: 'entrance_view', page: 'step3', ts: Date.now() };
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/entrance-analytics', JSON.stringify(data));
+    } else {
+      fetch('/api/entrance-analytics', { method: 'POST', body: JSON.stringify(data), keepalive: true }).catch(() => {});
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
