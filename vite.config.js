@@ -468,6 +468,10 @@ function copyStatic() {
     // Auto-advance demo-reel player (window.SWR_REEL) — loaded by engine.html
     // next to swr-sets.js; consumes SWR_SETS.importSet/applySet.
     'engine-reel.client.js',
+    // Self-assembling director (engine.html script tags at repo root).
+    'self-assembling-director.js',
+    'self-assembling-wire.js',
+    'self-assembling-timeline.js',
     'engine-lfo-panel.client.js',
     'engine-panel-visibility.client.js',
     'engine-automap.client.js',
