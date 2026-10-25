@@ -1,0 +1,440 @@
+{
+  "version": "3.0",
+  "factory": "Sainted Word Records",
+  "providers": {
+    "minimax": {
+      "label": "MiniMax",
+      "wire_format": "anthropic-messages",
+      "base_url": "https://api.minimax.io/anthropic",
+      "base_url_env": "MINIMAX_BASE_URL",
+      "messages_path": "/v1/messages",
+      "models_path": "/v1/models",
+      "auth": { "type": "bearer", "env": "MINIMAX_API_KEY" },
+      "headers": { "anthropic-version": "2023-06-01" },
+      "notes": [
+        "MiniMax speaks the Anthropic Messages API, so the factory keeps the",
+        "Anthropic request shape and only swaps the provider block.",
+        "China endpoint: https://api.minimaxi.com/anthropic"
+      ]
+    },
+    "opencode": {
+      "label": "OpenCode Zen",
+      "wire_format": "per-model",
+      "base_url": "https://opencode.ai/zen/v1",
+      "base_url_env": "OPENCODE_BASE_URL",
+      "messages_path": "/messages",
+      "responses_path": "/responses",
+      "chat_path": "/chat/completions",
+      "models_path": "/models",
+      "auth": { "type": "bearer", "env": "OPENCODE_API_KEY" },
+      "notes": [
+        "Zen is a gateway, not a model. Its models sit on three different",
+        "endpoints depending on the family: /messages for Claude and Qwen,",
+        "/responses for the GPTs, /chat/completions for everything else.",
+        "Each model in the catalog below therefore carries its own format.",
+        "Newer Console base: https://opencode.ai/inference (override with",
+        "OPENCODE_BASE_URL). Model list: GET /zen/v1/models"
+      ]
+    },
+    "xai": {
+      "label": "xAI (Grok)",
+      "wire_format": "openai-responses",
+      "base_url": "https://api.x.ai/v1",
+      "base_url_env": "XAI_BASE_URL",
+      "responses_path": "/responses",
+      "chat_path": "/chat/completions",
+      "auth": { "type": "bearer", "env": "XAI_API_KEY" },
+      "notes": [
+        "xAI's Chat Completions API is deprecated — the Responses API is the",
+        "supported surface, and it is the only one that carries the model's",
+        "encrypted reasoning across a tool loop.",
+        "US regional endpoint: https://us.api.x.ai/v1 (10% premium)."
+      ]
+    },
+    "antigravity": {
+      "label": "Google Antigravity",
+      "wire_format": "gemini-interactions",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "base_url_env": "GEMINI_BASE_URL",
+      "interaction_path": "/interactions",
+      "agent": "antigravity-preview-09-2026",
+      "auth": { "type": "header", "header": "x-goog-api-key", "env": "GEMINI_API_KEY" },
+      "notes": [
+        "Antigravity is not a chat model — it is a managed agent that plans,",
+        "runs code and browses inside a Google-hosted Linux sandbox.",
+        "It has no client-side tools, so it CANNOT read or write this repo.",
+        "Only route a task here when everything it needs is inlined in the",
+        "prompt. Its job in this factory is research and second opinion."
+      ]
+    },
+    "antigravity-cli": {
+      "label": "Antigravity CLI (local)",
+      "wire_format": "cli",
+      "command": "agy",
+      "args": ["-p"],
+      "model_flag": "--model",
+      "effort_flag": "--effort",
+      "notes": [
+        "Runs on this machine, with this user's permissions, against this",
+        "working tree. NOT covered by the bridge's write allowlist — the",
+        "agent's own permissions are the guardrail.",
+        "agy -p <prompt> --model <slug> --effort low|medium|high"
+      ]
+    },
+    "opencode-cli": {
+      "label": "OpenCode CLI (local)",
+      "wire_format": "cli",
+      "command": "opencode",
+      "args": ["run"],
+      "model_flag": "--model",
+      "notes": [
+        "opencode run <prompt> --model provider/model",
+        "Local, with the local user's permissions."
+      ]
+    }
+  },
+  "models": {
+    "minimax/MiniMax-M3": {
+      "provider": "minimax",
+      "format": "anthropic-messages",
+      "context_window": 1000000,
+      "max_output_tokens": 524288,
+      "reasoning": { "style": "anthropic-adaptive" },
+      "pricing": { "input_per_mtok": 0.30, "output_per_mtok": 1.20, "cache_read_per_mtok": 0.06 },
+      "supports": { "vision": true, "tool_use": true },
+      "maps_from_claude": "claude-3-opus-20240229",
+      "note": "Permanent 50% off. Doubles to 0.60/2.40 above 512k input tokens."
+    },
+    "minimax/MiniMax-M2.7": {
+      "provider": "minimax",
+      "format": "anthropic-messages",
+      "context_window": 200000,
+      "max_output_tokens": 204800,
+      "reasoning": { "style": "anthropic-budget", "budget_tokens": 8192 },
+      "pricing": { "input_per_mtok": 0.30, "output_per_mtok": 1.20, "cache_read_per_mtok": 0.06 },
+      "supports": { "vision": false, "tool_use": true },
+      "maps_from_claude": "claude-3-5-sonnet-20240620"
+    },
+    "minimax/MiniMax-M2.7-highspeed": {
+      "provider": "minimax",
+      "format": "anthropic-messages",
+      "context_window": 200000,
+      "max_output_tokens": 204800,
+      "reasoning": { "style": "anthropic-budget", "budget_tokens": 4096 },
+      "pricing": { "input_per_mtok": 0.60, "output_per_mtok": 2.40, "cache_read_per_mtok": 0.06 },
+      "supports": { "vision": false, "tool_use": true },
+      "note": "Latency tier, NOT a cost tier — 2x the price of MiniMax-M2.7."
+    },
+    "minimax/MiniMax-M3.1-Flash": {
+      "provider": "minimax",
+      "format": "anthropic-messages",
+      "context_window": 1000000,
+      "max_output_tokens": 524288,
+      "reasoning": { "style": "anthropic-effort", "values": ["low", "medium", "high", "xhigh", "max"] },
+      "pricing": { "input_per_mtok": 0.15, "output_per_mtok": 0.60, "cache_read_per_mtok": 0.015 },
+      "supports": { "vision": true, "tool_use": true },
+      "maps_from_claude": "claude-3-haiku-20240307",
+      "note": "The only model here that accepts output_config.effort. Always thinks."
+    },
+    "minimax/MiniMax-M2.5": {
+      "provider": "minimax",
+      "format": "anthropic-messages",
+      "context_window": 200000,
+      "max_output_tokens": 204800,
+      "reasoning": { "style": "anthropic-budget", "budget_tokens": 4096 },
+      "pricing": { "input_per_mtok": 0.30, "output_per_mtok": 1.20, "cache_read_per_mtok": 0.06 },
+      "supports": { "vision": false, "tool_use": true }
+    },
+    "xai/grok-4.7": {
+      "provider": "xai",
+      "format": "openai-responses",
+      "context_window": 500000,
+      "max_output_tokens": 131072,
+      "reasoning": { "style": "openai-effort", "values": ["low", "medium", "high", "xhigh"], "default": "high" },
+      "pricing": {
+        "input_per_mtok": 2.00,
+        "output_per_mtok": 6.00,
+        "cache_read_per_mtok": 0.50,
+        "note": "Long-context rates above a 200k prompt: 4.00 / 1.00 / 12.00"
+      },
+      "supports": { "vision": true, "tool_use": true },
+      "note": "Reasoning cannot be disabled. xhigh is supported on 4.7 and 4.6."
+    },
+    "xai/grok-4.6": {
+      "provider": "xai",
+      "format": "openai-responses",
+      "context_window": 500000,
+      "max_output_tokens": 131072,
+      "reasoning": { "style": "openai-effort", "values": ["low", "medium", "high", "xhigh"], "default": "high" },
+      "pricing": {
+        "input_per_mtok": 2.00,
+        "output_per_mtok": 6.00,
+        "cache_read_per_mtok": 0.50,
+        "note": "Long-context rates above a 200k prompt: 4.00 / 1.00 / 12.00"
+      },
+      "supports": { "vision": true, "tool_use": true }
+    },
+    "xai/grok-4.20-multi-agent-0309": {
+      "provider": "xai",
+      "format": "openai-responses",
+      "context_window": 1000000,
+      "max_output_tokens": 131072,
+      "reasoning": { "style": "openai-effort", "values": ["low", "medium", "high"], "default": "medium" },
+      "pricing": {
+        "input_per_mtok": 1.25,
+        "output_per_mtok": 2.50,
+        "cache_read_per_mtok": 0.20,
+        "note": "Long-context rates above a 200k prompt: 2.50 / 0.40 / 5.00"
+      },
+      "supports": { "vision": true, "tool_use": true }
+    },
+    "xai/grok-build-0.1": {
+      "provider": "xai",
+      "format": "openai-responses",
+      "context_window": null,
+      "max_output_tokens": null,
+      "reasoning": { "style": "none" },
+      "pricing": { "input_per_mtok": 1.00, "output_per_mtok": 2.00, "cache_read_per_mtok": 0.20 },
+      "supports": { "vision": false, "tool_use": true },
+      "note": "xAI's agentic coding model. Aliases: grok-code-fast-1, grok-code-fast, grok-code-fast-1-0825. Context window is not published — do not route a long-context job here without measuring it first."
+    },
+    "opencode/claude-sonnet-5": {
+      "provider": "opencode",
+      "format": "anthropic-messages",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "reasoning": { "style": "anthropic-adaptive" },
+      "pricing": { "input_per_mtok": 2.00, "output_per_mtok": 10.00, "cache_read_per_mtok": 0.20 },
+      "supports": { "vision": true, "tool_use": true }
+    },
+    "opencode/claude-sonnet-5-5": {
+      "provider": "opencode",
+      "format": "anthropic-messages",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "reasoning": { "style": "anthropic-adaptive" },
+      "pricing": { "input_per_mtok": 2.00, "output_per_mtok": 10.00, "cache_read_per_mtok": 0.20 },
+      "supports": { "vision": true, "tool_use": true }
+    },
+    "opencode/claude-opus-5-5": {
+      "provider": "opencode",
+      "format": "anthropic-messages",
+      "context_window": 1000000,
+      "max_output_tokens": 128000,
+      "reasoning": { "style": "anthropic-adaptive" },
+      "pricing": { "input_per_mtok": 4.00, "output_per_mtok": 20.00, "cache_read_per_mtok": 0.50 },
+      "supports": { "vision": true, "tool_use": true }
+    },
+    "opencode/qwen3.8-flash": {
+      "provider": "opencode",
+      "format": "anthropic-messages",
+      "context_window": 1000000,
+      "max_output_tokens": 131072,
+      "reasoning": { "style": "anthropic-budget", "budget_tokens": 8192 },
+      "pricing": { "input_per_mtok": 0.15, "output_per_mtok": 0.47, "cache_read_per_mtok": 0.016 },
+      "supports": { "vision": true, "tool_use": true },
+      "note": "The cheapest 1M-context model in the catalog."
+    },
+    "opencode/qwen3.7-plus": {
+      "provider": "opencode",
+      "format": "anthropic-messages",
+      "context_window": 262144,
+      "max_output_tokens": 65536,
+      "reasoning": { "style": "anthropic-budget", "budget_tokens": 8192 },
+      "pricing": { "input_per_mtok": 0.40, "output_per_mtok": 1.60, "cache_read_per_mtok": 0.04 },
+      "supports": { "vision": true, "tool_use": true }
+    },
+    "opencode/qwen3.7-max": {
+      "provider": "opencode",
+      "format": "anthropic-messages",
+      "context_window": 262144,
+      "max_output_tokens": 131072,
+      "reasoning": { "style": "anthropic-budget", "budget_tokens": 8192 },
+      "pricing": { "input_per_mtok": 2.50, "output_per_mtok": 7.50, "cache_read_per_mtok": 0.50 },
+      "supports": { "vision": true, "tool_use": true }
+    },
+    "opencode/deepseek-v4.1-flash": {
+      "provider": "opencode",
+      "format": "openai-chat",
+      "context_window": 1000000,
+      "max_output_tokens": 384000,
+      "reasoning": { "style": "none" },
+      "pricing": { "input_per_mtok": 0.30, "output_per_mtok": 1.20, "cache_read_per_mtok": 0.06 },
+      "supports": { "vision": false, "tool_use": true }
+    },
+    "opencode/deepseek-v4-flash-free": {
+      "provider": "opencode",
+      "format": "openai-chat",
+      "context_window": 200000,
+      "max_output_tokens": 128000,
+      "reasoning": { "style": "none" },
+      "pricing": { "input_per_mtok": 0.0, "output_per_mtok": 0.0, "cache_read_per_mtok": 0.0 },
+      "supports": { "vision": false, "tool_use": true },
+      "note": "Free tier. Good for smoke tests, not for anything you have to trust."
+    },
+    "opencode/gpt-5.5": {
+      "provider": "opencode",
+      "format": "openai-responses",
+      "context_window": null,
+      "max_output_tokens": null,
+      "reasoning": { "style": "openai-effort", "values": ["low", "medium", "high"], "default": "medium" },
+      "pricing": { "input_per_mtok": 5.00, "output_per_mtok": 30.00, "cache_read_per_mtok": 0.50 },
+      "supports": { "vision": true, "tool_use": true },
+      "note": "Context window is not published for the Zen listing."
+    },
+    "opencode/minimax-m3": {
+      "provider": "opencode",
+      "format": "openai-chat",
+      "context_window": 1000000,
+      "max_output_tokens": 131072,
+      "reasoning": { "style": "none" },
+      "pricing": { "input_per_mtok": 0.30, "output_per_mtok": 1.20, "cache_read_per_mtok": 0.06 },
+      "supports": { "vision": false, "tool_use": true },
+      "note": "The same model MiniMax sells directly, billed through Zen. On the chat/completions adapter, so it has no thinking controls."
+    },
+    "opencode/grok-build-0.1": {
+      "provider": "opencode",
+      "format": "openai-chat",
+      "context_window": null,
+      "max_output_tokens": null,
+      "reasoning": { "style": "none" },
+      "pricing": { "input_per_mtok": 1.00, "output_per_mtok": 2.00, "cache_read_per_mtok": 0.06 },
+      "supports": { "vision": false, "tool_use": true }
+    },
+    "antigravity/gemini-3.8-flash": {
+      "provider": "antigravity",
+      "format": "gemini-interactions",
+      "context_window": 1048576,
+      "max_output_tokens": 65536,
+      "reasoning": { "style": "gemini-agent" },
+      "pricing": { "input_per_mtok": 1.50, "output_per_mtok": 7.50, "cache_read_per_mtok": 0.15 },
+      "supports": { "vision": true, "tool_use": false },
+      "note": "The Antigravity agent's default model. It runs in Google's sandbox and cannot touch this repo — only route work that is fully inlined in the prompt."
+    },
+    "antigravity/gemini-3.6-flash": {
+      "provider": "antigravity",
+      "format": "gemini-interactions",
+      "context_window": null,
+      "max_output_tokens": null,
+      "reasoning": { "style": "gemini-agent" },
+      "pricing": { "input_per_mtok": null, "output_per_mtok": null, "cache_read_per_mtok": null },
+      "supports": { "vision": true, "tool_use": false }
+    },
+    "antigravity/gemini-4-argon": {
+      "provider": "antigravity",
+      "format": "gemini-interactions",
+      "context_window": null,
+      "max_output_tokens": null,
+      "reasoning": { "style": "gemini-agent" },
+      "pricing": { "input_per_mtok": null, "output_per_mtok": null, "cache_read_per_mtok": null },
+      "supports": { "vision": true, "tool_use": false },
+      "note": "Frontier reasoning model for the Antigravity agent. Context and price are not published."
+    }
+  },
+  "defaults": {
+    "max_tokens": 16384,
+    "timeout_ms": 600000,
+    "retries": 2,
+    "retry_on": [429, 500, 502, 503, 504]
+  },
+  "agents": {
+    "SWR-Ops": {
+      "role": "Orchestrator",
+      "system_prompt": "agents/swr-ops.md",
+      "model_default": "minimax/MiniMax-M3",
+      "tasks": {
+        "planning": {
+          "primary": "minimax/MiniMax-M3",
+          "fallbacks": ["xai/grok-4.7", "opencode/claude-sonnet-5"],
+          "max_tokens": 32768
+        },
+        "coding": {
+          "primary": "minimax/MiniMax-M2.7",
+          "fallbacks": ["opencode/qwen3.7-plus", "xai/grok-4.6"],
+          "max_tokens": 32768
+        },
+        "triage": {
+          "primary": "minimax/MiniMax-M3.1-Flash",
+          "fallbacks": ["opencode/deepseek-v4.1-flash", "xai/grok-4.7"],
+          "effort": "low",
+          "max_tokens": 4096
+        }
+      },
+      "writes": ["agents/TASKS.md"]
+    },
+    "SWR-Twin": {
+      "role": "Digital Twin",
+      "system_prompt": "agents/swr-twin.md",
+      "model_default": "minimax/MiniMax-M2.7",
+      "tasks": {
+        "creative": {
+          "primary": "minimax/MiniMax-M2.7",
+          "fallbacks": ["opencode/qwen3.7-plus", "antigravity/gemini-3.8-flash"],
+          "max_tokens": 8192
+        },
+        "planning": {
+          "primary": "minimax/MiniMax-M3",
+          "fallbacks": ["xai/grok-4.7"],
+          "max_tokens": 32768
+        }
+      },
+      "knowledge_roots": ["../digital_twin/"]
+    },
+    "SWR-Check": {
+      "role": "Verifier",
+      "system_prompt": "agents/swr-check.md",
+      "model_default": "minimax/MiniMax-M3.1-Flash",
+      "tasks": {
+        "verification": {
+          "primary": "minimax/MiniMax-M3.1-Flash",
+          "fallbacks": ["opencode/deepseek-v4.1-flash", "xai/grok-4.7"],
+          "effort": "low",
+          "max_tokens": 8192
+        }
+      },
+      "read_only": true
+    }
+  },
+  "triggers": {
+    "issue_opened": {
+      "agent": "SWR-Ops",
+      "task": "triage",
+      "action": "add_label_untriaged"
+    },
+    "issue_labeled_bug": {
+      "agent": "SWR-Ops",
+      "task": "planning",
+      "action": "decompose_to_tasks"
+    },
+    "pr_opened": {
+      "agent": "SWR-Check",
+      "task": "verification",
+      "action": "run_tests_and_diff_review"
+    },
+    "pr_merged": {
+      "agent": "SWR-Twin",
+      "task": "creative",
+      "action": "draft_release_notes"
+    },
+    "cron_nightly": {
+      "agent": "SWR-Ops",
+      "task": "planning",
+      "action": "run_archive_dry_run_and_doc_drift"
+    }
+  },
+  "prompts": {
+    "triage": "Triage this new issue. Read the audit context. If it is a bug, label it 'bug' and write a task in agents/TASKS.md. Report with the three headings: Blocked on me / Changed / Found.",
+    "planning": "Read the drift report and the counts. If the README claims a number the code does not support, correct the README and log it in agents/TASKS.md as 'Found'. Never change product behaviour to satisfy a doc — fix the doc, or report the code as wrong.",
+    "verification": "Review this diff. Look for blockers based on the audit report (e.g. silent video export bugs, CSS filter mismatches). Demand file:line evidence. Output PASS or FAIL as the first token, then the evidence.",
+    "creative": "Draft the release notes for the merged PR. Use the twin's voice. Reference the merged commit and the visible change, not the branch name."
+  },
+  "tools": {
+    "write_allowlist": [
+      "agents/TASKS.md",
+      "README.md",
+      "CHANGELOG.md"
+    ],
+    "write_requires_flag": "--allow-writes",
+    "note": "The bridge declares write_file for every agent that is not read-only. Without --allow-writes the tool is declared but every call is refused, so a CI run can never touch the tree by accident. CLI providers are exempt: their agent brings its own permissions, which the allowlist does not cover."
+  }
+}
