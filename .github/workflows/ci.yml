@@ -58,6 +58,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # check:apply-reactor-unit runs a parity sweep that `git show`s
+          # historical variant pages at commit 1508133. The default depth-1
+          # checkout on GitHub Actions does not contain that object.
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
