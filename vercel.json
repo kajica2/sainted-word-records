@@ -1100,6 +1100,70 @@
       "destination": "/super-admin.html"
     },
     {
+      "source": "/entrance-personas",
+      "destination": "/entrance-personas.html"
+    },
+    {
+      "source": "/entrance-personas/",
+      "destination": "/entrance-personas.html"
+    },
+    {
+      "source": "/entrance-minimal",
+      "destination": "/entrance-minimal.html"
+    },
+    {
+      "source": "/entrance-minimal/",
+      "destination": "/entrance-minimal.html"
+    },
+    {
+      "source": "/entrance-cinematic",
+      "destination": "/entrance-cinematic.html"
+    },
+    {
+      "source": "/entrance-cinematic/",
+      "destination": "/entrance-cinematic.html"
+    },
+    {
+      "source": "/entrance-mobile",
+      "destination": "/entrance-mobile.html"
+    },
+    {
+      "source": "/entrance-mobile/",
+      "destination": "/entrance-mobile.html"
+    },
+    {
+      "source": "/entrance-wizard",
+      "destination": "/entrance-wizard.html"
+    },
+    {
+      "source": "/entrance-wizard/",
+      "destination": "/entrance-wizard.html"
+    },
+    {
+      "source": "/entrance-step1",
+      "destination": "/entrance-step1.html"
+    },
+    {
+      "source": "/entrance-step1/",
+      "destination": "/entrance-step1.html"
+    },
+    {
+      "source": "/entrance-step2",
+      "destination": "/entrance-step2.html"
+    },
+    {
+      "source": "/entrance-step2/",
+      "destination": "/entrance-step2.html"
+    },
+    {
+      "source": "/entrance-stats",
+      "destination": "/entrance-stats.html"
+    },
+    {
+      "source": "/entrance-stats/",
+      "destination": "/entrance-stats.html"
+    },
+    {
       "source": "/atlas-200-steps",
       "destination": "/atlas-200-steps.html"
     },
