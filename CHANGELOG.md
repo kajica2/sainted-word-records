@@ -8,6 +8,26 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- **Guest sign-in with Firebase Anonymous Auth** — a "Continue as guest"
+  button on the login page: no consent screen, no test-user list. The
+  browser signs in anonymously with the Firebase Web SDK, and the ID
+  token is exchanged at `POST /api/auth/firebase-anon` for an ordinary
+  `swrc_session` cookie — the session model does not change, the token is
+  only an identity assertion at exchange time. The public Firebase web
+  config is **served by the server** (`GET /api/auth/firebase-anon?action=config`),
+  so one build works across projects and the key is rotated by changing
+  an env var; the client never hard-codes one. The button only appears
+  when the server says the feature is configured.
+- **Firestore as the auth store (opt-in)** — `SWR_AUTH_STORE=firestore`
+  moves the users, the provider links, the sessions, the verification
+  tokens and the per-user connect blob into Firestore. `api/_lib/db.js`
+  keeps every export name, so no route changes; the switch is read per
+  call and is **off by default**. The trade-off against the project's
+  "Local-first" rule is stated plainly in
+  `docs/plans/firestore-auth-store.md`.
+- `zod` is now a declared **runtime** dependency. The contract layer
+  already imported it at runtime from two routes while it was undeclared,
+  which was a latent production-deploy failure.
 - The **Studio Command Center** — one extended frontend for every engine
   surface. It loads ON DEMAND: a 2 KB launcher draws the ◈ button and pulls
   the implementation the first time it is used, so a variant visitor who
@@ -126,8 +146,99 @@ once it hits 1.0.
   library-store, tour-client, debug-overlay, look-filter cycler,
   engine-keys digit filter, engine-keys keypress dispatch, layer
   lifecycle, layer retire, kit-zip.
+- The **one shared reactor contract** — `lib/apply-reactors.js` publishes
+  `window.SWR_REACTORS`: one `UNIT` table, one `CLAMP` table, one
+  `TARGETS` allowlist and one dispatch loop, and all 15 variant pages
+  plus `engine.html` call it — 16 surfaces. Every surface used to
+  hand-type its own reactor chain with its own unit table: `x` was 250 on
+  film, 300 on smoke and 180 on eclipse, `scale` was unclamped on all of
+  them, `opacity` clamped to 1.0 on fourteen surfaces and 1.5 on two
+  (engine.html and hallucination), and `versions/grid.html`
+  dropped `x` and `y` silently, so a preset that said `{target:'x'}` did
+  nothing at all and nothing warned. The historical tables are still
+  there — one line each — as the named compatibility `UNITS` tables, and
+  the gate `scripts/check-apply-reactor-unit.mjs` asserts the shared table
+  and its clamps, so the next page cannot reintroduce a private
+  multiplier.
+- The **section cue** — `client/automix-arc.client.js` now consumes the
+  section the detector finds. The arc is built offline from a decoded
+  buffer while `client/section-detector.client.js` detects boundaries
+  live from the engine's own audio features, so a detected section
+  reached the chapter scheduler but never the arc. A boundary now only
+  BIASES which transition the next act boundary picks, and the cue is
+  additive — a cue's opinion overrides the act plan's, and with no cue
+  armed the original warmth/intensity rule is untouched — and one-shot:
+  the next act transition consumes it, so four boundaries in one section
+  cannot stack four votes into a single pick.
+  `client/section-detector.client.js` also fires `swr-section-reset`, a
+  separate event from `swr-section-change`, carrying
+  `detail: { reason, dropped }`, whenever it restarts its stream: an
+  emptied map is never dressed up as a boundary, and a cue from the
+  previous song cannot bias the new song's first act.
 
 ### Fixed
+- `check:live-input` **sampled for the Live control instead of waiting for
+  it**, so it reported a missing control whenever the media panel had not
+  mounted yet. The panel is built by a deferred module which loads three
+  more in order; sampling once as soon as the document is ready measures
+  the machine's load, not the feature, and the step duly failed inside a
+  full 33-step run while passing on its own. It now polls for the control
+  (15 s) — the assertion still requires it, and a mutated selector fails
+  it exactly as before.
+- **The preset editor's ramps ran on the wrong clock**, so a rule or a
+  scene transition started from the rulebook could be stamped in the
+  future and never arrive. `frame(now)` now keeps `runtime.renderNow`, and
+  `startRamp()` stamps a ramp's `t0` from that clock instead of the
+  caller's `now` — `tickRamps(now)` interpolates against the render clock,
+  so those two numbers have to be on the same timebase. A host driving
+  `R.logic.tick()` with its own clock (the gate does, deliberately) used
+  to leave `global.bloom` stuck part-way through a 400 ms ramp forever,
+  and the scene ramp in `setScene()` shared the bug, so "the scene eases
+  in" was equally unreachable. The rulebook's `ctx.now` is still the
+  *evaluation* clock (sustain, cooldown, `elapsed`, `sequencePosition`);
+  only the animation moved.
+- **`jumpToSection()` did not survive the next frame.** The playhead is
+  derived: `tickSequence()` recomputes the bar position from
+  `(now - runtime.seq.startedMs)` on every frame, re-derives the section
+  from it, and re-anchors the origin to `now` whenever the sequence is not
+  running. A jump set only `startedMs` and `section`, so the first frame
+  after the click re-anchored the origin and the playhead snapped back to
+  bar 0 (loop mode also rewrites the origin, which can erase a jump a
+  second way). The jump now marks the sequence running, moves the bar, and
+  anchors the origin on `runtime.renderNow` — the same timebase the next
+  frame's `now` is in — so the derived position is at least the section's
+  first bar and the section scan agrees with the click instead of landing
+  on the previous section by a fractional bar.
+- `check:preset-editor-smoke` **could pass without testing anything, and
+  was failing for the wrong reason.** Its timeline assertion read
+  `#tlSections button` straight after assigning `preset.sequence`, but the
+  timeline is painted only by `renderTimeline()` — which runs from UI
+  handlers, never from the frame loop — so the node list was empty and the
+  `if (jump) jump.click()` guard made the assertion vacuous; it also
+  asserted `afterJump.section === 0` after clicking the *first* button,
+  which is indistinguishable from "the jump did nothing". The test now
+  switches the sequence on through `#seqEnabled` (the user's own path),
+  asserts the timeline rendered a button per section, clicks the **second**
+  section, and asserts the playhead moved to it **and stayed** there and
+  that the section brought its scene and the render with it. The rule test
+  now drives the rulebook synchronously and owns `preset.logic.rules` only
+  for that drive, so the live loop cannot evaluate the same rule against
+  the demo signal between two ticks and fire a spurious falling edge that
+  replaces the ramp under test; the hold test asserts the rule *was
+  refused* (its own log entry) and never fired, rather than that some
+  `held` entry exists — the manual edit logs one itself.
+- Every audio frame was ingested **twice** by the section detector, so the
+  song's structure was computed over a self-similarity matrix with every
+  row duplicated — the boundaries it found were weaker and noisier than the
+  music deserved. The detector dedupes on the frame's timestamp, but the
+  live feature object carried no timestamp, so it fell back to a wall clock,
+  and the wall clock differs between the engine's render loop and the
+  automix runtime's own tick: two callers, one frame, two "different"
+  frames. The producer now stamps `feat.tMs` — the **media** clock, in
+  milliseconds — on every frame, so both callers carry the same timestamp
+  for the same frame and the second call is a no-op. The media clock (not a
+  wall clock) also means a paused song **freezes** the analysis instead of
+  feeding the detector the same frozen frame over and over.
 - The **canvas vanished on every narrow window reached by resizing**.
   `#timeline-host` carries an inline `grid-column: 2 / 3` (it sits under
   the layers column on the desktop template); in the narrow single-column
@@ -263,6 +374,26 @@ once it hits 1.0.
   to the current frame if the clip cannot be seeked.
 
 ### Changed
+- **The sign-in page now says what an account is for.** The headline is
+  "Save it here. Open it on any device." and the one-sentence value prop is
+  a four-line list: your song stays in your browser, your Drive files stay
+  in your Drive, no password, your projects open on any device, one link to
+  share. The old line claimed "Your audio never leaves your browser" — an
+  absolute the platform could not keep.
+- **The Drive browser now states where the files are**: "We read from your
+  Drive. Your files stay there." Importing one file still copies that file.
+- **The in-engine sign-in banner no longer argues against signing up.** The
+  notes keep their persona line and gain a benefit clause — "Free, no signup
+  — sign in to keep it." — and the CTA reads "Save this" instead of naming
+  the magic-link mechanic. The stale "Twenty-nine looks" in the
+  version-hopper note is now "Dozens of looks" (24 variant pages, 22 in the
+  engine's dropdown), and the gallery-curator note's "Everything stays on
+  your machine" is scoped to "Your clips".
+- **`legal/privacy.html` now matches the product.** It says what leaves your
+  device: the account and the projects you save to it, the read-only Drive
+  connection, and the `.zip` we build when you publish a project to the
+  marketplace. "We can't see your library" is now scoped to the two cases
+  where we do hold a file.
 - The build no longer ships **138 KB of orphaned assets**. Vite built
   `engine.html` as its only Rollup input so that `transformIndexHtml`
   would fire on it, but `copy-static` ships `dist/engine.html` as a plain

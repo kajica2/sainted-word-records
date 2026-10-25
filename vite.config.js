@@ -468,6 +468,10 @@ function copyStatic() {
     // Auto-advance demo-reel player (window.SWR_REEL) — loaded by engine.html
     // next to swr-sets.js; consumes SWR_SETS.importSet/applySet.
     'engine-reel.client.js',
+    // Self-assembling director (engine.html script tags at repo root).
+    'self-assembling-director.js',
+    'self-assembling-wire.js',
+    'self-assembling-timeline.js',
     'engine-lfo-panel.client.js',
     'engine-panel-visibility.client.js',
     'engine-automap.client.js',
@@ -524,6 +528,15 @@ function copyStatic() {
     'project.js',
     'share.client.js',
     'timeline.client.js',
+    // The self-assembling director: engine.html loads all three as plain
+    // deferred root scripts and nothing else references them, so this list
+    // is the only thing that puts them in dist/. The dev server serves the
+    // repository root, which is why the omission was invisible locally and
+    // reached the deploy surface as three 404s (check-dist-links caught it
+    // after the merge).
+    'self-assembling-director.js',
+    'self-assembling-wire.js',
+    'self-assembling-timeline.js',
     // Landing-page variants for each persona (linked from
     // /personas registry cards). v1..v6 ship from the project root;
     // they're not auto-discovered by the SITE_MAP_ROOT_FILES derivation

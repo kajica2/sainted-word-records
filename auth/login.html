@@ -71,6 +71,34 @@
       margin: 0 0 1.75rem;
     }
 
+    /* ── Benefits list ─────────────────────────────────────── */
+    .auth-benefits {
+      list-style: none;
+      margin: 0 0 1.75rem;
+      padding: 0;
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .auth-benefits li {
+      position: relative;
+      padding-left: 1.05rem;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .auth-benefits li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.58em;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(232, 230, 225, 0.45);
+    }
+
     /* ── Form elements ──────────────────────────────────────── */
     .auth-label {
       display: block;
@@ -245,6 +273,22 @@
       border-color: rgba(255, 255, 255, 0.2);
     }
 
+    /* ── Guest sign-in ──────────────────────────────────────── */
+    /* Reuses the .auth-google-btn family (outline look) so the guest
+       option reads as a secondary way in, next to the filled CTA. */
+    .auth-guest-btn {
+      margin-top: 0.6rem;
+      padding: 0;
+      font-weight: 500;
+    }
+
+    /* .auth-google-btn sets display:inline-flex, which would beat the UA
+       rule for [hidden] — so the guest button needs this to stay hidden
+       until the client confirms the deployment is configured. */
+    .auth-guest-btn[hidden] {
+      display: none;
+    }
+
     /* Helper line under the submit button */
     .auth-field-note {
       margin-top: 0.5rem;
@@ -255,6 +299,10 @@
     }
   </style>
   <script src="/fx-background.client.js" defer></script>
+  <!-- Classic deferred scripts: they run before the deferred module below,
+       so window.SWR_FIREBASE_ANON and window.SWR_AUTH exist by then. -->
+  <script src="/lib/firebase-anon.client.js" defer></script>
+  <script src="/lib/auth.client.js" defer></script>
 </head>
 <body>
       
@@ -264,13 +312,20 @@
   <section class="auth-card">
     <div class="auth-brand">Sainted Word Records</div>
 
-    <!-- ==== OPTIMIZED COPY (autoresearch 2026-10-09) ====
-         Score 68.6 → 89.4 (+20.8 holistic). See data/swr-optimization-report.md. -->
-    <h1 class="auth-title">Sign in — we email you a one-time link</h1>
-    <p class="auth-subtitle">
-      Save projects, follow them across devices. Your audio never
-      leaves your browser.
-    </p>
+    <!-- ==== OPTIMIZED COPY (autoresearch 2026-10-22) ====
+         Headline 72.3 → 85.2, benefits block 56.9 → 78.4 (5-judge panel,
+         same-round neutral prompt, 2-3 runs each). The previous value prop
+         made an unscoped privacy claim the platform cannot keep; the
+         skeptical-founder judge scored it 35/100. Re-scored after the founder
+         corrected the Drive behaviour. See
+         data/swr-signin-benefits-optimization-report.md. -->
+    <h1 class="auth-title">Save it here. Open it on any device.</h1>
+    <ul class="auth-benefits">
+      <li>Your song stays in your browser. Your Drive files stay in your Drive.</li>
+      <li>No password — one link from your email, or Google.</li>
+      <li>Your projects open on any device.</li>
+      <li>One link to share. Free, no signup to use the engine.</li>
+    </ul>
 
     <!-- Email magic link -->
     <form id="login-form" method="post" action="/api/auth/magic" autocomplete="on">
@@ -312,6 +367,14 @@
       </svg>
       Continue with Google
     </a>
+
+    <!-- Guest sign-in: Firebase anonymous auth. The button ships hidden and
+         is only revealed by auth/login.client.js once the deployment
+         confirms it has a Firebase web config, so a deployment without one
+         never shows a dead button. -->
+    <button type="button" class="auth-google-btn auth-guest-btn" id="guest-btn" hidden>
+      Continue as guest
+    </button>
 
     <p class="auth-footer">
       Want the next engine before everyone else?

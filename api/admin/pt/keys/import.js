@@ -37,7 +37,7 @@
 // We dedupe by key inside the withLock that readJson/writeJson
 // share.
 
-import { sendJson, setCors, readJsonBody, methodNotAllowed } from '../../../_lib/http.js';
+import { sendJson, setCors, readJsonBody, methodNotAllowed, clientIp } from '../../../_lib/http.js';
 import { withLock, readJson, writeJson, DATA_ROOT } from '../../../_lib/db.js';
 import { PT_KEY_RE, PT_TIERS, listPtKeysForUser } from '../../../_lib/pt-keys.js';
 import { ImportReq } from '../../../_lib/contract/pt.mjs';
@@ -59,8 +59,15 @@ function isAuthorized(req) {
     // No secret configured. In dev the operator imports by hand
     // (process.env.PT_IMPORT_SECRET isn't set locally). Allow
     // localhost so dev works; reject everything else.
-    const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').toString().split(',')[0].trim();
-    if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost' || ip.startsWith('::ffff:127.')) {
+    //
+    // clientIp() is load-bearing here, not just for the rate limits: this is
+    // an AUTHORISATION decision, so a spoofable `x-forwarded-for` would have
+    // been an unauthenticated admin write (mint PT grants) rather than a
+    // bypassed throttle. It reads the header only when a trusted proxy wrote
+    // it, and normalizes `::ffff:127.0.0.1` to `127.0.0.1`, so the mapped
+    // form needs no second test.
+    const ip = clientIp(req);
+    if (ip === '127.0.0.1' || ip === '::1') {
       return true;
     }
     return false;

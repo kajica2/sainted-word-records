@@ -446,14 +446,6 @@
       <!-- ============ DESIGN ============ -->
       <div class="panel" data-panel="design">
         <div class="sec">Identity</div>
-        <label class="row"><span>Look</span>
-          <select data-path="look" data-type="string">
-            <option value="clean">clean</option>
-            <option value="neon">neon</option>
-            <option value="grain">grain</option>
-            <option value="mono">mono</option>
-          </select>
-        </label>
         <label class="row"><span>Tags</span>
           <input type="text" id="tagInput" placeholder="comma, separated, tags" aria-label="Tags">
         </label>
@@ -474,14 +466,6 @@
             <input type="number" data-path="global.seed" data-type="number" min="0" max="999999" step="1" aria-label="Seed">
             <button data-cmd="seed" title="Randomize seed">⟳</button>
           </span>
-        </label>
-
-        <div class="sec">Engine</div>
-        <label class="row"><span>webgl</span>
-          <select data-path="webgl" data-type="number">
-            <option value="0">0 · 2D canvas</option>
-            <option value="1">1 · WebGL</option>
-          </select>
         </label>
       </div>
 
@@ -564,14 +548,14 @@
         <div class="btnrow">
           <button data-cmd="addRule" class="primary">＋ Add rule</button>
           <button data-cmd="addScene">＋ Add scene</button>
-          <button data-cmd="dryRun">▷ Dry run 30s</button>
+          <button data-cmd="dryRun" id="dryRunBtn" title="Simulates 30 s of synthetic input at the live frame rate — nothing is applied">▷ Dry run 30s</button>
         </div>
         <div id="rules"></div>
         <div class="sec">Scenes</div>
         <div id="scenes"></div>
         <div class="sec">Composition</div>
         <div class="lockrow">
-          <label class="chk"><input type="checkbox" id="seqEnabled"> sequence on</label>
+          <label class="chk"><input type="checkbox" id="seqEnabled"> sequence on (runs without the rules)</label>
           <label class="chk">mode
             <select id="seqMode"><option value="loop">loop</option><option value="oneshot">oneshot</option></select>
           </label>
@@ -609,6 +593,7 @@
         <div class="hint" id="deviationTxt">—</div>
         <div class="btnrow">
           <button data-cmd="evoRevert">↺ Revert to authored</button>
+          <button data-cmd="evoUndo" title="Step the drift back one step">↶ Undo drift</button>
           <button data-cmd="evoFound">⚄ Found population</button>
           <button data-cmd="evoBreed" class="primary">⚗ Breed generation</button>
         </div>
@@ -953,7 +938,7 @@ function defaultPreset(name = 'Neon Bloom') {
   const p = {
     id: uid('p_'), name, author: '', version: 2,
     created: Date.now(), modified: Date.now(),
-    tags: ['neon'], look: 'clean', webgl: 0,
+    tags: ['neon'],
     audio: {
       source: 'demo', gain: 1, smoothing: 0.72, reactivity: 1,
       bands: { sub: 1, bass: 1, mid: 1, treble: 1, air: 1, rms: 1, centroid: 0.6 },
@@ -1084,7 +1069,6 @@ function rngGaussian(sigma) {
   const u = Math.max(1e-9, rngNext()), v = rngNext();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * sigma;
 }
-function rngPick(arr) { return arr[Math.floor(rngNext() * arr.length) % arr.length]; }
 
 /* Runtime state: everything the engine can change, in one observable place.
    The document stays the source of truth; this is the live layer on top. */
@@ -1092,7 +1076,7 @@ const runtime = {
   overrides: {},        // path -> value (rules, scenes)
   drift: {},            // path -> value (the evolution layer, kept apart so
                         // "revert to authored" does not wipe the rulebook)
-  ramps: [],            // { path, from, to, t0, ms, easing }
+  ramps: [],            // { path, from, to, t0, ms, easing, owner, sceneId }
   layerFlags: {},       // layer id -> enabled
   layerMutations: {},   // layer index -> amount
   events: [],           // the firing log
@@ -1101,13 +1085,24 @@ const runtime = {
   manualHold: {},       // path -> until (ms) — a manual edit wins for a while
   seq: { bar: 0, section: 0, startedMs: 0, running: false },
   tickCostMs: 0,
+  fps: 0,               // the measured frame rate (assigned every frame)
   deviation: 0,
   undo: [],             // drift snapshots
   reseedCount: 0,
-  gestures: {},
+  ruleValues: {},       // path -> the RULE layer's value (remembered while a
+                        // scene owns the path, restored when the scene exits)
+  writeOwner: {},       // path -> 'rule' | 'scene': who owns the live value
+  writeScene: {},       // path -> the id of the scene that owns the path
   startedMs: 0,
   sceneEnteredMs: 0,
   lastTickMs: 0,
+  // THE RENDER CLOCK — the frame loop's timebase, refreshed every frame.
+  // A ramp is a real-time animation: tickRamps() interpolates it on this
+  // clock, so its t0 must be stamped on this clock too. The rulebook's own
+  // `now` is the CALLER's clock (the frame loop passes the same value, but
+  // the exported logic.tick seam lets a host drive the rules on its own
+  // timeline), so it can never be used to time an animation.
+  renderNow: performance.now(),
   lastParams: {},       // layer index → the parameters the renderer used
   lastOpacity: {},      // layer index → the alpha the renderer used
 };
@@ -1119,19 +1114,32 @@ const EASE = {
   soft: t => 1 - Math.pow(1 - t, 2),
 };
 
+/* ------------------------------------------------------------------
+   THE MERGE POINT — one precedence, one place:
+
+     drift (evolution)  >  scene  >  rule  >  document
+
+   - the drift is the last thing to touch a value: evolution wins;
+   - a SCENE owns the paths it sets while it is active, and a rule
+     never overwrites them — the rule's value is remembered and
+     returns when the scene exits;
+   - the document is the authored fallback.
+
+   The rules and the scenes write into ONE live map (overrides) and
+   keep their own values in separate maps, so the merge happens here
+   and nowhere else.
+   ------------------------------------------------------------------ */
 function ovGet(path, fallback) {
-  // The drift layer sits ON TOP of the rule layer: evolution is the last
-  // thing to touch a value. (They are kept in separate maps so that
-  // reverting the drift cannot wipe the rulebook's live state.)
   const d = runtime.drift[path];
   if (d !== undefined) return d;
   const v = runtime.overrides[path];
   return v === undefined ? fallback : v;
 }
 
-/* the rule layer's own read — the drift never hides a rule's value */
+/* the RULE layer's own read — neither the drift nor a scene hides a
+   rule's value: the rules keep theirs in their own map (ruleValues) */
 function ruleGet(path, fallback) {
-  const v = runtime.overrides[path];
+  const v = runtime.ruleValues[path];
   return v === undefined ? fallback : v;
 }
 
@@ -1175,41 +1183,50 @@ function evalCond(c, ctx, key) {
     case 'rand':   return ctx.rng() < (c.p ?? 0);
     case 'fps':    return cmp(ctx.fps, c.op || '<', c.n ?? 0);
     case 'layerCount': return cmp(ctx.layerCount, c.op || '>', c.n ?? 0);
-    case 'gesture': return (ctx.gestures[c.name] || 0) > 0;
     case 'sequencePosition': return cmp(ctx.sectionIndex, c.op || '==', c.index ?? 0);
     default: return false;
   }
 }
 
 /* ---- actions ---- */
-function startRamp(a, now) {
+function startRamp(a, owner, sceneId) {
   // A ramp must start from a NUMBER: with no current value the path has no
   // entry yet, and `undefined + …` is NaN — which then propagates into the
   // resolved document and serialises as null.
-  const cur = effectiveValue(a.path);
+  // It starts from its OWN layer's value: a rule's ramp eases the rule
+  // layer, a scene's ramp eases the live value it takes over.
+  const own = owner === 'scene' ? runtime.overrides[a.path] : ruleGet(a.path, undefined);
+  const cur = own === undefined ? runtime.overrides[a.path] : own;
   const from = (cur === undefined || !isFinite(cur)) ? authoredValue(a.path) : cur;
-  runtime.ramps = runtime.ramps.filter(r => r.path !== a.path);
+  runtime.ramps = runtime.ramps.filter(r => !(r.path === a.path && r.owner === owner));
   runtime.ramps.push({
     path: a.path, from, to: a.value,
-    t0: now, ms: Math.max(1, a.ms || 400), easing: a.easing || 'smooth',
+    // ONE clock: tickRamps(now) interpolates on the RENDER clock, so t0 is
+    // stamped on it — never on the rulebook's `now`, which a host driving
+    // logic.tick() may set arbitrarily (a stamp in the future would hold
+    // the ramp at 0 and the value would never arrive).
+    t0: runtime.renderNow, ms: Math.max(1, a.ms || 400), easing: a.easing || 'smooth',
+    owner: owner || 'rule', sceneId: sceneId || null,
   });
 }
 
-/* the value a path currently reads, overrides and ramps included */
+/* the value a path currently reads. It AGREES with ovGet(): same
+   precedence, same maps — so a ramp can never start from a value the
+   renderer would not show. (The live value of a ramping path is the
+   interpolated one: tickRamps writes it into the live map each frame.) */
 function effectiveValue(path) {
-  for (const r of runtime.ramps) if (r.path === path) return r.to;
-  const v = runtime.overrides[path];
-  return v;
+  return ovGet(path, undefined);
 }
 
 function applyAction(a, ctx) {
   if (!a || !a.t) return;
+  // LOCK GUARD (peer)
   switch (a.t) {
     case 'setParam':
-      runtime.overrides[a.path] = a.value;
+      writeRule(a.path, a.value);
       break;
     case 'rampParam':
-      startRamp(a, ctx.now);
+      startRamp(a, 'rule');
       break;
     case 'goScene':
       setScene(a.sceneId, ctx);
@@ -1228,29 +1245,68 @@ function applyAction(a, ctx) {
         params: { ...(LAYER_TYPES[spec.type] || LAYER_TYPES.bars).defaults, ...(spec.params || {}) },
       });
       renderLayers(); renderLfos();
+      markDirty();          // the layer list is part of the document
       break;
     }
     case 'removeLayer': {
       const i = preset.layers.findIndex(l => l.id === a.id);
-      if (i >= 0) { preset.layers.splice(i, 1); renderLayers(); renderLfos(); }
+      if (i >= 0) { preset.layers.splice(i, 1); renderLayers(); renderLfos(); markDirty(); }
       break;
     }
     case 'setPalette':
-      runtime.overrides['steer.palette'] = a.id;
+      writeRule('steer.palette', a.id);
       break;
     case 'setSteerBlend':
-      runtime.overrides['steer.blend'] = a.value;
+      writeRule('steer.blend', a.value);
       break;
     case 'mutateLayer':
       runtime.layerMutations[a.index] = a.amount;
       break;
     case 'reseed':
       runtime.reseedCount++;
+      // re-seeding the stream: the same seed, played from the start
+      preset.evolution.rngState = 0;
+      markDirty();
+      logEvent('evolution', null, 're-seeded the drift stream (' + runtime.reseedCount + ')');
       break;
     case 'log':
       logEvent('action', null, a.message || 'log');
       break;
   }
+}
+
+/* ---- the two live layers ---------------------------------------------
+   The rules and the scenes both write live values, but they are not the
+   same layer: a scene owns the paths it sets while it is active, and a
+   rule never overwrites a path a scene owns — the rule's value is
+   remembered (ruleValues) and returns when the scene exits.            */
+function writeRule(path, value) {
+  runtime.ruleValues[path] = value;
+  if (runtime.writeOwner[path] === 'scene') return;   // the scene owns it
+  runtime.writeOwner[path] = 'rule';
+  runtime.overrides[path] = value;
+}
+function writeScene(path, value, sceneId) {
+  runtime.writeOwner[path] = 'scene';
+  runtime.writeScene[path] = sceneId || null;
+  if (value !== undefined) runtime.overrides[path] = value;
+}
+/* a scene exits: only ITS paths go away, and only ITS ramps are
+   cancelled. The rule's remembered value comes back for them. */
+function releaseScene(sceneId) {
+  for (const path of Object.keys(runtime.writeOwner)) {
+    if (runtime.writeOwner[path] !== 'scene') continue;
+    if (runtime.writeScene[path] !== sceneId) continue;
+    delete runtime.writeOwner[path];
+    delete runtime.writeScene[path];
+    const remembered = runtime.ruleValues[path];
+    if (remembered === undefined) delete runtime.overrides[path];
+    else {
+      runtime.overrides[path] = remembered;
+      runtime.writeOwner[path] = 'rule';
+    }
+  }
+  runtime.ramps = runtime.ramps.filter(r => !(r.owner === 'scene' && r.sceneId === sceneId));
 }
 
 /* ---- scenes ---- */
@@ -1259,31 +1315,39 @@ function setScene(id, ctx) {
   const prev = scenes.find(s => s.id === preset.logic.activeSceneId);
   if (prev) {
     for (const rid of (prev.exitRules || [])) setRuleEnabled(rid, false);
-    for (const path of Object.keys(prev.overrides || {})) {
-      if (runtime.overrides[path] !== undefined) delete runtime.overrides[path];
-    }
+    releaseScene(prev.id);          // only what THIS scene owned goes away
   }
   const next = scenes.find(s => s.id === id);
   if (!next) {
     preset.logic.activeSceneId = null;
     runtime.sceneEnteredMs = ctx ? ctx.now : performance.now();
+    markDirty();                    // the active scene is part of the document
     return;
   }
   preset.logic.activeSceneId = id;
   for (const rid of (next.entryRules || [])) setRuleEnabled(rid, true);
   const now = ctx ? ctx.now : performance.now();
   for (const path of Object.keys(next.overrides || {})) {
+    // LOCK GUARD (peer)
     const value = next.overrides[path];
-    if (next.transitionMs) startRamp({ path, value, ms: next.transitionMs, easing: next.easing || 'smooth' }, now);
-    else runtime.overrides[path] = value;
+    if (next.transitionMs) {
+      // the scene takes the path first, then eases into its value
+      writeScene(path, runtime.overrides[path], next.id);
+      startRamp({ path, value, ms: next.transitionMs, easing: next.easing || 'smooth' }, 'scene', next.id);
+    } else {
+      writeScene(path, value, next.id);
+    }
   }
   runtime.sceneEnteredMs = now;
+  markDirty();
   logEvent('scene', null, 'scene → ' + (next.name || id));
 }
 
 function setRuleEnabled(id, on) {
   const r = (preset.logic.rules || []).find(x => x.id === id);
-  if (r) r.enabled = on;
+  if (!r) return;
+  r.enabled = on;
+  markDirty();          // a rule's armed state is part of the document
 }
 
 /* ---- the log ---- */
@@ -1312,12 +1376,9 @@ function logicTick(now, feat, fps) {
     sceneId: L.activeSceneId,
     layerCount: preset.layers.length,
     sectionIndex: runtime.seq.section,
-    gestures: runtime.gestures,
     rng: rngNext,
     depth: 0,
   };
-
-  tickSequence(now, ctx);
 
   const rules = (L.rules || [])
     .filter(r => r.enabled !== false)
@@ -1393,7 +1454,14 @@ function tickSequence(now, ctx) {
   if (!S.enabled || !(S.sections || []).length) return;
   if (!runtime.seq.running) { runtime.seq.running = true; runtime.seq.startedMs = now; runtime.seq.bar = 0; }
   const bpm = preset.audio.tempo.bpm || 120;
-  const bars = (now - runtime.seq.startedMs) * bpm / 60000;
+  const total = sectionBarTotal();
+  let bars = (now - runtime.seq.startedMs) * bpm / 60000;
+  // 'loop' wraps: the structure starts again at the first section.
+  // 'oneshot' sticks at the last one.
+  if ((S.mode || 'loop') === 'loop' && total > 0 && bars >= total) {
+    bars -= Math.floor(bars / total) * total;
+    runtime.seq.startedMs = now - (bars * 60000) / bpm;
+  }
   let acc = 0, idx = 0;
   for (let i = 0; i < S.sections.length; i++) {
     const len = Math.max(1, S.sections[i].bars || 4);
@@ -1412,14 +1480,27 @@ function tickSequence(now, ctx) {
 
 function jumpToSection(index) {
   const S = preset.sequence;
-  if (!S.enabled || !(S.sections || []).length) return;
+  const sections = S.sections || [];
+  if (!S.enabled || !sections.length) return;
+  const at = clamp(index | 0, 0, sections.length - 1);
   let acc = 0;
-  for (let i = 0; i < index; i++) acc += Math.max(1, S.sections[i].bars || 4);
+  for (let i = 0; i < at; i++) acc += Math.max(1, sections[i].bars || 4);
   const bpm = preset.audio.tempo.bpm || 120;
-  runtime.seq.startedMs = performance.now() - (acc * 60000) / bpm;
-  runtime.seq.section = index;
-  const sec = S.sections[index];
-  if (sec && sec.sceneId) setScene(sec.sceneId, { now: performance.now() });
+  // The playhead is DERIVED: tickSequence() recomputes the bar position from
+  // (now - startedMs) on every frame and re-derives the section from it, so a
+  // jump is only real if it moves that origin — and the timeline has to be
+  // marked RUNNING, or tickSequence's first tick resets the origin to `now`
+  // and the playhead snaps back to bar 0 on the next frame.
+  // The origin is anchored to the RENDER clock, the same timebase the next
+  // frame's `now` is in, so the derived position is >= the section's first
+  // bar and the section scan agrees with the jump instead of landing on the
+  // previous section by a fractional bar.
+  runtime.seq.running = true;
+  runtime.seq.bar = acc;
+  runtime.seq.startedMs = runtime.renderNow - (acc * 60000) / bpm;
+  runtime.seq.section = at;
+  const sec = sections[at];
+  if (sec && sec.sceneId) setScene(sec.sceneId, { now: runtime.renderNow });
 }
 
 /* ---- ramps tick (called every frame, not on the logic tick) ---- */
@@ -1429,7 +1510,16 @@ function tickRamps(now) {
     const r = runtime.ramps[i];
     const t = clamp((now - r.t0) / r.ms, 0, 1);
     const e = (EASE[r.easing] || EASE.smooth)(t);
-    runtime.overrides[r.path] = r.from + (r.to - r.from) * e;
+    const v = r.from + (r.to - r.from) * e;
+    if (r.owner === 'scene') {
+      // a scene ramp eases the live value it owns
+      runtime.overrides[r.path] = v;
+    } else {
+      // a rule ramp eases the RULE layer; it only reaches the live map
+      // when no scene owns the path
+      runtime.ruleValues[r.path] = v;
+      if (runtime.writeOwner[r.path] !== 'scene') runtime.overrides[r.path] = v;
+    }
     if (t >= 1) runtime.ramps.splice(i, 1);
   }
 }
@@ -1520,10 +1610,25 @@ function driftStep(dtSec, force) {
   return runtime.deviation;
 }
 
-/* undo stack for drift — a snapshot of the live layer before each step */
-function pushUndo() {
+/* undo stack for drift — a snapshot of the live layer before each step.
+   The snapshot is taken on a TIMER, not every frame: stringifying the
+   whole drift map sixty times a second filled the stack with copies of
+   the same instant and buried the steps worth going back to. */
+function pushUndo(now) {
+  if (!Object.keys(runtime.drift).length) return;
+  if (now - (runtime.undoAt || 0) < 250) return;
+  runtime.undoAt = now;
   runtime.undo.push(JSON.stringify(runtime.drift));
   if (runtime.undo.length > 50) runtime.undo.shift();
+}
+/* one step back: the drift returns to the previous snapshot */
+function undoDrift() {
+  if (!runtime.undo.length) { toast('Nothing to undo'); return; }
+  const snap = runtime.undo.pop();
+  try { runtime.drift = JSON.parse(snap); } catch (err) { runtime.drift = {}; }
+  runtime.deviation = computeDeviation();
+  logEvent('evolution', null, 'undid the drift one step');
+  renderEvolution();
 }
 function revertDrift() {
   // Only the DRIFT is reverted. The rulebook's live state belongs to the
@@ -1783,6 +1888,13 @@ function normalize(raw) {
 
   p.tags = Array.isArray(raw.tags) ? raw.tags : d.tags;
 
+  /* 'look' and 'webgl' were never read by anything — not by the editor, not
+     by the engine bridge. They are gone from the document, and an imported
+     document that still carries them is cleaned here, so the JSON the
+     editor exports says what the editor actually does. */
+  delete p.look;
+  delete p.webgl;
+
   p.layers = (Array.isArray(raw.layers) && raw.layers.length ? raw.layers : d.layers).map(L => {
     const type = LAYER_TYPES[L.type] ? L.type : 'bars';
     return {
@@ -1861,10 +1973,19 @@ function resolve(p) {
   const order    = ovGet('steer.mood.order',    m.order    || 0) * b;
 
   const pal = PALETTES[s.palette] || PALETTES.auto;
-  const pa  = s.palette === 'auto' ? 0 : clamp(s.paletteAmount, 0, 1);
+  /* pa is the EFFECTIVE palette mix: the authored amount scaled by the
+     steering amount. The palette is part of the DIRECTION, so at blend 0
+     it must contribute nothing at all — otherwise "your direction: 0 %"
+     sits over a tinted picture that the preset never asked for. Every
+     palette contribution downstream (the hue shift, the saturation mix and
+     the post-pass tint/accent) is scaled by this one number, so gating it
+     here gates the whole palette path. */
+  const pa  = (s.palette === 'auto' ? 0 : clamp(s.paletteAmount, 0, 1)) * b;
 
   let hue = g.hue + pal.hueShift * pa + warmth * 0.09;
-  hue = ((hue % 1) + 1) % 1;
+  /* wrap only when the hue actually left [0,1]: the authored hue must come
+     back EXACTLY as authored (1 stays 1, 0 stays 0). */
+  if (hue < 0 || hue > 1) hue = ((hue % 1) + 1) % 1;
 
   const sat      = clamp(g.saturation * (1 + (pal.satMul - 1) * pa) + warmth * 0.08, 0, 1);
   const bloom    = clamp(g.bloom + softness * 0.55 + density * 0.05, 0, 1.6);
@@ -1899,10 +2020,11 @@ function resolve(p) {
    ============================================================ */
 let dirty = false, saveTimer = null;
 
-function touch(structural = false) {
+/* the document changed: mark it dirty and schedule the save. This is the
+   cheap half of touch() — no DOM rebuild — so the engine can use it from
+   inside the logic tick, which has a 2ms budget. */
+function markDirty() {
   preset.modified = Date.now();
-  if (structural) { renderLayers(); renderLfos(); }
-  updateSummary();
   dirty = true;
   const st = $('#status'); st.textContent = 'unsaved'; st.classList.add('dirty');
   clearTimeout(saveTimer);
@@ -1917,6 +2039,12 @@ function touch(structural = false) {
     const box = $('#jsonBox');
     if (box && document.activeElement !== box) box.value = JSON.stringify(preset, null, 2);
   }, 500);
+}
+
+function touch(structural = false) {
+  if (structural) { renderLayers(); renderLfos(); }
+  updateSummary();
+  markDirty();
 }
 
 function toast(msg) {
@@ -2510,12 +2638,14 @@ function runCommand(cmd) {
       const p = defaultPreset('Untitled ' + (Object.keys(store.presets).length + 1));
       p.personality = derivePersonality(p);
       store.presets[p.id] = p; store.current = p.id; preset = p;
+      resetLiveLayer();
       persist(); renderAll(); toast('New preset created');
       break;
     }
     case 'dup': {
       const p = normalize({ ...clone(preset), id: uid('p_'), name: preset.name + ' copy', created: Date.now() });
       store.presets[p.id] = p; store.current = p.id; preset = p;
+      resetLiveLayer();
       persist(); renderAll(); toast('Preset duplicated');
       break;
     }
@@ -2526,6 +2656,7 @@ function runCommand(cmd) {
       delete store.presets[preset.id];
       store.current = Object.keys(store.presets)[0];
       preset = normalize(store.presets[store.current]);
+      resetLiveLayer();
       persist(); renderAll(); toast('Preset deleted');
       break;
     }
@@ -2615,6 +2746,7 @@ function runCommand(cmd) {
     case 'evoFound': spawnPopulation(); touch(false); break;
     case 'evoBreed': breedGeneration(); touch(false); break;
     case 'evoRevert': revertDrift(); touch(false); break;
+    case 'evoUndo': undoDrift(); break;
     case 'jsonLoad':
       $('#jsonBox').value = JSON.stringify(preset, null, 2);
       toast('Loaded from editor');
@@ -2624,6 +2756,7 @@ function runCommand(cmd) {
         const raw = JSON.parse($('#jsonBox').value);
         const p = normalize({ ...raw, id: preset.id });
         store.presets[p.id] = p; store.current = p.id; preset = p;
+        resetLiveLayer();
         persist(); renderAll(); toast('JSON applied');
       } catch (err) { toast('Invalid JSON: ' + err.message); }
       break;
@@ -2670,6 +2803,7 @@ $('#fileImport').addEventListener('change', e => {
     try {
       const p = normalize(JSON.parse(fr.result));
       store.presets[p.id] = p; store.current = p.id; preset = p;
+      resetLiveLayer();
       persist(); renderAll(); toast('Imported "' + p.name + '"');
     } catch (err) { toast('Import failed: ' + err.message); }
   };
@@ -2794,6 +2928,15 @@ $('#audioFile').addEventListener('change', e => {
   useFile(f);
   e.target.value = '';
 });
+/* the source select is a real control: choosing "audio file" opens the
+   chooser, and cancelling it puts the select back where the app is */
+$('#sourceSelect').addEventListener('change', e => {
+  if (e.target.value === 'file') $('#audioFile').click();
+});
+$('#audioFile').addEventListener('cancel', () => {
+  preset.audio.source = audio.mode === 'mic' ? 'mic' : audio.mode === 'file' ? 'file' : 'demo';
+  syncStatic();
+});
 
 /* ---- feature extraction ---- */
 const smooth = { sub: 0, bass: 0, mid: 0, treble: 0, air: 0, rms: 0, centroid: 0 };
@@ -2861,6 +3004,37 @@ function readAnalyser() {
   };
 }
 
+/* ---- beat / onset detection ----
+   The pulse IS the transient: it jumps up on a hit and falls away again.
+   An ONSET is that rising edge; a BEAT is the same edge with the tempo's
+   refractory window, so one hit is never counted as two beats. The
+   thresholds follow the signal (a fraction of its recent peak), so the
+   detector works for the analyser as well as for the demo synth. */
+function makePulseDetector() {
+  return { prev: 0, peak: 0, lastOnsetMs: -1e9, lastBeatMs: -1e9, beat: 0, onset: 0, t: 0 };
+}
+function detectPulse(det, pulse, nowMs, refractoryMs) {
+  const dt = Math.max(0, nowMs - det.t);
+  det.t = nowMs;
+  det.peak = Math.max(pulse, det.peak * Math.exp(-dt / 400));
+  const onsetT = Math.max(0.03, det.peak * 0.18);
+  const beatT = Math.max(0.06, det.peak * 0.4);
+  const crossedOn = pulse > onsetT && det.prev <= onsetT;
+  const crossedBeat = pulse > beatT && det.prev <= beatT;
+  det.prev = pulse;
+  det.beat = Math.max(0, det.beat - dt / 220);
+  det.onset = Math.max(0, det.onset - dt / 80);
+  if (crossedOn && nowMs - det.lastOnsetMs > 50) { det.onset = 1; det.lastOnsetMs = nowMs; }
+  if (crossedBeat && nowMs - det.lastBeatMs > refractoryMs) { det.beat = 1; det.lastBeatMs = nowMs; }
+  return det;
+}
+/* one beat cannot be closer than half a beat to the previous one */
+function beatRefractoryMs() {
+  const bpm = preset.audio.tempo.bpm || 120;
+  return Math.max(90, 30000 / bpm);
+}
+const pulseDet = makePulseDetector();
+
 function features(t) {
   const raw = (audio.mode !== 'demo' && audio.analyser) ? readAnalyser() : demoSynth(t);
   const s = clamp(preset.audio.smoothing ?? 0.7, 0, 0.98);
@@ -2868,6 +3042,10 @@ function features(t) {
   const bw = preset.audio.bands, g = preset.audio.gain ?? 1;
   const out = { pulse: raw.pulse || 0 };
   for (const k in smooth) out[k] = clamp(smooth[k] * (bw[k] ?? 1) * g, 0, 3);
+  // the beat and the onset are REAL detections on the pulse signal
+  const det = detectPulse(pulseDet, raw.pulse || 0, performance.now(), beatRefractoryMs());
+  out.beat = det.beat;
+  out.onset = det.onset;
   return out;
 }
 
@@ -3178,7 +3356,13 @@ let liveF = null;      // the features of the current frame (for a freeze)
 let liveTT = 0;        // the current render time (for a freeze)
 
 function frame(now) {
+  // the animation clock: every ramp, the drift and the sequence read it
+  runtime.renderNow = now;
   const t = (now - t0) / 1000;
+  // the MEASURED frame rate, every frame: the rulebook's fps condition
+  // and the dry run both read it (it used to feed 0 forever)
+  const instFps = 1000 / Math.max(1, now - (frame._last || now - 16));
+  runtime.fps = runtime.fps ? runtime.fps * 0.85 + instFps * 0.15 : instFps;
   const f = features(t);
   lastFeatures = f;
   liveF = f;
@@ -3197,11 +3381,14 @@ function frame(now) {
   const dt = runtime.lastFrameMs ? Math.min(0.25, (now - runtime.lastFrameMs) / 1000) : 0;
   runtime.lastFrameMs = now;
   if (preset.evolution.enabled && preset.evolution.mode === 'drift' && dt > 0) {
-    pushUndo();
+    pushUndo(now);
     driftStep(dt);
   }
   auditionStep(now);
-  logicTick(now, f, runtime.fps || 0);
+  // the sequence is its OWN subsystem: it runs on the frame clock, with
+  // its own switch, and never waits for the rulebook
+  tickSequence(now, { now });
+  logicTick(now, f, runtime.fps);
   if (runtime.logDirty && now - (runtime.lastLogRender || 0) > 250) {
     runtime.lastLogRender = now;
     runtime.logDirty = false;
@@ -3368,6 +3555,12 @@ function frame(now) {
     lastHud = now;
     $('#fps').textContent = Math.round(fpsAcc / Math.max(1, fpsN)) + ' fps';
     fpsAcc = 0; fpsN = 0;
+    // the rulebook's own cost, and the dry run's assumption — both are
+    // live numbers, so they are written here instead of left stale
+    const lb = $('#logicBudget');
+    if (lb) lb.textContent = preset.logic.enabled ? ('tick ' + runtime.tickCostMs.toFixed(2) + 'ms') : 'tick —';
+    const drb = $('#dryRunBtn');
+    if (drb) drb.textContent = '▷ Dry run 30s @ ' + Math.round(runtime.fps || 60) + ' fps';
     for (const k of ['bass', 'mid', 'treble', 'rms']) {
       const el = document.querySelector(`[data-meter="${k}"]`);
       if (el) el.style.height = Math.round(clamp(f[k] / 1.6, 0, 1) * 100) + '%';
@@ -3406,8 +3599,6 @@ function condRowHTML(c, i) {
   } else if (kind === 'layerCount') {
     fields = `<select data-ck="op">${OPS.map(o => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
       <input type="number" data-ck="n" step="1" value="${c.n ?? 1}" title="layers">`;
-  } else if (kind === 'gesture') {
-    fields = `<input type="text" data-ck="name" value="${esc(c.name || '')}" placeholder="key / midi / click / drop">`;
   } else if (kind === 'sequencePosition') {
     fields = `<select data-ck="op">${OPS.map(o => `<option value="${o}" ${c.op === o ? 'selected' : ''}>${o}</option>`).join('')}</select>
       <input type="number" data-ck="index" step="1" value="${c.index ?? 0}" title="section index">`;
@@ -3421,7 +3612,6 @@ function condRowHTML(c, i) {
       <option value="rand" ${kind === 'rand' ? 'selected' : ''}>rand</option>
       <option value="fps" ${kind === 'fps' ? 'selected' : ''}>fps</option>
       <option value="layerCount" ${kind === 'layerCount' ? 'selected' : ''}>layerCount</option>
-      <option value="gesture" ${kind === 'gesture' ? 'selected' : ''}>gesture</option>
       <option value="sequencePosition" ${kind === 'sequencePosition' ? 'selected' : ''}>sequencePosition</option>
     </select>
     ${fields}
@@ -3558,15 +3748,19 @@ function dryRun(seconds) {
   const state = {};
   const sustain = {};
   const fires = [];
+  const dryDet = makePulseDetector();
   let t = 0;
   while (t < seconds * 1000) {
     const beat = (t / 1000) * 2;                 // 120 bpm
     const pulse = Math.pow(1 - (beat % 1), 3);
+    // the SAME detector as the live signal: the preview cannot promise a
+    // beat the engine would not report
+    const det = detectPulse(dryDet, pulse, t, beatRefractoryMs());
     const feat = {
       bass: 0.55 + 0.4 * pulse, mid: 0.5, treble: 0.45,
-      rms: 0.6, centroid: 0.5, pulse, beat: pulse, onset: pulse > 0.7 ? 1 : 0,
+      rms: 0.6, centroid: 0.5, pulse, beat: det.beat, onset: det.onset,
     };
-    const ctx = { now: t, feat, fps: 60, sceneId: L.activeSceneId, layerCount: preset.layers.length, sectionIndex: 0, gestures: {}, rng: () => 0.5, depth: 0 };
+    const ctx = { now: t, feat, fps: Math.round(runtime.fps || 60), sceneId: L.activeSceneId, layerCount: preset.layers.length, sectionIndex: 0, rng: () => 0.5, depth: 0 };
     for (const rule of (L.rules || []).filter(r => r.enabled !== false).sort((a, b) => (b.priority || 0) - (a.priority || 0))) {
       const st = state[rule.id] || (state[rule.id] = { prev: false, last: -1e9, fired: false });
       const matched = evalCond(rule.when, ctx, 'dry.' + rule.id);
@@ -3752,9 +3946,10 @@ document.addEventListener('change', e => {
   if (t.id === 'evoMode') {
     preset.evolution.mode = t.value;
     preset.evolution.enabled = t.value !== 'off';
-    preset.logic.enabled = preset.logic.enabled && t.value === 'rulebook';
+    // the evolution mode has NOTHING to do with the rulebook: choosing
+    // 'drift' must not disarm the rules
     if (t.value === 'breeding' && !(preset.evolution.population || []).length) spawnPopulation();
-    touch(false); renderEvolution(); renderAutopilot();
+    touch(false); renderEvolution(); renderAutopilot(); renderLogic();
     return;
   }
   if (t.id === 'evoSeed') {
@@ -3988,8 +4183,22 @@ function resetLiveLayer() {
   runtime.manualHold = {};
   runtime.deviation = 0;
   runtime.undo = [];
+  // the ownership maps go with the values they describe
+  runtime.ruleValues = {};
+  runtime.writeOwner = {};
+  runtime.writeScene = {};
+  // the sequence starts over
+  runtime.seq.bar = 0;
   runtime.seq.section = 0;
+  runtime.seq.startedMs = 0;
   runtime.seq.running = false;
+  // the clocks restart with the preset: 'elapsed since preset' means
+  // since THIS preset was loaded, not since the page opened
+  runtime.startedMs = performance.now();
+  runtime.sceneEnteredMs = runtime.startedMs;
+  runtime.lastTickMs = 0;
+  runtime.logDirty = false;
+  runtime.lastLogRender = 0;
 }
 
 window.SWRPresetEditor = {
