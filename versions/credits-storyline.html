@@ -1,225 +1,337 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<!-- The exit affordance every shipped page carries — a fixed bottom-right
-     home link, mounted by the shared script. -->
-<script src="/lib/home-link.client.js" defer></script>
-<title>Auto Credits & Storyline · Plugin</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="description" content="Auto Credits &amp; Storyline: an interactive plugin prototype that reads a track and lays out its credits and storyline." />
-<link rel="canonical" href="https://sainted-word-records.vercel.app/versions/credits-storyline" />
-<style>
-  * { box-sizing: border-box; }
-  :root {
-    /* iPhone safe-area insets, read through custom properties so the
-       body padding can compose max(n, inset) instead of repeating
-       env(). The 0px fallback keeps every non-notched browser
-       pixel-identical to before. */
-    --safe-top:    env(safe-area-inset-top,    0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-left:   env(safe-area-inset-left,   0px);
-    --safe-right:  env(safe-area-inset-right,  0px);
-  }
-  html { overscroll-behavior: none; }
-  body {
-    margin: 0;
-    background: #0f1115;
-    color: #e6e6e6;
-    font-family: system-ui, -apple-system, sans-serif;
-    min-height: 100vh;
-    padding: max(20px, var(--safe-top)) max(20px, var(--safe-right))
-             max(20px, var(--safe-bottom)) max(20px, var(--safe-left));
-  }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
-  .plugin {
-    max-width: 1100px;
-    margin: 0 auto;
-    background: #1a1d23;
-    border: 1px solid #2a2e35;
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  .header {
-    background: #15181e;
-    padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #2a2e35;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: 260px 1fr 280px;
-    gap: 16px;
-    padding: 16px;
-  }
-  .panel {
-    background: #12141a;
-    border: 1px solid #2a2e35;
-    border-radius: 12px;
-    padding: 14px;
-  }
-  .panel h2 {
-    margin: 0 0 12px;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .badge {
-    background: #ff2d95;
-    color: white;
-    font-size: 9px;
-    padding: 2px 6px;
-    border-radius: 8px;
-    font-weight: 600;
-  }
-  .badge.cyan { background: #00e5ff; color: #000; }
-  label { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
-  input, select {
-    width: 100%;
-    background: #1a1d23;
-    border: 1px solid #2a2e35;
-    color: #e6e6e6;
-    border-radius: 6px;
-    padding: 6px 8px;
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-  .stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #1a1d23;
-    border-radius: 8px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-  .stat strong { color: #ff2d95; }
-  .preview {
-    background: #0a0c10;
-    border-radius: 10px;
-    padding: 16px;
-    min-height: 180px;
-    border: 1px solid #2a2e35;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .preview .title { font-size: 18px; color: #ff2d95; font-weight: 600; margin-bottom: 4px; }
-  .preview .sub { color: #00e5ff; margin-bottom: 10px; }
-  .scene-list { display: flex; flex-direction: column; gap: 6px; }
-  .scene {
-    background: #1a1d23;
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 12px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    display: flex;
-    justify-content: space-between;
-  }
-  .scene:hover, .scene.active { border-color: #ff2d95; }
-  .scene .energy { color: #00e5ff; font-size: 10px; }
-  button {
-    background: #ff2d95;
-    border: none;
-    color: white;
-    border-radius: 8px;
-    padding: 10px 16px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-    width: 100%;
-    margin-top: 8px;
-  }
-  button.secondary {
-    background: #252830;
-    border: 1px solid #3a3f48;
-    color: #e6e6e6;
-  }
-  .footer {
-    padding: 12px 16px;
-    background: #15181e;
-    border-top: 1px solid #2a2e35;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    color: #888;
-  }
-  .status { color: #00e5ff; }
-</style>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Credits & Storyline · Sainted Word Records</title>
+  <meta name="description" content="Auto Credits assembler and Storyline timeline with editable scenes, durations, and export.">
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/versions/credits-storyline">
+  <meta property="og:title" content="Credits & Storyline — Sainted Word Records">
+  <meta property="og:description" content="Upgraded Auto Credits & Storyline plugin.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/versions/_shared.css">
+  <style>
+:root {
+  --bg: #0f1115;
+  --bg-panel: #1a1d23;
+  --bg-elev: #12141a;
+  --fg: #e6e6e6;
+  --fg-mute: #888;
+  --fg-faint: #555;
+  --line: #2a2e35;
+  --signal: #ff2d95;
+  --signal-2: #00e5ff;
+}
+.top { background: var(--bg); border-bottom-color: var(--line); }
+.brand { color: var(--fg); }
+.brand .sw { background: var(--signal); color: #fff; }
+.versions { background: var(--bg-panel); border-color: var(--line); }
+.versions a { color: var(--fg-mute); }
+.versions a:hover, .versions a[aria-current="page"] { background: var(--bg-elev); color: var(--fg); }
+.versions a[aria-current="page"]::before { background: var(--signal); }
+.btn-open { background: var(--signal); color: #fff; }
+
+.plugin {
+  max-width: 1100px;
+  margin: 24px auto 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.plugin-header {
+  background: #15181e;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+.plugin-header h1 { margin: 0; font-size: 20px; }
+.plugin-header .sub { color: var(--fg-mute); font-size: 12px; }
+.badge { background: var(--signal); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
+.badge.cyan { background: var(--signal-2); color: #000; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 240px 1fr 300px;
+  gap: 14px;
+  padding: 14px;
+}
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1a1d23;
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.stat strong { color: var(--signal); }
+label { font-size: 10px; color: var(--fg-mute); display: block; margin-bottom: 2px; }
+input, select {
+  width: 100%;
+  background: #1a1d23;
+  border: 1px solid var(--line);
+  color: #e6e6e6;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.preview {
+  background: #0a0c10;
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 160px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.preview .title { font-size: 16px; color: var(--signal); font-weight: 600; margin-bottom: 2px; }
+.preview .sub { color: var(--signal-2); margin-bottom: 8px; }
+
+.scene-list { display: flex; flex-direction: column; gap: 5px; max-height: 280px; overflow-y: auto; }
+.scene {
+  background: #1a1d23;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.scene:hover, .scene.active { border-color: var(--signal); }
+.scene input.name { flex: 1; background: transparent; border: none; color: #e6e6e6; padding: 0; margin: 0; font-size: 11px; }
+.scene .energy { color: var(--signal-2); font-size: 9px; min-width: 48px; text-align: right; }
+.scene .dur { width: 48px; background: #252830; border: 1px solid #3a3f48; color: #e6e6e6; border-radius: 4px; padding: 2px 4px; font-size: 10px; }
+
+button {
+  background: var(--signal);
+  border: none;
+  color: white;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  width: 100%;
+  margin-top: 6px;
+}
+button.secondary {
+  background: #252830;
+  border: 1px solid #3a3f48;
+  color: #e6e6e6;
+}
+.plugin-footer {
+  padding: 10px 14px;
+  background: #15181e;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--fg-mute);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.status { color: var(--signal-2); }
+.actions { display: flex; gap: 8px; }
+.actions button { width: auto; margin: 0; padding: 7px 16px; }
+.timeline-bar {
+  height: 8px;
+  background: #252830;
+  border-radius: 4px;
+  margin: 8px 0;
+  display: flex;
+  overflow: hidden;
+}
+.timeline-bar span { display: block; height: 100%; }
+  </style>
 </head>
 <body>
-  <div class="plugin">
-    <div class="header">
-      <div>
-        <h1>AUTO CREDITS & STORYLINE</h1>
-        <div class="subtitle">Sainted Word Records · Lifeline Console Series</div>
-      </div>
-      <div class="badge">v1.0</div>
+  <swr-nav></swr-nav>
+  <a class="sr" href="#main">Skip to content</a>
+  <header class="top">
+    <span class="gctrl" data-looks-mount></span>
+    <a class="brand" href="/" aria-label="Sainted Word Records, home">
+      <span class="sw" aria-hidden="true">SW</span>
+      <span class="brand-text"><b>SAINTED</b><span>WORD RECORDS</span></span>
+    </a>
+    <nav class="versions" aria-label="Visual language">
+      <a href="/versions/neon" data-v="neon">Neon</a>
+      <a href="/versions/film" data-v="film">Film</a>
+      <a href="/versions/envelope" data-v="envelope">Envelope</a>
+      <a href="/versions/credits-storyline" data-v="credits" aria-current="page">Credits</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="/versions/console" data-v="console">Console</a>
+    </nav>
+    <div class="top-right">
+      <a class="btn-open" href="/dashboard">Open editor <span aria-hidden="true">→</span></a>
     </div>
+  </header>
 
-    <div class="grid">
-      <!-- Analysis -->
-      <div class="panel">
-        <h2>TRACK ANALYSIS <span class="badge">AUTO</span></h2>
-        <div class="stat"><span>BPM</span><strong id="bpm">128.00</strong></div>
-        <div class="stat"><span>KEY</span><strong id="key">F# Minor</strong></div>
-        <div class="stat"><span>ENERGY</span><strong id="energy">High</strong></div>
-        <div class="stat"><span>COMPLEXITY</span><strong id="complexity">Medium</strong></div>
-        <button class="secondary" id="reanalyze">RE-ANALYZE TRACK</button>
+  <main id="main" class="page">
+    <header class="page-head">
+      <span class="kicker">Plugin · v2</span>
+      <h1 class="h-display">Auto <em>Credits</em> & Storyline.</h1>
+      <p class="lede">Editable scenes with durations, richer track analysis, live credits preview, and JSON export.</p>
+    </header>
+
+    <div class="plugin">
+      <div class="plugin-header">
+        <div>
+          <h1>AUTO CREDITS & STORYLINE</h1>
+          <div class="sub">Sainted Word Records · Lifeline Console Series</div>
+        </div>
+        <div class="badge">v2.0</div>
       </div>
 
-      <!-- Credits -->
-      <div class="panel">
-        <h2>CREDITS ASSEMBLER</h2>
-        <label>Artist</label>
-        <input id="artist" value="Kxntrol">
-        <label>Title</label>
-        <input id="title" value="Lifeline (Original Mix)">
-        <label>Produced By</label>
-        <input id="produced" value="Kxntrol">
-        <label>Written By</label>
-        <input id="written" value="Kxntrol">
-        <label>Label</label>
-        <input id="label" value="Lifeline Records">
-        <div class="preview" id="preview">
-          <div class="title">Kxntrol</div>
-          <div class="sub">Lifeline (Original Mix)</div>
-          <div>Produced By: Kxntrol</div>
-          <div>Written By: Kxntrol</div>
-          <div>Label: Lifeline Records</div>
-          <div style="margin-top:8px;color:#666;font-size:11px;">BPM 128 · Key F# Minor · Energy High</div>
+      <div class="grid">
+        <div class="panel">
+          <h2>TRACK ANALYSIS <span class="badge">AUTO</span></h2>
+          <div class="stat"><span>BPM</span><strong id="bpm">128.00</strong></div>
+          <div class="stat"><span>KEY</span><strong id="key">F# Minor</strong></div>
+          <div class="stat"><span>ENERGY</span><strong id="energy">High</strong></div>
+          <div class="stat"><span>COMPLEXITY</span><strong id="complexity">Medium</strong></div>
+          <div class="stat"><span>TEMP</span><strong id="temp">Warm</strong></div>
+          <div class="stat"><span>PEAK</span><strong id="peak">0.92</strong></div>
+          <button class="secondary" id="reanalyze">RE-ANALYZE</button>
+        </div>
+
+        <div class="panel">
+          <h2>CREDITS ASSEMBLER</h2>
+          <label>Artist</label>
+          <input id="artist" value="Kxntrol">
+          <label>Title</label>
+          <input id="title" value="Lifeline (Original Mix)">
+          <label>Produced By</label>
+          <input id="produced" value="Kxntrol">
+          <label>Written By</label>
+          <input id="written" value="Kxntrol">
+          <label>Label</label>
+          <input id="label" value="Lifeline Records">
+          <label>Additional</label>
+          <input id="extra" value="Mastered by Kai">
+          <div class="preview" id="preview">
+            <div class="title">Kxntrol</div>
+            <div class="sub">Lifeline (Original Mix)</div>
+            <div>Produced By: Kxntrol</div>
+            <div>Written By: Kxntrol</div>
+            <div>Label: Lifeline Records</div>
+            <div style="margin-top:6px;color:#666;font-size:10px;">BPM 128 · Key F# Minor · Energy High</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>STORYLINE TIMELINE <span class="badge cyan">AUTO</span></h2>
+          <div class="timeline-bar" id="timelineBar"></div>
+          <div class="scene-list" id="scenes"></div>
+          <button class="secondary" id="regen">REGENERATE</button>
+          <button class="secondary" id="addScene">+ ADD SCENE</button>
         </div>
       </div>
 
-      <!-- Storyline -->
-      <div class="panel">
-        <h2>STORYLINE TIMELINE <span class="badge cyan">AUTO</span></h2>
-        <div class="scene-list" id="scenes">
-          <div class="scene active" data-id="1"><span>1 · Intro</span><span class="energy">LOW</span></div>
-          <div class="scene" data-id="2"><span>2 · Build</span><span class="energy">RISING</span></div>
-          <div class="scene" data-id="3"><span>3 · Drop</span><span class="energy">PEAK</span></div>
-          <div class="scene" data-id="4"><span>4 · Breakdown</span><span class="energy">LOW</span></div>
-          <div class="scene" data-id="5"><span>5 · Outro</span><span class="energy">FADE</span></div>
+      <div class="plugin-footer">
+        <span class="status" id="status">Ready to assemble</span>
+        <div class="actions">
+          <button class="secondary" id="export">EXPORT JSON</button>
+          <button id="assemble">ASSEMBLE & RENDER</button>
         </div>
-        <button class="secondary" id="regen">REGENERATE STORYLINE</button>
       </div>
     </div>
+  </main>
 
-    <div class="footer">
-      <span class="status" id="status">Ready to assemble</span>
-      <button id="assemble" style="width:auto;margin:0;padding:8px 24px;">ASSEMBLE & RENDER</button>
-    </div>
-  </div>
+  <swr-footer></swr-footer>
 
 <script>
-const fields = ['artist','title','produced','written','label'];
+const fields = ['artist','title','produced','written','label','extra'];
 const preview = document.getElementById('preview');
+const scenesEl = document.getElementById('scenes');
+const timelineBar = document.getElementById('timelineBar');
+
+let scenes = [
+  { id: 1, name: 'Intro', energy: 'LOW', dur: 8 },
+  { id: 2, name: 'Build', energy: 'RISING', dur: 16 },
+  { id: 3, name: 'Drop', energy: 'PEAK', dur: 16 },
+  { id: 4, name: 'Breakdown', energy: 'LOW', dur: 8 },
+  { id: 5, name: 'Outro', energy: 'FADE', dur: 8 }
+];
+
+function renderScenes() {
+  scenesEl.innerHTML = '';
+  const total = scenes.reduce((s, x) => s + x.dur, 0) || 1;
+  timelineBar.innerHTML = '';
+  const colors = { LOW: '#444', RISING: '#00e5ff', PEAK: '#ff2d95', MEDIUM: '#888', FADE: '#666' };
+
+  scenes.forEach((sc, i) => {
+    const div = document.createElement('div');
+    div.className = 'scene' + (i === 0 ? ' active' : '');
+    div.innerHTML = `
+      <span style="min-width:18px">${i+1}</span>
+      <input class="name" value="${sc.name}" data-i="${i}">
+      <span class="energy">${sc.energy}</span>
+      <input class="dur" type="number" value="${sc.dur}" min="1" max="64" data-i="${i}">
+    `;
+    div.querySelector('.name').addEventListener('input', e => {
+      scenes[i].name = e.target.value;
+    });
+    div.querySelector('.dur').addEventListener('input', e => {
+      scenes[i].dur = Math.max(1, Number(e.target.value) || 1);
+      renderTimeline();
+    });
+    div.addEventListener('click', e => {
+      if (e.target.tagName === 'INPUT') return;
+      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+      div.classList.add('active');
+    });
+    scenesEl.appendChild(div);
+
+    const bar = document.createElement('span');
+    bar.style.width = (sc.dur / total * 100) + '%';
+    bar.style.background = colors[sc.energy] || '#444';
+    bar.title = sc.name;
+    timelineBar.appendChild(bar);
+  });
+}
+
+function renderTimeline() {
+  const total = scenes.reduce((s, x) => s + x.dur, 0) || 1;
+  const colors = { LOW: '#444', RISING: '#00e5ff', PEAK: '#ff2d95', MEDIUM: '#888', FADE: '#666' };
+  timelineBar.innerHTML = '';
+  scenes.forEach(sc => {
+    const bar = document.createElement('span');
+    bar.style.width = (sc.dur / total * 100) + '%';
+    bar.style.background = colors[sc.energy] || '#444';
+    timelineBar.appendChild(bar);
+  });
+}
 
 function updatePreview() {
   const artist = document.getElementById('artist').value;
@@ -227,6 +339,7 @@ function updatePreview() {
   const produced = document.getElementById('produced').value;
   const written = document.getElementById('written').value;
   const label = document.getElementById('label').value;
+  const extra = document.getElementById('extra').value;
   const bpm = document.getElementById('bpm').textContent;
   const key = document.getElementById('key').textContent;
   const energy = document.getElementById('energy').textContent;
@@ -236,49 +349,48 @@ function updatePreview() {
     <div>Produced By: ${produced}</div>
     <div>Written By: ${written}</div>
     <div>Label: ${label}</div>
-    <div style="margin-top:8px;color:#666;font-size:11px;">BPM ${bpm} · Key ${key} · Energy ${energy}</div>
+    ${extra ? `<div>${extra}</div>` : ''}
+    <div style="margin-top:6px;color:#666;font-size:10px;">BPM ${bpm} · Key ${key} · Energy ${energy}</div>
   `;
 }
 
 fields.forEach(id => {
-  document.getElementById(id).addEventListener('input', updatePreview);
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updatePreview);
 });
 
 document.getElementById('reanalyze').addEventListener('click', () => {
   const energies = ['Low','Medium','High','Peak'];
   const complexities = ['Simple','Medium','Complex'];
+  const temps = ['Cool','Warm','Bright','Dark'];
   document.getElementById('energy').textContent = energies[Math.floor(Math.random()*energies.length)];
   document.getElementById('complexity').textContent = complexities[Math.floor(Math.random()*complexities.length)];
-  document.getElementById('bpm').textContent = (120 + Math.random()*16).toFixed(2);
+  document.getElementById('temp').textContent = temps[Math.floor(Math.random()*temps.length)];
+  document.getElementById('bpm').textContent = (118 + Math.random()*18).toFixed(2);
+  document.getElementById('peak').textContent = (0.7 + Math.random()*0.28).toFixed(2);
   updatePreview();
   document.getElementById('status').textContent = 'Track re-analyzed';
 });
 
 document.getElementById('regen').addEventListener('click', () => {
-  const names = ['Intro','Rise','Build','Drop','Breakdown','Outro','Final Drop','Sting'];
+  const names = ['Intro','Rise','Build','Drop','Breakdown','Outro','Final Drop','Sting','Bridge'];
   const energies = ['LOW','RISING','PEAK','MEDIUM','FADE'];
-  const list = document.getElementById('scenes');
-  list.innerHTML = '';
-  for (let i = 1; i <= 5; i++) {
-    const name = names[Math.floor(Math.random()*names.length)];
-    const en = energies[Math.floor(Math.random()*energies.length)];
-    const div = document.createElement('div');
-    div.className = 'scene' + (i===1?' active':'');
-    div.innerHTML = `<span>${i} · ${name}</span><span class="energy">${en}</span>`;
-    div.addEventListener('click', () => {
-      document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
-      div.classList.add('active');
+  scenes = [];
+  for (let i = 0; i < 5; i++) {
+    scenes.push({
+      id: i+1,
+      name: names[Math.floor(Math.random()*names.length)],
+      energy: energies[Math.floor(Math.random()*energies.length)],
+      dur: 4 + Math.floor(Math.random()*16)
     });
-    list.appendChild(div);
   }
+  renderScenes();
   document.getElementById('status').textContent = 'Storyline regenerated';
 });
 
-document.querySelectorAll('.scene').forEach(s => {
-  s.addEventListener('click', () => {
-    document.querySelectorAll('.scene').forEach(x => x.classList.remove('active'));
-    s.classList.add('active');
-  });
+document.getElementById('addScene').addEventListener('click', () => {
+  scenes.push({ id: scenes.length+1, name: 'New', energy: 'MEDIUM', dur: 8 });
+  renderScenes();
 });
 
 document.getElementById('assemble').addEventListener('click', () => {
@@ -286,14 +398,41 @@ document.getElementById('assemble').addEventListener('click', () => {
   status.textContent = 'Assembling credits & storyline…';
   setTimeout(() => {
     status.textContent = 'Render complete · Ready for export';
-    status.style.color = '#00e5ff';
-  }, 1200);
+  }, 900);
 });
-</script>
 
-<!-- SWR-AUDIO-DAMP-MARKER -->
+document.getElementById('export').addEventListener('click', () => {
+  const data = {
+    credits: {
+      artist: document.getElementById('artist').value,
+      title: document.getElementById('title').value,
+      produced: document.getElementById('produced').value,
+      written: document.getElementById('written').value,
+      label: document.getElementById('label').value,
+      extra: document.getElementById('extra').value
+    },
+    analysis: {
+      bpm: document.getElementById('bpm').textContent,
+      key: document.getElementById('key').textContent,
+      energy: document.getElementById('energy').textContent,
+      complexity: document.getElementById('complexity').textContent,
+      temp: document.getElementById('temp').textContent,
+      peak: document.getElementById('peak').textContent
+    },
+    scenes
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'credits-storyline.json';
+  a.click();
+  document.getElementById('status').textContent = 'JSON exported';
+});
+
+renderScenes();
+updatePreview();
+</script>
 <script src="../lib/audio-damp.client.js"></script>
-<!-- SWR-WATERMARK-MARKER -->
 <script src="../lib/watermark.client.js"></script>
 </body>
 </html>
