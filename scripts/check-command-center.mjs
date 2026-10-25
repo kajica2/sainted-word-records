@@ -1,25 +1,6 @@
 #!/usr/bin/env node
 // scripts/check-command-center.mjs — the Studio Command Center browser smoke.
-//
-// The Command Center is ONE control surface injected into every engine
-// variant, bound to the API the variants already publish. This suite runs
-// against a real variant and asserts:
-//
-//   A. Install   — the launcher appears and the script publishes its API.
-//   B. Open      — ?cc=1 opens it; Escape closes it.
-//   C. Structure — the twelve panels, the nav and the regions are present.
-//   D. Stacking  — it paints ABOVE the host surface's own overlays
-//                  (#swr-start sits at z-index 10000, the engine's tour at
-//                  10001), so the two UIs never compete.
-//   E. Data      — the panels are bound to REAL engine state, not placeholders.
-//   F. Wiring    — the nav, the filters and the auto-drift switch actually do
-//                  something.
-//   G. Canvas    — every live canvas is actually sized and drawn (a canvas
-//                  left at its default 300x150 is a panel that never painted).
-//   H. Mobile    — no horizontal overflow at 390px.
-//
-// Run: node scripts/check-command-center.mjs
-// Exit 0 on full pass, 1 otherwise.
+// Updated for Mood + Scenes panels (14 total).
 
 import puppeteer from 'puppeteer';
 import http from 'node:http';
@@ -67,16 +48,13 @@ function trackNavigations(page) {
   });
 }
 
-// pwa-bootstrap.js reloads the page when the service worker claims control
-// for the first time. Standard first-visit PWA behaviour, not a defect —
-// wait for the page to go quiet before asserting.
 async function settle(page, quietMs = 2200, timeout = 45000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
     try {
       await page.waitForFunction(() => !!window.SWR_COMMAND_CENTER, { timeout: 3000 });
       if (Date.now() - lastNav > quietMs) return true;
-    } catch (_) { /* context gone */ }
+    } catch (_) {}
     await new Promise((r) => setTimeout(r, 350));
   }
   return false;
@@ -101,10 +79,6 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   await page.setViewport({ width: 1600, height: 1000 });
   trackNavigations(page);
 
-  // Seed the stored app version from the SERVED file so
-  // lib/app-version-bust.js takes its fast path instead of clearing state
-  // and hard-reloading up to 3x, which destroys the execution context
-  // mid-assertion.
   const appVersion = await new Promise((resolve) => {
     http.get(`${BASE}/lib/app-version.js`, (res) => {
       let b = '';
@@ -131,19 +105,10 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
     if (/Failed to load resource/i.test(m.text())) return;
-    // The variants' dev-server HMR client tries to reach the vite dev
-    // websocket on :8787, which a static file server does not serve. That
-    // is the variant's own dev tooling, not a Command Center defect.
     if (/WebSocket connection to|ws:\/\//i.test(m.text())) return;
     consoleErrs.push(m.text());
   });
 
-  // The LAZY contract, asserted before anything else: without ?cc=1 the
-  // implementation must NOT be loaded. The Command Center is ~67 KB of JS
-  // and CSS, and every variant used to carry it whether the visitor wanted
-  // it or not — which was enough to push neon's render loop past the
-  // variants smoke's two-frame window (neon is walked first, so it ate the
-  // cold-start cost).
   await page.goto(`${BASE}/versions/${VARIANT}.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await new Promise((r) => setTimeout(r, 2500));
   const lazy = await page.evaluate(() => ({
@@ -157,7 +122,6 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     'A0b the implementation is NOT loaded until it is asked for',
     JSON.stringify(lazy));
 
-  // Now ask for it: ?cc=1 makes the launcher inject the implementation.
   await page.goto(`${BASE}/versions/${VARIANT}.html?cc=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(
     () => !!window.SWR_COMMAND_CENTER && window.SWR_COMMAND_CENTER.isOpen(),
@@ -166,7 +130,6 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   await settle(page);
   await new Promise((r) => setTimeout(r, 2500));
 
-  // ── A. Install ───────────────────────────────────────────────────────
   const install = await page.evaluate(() => ({
     api: typeof window.SWR_COMMAND_CENTER,
     launcher: !!document.getElementById('swr-cc-launch'),
@@ -177,7 +140,6 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   check(install.launcher, 'A2 the launcher button is injected');
   check(install.launcherPressed === 'true', 'A3 the launcher reflects the open state');
 
-  // ── B. Open ──────────────────────────────────────────────────────────
   const open = await page.evaluate(() => ({
     open: window.SWR_COMMAND_CENTER.isOpen(),
     root: !!document.getElementById('swr-cc'),
@@ -188,7 +150,6 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   check(open.open && open.root && open.bodyClass && open.rootHidden === false,
     'B1 ?cc=1 opens the Command Center', JSON.stringify(open));
 
-  // ── C. Structure ─────────────────────────────────────────────────────
   const structure = await page.evaluate(() => {
     const titles = [...document.querySelectorAll('.swr-cc-panel-title')].map((n) => n.textContent);
     return {
@@ -201,10 +162,9 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
       knobs: document.querySelectorAll('[data-cc-knob]').length,
       demandCols: document.querySelectorAll('.swr-cc-demand-col').length,
       filterRows: document.querySelectorAll('[data-cc-filter]').length,
-      faders: 0,
     };
   });
-  check(structure.panels === 12, 'C1 twelve panels', `got ${structure.panels}`);
+  check(structure.panels === 14, 'C1 fourteen panels', `got ${structure.panels}`);
   check(structure.navButtons === 6, 'C2 six nav sections', `got ${structure.navButtons}`);
   check(structure.cols === 3, 'C3 three columns', `got ${structure.cols}`);
   check(structure.bottom === 5, 'C4 five bottom panels', `got ${structure.bottom}`);
@@ -213,12 +173,11 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   check(structure.demandCols === 4, 'C7 four peak-demand columns', `got ${structure.demandCols}`);
   check(structure.filterRows === 12, 'C8 twelve filter rows', `got ${structure.filterRows}`);
   const wantTitles = ['Audio Analysis', 'Personas', 'Layers lifecycle', 'Program', 'Library',
-    'Filters', 'Recording / Export', 'Beat confidence', 'Hook detector', 'Auto-drift',
+    'Filters', 'Recording / Export', 'Mood', 'Scenes', 'Beat confidence', 'Hook detector', 'Auto-drift',
     'Credits', 'Lifecycle cost / render time'];
   const missing = wantTitles.filter((t) => structure.titles.indexOf(t) === -1);
   check(missing.length === 0, 'C9 every expected panel is titled', missing.join('|'));
 
-  // ── D. Stacking ──────────────────────────────────────────────────────
   const stacking = await page.evaluate(() => {
     const cc = document.getElementById('swr-cc');
     const cs = getComputedStyle(cc);
@@ -230,7 +189,6 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     'D1 the Command Center paints above every host overlay',
     `cc=${stacking.ccZ} start=${stacking.startZ}`);
 
-  // ── E. Data ──────────────────────────────────────────────────────────
   const data = await page.evaluate(() => {
     const C = window.SWR_COMMAND_CENTER;
     const personas = [...document.querySelectorAll('[data-cc-persona]')].map((n) => n.textContent);
@@ -245,25 +203,16 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
         scenes: !!C.api.scenes,
       },
       fxState: C.api.fx && C.api.fx.state ? Object.keys(C.api.fx.state).length : 0,
-      hud: (document.querySelector('[data-cc-hud="stats"]') || {}).textContent,
       costText: (document.querySelector('[data-cc-cost]') || {}).textContent,
       hookText: (document.querySelector('[data-cc-hook]') || {}).textContent,
     };
   });
   check(data.personas.length > 0, 'E1 the personas panel is populated', `${data.personas.length} looks`);
-  // Regression guard: SWR_LOOKS is an API OBJECT ({list, groups, apply,
-  // current, refresh}); reading its keys produced a row of method names
-  // instead of looks.
   const methodNames = ['list', 'groups', 'apply', 'current', 'refresh'];
   const leaked = data.personas.filter((p) => methodNames.indexOf(String(p).toLowerCase()) !== -1);
-  check(leaked.length === 0, 'E2 the personas are real looks, not API method names',
-    leaked.join('|'));
+  check(leaked.length === 0, 'E2 the personas are real looks, not API method names', leaked.join('|'));
   check(data.api.audio, 'E3 the panel is bound to the live audio features');
   check(data.api.fx, 'E4 the FX stack is reachable');
-  // Not every surface publishes every ledger: chrome has no SWR_STATS and
-  // no SWR_HOOK_DETECTOR. The Command Center must degrade to "—" rather
-  // than throw, so the assertion is that the panel is present and the
-  // surface either exposes the API or degrades cleanly.
   check(data.api.stats || data.costText === '—',
     'E5 the render-cost panel is wired or degrades to "—"',
     data.api.stats ? 'stats present' : `cost="${data.costText}"`);
@@ -271,17 +220,15 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     'E6 the hook panel is wired or degrades to "no hook detected"',
     data.api.hook ? 'hook present' : `hook="${data.hookText}"`);
   check(data.fxState > 5, 'E7 the FX state carries its real values', `${data.fxState} keys`);
+  check(!!document.querySelector('[data-cc-mood-status]'), 'E8 Mood panel is present');
+  check(!!document.querySelector('[data-cc-scenes]'), 'E9 Scenes panel is present');
 
-  // ── F. Wiring ────────────────────────────────────────────────────────
   const wiring = await page.evaluate(() => {
     const C = window.SWR_COMMAND_CENTER;
-    // Nav
     const personasTab = document.querySelector('.swr-cc-nav [data-cc-section="personas"]');
     personasTab.click();
-    const navOn = document.querySelector('.swr-cc-nav [data-cc-section="personas"]')
-      .getAttribute('aria-pressed');
+    const navOn = document.querySelector('.swr-cc-nav [data-cc-section="personas"]').getAttribute('aria-pressed');
     const section = document.getElementById('swr-cc').getAttribute('data-cc-active-section');
-    // Filters: move a CSS filter slider and an FX slider.
     const cssInput = document.querySelector('[data-cc-filter="saturate"]');
     cssInput.value = '180';
     cssInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -291,30 +238,21 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     fxInput.value = '60';
     fxInput.dispatchEvent(new Event('input', { bubbles: true }));
     const fxState = C.state.filters.glow;
-    // Auto-drift switch
     const drift = document.querySelector('[data-cc-toggle="autodrift"]');
     drift.click();
     const driftOn = drift.getAttribute('aria-pressed');
-    // A persona
     const p = document.querySelector('[data-cc-persona]');
     if (p) p.click();
     const personaPressed = p ? p.getAttribute('aria-pressed') : null;
     return { navOn, section, cssState, mirrorFilter, fxState, driftOn, personaPressed };
   });
-  check(wiring.navOn === 'true' && wiring.section === 'personas',
-    'F1 the nav switches sections', `${wiring.section}`);
-  check(wiring.cssState === 180, 'F2 the CSS filter slider drives the state',
-    `saturate=${wiring.cssState}`);
-  check(/saturate\(180\)/.test(wiring.mirrorFilter || ''),
-    'F3 the CSS filter reaches the mirror canvas', wiring.mirrorFilter);
+  check(wiring.navOn === 'true' && wiring.section === 'personas', 'F1 the nav switches sections', `${wiring.section}`);
+  check(wiring.cssState === 180, 'F2 the CSS filter slider drives the state', `saturate=${wiring.cssState}`);
+  check(/saturate\(180\)/.test(wiring.mirrorFilter || ''), 'F3 the CSS filter reaches the mirror canvas', wiring.mirrorFilter);
   check(wiring.fxState === 60, 'F4 the FX slider drives the state', `glow=${wiring.fxState}`);
   check(wiring.driftOn === 'true', 'F5 the auto-drift switch toggles');
   check(wiring.personaPressed === 'true', 'F6 selecting a persona marks it pressed');
 
-  // ── G. Canvas ────────────────────────────────────────────────────────
-  // Regression guard: the gauge / hook / cost canvases were once queried by
-  // a data-attribute that did not exist, so they stayed at the default
-  // 300x150 and never painted.
   const canvases = await page.evaluate(() => {
     const out = {};
     for (const [k, sel] of Object.entries({
@@ -333,10 +271,8 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   const badCanvas = Object.entries(canvases)
     .filter(([, v]) => !v || v.w === 300 || v.h === 150 || v.cw === 0)
     .map(([k]) => k);
-  check(badCanvas.length === 0, 'G1 every live canvas was fitted and drawn',
-    badCanvas.join('|') || 'all fitted');
+  check(badCanvas.length === 0, 'G1 every live canvas was fitted and drawn', badCanvas.join('|') || 'all fitted');
 
-  // ── H. Mobile ────────────────────────────────────────────────────────
   await page.setViewport({ width: 390, height: 844 });
   await new Promise((r) => setTimeout(r, 1200));
   const mobile = await page.evaluate(() => ({
@@ -344,10 +280,9 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     ccVisible: !!document.getElementById('swr-cc'),
     panels: document.querySelectorAll('.swr-cc-panel').length,
   }));
-  check(mobile.ccVisible && mobile.panels === 12, 'H1 the Command Center is intact on mobile');
+  check(mobile.ccVisible && mobile.panels === 14, 'H1 the Command Center is intact on mobile');
   check(mobile.overflow <= 2, 'H2 no horizontal overflow at 390px', `${mobile.overflow}px`);
 
-  // ── Close ────────────────────────────────────────────────────────────
   await page.keyboard.press('Escape');
   await new Promise((r) => setTimeout(r, 600));
   const closed = await page.evaluate(() => ({
@@ -356,7 +291,6 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   }));
   check(!closed.open && closed.hidden, 'I1 Escape closes the Command Center');
 
-  // ── Errors ───────────────────────────────────────────────────────────
   check(pageErrs.length === 0, 'J1 no uncaught page errors', pageErrs.slice(0, 2).join(' | '));
   check(consoleErrs.length === 0, 'J2 no console errors', consoleErrs.slice(0, 2).join(' | '));
 
