@@ -88,7 +88,13 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 async function nav(url) {
-  await page.goto('http://localhost:5186' + url, { waitUntil: 'networkidle2', timeout: 30000 });
+// 'networkidle' never settles on the CI runner: the page keeps a
+// connection open (the service worker, the shared-chrome fetch), so
+// the navigation waits out its whole timeout and the smoke fails on
+// a page that loaded fine. The readiness signal is the page's own
+// global, which the waitForFunction below already waits for — the
+// same reasoning as scripts/check-play-variant.mjs.
+  await page.goto('http://localhost:5186' + url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForFunction(() => !!window.SWRPresetEditor, { timeout: 10000 });
 }
 
@@ -320,7 +326,7 @@ if (stored.names.length >= 2 && stored.current && stored.names.includes(stored.c
 } else {
   bad('a new preset is written to localStorage', JSON.stringify(stored));
 }
-await page.reload({ waitUntil: 'networkidle2' });
+await page.reload({ waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => !!window.SWRPresetEditor, { timeout: 10000 });
 const afterReload = await page.evaluate(() => ({
   count: Object.keys(window.SWRPresetEditor.all).length,
@@ -370,7 +376,7 @@ const link = await page.evaluate(() => ({
   bloom: window.SWRPresetEditor.preset.global.bloom,
 }));
 const hash = link.url.slice(link.url.indexOf('#'));
-await page.goto('http://localhost:5186/preset-editor' + hash, { waitUntil: 'networkidle2' });
+await page.goto('http://localhost:5186/preset-editor' + hash, { waitUntil: 'domcontentloaded' });
 await page.waitForFunction(() => !!window.SWRPresetEditor, { timeout: 10000 });
 const deep = await page.evaluate(() => ({
   name: window.SWRPresetEditor.preset.name,
@@ -383,34 +389,51 @@ if (deep.name === link.name && Math.abs(deep.bloom - link.bloom) < 1e-6) {
 }
 
 // --- 10) LOGIC: a rule fires, and the picture follows -------------------
-// The engine is driven deterministically here (the same entry point the
-// render loop uses), so the assertion is about the RULEBOOK, not about
-// whether the demo signal happened to be loud enough.
+// The rulebook is driven through its exported seam (R.logic.tick) with a
+// feature set the test controls, because the demo signal cannot be made to
+// hold a condition on cue. The rule is armed only for the synchronous drive:
+// the engine's own loop evaluates preset.logic.rules against the DEMO signal
+// on every tick, and one falling edge from that signal would release the rule
+// in the middle of the ramp this test measures. That is a second driver on one
+// rulebook, not a property of the rulebook — so the drive owns the rulebook
+// for the duration of the drive, and nothing else evaluates the rule.
 const ruleTest = await page.evaluate(async () => {
   const R = window.SWRPresetEditor;
   const P = R.preset;
-  P.logic.enabled = true;
-  P.logic.tickMs = 20;
-  P.logic.rules = [{
+  const rule = {
     id: 'r_smoke', name: 'pulse-driven bloom', enabled: true, priority: 10, mode: 'edge',
     when: { k: 'all', of: [{ k: 'feature', name: 'bass', op: '>', threshold: 0.7, sustainMs: 300 }] },
     then: [{ t: 'rampParam', path: 'global.bloom', value: 1, ms: 400, easing: 'smooth' }],
     else: [{ t: 'rampParam', path: 'global.bloom', value: 0.6, ms: 600, easing: 'smooth' }],
     cooldownMs: 2000, once: false,
-  }];
+  };
   const loud = { bass: 0.9, mid: 0.5, treble: 0.5, rms: 0.7, centroid: 0.5, pulse: 1, beat: 1, onset: 0 };
   const quiet = { bass: 0.1, mid: 0.2, treble: 0.2, rms: 0.2, centroid: 0.5, pulse: 0, beat: 0, onset: 0 };
+  P.logic.enabled = true;
+  P.logic.tickMs = 20;
+  P.logic.rules = [rule];
+  // the tick throttle compares against the live loop's last tick, which may be
+  // a few milliseconds old — that would swallow the drive's first tick
+  R.runtime.lastTickMs = 0;
+  // no frame can run between these statements: one synchronous drive
   const t = performance.now();
   R.logic.tick(t, loud, 60);          // the condition starts holding
   R.logic.tick(t + 200, loud, 60);
   R.logic.tick(t + 400, loud, 60);    // held for 400ms > the 300ms sustain
   const fired = R.events.filter(e => e.kind === 'rule' && e.ruleId === 'r_smoke').length;
-  // the ramp is animated by the frame loop, so let a few frames run
+  P.logic.rules = [];                 // the drive owns the rulebook
+  // the ramp is animated by the frame loop on the render clock, so it must
+  // ARRIVE in real time: 400ms of ramp, 600ms of waiting
   await new Promise(r => setTimeout(r, 600));
   const bloom = R.resolved.bloom;
-  R.logic.tick(t + 800, quiet, 60);   // it stops holding → the else branch
-  await new Promise(r => setTimeout(r, 200));
+  // it stops holding → the else branch (again, driven, not sampled). The tick
+  // is placed ahead of the wall clock as well as ahead of `t`: a setTimeout in
+  // a loaded browser can overshoot, and a tick behind the live loop's last one
+  // would be throttled away and read as "the else branch never ran".
+  P.logic.rules = [rule];
+  R.logic.tick(Math.max(t + 800, performance.now() + 100), quiet, 60);
   const released = R.events.filter(e => e.kind === 'rule' && e.ruleId === 'r_smoke' && /released/.test(e.text)).length;
+  P.logic.rules = [];
   return { fired, released, bloom: +bloom.toFixed(3), tick: R.tickCostMs };
 });
 if (ruleTest.fired >= 1) ok('a rule fires in the log (' + ruleTest.fired + ' firing)');
@@ -425,49 +448,113 @@ else bad('the logic tick stays inside its 2ms budget', ruleTest.tick + 'ms');
 // A manual edit must win over the rule.
 const manualWins = await page.evaluate(async () => {
   const R = window.SWRPresetEditor;
+  const P = R.preset;
   const el = document.querySelector('input[data-path="global.bloom"]');
   el.value = '0.22';
   el.dispatchEvent(new Event('input', { bubbles: true }));
   const held = R.runtime.manualHold['global.bloom'] > 0;
   const loud = { bass: 0.9, mid: 0.5, treble: 0.5, rms: 0.7, centroid: 0.5, pulse: 1, beat: 1, onset: 0 };
-  R.logic.tick(performance.now() + 3000, loud, 60);
-  const events = R.events.slice(-4).map(e => e.kind);
-  return { held, events };
+  // the same rule, armed only for this synchronous drive (see above)
+  P.logic.rules = [{
+    id: 'r_smoke', name: 'pulse-driven bloom', enabled: true, priority: 10, mode: 'edge',
+    when: { k: 'all', of: [{ k: 'feature', name: 'bass', op: '>', threshold: 0.7, sustainMs: 300 }] },
+    then: [{ t: 'rampParam', path: 'global.bloom', value: 1, ms: 400, easing: 'smooth' }],
+    else: [{ t: 'rampParam', path: 'global.bloom', value: 0.6, ms: 600, easing: 'smooth' }],
+    cooldownMs: 2000, once: false,
+  }];
+  const now = performance.now();
+  R.logic.tick(now + 3000, loud, 60);   // the sustain timer starts again
+  R.logic.tick(now + 3400, loud, 60);   // 400ms held → the then branch, refused
+  // the manual edit logs its own 'held' entry (ruleId null), so the useful
+  // question is whether the RULE was refused — and whether it fired anyway.
+  const heldByRule = R.events.filter(e => e.kind === 'held' && e.ruleId === 'r_smoke').length;
+  const firedByRule = R.events.filter(e => e.kind === 'rule' && e.ruleId === 'r_smoke' && /fired/.test(e.text)).length;
+  P.logic.rules = [];
+  return { held, heldByRule, firedByRule };
 });
 if (manualWins.held) ok('a manual edit holds the rules off that parameter');
 else bad('a manual edit holds the rules off that parameter', JSON.stringify(manualWins));
-if (manualWins.events.includes('held')) ok('the hold is visible in the log');
-else bad('the hold is visible in the log', JSON.stringify(manualWins));
+if (manualWins.heldByRule >= 1) ok('the rule is refused while the parameter is held');
+else bad('the rule is refused while the parameter is held', JSON.stringify(manualWins));
+if (manualWins.firedByRule === 1) ok('the held rule never reaches the render');
+else bad('the held rule never reaches the render', JSON.stringify(manualWins));
 
 // --- 11) SCENES + the timeline ------------------------------------------
+// The timeline is painted by the UI only (renderTimeline() runs from the
+// handlers, never from the frame loop), so a node list read straight after
+// assigning preset.sequence is EMPTY — and a `if (btn) btn.click() ` guard
+// around an empty list makes the assertion pass without doing anything. The
+// sequence is therefore switched on the way a user switches it on, and the
+// jump targets a section that is NOT the one the playhead is already on.
 const sceneTest = await page.evaluate(async () => {
   const R = window.SWRPresetEditor;
   const P = R.preset;
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  // the earlier tests leave a rule value and a manual hold on bloom; a scene
+  // test needs the document's own value as its starting point
+  R.runtime.overrides = {};
+  R.runtime.ruleValues = {};
+  R.runtime.writeOwner = {};
+  R.runtime.writeScene = {};
+  R.runtime.ramps = [];
+  R.runtime.manualHold = {};
+  P.global.bloom = 0.7;
+  P.audio.tempo.bpm = 120;                 // a bar is 500ms, so the dwell is known
   P.logic.scenes = [
     { id: 'sc_intro', name: 'intro', overrides: { 'global.bloom': 0.2 }, transitionMs: 200, easing: 'smooth', entryRules: [], exitRules: [] },
     { id: 'sc_drop', name: 'drop', overrides: { 'global.bloom': 1.0 }, transitionMs: 200, easing: 'smooth', entryRules: [], exitRules: [] },
   ];
   P.sequence = {
     enabled: true, mode: 'loop',
-    sections: [{ name: 'intro', sceneId: 'sc_intro', bars: 1 }, { name: 'drop', sceneId: 'sc_drop', bars: 1 }],
+    // four bars each: the section the jump lands on lasts 2s, so "it stayed"
+    // cannot be a race with the next section boundary
+    sections: [{ name: 'intro', sceneId: 'sc_intro', bars: 4 }, { name: 'drop', sceneId: 'sc_drop', bars: 4 }],
   };
-  R.logic.setScene('sc_drop', { now: performance.now() });
-  await new Promise(r => setTimeout(r, 500));
+  const chk = document.querySelector('#seqEnabled');
+  chk.checked = true;
+  chk.dispatchEvent(new Event('change', { bubbles: true }));   // → renderTimeline()
+  const buttons = document.querySelectorAll('#tlSections button').length;
+
+  R.logic.setScene('sc_intro', { now: performance.now() });
+  await sleep(500);
   const afterScene = { scene: P.logic.activeSceneId, bloom: +R.resolved.bloom.toFixed(3) };
-  // the playhead: jump to the first section
-  const jump = document.querySelector('#tlSections button');
-  if (jump) jump.click();
-  await new Promise(r => setTimeout(r, 400));
-  const afterJump = { scene: P.logic.activeSceneId, section: R.runtime.seq.section };
-  return { afterScene, afterJump };
+
+  const before = { section: R.runtime.seq.section, bar: +R.runtime.seq.bar.toFixed(3) };
+  const btns = document.querySelectorAll('#tlSections button');
+  if (btns[1]) btns[1].click();
+  const jumped = { section: R.runtime.seq.section, bar: +R.runtime.seq.bar.toFixed(3) };
+  await sleep(400);
+  const afterJump = {
+    section: R.runtime.seq.section, bar: +R.runtime.seq.bar.toFixed(3),
+    scene: P.logic.activeSceneId, bloom: +R.resolved.bloom.toFixed(3),
+  };
+  return { buttons, before, jumped, afterJump, afterScene };
 });
-if (sceneTest.afterScene.scene === 'sc_drop' && sceneTest.afterScene.bloom > 0.9) {
+if (sceneTest.buttons === 2) ok('the timeline renders a button per section (' + sceneTest.buttons + ')');
+else bad('the timeline renders a button per section', JSON.stringify(sceneTest));
+if (sceneTest.afterScene.scene === 'sc_intro' && Math.abs(sceneTest.afterScene.bloom - 0.2) < 0.02) {
   ok('a scene switches and its overrides ease in (bloom → ' + sceneTest.afterScene.bloom + ')');
 } else {
   bad('a scene switches and its overrides ease in', JSON.stringify(sceneTest));
 }
-if (sceneTest.afterJump.section === 0) ok('the timeline playhead jumps to a section');
-else bad('the timeline playhead jumps to a section', JSON.stringify(sceneTest));
+if (sceneTest.before.section === 0 && sceneTest.jumped.section === 1 && sceneTest.jumped.bar >= 4) {
+  ok('clicking a section button moves the playhead to that section (bar → ' + sceneTest.jumped.bar + ')');
+} else {
+  bad('clicking a section button moves the playhead to that section', JSON.stringify(sceneTest));
+}
+// The playhead is derived from the timeline origin on every frame, so a jump
+// that does not move the origin is undone by the next tick. This is the
+// difference between "it jumped" and "it was never really there".
+if (sceneTest.afterJump.section === 1 && sceneTest.afterJump.bar >= 4) {
+  ok('the playhead stays on the section it was sent to');
+} else {
+  bad('the playhead stays on the section it was sent to', JSON.stringify(sceneTest));
+}
+if (sceneTest.afterJump.scene === 'sc_drop' && sceneTest.afterJump.bloom > 0.9) {
+  ok('the section brings its scene and the render with it (bloom → ' + sceneTest.afterJump.bloom + ')');
+} else {
+  bad('the section brings its scene and the render with it', JSON.stringify(sceneTest));
+}
 
 // --- 12) EVOLUTION: drift stays inside the cap, and reverts ---------------
 const driftTest = await page.evaluate(() => {

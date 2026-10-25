@@ -22,7 +22,7 @@
 | Firestore | ✅ opt-in (`SWR_AUTH_STORE=firestore` for auth, `SWR_PROJECTS_STORE=firestore` for projects) |
 | API rules | ✅ rate-limited + auth-gated + invite-code schema v2 |
 | Standards | ✅ LICENSE · CONTRIBUTING · CODE_OF_CONDUCT · CHANGELOG · SECURITY · ISSUE_TEMPLATES · CODEOWNERS |
-| Tests | ✅ 110+ unit checks, `npm run check` (112-step), `check:full` (31-step) |
+| Tests | ✅ 110+ unit checks, `npm run check` (112-step), `check:full` (33-step) |
 | CI | ✅ Pages build deployment · required checks on PRs |
 
 ---

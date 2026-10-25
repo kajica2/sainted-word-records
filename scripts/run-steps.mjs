@@ -405,6 +405,16 @@ const GROUPS = {
     // in `dist/lib/app-version.js`.
     { cmd: 'npm run check:build-idempotent', timeoutMs: 240000, retries: 0 },
     'npm run check:dist-links',
+    // The /alternate "Chain" view: the Ozone-style mastering surface over
+    // the same engine. Asserts the WIRING, not the markup — powering a
+    // module off removes exactly its reactor targets, the default chain
+    // leaves all eight active, and without ?chain=1 it never mounts.
+    { cmd: 'npm run check:chain-view', timeoutMs: 120000, retries: 1 },
+    // The Studio Command Center: the control surface injected into every
+    // engine variant. Asserts it is bound to REAL engine state (the
+    // panels read the variant's own API), that its canvases actually
+    // painted, and that it stacks above the host surface's own overlays.
+    { cmd: 'npm run check:command-center', timeoutMs: 120000, retries: 1 },
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.
     'npm run verify:site-nav',

@@ -1096,6 +1096,13 @@ const runtime = {
   startedMs: 0,
   sceneEnteredMs: 0,
   lastTickMs: 0,
+  // THE RENDER CLOCK — the frame loop's timebase, refreshed every frame.
+  // A ramp is a real-time animation: tickRamps() interpolates it on this
+  // clock, so its t0 must be stamped on this clock too. The rulebook's own
+  // `now` is the CALLER's clock (the frame loop passes the same value, but
+  // the exported logic.tick seam lets a host drive the rules on its own
+  // timeline), so it can never be used to time an animation.
+  renderNow: performance.now(),
   lastParams: {},       // layer index → the parameters the renderer used
   lastOpacity: {},      // layer index → the alpha the renderer used
 };
@@ -1182,7 +1189,7 @@ function evalCond(c, ctx, key) {
 }
 
 /* ---- actions ---- */
-function startRamp(a, now, owner, sceneId) {
+function startRamp(a, owner, sceneId) {
   // A ramp must start from a NUMBER: with no current value the path has no
   // entry yet, and `undefined + …` is NaN — which then propagates into the
   // resolved document and serialises as null.
@@ -1194,7 +1201,11 @@ function startRamp(a, now, owner, sceneId) {
   runtime.ramps = runtime.ramps.filter(r => !(r.path === a.path && r.owner === owner));
   runtime.ramps.push({
     path: a.path, from, to: a.value,
-    t0: now, ms: Math.max(1, a.ms || 400), easing: a.easing || 'smooth',
+    // ONE clock: tickRamps(now) interpolates on the RENDER clock, so t0 is
+    // stamped on it — never on the rulebook's `now`, which a host driving
+    // logic.tick() may set arbitrarily (a stamp in the future would hold
+    // the ramp at 0 and the value would never arrive).
+    t0: runtime.renderNow, ms: Math.max(1, a.ms || 400), easing: a.easing || 'smooth',
     owner: owner || 'rule', sceneId: sceneId || null,
   });
 }
@@ -1215,7 +1226,7 @@ function applyAction(a, ctx) {
       writeRule(a.path, a.value);
       break;
     case 'rampParam':
-      startRamp(a, ctx.now, 'rule');
+      startRamp(a, 'rule');
       break;
     case 'goScene':
       setScene(a.sceneId, ctx);
@@ -1322,7 +1333,7 @@ function setScene(id, ctx) {
     if (next.transitionMs) {
       // the scene takes the path first, then eases into its value
       writeScene(path, runtime.overrides[path], next.id);
-      startRamp({ path, value, ms: next.transitionMs, easing: next.easing || 'smooth' }, now, 'scene', next.id);
+      startRamp({ path, value, ms: next.transitionMs, easing: next.easing || 'smooth' }, 'scene', next.id);
     } else {
       writeScene(path, value, next.id);
     }
@@ -1469,14 +1480,27 @@ function tickSequence(now, ctx) {
 
 function jumpToSection(index) {
   const S = preset.sequence;
-  if (!S.enabled || !(S.sections || []).length) return;
+  const sections = S.sections || [];
+  if (!S.enabled || !sections.length) return;
+  const at = clamp(index | 0, 0, sections.length - 1);
   let acc = 0;
-  for (let i = 0; i < index; i++) acc += Math.max(1, S.sections[i].bars || 4);
+  for (let i = 0; i < at; i++) acc += Math.max(1, sections[i].bars || 4);
   const bpm = preset.audio.tempo.bpm || 120;
-  runtime.seq.startedMs = performance.now() - (acc * 60000) / bpm;
-  runtime.seq.section = index;
-  const sec = S.sections[index];
-  if (sec && sec.sceneId) setScene(sec.sceneId, { now: performance.now() });
+  // The playhead is DERIVED: tickSequence() recomputes the bar position from
+  // (now - startedMs) on every frame and re-derives the section from it, so a
+  // jump is only real if it moves that origin — and the timeline has to be
+  // marked RUNNING, or tickSequence's first tick resets the origin to `now`
+  // and the playhead snaps back to bar 0 on the next frame.
+  // The origin is anchored to the RENDER clock, the same timebase the next
+  // frame's `now` is in, so the derived position is >= the section's first
+  // bar and the section scan agrees with the jump instead of landing on the
+  // previous section by a fractional bar.
+  runtime.seq.running = true;
+  runtime.seq.bar = acc;
+  runtime.seq.startedMs = runtime.renderNow - (acc * 60000) / bpm;
+  runtime.seq.section = at;
+  const sec = sections[at];
+  if (sec && sec.sceneId) setScene(sec.sceneId, { now: runtime.renderNow });
 }
 
 /* ---- ramps tick (called every frame, not on the logic tick) ---- */
@@ -3332,6 +3356,8 @@ let liveF = null;      // the features of the current frame (for a freeze)
 let liveTT = 0;        // the current render time (for a freeze)
 
 function frame(now) {
+  // the animation clock: every ramp, the drift and the sequence read it
+  runtime.renderNow = now;
   const t = (now - t0) / 1000;
   // the MEASURED frame rate, every frame: the rulebook's fps condition
   // and the dry run both read it (it used to feed 0 forever)

@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Envelope · Sainted Word Records</title>
+  <meta name="description" content="Interactive LFO envelope editor. Drag points, change duration, switch curves, live preview. Auto-adapts to track energy.">
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/versions/envelope">
+  <meta property="og:title" content="Envelope — Sainted Word Records">
+  <meta property="og:description" content="Interactive LFO envelope editor with play preview, text editor, and undo.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/versions/_shared.css">
+  <style>
+:root {
+  --bg: #0f1115;
+  --bg-panel: #1a1d23;
+  --bg-elev: #12141a;
+  --fg: #e6e6e6;
+  --fg-mute: #888;
+  --fg-faint: #555;
+  --line: #2a2e35;
+  --signal: #ff2d95;
+  --signal-2: #00e5ff;
+}
+.top { background: var(--bg); border-bottom-color: var(--line); }
+.brand { color: var(--fg); }
+.brand .sw { background: var(--signal); color: #fff; }
+.versions { background: var(--bg-panel); border-color: var(--line); }
+.versions a { color: var(--fg-mute); }
+.versions a:hover, .versions a[aria-current="page"] { background: var(--bg-elev); color: var(--fg); }
+.versions a[aria-current="page"]::before { background: var(--signal); }
+.btn-open { background: var(--signal); color: #fff; }
+
+.envelope-wrap {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 32px;
+}
+.envelope-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  width: 480px;
+  max-width: 100%;
+}
+.envelope-panel h2 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.badge {
+  background: var(--signal);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.badge.cyan { background: var(--signal-2); color: #000; }
+canvas {
+  background: var(--bg-elev);
+  border-radius: 8px;
+  cursor: crosshair;
+  display: block;
+  margin: 8px 0;
+  width: 100%;
+  height: auto;
+}
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  align-items: center;
+}
+label { font-size: 12px; color: var(--fg-mute); }
+input[type="number"] {
+  width: 70px;
+  background: #252830;
+  border: 1px solid #3a3f48;
+  color: white;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+button {
+  background: #252830;
+  border: 1px solid #3a3f48;
+  color: #e6e6e6;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+button.active { background: var(--signal); border-color: var(--signal); color: white; }
+button.active.cyan { background: var(--signal-2); border-color: var(--signal-2); color: #000; }
+.info { margin-top: 16px; font-size: 12px; color: var(--fg-mute); }
+.play-btn {
+  background: var(--signal);
+  border: none;
+  color: white;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.play-btn.cyan { background: var(--signal-2); color: #000; }
+.undo-btn {
+  background: #252830;
+  border: 1px solid #3a3f48;
+  color: #e6e6e6;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 8px;
+  margin-left: 8px;
+}
+.undo-btn:disabled { opacity: 0.4; cursor: default; }
+textarea {
+  width: 100%;
+  height: 80px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: #e6e6e6;
+  border-radius: 6px;
+  padding: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  margin-top: 10px;
+  resize: vertical;
+}
+.text-label { font-size: 11px; color: var(--fg-mute); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <a class="sr" href="#main">Skip to content</a>
+
+  <header class="top">
+    <span class="gctrl" data-looks-mount></span>
+    <a class="brand" href="/" aria-label="Sainted Word Records, home">
+      <span class="sw" aria-hidden="true">SW</span>
+      <span class="brand-text"><b>SAINTED</b><span>WORD RECORDS</span></span>
+    </a>
+
+    <nav class="versions" aria-label="Visual language">
+      <a href="/versions/neon" data-v="neon">Neon</a>
+      <a href="/versions/film" data-v="film">Film</a>
+      <a href="/versions/envelope" data-v="envelope" aria-current="page">Envelope</a>
+      <a href="/versions/credits-storyline" data-v="credits">Credits</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="/versions/console" data-v="console">Console</a>
+    </nav>
+
+    <div class="top-right">
+      <a class="btn-open" href="/dashboard">Open editor <span aria-hidden="true">→</span></a>
+    </div>
+  </header>
+
+  <main id="main" class="page">
+    <header class="page-head">
+      <span class="kicker">LFO · Envelope</span>
+      <h1 class="h-display">Interactive <em>envelope</em> editor.</h1>
+      <p class="lede">Drag points · Change duration · Switch curves · Live preview. Auto-adapts to track energy, temperature, and complexity.</p>
+    </header>
+
+    <div class="envelope-wrap">
+      <div class="envelope-panel">
+        <h2>FADE IN <span class="badge">ADJUSTABLE</span></h2>
+        <canvas id="fadeIn" width="440" height="220"></canvas>
+        <div class="controls">
+          <label>Duration (ms)</label>
+          <input type="number" id="inDur" value="3000" min="100" max="20000" step="100">
+          <button data-curve="linear" class="curve-btn">LINEAR</button>
+          <button data-curve="exponential" class="curve-btn active">EXPONENTIAL</button>
+          <button data-curve="s-curve" class="curve-btn">S-CURVE</button>
+        </div>
+        <button class="play-btn" id="playIn">▶ PLAY</button>
+        <button class="undo-btn" id="undoIn">↶ UNDO</button>
+        <div class="text-label">TEXT EDITOR (x,y points)</div>
+        <textarea id="inText"></textarea>
+        <div class="info" id="inInfo">Points: 5 · Drag handles to reshape</div>
+      </div>
+
+      <div class="envelope-panel">
+        <h2>FADE OUT <span class="badge cyan">ADJUSTABLE</span></h2>
+        <canvas id="fadeOut" width="440" height="220"></canvas>
+        <div class="controls">
+          <label>Duration (ms)</label>
+          <input type="number" id="outDur" value="5000" min="100" max="20000" step="100">
+          <button data-curve="linear" class="curve-btn cyan">LINEAR</button>
+          <button data-curve="exponential" class="curve-btn cyan active">EXPONENTIAL</button>
+          <button data-curve="s-curve" class="curve-btn cyan">S-CURVE</button>
+        </div>
+        <button class="play-btn cyan" id="playOut">▶ PLAY</button>
+        <button class="undo-btn" id="undoOut">↶ UNDO</button>
+        <div class="text-label">TEXT EDITOR (x,y points)</div>
+        <textarea id="outText"></textarea>
+        <div class="info" id="outInfo">Points: 5 · Drag handles to reshape</div>
+      </div>
+    </div>
+  </main>
+
+  <swr-footer></swr-footer>
+
+<script>
+function Envelope(canvasId, color, defaultDur, infoId, durInputId) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const pad = 30;
+  let duration = defaultDur;
+  let curve = 'exponential';
+  let points = [
+    { x: 0, y: 0 },
+    { x: 0.25, y: 0.15 },
+    { x: 0.5, y: 0.35 },
+    { x: 0.75, y: 0.65 },
+    { x: 1, y: 1 }
+  ];
+  let dragging = null;
+  let playhead = 0;
+  let playing = false;
+  let animId = null;
+  let history = [];
+  const maxHistory = 30;
+
+  const info = document.getElementById(infoId);
+  const durInput = document.getElementById(durInputId);
+  const playBtn = document.getElementById(canvasId === 'fadeIn' ? 'playIn' : 'playOut');
+  const textArea = document.getElementById(canvasId === 'fadeIn' ? 'inText' : 'outText');
+  const undoBtn = document.getElementById(canvasId === 'fadeIn' ? 'undoIn' : 'undoOut');
+
+  function saveState() {
+    history.push(JSON.stringify(points));
+    if (history.length > maxHistory) history.shift();
+    undoBtn.disabled = history.length === 0;
+  }
+
+  function undo() {
+    if (history.length === 0) return;
+    points = JSON.parse(history.pop());
+    undoBtn.disabled = history.length === 0;
+    draw();
+  }
+
+  undoBtn.addEventListener('click', undo);
+  undoBtn.disabled = true;
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = '#22262e';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad + (h - 2 * pad) * (1 - i / 4);
+      ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+    }
+    for (let i = 0; i <= 4; i++) {
+      const x = pad + (w - 2 * pad) * (i / 4);
+      ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    const steps = 80;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const y = sample(t);
+      const px = pad + t * (w - 2 * pad);
+      const py = pad + (1 - y) * (h - 2 * pad);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    ctx.lineTo(pad + (w - 2 * pad), h - pad);
+    ctx.lineTo(pad, h - pad);
+    ctx.closePath();
+    ctx.fillStyle = color + '22';
+    ctx.fill();
+
+    points.forEach((p, i) => {
+      const px = pad + p.x * (w - 2 * pad);
+      const py = pad + (1 - p.y) * (h - 2 * pad);
+      ctx.beginPath();
+      ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.fillStyle = dragging === i ? '#fff' : color;
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    if (playing || playhead > 0) {
+      const px = pad + playhead * (w - 2 * pad);
+      const y = sample(playhead);
+      const py = pad + (1 - y) * (h - 2 * pad);
+      ctx.beginPath();
+      ctx.moveTo(px, pad); ctx.lineTo(px, h - pad);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    }
+
+    info.textContent = `Points: ${points.length} · Duration: ${duration}ms · Curve: ${curve.toUpperCase()}` + (playing ? ' · PLAYING' : '');
+    syncText();
+  }
+
+  function syncText() {
+    if (document.activeElement === textArea) return;
+    textArea.value = points.map(p => `${p.x.toFixed(3)},${p.y.toFixed(3)}`).join('\n');
+  }
+
+  function sample(t) {
+    let y = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      if (t >= points[i].x && t <= points[i + 1].x) {
+        const local = (t - points[i].x) / (points[i + 1].x - points[i].x || 1);
+        let eased = local;
+        if (curve === 'exponential') eased = local * local;
+        if (curve === 's-curve') eased = local * local * (3 - 2 * local);
+        y = points[i].y + eased * (points[i + 1].y - points[i].y);
+        break;
+      }
+    }
+    return Math.max(0, Math.min(1, y));
+  }
+
+  function getMouse(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (w / r.width), y: (e.clientY - r.top) * (h / r.height) };
+  }
+
+  canvas.addEventListener('mousedown', e => {
+    const m = getMouse(e);
+    points.forEach((p, i) => {
+      const px = pad + p.x * (w - 2 * pad);
+      const py = pad + (1 - p.y) * (h - 2 * pad);
+      if (Math.hypot(m.x - px, m.y - py) < 12) dragging = i;
+    });
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    if (dragging === null) return;
+    const m = getMouse(e);
+    const nx = Math.max(0, Math.min(1, (m.x - pad) / (w - 2 * pad)));
+    const ny = Math.max(0, Math.min(1, 1 - (m.y - pad) / (h - 2 * pad)));
+    if (dragging > 0 && nx < points[dragging - 1].x) return;
+    if (dragging < points.length - 1 && nx > points[dragging + 1].x) return;
+    points[dragging].x = nx;
+    points[dragging].y = ny;
+    draw();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (dragging !== null) { saveState(); dragging = null; }
+  });
+
+  canvas.addEventListener('dblclick', e => {
+    const m = getMouse(e);
+    const nx = Math.max(0, Math.min(1, (m.x - pad) / (w - 2 * pad)));
+    const ny = Math.max(0, Math.min(1, 1 - (m.y - pad) / (h - 2 * pad)));
+    saveState();
+    points.push({ x: nx, y: ny });
+    points.sort((a, b) => a.x - b.x);
+    draw();
+  });
+
+  durInput.addEventListener('input', () => {
+    duration = Math.max(100, Number(durInput.value) || 3000);
+    draw();
+  });
+
+  document.querySelectorAll('.curve-btn').forEach(btn => {
+    if (!btn.closest('.envelope-panel')?.querySelector(`#${canvasId}`)) return;
+    btn.addEventListener('click', () => {
+      curve = btn.dataset.curve;
+      document.querySelectorAll('.curve-btn').forEach(b => {
+        if (b.closest('.envelope-panel') === btn.closest('.envelope-panel')) b.classList.remove('active');
+      });
+      btn.classList.add('active');
+      draw();
+    });
+  });
+
+  function play() {
+    if (playing) {
+      cancelAnimationFrame(animId);
+      playing = false;
+      playBtn.textContent = '▶ PLAY';
+      draw();
+      return;
+    }
+    playing = true;
+    playBtn.textContent = '■ STOP';
+    const start = performance.now();
+    function step(now) {
+      const elapsed = now - start;
+      playhead = Math.min(1, elapsed / duration);
+      draw();
+      if (playhead < 1) animId = requestAnimationFrame(step);
+      else {
+        playing = false;
+        playBtn.textContent = '▶ PLAY';
+        setTimeout(() => { playhead = 0; draw(); }, 600);
+      }
+    }
+    animId = requestAnimationFrame(step);
+  }
+
+  playBtn.addEventListener('click', play);
+
+  textArea.addEventListener('input', () => {
+    const lines = textArea.value.trim().split('\n').filter(l => l.trim());
+    const newPoints = [];
+    for (const line of lines) {
+      const parts = line.split(',').map(s => parseFloat(s.trim()));
+      if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        newPoints.push({ x: Math.max(0, Math.min(1, parts[0])), y: Math.max(0, Math.min(1, parts[1])) });
+      }
+    }
+    if (newPoints.length >= 2) {
+      newPoints.sort((a, b) => a.x - b.x);
+      saveState();
+      points = newPoints;
+      draw();
+    }
+  });
+
+  draw();
+}
+
+const fadeIn = new Envelope('fadeIn', '#ff2d95', 3000, 'inInfo', 'inDur');
+const fadeOut = new Envelope('fadeOut', '#00e5ff', 5000, 'outInfo', 'outDur');
+</script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="../lib/audio-damp.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="../lib/watermark.client.js"></script>
+</body>
+</html>

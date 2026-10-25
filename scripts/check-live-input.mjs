@@ -27,11 +27,41 @@
 // No npm dependencies: headless Chrome over the DevTools Protocol, with
 // Node's built-in WebSocket doing the work.
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { serveDist } from './with-dist.mjs';
+
+// Node's global WebSocket landed in Node 21. The CI runner is Node 20
+// (ci.yml pins node-version: '20', .nvmrc says 20), where the global only
+// exists behind --experimental-websocket — so the harness died with
+// "WebSocket is not defined" before it could assert anything, and the
+// failure looked like a broken camera rather than a missing runtime
+// feature.
+//
+// Re-exec once with the flag when the global is missing. On Node 21+ the
+// global is there and this never fires — and the flag MUST NOT be passed
+// unconditionally, because it was REMOVED in Node 22 and an unknown flag
+// stops Node from starting at all.
+if (typeof globalThis.WebSocket === 'undefined') {
+  const canFlag = process.allowedNodeEnvironmentFlags &&
+    (process.allowedNodeEnvironmentFlags.has('--experimental-websocket') ||
+     process.allowedNodeEnvironmentFlags.has('experimental-websocket'));
+  if (canFlag) {
+    const rerun = spawnSync(
+      process.execPath,
+      ['--experimental-websocket', ...process.argv.slice(1)],
+      { stdio: 'inherit' },
+    );
+    process.exit(rerun.status === null ? 1 : rerun.status);
+  }
+  // No WebSocket and no way to enable it on this runtime. The harness
+  // cannot run here at all — the repo's env-skip convention, with the
+  // marker literal so a real failure still surfaces.
+  console.log('(env skip: this Node has no global WebSocket and cannot enable it)');
+  process.exit(0);
+}
 
 const argv = process.argv.slice(2);
 // A target given on the command line is used as-is (against a server the

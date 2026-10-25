@@ -24,10 +24,41 @@ once it hits 1.0.
   keeps every export name, so no route changes; the switch is read per
   call and is **off by default**. The trade-off against the project's
   "Local-first" rule is stated plainly in
-  `docs/PLANS/firestore-auth-store.md`.
+  `docs/plans/firestore-auth-store.md`.
 - `zod` is now a declared **runtime** dependency. The contract layer
   already imported it at runtime from two routes while it was undeclared,
   which was a latent production-deploy failure.
+- The **Studio Command Center** — one extended frontend for every engine
+  surface. It loads ON DEMAND: a 2 KB launcher draws the ◈ button and pulls
+  the implementation the first time it is used, so a variant visitor who
+  never opens the Command Center does not download its 67 KB. The 13 full variants (the ones with a Layers stack, a Library
+  and a live output canvas) each grew their own chrome, and the depth an
+  operator wants — live spectrum, the FX stack, the hook detector, the
+  render-cost ledger — was duplicated per variant or missing. The Command
+  Center is a single control surface bound to the API the variants
+  already publish: `SWR.Audio/Library/Layers`, `Audio.feat`, `FX.state`,
+  `SWR_STATS`, `SWR_HOOK_DETECTOR`, `SWR_LOOKS`. Nothing in it is
+  mocked — the filters drive the surface's own `FX.set*`, the cost ledger
+  reads `SWR_STATS.summary()`, and the personas are the surface's own
+  looks. It opens with a `◈` launcher or `?cc=1`, and Escape closes it.
+  Injected by the codemod system, so `versions/manifest.json` records it
+  and `versions/verify-codemods.mjs` re-runs it in a sandbox.
+- The **`/alternate` "Chain" view** — an Ozone-style mastering surface
+  over the same engine. Five module cards, a three-position mode knob,
+  threshold / ceiling / character, four output faders with live Peak and
+  LUFS, and a live response curve. The Ozone controls are not decorative:
+  the eight reactor targets in `lib/apply-reactors.js` are partitioned
+  across the modules, so powering one off removes exactly its own
+  contribution, and the mode knob swaps the engine's own ease curve. It
+  wraps `applyReactor` rather than forking the engine, and the default
+  state leaves every target active — mounting the chain must not change
+  what the engine does until the user asks it to. Reachable at
+  `/alternate`, `/engine.html?chain=1` and `/engine.html#chain`.
+- The **`/play` deep-link variant** — the engine with three URL toggles
+  (`?video`, `?loop`, `?photo_slide`). The URL is the source of truth
+  and the toolbar pills mirror it. It reuses the engine rather than
+  copying it, so it inherits upstream engine fixes instead of needing a
+  re-port after every upstream move.
 - The **Media Source** panel — where the audio comes from, next to the
   loaded video instead of buried in a global settings page. The source is
   the video's own track, a separate audio file, or nothing; the panel also
@@ -146,6 +177,48 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **The preset editor's ramps ran on the wrong clock**, so a rule or a
+  scene transition started from the rulebook could be stamped in the
+  future and never arrive. `frame(now)` now keeps `runtime.renderNow`, and
+  `startRamp()` stamps a ramp's `t0` from that clock instead of the
+  caller's `now` — `tickRamps(now)` interpolates against the render clock,
+  so those two numbers have to be on the same timebase. A host driving
+  `R.logic.tick()` with its own clock (the gate does, deliberately) used
+  to leave `global.bloom` stuck part-way through a 400 ms ramp forever,
+  and the scene ramp in `setScene()` shared the bug, so "the scene eases
+  in" was equally unreachable. The rulebook's `ctx.now` is still the
+  *evaluation* clock (sustain, cooldown, `elapsed`, `sequencePosition`);
+  only the animation moved.
+- **`jumpToSection()` did not survive the next frame.** The playhead is
+  derived: `tickSequence()` recomputes the bar position from
+  `(now - runtime.seq.startedMs)` on every frame, re-derives the section
+  from it, and re-anchors the origin to `now` whenever the sequence is not
+  running. A jump set only `startedMs` and `section`, so the first frame
+  after the click re-anchored the origin and the playhead snapped back to
+  bar 0 (loop mode also rewrites the origin, which can erase a jump a
+  second way). The jump now marks the sequence running, moves the bar, and
+  anchors the origin on `runtime.renderNow` — the same timebase the next
+  frame's `now` is in — so the derived position is at least the section's
+  first bar and the section scan agrees with the click instead of landing
+  on the previous section by a fractional bar.
+- `check:preset-editor-smoke` **could pass without testing anything, and
+  was failing for the wrong reason.** Its timeline assertion read
+  `#tlSections button` straight after assigning `preset.sequence`, but the
+  timeline is painted only by `renderTimeline()` — which runs from UI
+  handlers, never from the frame loop — so the node list was empty and the
+  `if (jump) jump.click()` guard made the assertion vacuous; it also
+  asserted `afterJump.section === 0` after clicking the *first* button,
+  which is indistinguishable from "the jump did nothing". The test now
+  switches the sequence on through `#seqEnabled` (the user's own path),
+  asserts the timeline rendered a button per section, clicks the **second**
+  section, and asserts the playhead moved to it **and stayed** there and
+  that the section brought its scene and the render with it. The rule test
+  now drives the rulebook synchronously and owns `preset.logic.rules` only
+  for that drive, so the live loop cannot evaluate the same rule against
+  the demo signal between two ticks and fire a spurious falling edge that
+  replaces the ramp under test; the hold test asserts the rule *was
+  refused* (its own log entry) and never fired, rather than that some
+  `held` entry exists — the manual edit logs one itself.
 - Every audio frame was ingested **twice** by the section detector, so the
   song's structure was computed over a self-similarity matrix with every
   row duplicated — the boundaries it found were weaker and noisier than the
@@ -158,6 +231,25 @@ once it hits 1.0.
   for the same frame and the second call is a no-op. The media clock (not a
   wall clock) also means a paused song **freezes** the analysis instead of
   feeding the detector the same frozen frame over and over.
+- The **canvas vanished on every narrow window reached by resizing**.
+  `#timeline-host` carries an inline `grid-column: 2 / 3` (it sits under
+  the layers column on the desktop template); in the narrow single-column
+  template that inline placement creates an implicit ~389px column,
+  which squeezes the `1fr` column holding `#stage` to 0px. Loading *at*
+  390px was fine, which is why `check:engine-mobile` never caught it —
+  it loaded each viewport fresh instead of resizing. The gate now
+  resizes as well.
+- `drawLayer` composited **from a 0x0 canvas**. It draws from
+  `this.proc`, the offscreen processing canvas, which is 0x0 while the
+  stage is `display:none` in Basic mode. `drawImage()` with a 0x0 canvas
+  source is illegal, and the throw escaped into the render loop and
+  killed the whole frame.
+- The **rotation pre-pass built a 0x0 canvas** when the source asset had
+  no intrinsic size — an image still decoding, or one that failed to
+  load. Same illegal `drawImage`, same killed frame.
+- `versions/play.html` carried **two `<link rel="canonical">` tags**,
+  which failed the site-chrome gate. It now carries one, pointing at
+  `/versions/play`.
 - The export hung on browsers without an H.264 encoder (Firefox, and the
   Chromium builds that ship without the proprietary codecs): the WebCodecs
   worker reported the unusable codec **asynchronously**, so the promise
@@ -294,6 +386,36 @@ once it hits 1.0.
   connection, and the `.zip` we build when you publish a project to the
   marketplace. "We can't see your library" is now scoped to the two cases
   where we do hold a file.
+- The build no longer ships **138 KB of orphaned assets**. Vite built
+  `engine.html` as its only Rollup input so that `transformIndexHtml`
+  would fire on it, but `copy-static` ships `dist/engine.html` as a plain
+  file copy — so Vite's output for that page was overwritten anyway, and
+  the extracted `dist/assets/engine-*.js` and `engine-*.css` were
+  referenced by nothing. Vite still needs one input, so
+  `scripts/vite-noop-entry.js` is an empty module and a plugin removes
+  the chunk it emits. Headroom against the 180 MB build budget went from
+  20 KB to 158 KB.
+- `scripts/generate-vercel-rewrites.mjs` **no longer deletes the `/play`
+  rules**. The generator emitted nothing for `/play` (it only emits a
+  rule when the target file exists at the path the route implies, and
+  `/play.html` does not), so the two hand-written rules were the only
+  thing keeping the route alive — and the next run would have 404'd
+  `/play` in production. Both variants' rules now live in the generator,
+  which is the single source of truth.
+- The **parameter bench** moved into the **control centre** at
+  `/super-admin`. The bench is unchanged in substance — the same fourteen
+  URL parameters, the same URL builder, the same reference table — but it
+  now mounts as a card and takes the host's colours, so it reads as part
+  of the page instead of a page of its own. The standalone `/lab/params`
+  page is gone, and the debugger's header link points at the new home.
+- The **control centre** (`super-admin.html`, `/super-admin`) is wired to
+  real endpoints instead of simulated cards. Pipeline reads the real
+  workflow runs, Git the real branch and commits, Health probes the real
+  pages, System reports the instance it is running on and says so. The
+  header badge is derived from those probes rather than asserted, and the
+  actions that need a token refuse and explain themselves rather than
+  pretending. It ships unlisted and `noindex`, like `/make-video` and
+  `/atlas`.
 - Bare 1..9 no longer selects layers (the previous behaviour
   surfaced audio rot reactors and caused accidental rotation).
 - Help text remapped: digit row = filter slots, T-prefix = alias.

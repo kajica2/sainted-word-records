@@ -229,7 +229,12 @@ try {
     throw new BootFailure();
   }
   try {
-    await page.goto('http://localhost:5187/bench.html', { waitUntil: 'networkidle2', timeout: 30000 });
+    // 'networkidle' never settles on the CI runner: the page keeps a
+    // connection open (the service worker, the shared-chrome fetch), so
+    // the navigation waits out its whole timeout and the smoke fails on
+    // a page that loaded fine. The readiness signal is the page's own
+    // global, which the waitForFunction below waits for.
+    await page.goto('http://localhost:5187/bench.html', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForFunction(() => !!window.SWRBench, { timeout: 10000 });
   } catch (e) {
     // the page never came up: every assertion below depends on it
@@ -639,7 +644,7 @@ try {
   // --- 7) reports survive a reload, and the compare table's delta -------
   let reloadError = null;
   try {
-    await page.reload({ waitUntil: 'networkidle2' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!window.SWRBench, { timeout: 10000 });
   } catch (e) {
     reloadError = 'the reload failed: ' + ((e && e.message) || String(e));

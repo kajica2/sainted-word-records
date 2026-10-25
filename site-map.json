@@ -415,6 +415,11 @@
       "label": "Gumroad",
       "href": "https://kaidjuric.gumroad.com",
       "description": "The store — presets, packs and stills, with checkout and delivery handled by Gumroad"
+    },
+    {
+      "label": "Play",
+      "href": "/play",
+      "description": "Deep-link engine variant. Toggle video, loop and photo_slide modes via URL parameters."
     }
   ],
   "store": {
@@ -639,12 +644,14 @@
     "/gallery/brutalist",
     "/gallery/vintage",
     "/versions/music-video-gallery",
+    "/versions/credits-storyline",
     "/slots-admin",
     "/connect",
     "/buy",
     "/font-vault",
     "/bookings",
     "/engine-personas",
+    "/alternate",
     "/super-admin"
   ],
   "archived": [],
@@ -781,6 +788,7 @@
     "spit.html",
     "status.html",
     "style-guide.html",
+    "super-admin.html",
     "swr-app.html",
     "swr-intro-10s.html",
     "thanks.html",
@@ -801,6 +809,7 @@
     "versions/credits-storyline.html",
     "versions/echo-manifold.html",
     "versions/eclipse.html",
+    "versions/envelope.html",
     "versions/film.html",
     "versions/fractal.html",
     "versions/gallery.html",
