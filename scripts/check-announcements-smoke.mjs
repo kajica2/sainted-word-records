@@ -81,7 +81,13 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 async function nav(url) {
-  await page.goto('http://localhost:5185' + url, { waitUntil: 'networkidle2', timeout: 30000 });
+// 'networkidle' never settles on the CI runner: the page keeps a
+// connection open (the service worker, the shared-chrome fetch), so
+// the navigation waits out its whole timeout and the smoke fails on
+// a page that loaded fine. The readiness signal is the page's own
+// global, which the waitForFunction below already waits for — the
+// same reasoning as scripts/check-play-variant.mjs.
+  await page.goto('http://localhost:5185' + url, { waitUntil: 'domcontentloaded', timeout: 30000 });
   await page.waitForFunction(() => window.SWR_ANNOUNCEMENTS || true, { timeout: 10000 }).catch(() => {});
 }
 

@@ -126,6 +126,7 @@
     "check:mv-keys-unit": "node scripts/check-mv-keys-unit.mjs",
     "check:variant-switcher-unit": "node scripts/check-variant-switcher-unit.mjs",
     "check:variant-switcher-smoke": "node scripts/check-variant-switcher-smoke.mjs",
+    "check:play-variant": "node scripts/check-play-variant.mjs",
     "targeting:build": "node targeting-pipeline/parse-personas.mjs && node targeting-pipeline/parse-scripts.mjs && node targeting-pipeline/build-rules.mjs && node targeting-pipeline/build-voice-lint.mjs",
     "targeting:verify": "node targeting-pipeline/verify.mjs",
     "preset-pipeline:verify": "node preset-pipeline/verify.mjs",
@@ -248,7 +249,9 @@
     "media:inventory": "node scripts/media-inventory.mjs",
     "build:generations": "node scripts/generate-generations.mjs",
     "check:generations": "node scripts/check-generations.mjs",
-    "prebuild": "node scripts/media-inventory.mjs && node scripts/generate-generations.mjs"
+    "prebuild": "node scripts/media-inventory.mjs && node scripts/generate-generations.mjs",
+    "check:chain-view": "node scripts/check-chain-view.mjs",
+    "check:command-center": "node scripts/check-command-center.mjs"
   },
   "devDependencies": {
     "mp4-muxer": "^5.2.2",

@@ -22,7 +22,7 @@
 // numbers describe the instance serving the request, not the machine
 // that pushed the commit. The card labels them as such.
 
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { readJson, writeJson, withLock, health, DATA_ROOT } from './_lib/db.js';
@@ -218,9 +218,11 @@ async function stateExport() {
     };
   } catch (e) {
     // site-map.json is read from disk rather than bundled, so on a
-    // serverless deployment the file is often not there. Say so rather
-    // than reporting zero counts that look like a real measurement.
-    siteMap = { error: e.message, note: 'site-map.json is not present in this deployment' };
+    // serverless deployment the file is often not there. Say which it is
+    // rather than reporting zero counts that look like a measurement.
+    siteMap = e.code === 'ENOENT'
+      ? { error: e.message, note: 'site-map.json is not present in this deployment' }
+      : { error: e.message, note: 'site-map.json could not be read' };
   }
   return {
     exportedAt: nowIso(),

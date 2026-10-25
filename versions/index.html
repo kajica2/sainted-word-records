@@ -8,11 +8,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Visual languages — Sainted Word Records</title>
-  <meta name="description" content="Eight visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <meta name="description" content="Twenty-two visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
   <link rel="canonical" href="https://sainted-word-records.vercel.app/visual-languages">
   <meta property="og:title" content="Visual languages — Sainted Word Records">
   <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/gallery.png">
-  <meta property="og:description" content="Eight visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
+  <meta property="og:description" content="Twenty-two visual languages for the Sainted Word audio-reactive engine. Same controls, same library, same MP4 export — different aesthetics.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -167,19 +167,31 @@
     <nav class="versions" aria-label="Visual language">
       <a href="/versions/neon"            data-v="neon">Neon</a>
       <a href="/versions/film"            data-v="film">Film</a>
+      <a href="/versions/grid"            data-v="grid">Grid</a>
       <a href="/versions/smoke"           data-v="smoke">Smoke</a>
       <a href="/versions/hallucination"   data-v="hallucination">Hallucination</a>
       <a href="/versions/aurora"          data-v="aurora">Aurora</a>
+      <a href="/versions/spectrum"        data-v="spectrum">Spectrum</a>
+      <a href="/versions/simple"          data-v="simple">Simple</a>
       <span class="sep" aria-hidden="true"></span>
-      <a href="/versions/music_video"     data-v="music_video">Music Video</a>
       <a href="/versions/glitch"          data-v="glitch">Glitch</a>
       <a href="/versions/pulse"           data-v="pulse">Pulse</a>
       <a href="/versions/void"            data-v="void">Void</a>
       <a href="/versions/chrome"          data-v="chrome">Chrome</a>
       <a href="/versions/watercolor"      data-v="watercolor">Watercolor</a>
       <a href="/versions/fractal"         data-v="fractal">Fractal</a>
-      <a href="/versions/music_video_mtv" data-v="music_video_mtv">MTV</a>
       <a href="/versions/eclipse"         data-v="eclipse">Eclipse</a>
+      <a href="/versions/collage"         data-v="collage">Collage</a>
+      <a href="/versions/kraft"           data-v="kraft">Kraft</a>
+      <a href="/versions/mosaic"          data-v="mosaic">Mosaic</a>
+      <a href="/versions/phosphor"        data-v="phosphor">Phosphor</a>
+      <a href="/versions/tape"            data-v="tape">Tape</a>
+      <a href="/versions/typography"      data-v="typography">Type</a>
+      <a href="/versions/echo-manifold"   data-v="echo-manifold">Echo</a>
+      <a href="/versions/music_video"     data-v="music_video">MV</a>
+      <a href="/versions/music_video_mtv" data-v="music_video_mtv">MTV</a>
+      <a href="/versions/console"         data-v="console">Console</a>
+      <a href="/versions/envelope"        data-v="envelope">Envelope</a>
     </nav>
 
     <div class="top-right">
@@ -194,16 +206,15 @@
 
     <header class="page-head">
       <span class="kicker">Versions</span>
-      <h1>Eight <em>visual languages</em>, one engine.</h1>
+      <h1>Twenty-two <em>visual languages</em>, one engine.</h1>
       <p class="lede">Same controls, same library, same MP4 export. Pick the aesthetic that fits the song. Switch anytime — projects carry across versions.</p>
 
       <div class="version-meta">
-        <span><b>28</b>versions live</span>
-        <span><b>8</b>featured here</span>
+        <span><b>22</b>versions live</span>
         <span><b>1</b>engine</span>
         <span><b>MIT</b>licensed</span>
         <span><b>v1</b>schema stable</span>
-        <span><b>new</b>preset dropdown · autoplay with muted fallback</span>
+        <span><b>new</b>envelope editor · credits storyline</span>
       </div>
     </header>
 
@@ -345,6 +356,176 @@
         </div>
       </a>
 
+      <!-- 09 — Envelope (NEW) -->
+      <a class="version-card" href="/versions/envelope">
+        <div class="visual" aria-hidden="true"><canvas id="venvelope"></canvas></div>
+        <div class="body">
+          <span class="num">09 · ENVELOPE<span class="badge-new">NEW</span></span>
+          <h2>Envelope</h2>
+          <p>Interactive LFO envelope editor. Drag points, change duration, switch curves, live play preview, text editor, and undo.</p>
+          <div class="tags">
+            <span class="tag">lfo</span>
+            <span class="tag">envelope</span>
+            <span class="tag">interactive</span>
+            <span class="tag">auto-adapt</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 10 — Credits & Storyline (NEW) -->
+      <a class="version-card" href="/versions/credits-storyline">
+        <div class="visual" aria-hidden="true"><canvas id="vcredits"></canvas></div>
+        <div class="body">
+          <span class="num">10 · CREDITS<span class="badge-new">NEW</span></span>
+          <h2>Credits & Storyline</h2>
+          <p>Auto-assemble credits and generate storyline timelines from track analysis. Lifeline Console series plugin.</p>
+          <div class="tags">
+            <span class="tag">credits</span>
+            <span class="tag">storyline</span>
+            <span class="tag">auto</span>
+            <span class="tag">plugin</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 11 — Glitch -->
+      <a class="version-card" href="/versions/glitch">
+        <div class="visual" aria-hidden="true"><canvas id="vglitch"></canvas></div>
+        <div class="body">
+          <span class="num">11 · GLITCH</span>
+          <h2>Glitch</h2>
+          <p>Snap-beat corrupt. RGB tears, signal noise, hard cuts on the kick.</p>
+          <div class="tags">
+            <span class="tag">glitch</span>
+            <span class="tag">corrupt</span>
+            <span class="tag">RGB</span>
+            <span class="tag">experimental</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 12 — Pulse -->
+      <a class="version-card" href="/versions/pulse">
+        <div class="visual" aria-hidden="true"><canvas id="vpulse"></canvas></div>
+        <div class="body">
+          <span class="num">12 · PULSE</span>
+          <h2>Pulse</h2>
+          <p>Beat-locked radial pulses. Energy expands from the center on every onset.</p>
+          <div class="tags">
+            <span class="tag">pulse</span>
+            <span class="tag">radial</span>
+            <span class="tag">beat</span>
+            <span class="tag">energy</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 13 — Void -->
+      <a class="version-card" href="/versions/void">
+        <div class="visual" aria-hidden="true"><canvas id="vvoid"></canvas></div>
+        <div class="body">
+          <span class="num">13 · VOID</span>
+          <h2>Void</h2>
+          <p>Dark negative space. Sparse highlights, long decays, atmospheric weight.</p>
+          <div class="tags">
+            <span class="tag">void</span>
+            <span class="tag">dark</span>
+            <span class="tag">sparse</span>
+            <span class="tag">ambient</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 14 — Chrome -->
+      <a class="version-card" href="/versions/chrome">
+        <div class="visual" aria-hidden="true"><canvas id="vchrome"></canvas></div>
+        <div class="body">
+          <span class="num">14 · CHROME</span>
+          <h2>Chrome</h2>
+          <p>Reflective metallic surfaces. Hard speculars, cool highlights, industrial sheen.</p>
+          <div class="tags">
+            <span class="tag">metallic</span>
+            <span class="tag">reflective</span>
+            <span class="tag">industrial</span>
+            <span class="tag">cool</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 15 — Watercolor -->
+      <a class="version-card" href="/versions/watercolor">
+        <div class="visual" aria-hidden="true"><canvas id="vwatercolor"></canvas></div>
+        <div class="body">
+          <span class="num">15 · WATERCOLOR</span>
+          <h2>Watercolor</h2>
+          <p>Soft bleed and wash. Edges dissolve, color pools, gentle organic motion.</p>
+          <div class="tags">
+            <span class="tag">watercolor</span>
+            <span class="tag">bleed</span>
+            <span class="tag">soft</span>
+            <span class="tag">organic</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 16 — Fractal -->
+      <a class="version-card" href="/versions/fractal">
+        <div class="visual" aria-hidden="true"><canvas id="vfractal"></canvas></div>
+        <div class="body">
+          <span class="num">16 · FRACTAL</span>
+          <h2>Fractal</h2>
+          <p>Recursive organic forms. Self-similar structures that breathe with the bass.</p>
+          <div class="tags">
+            <span class="tag">fractal</span>
+            <span class="tag">recursive</span>
+            <span class="tag">organic</span>
+            <span class="tag">math</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 17 — Eclipse -->
+      <a class="version-card" href="/versions/eclipse">
+        <div class="visual" aria-hidden="true"><canvas id="veclipse"></canvas></div>
+        <div class="body">
+          <span class="num">17 · ECLIPSE</span>
+          <h2>Eclipse</h2>
+          <p>Corona glow. Dark disk, bright rim, slow orbital drift.</p>
+          <div class="tags">
+            <span class="tag">eclipse</span>
+            <span class="tag">corona</span>
+            <span class="tag">glow</span>
+            <span class="tag">orbital</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
+      <!-- 18 — Collage -->
+      <a class="version-card" href="/versions/collage">
+        <div class="visual" aria-hidden="true"><canvas id="vcollage"></canvas></div>
+        <div class="body">
+          <span class="num">18 · COLLAGE</span>
+          <h2>Collage</h2>
+          <p>Cut-paper layers. Torn edges, overlapping planes, tactile texture.</p>
+          <div class="tags">
+            <span class="tag">collage</span>
+            <span class="tag">paper</span>
+            <span class="tag">torn</span>
+            <span class="tag">layered</span>
+          </div>
+          <span class="open">Open version</span>
+        </div>
+      </a>
+
     </div>
 
   </main>
@@ -436,13 +617,11 @@
     ctx.globalAlpha = 1;
   }
 
-  /* SIMPLE — spectrum bars with waveform */
   function simple(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
     const h = c.height = c.clientHeight * 2;
     ctx.fillStyle = '#050811'; ctx.fillRect(0, 0, w, h);
-    // bars
     const bands = 32;
     const barW = w / bands;
     for (let i = 0; i < bands; i++) {
@@ -452,16 +631,25 @@
       ctx.fillStyle = `hsl(${hue},80%,50%)`;
       ctx.fillRect(i * barW + 1, h - bh, barW - 2, bh);
     }
-    // waveform
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.lineWidth = 1;
-    for (let x = 0; x <= w; x += 2) {
-      const n = x / w;
-      const y = Math.sin(n * Math.PI * 8) * h * 0.05 + h * 0.5;
-      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    for (let i = 0; i < 4; i++) {
+      const y = h * (0.3 + i * 0.15);
+      ctx.moveTo(0, y); ctx.lineTo(w, y + Math.sin(i) * 20);
     }
     ctx.stroke();
+  }
+
+  function clean(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#0a0d18'); g.addColorStop(1, '#00ffa3');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#fff'; ctx.font = '700 20px Inter';
+    ctx.fillText('CLEAN', w/2 - 40, h/2);
   }
 
   function consoleV(c) {
@@ -469,72 +657,149 @@
     const w = c.width = c.clientWidth * 2;
     const h = c.height = c.clientHeight * 2;
     ctx.fillStyle = '#0A0A0B'; ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(255,107,26,0.08)'; ctx.lineWidth = 1;
-    const step = 16;
-    for (let x = 0; x < w; x += step) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-    }
     ctx.strokeStyle = '#FF6B1A'; ctx.lineWidth = 2;
     ctx.beginPath();
-    for (let x = 0; x <= w; x += 2) {
-      const n = x / w;
-      const y = Math.sin(n * Math.PI * 8) * h * 0.18
-              + Math.sin(n * Math.PI * 20) * h * 0.06
-              + Math.sin(n * Math.PI * 40) * h * 0.03;
-      if (x === 0) ctx.moveTo(x, h/2 + y); else ctx.lineTo(x, h/2 + y);
+    for (let x = 0; x < w; x += 2) {
+      const y = h/2 + Math.sin(x * 0.05) * 40;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    ctx.fillStyle = '#FF6B1A';
-    for (let i = 0; i < 24; i++) {
-      const bh = (Math.sin(i * 0.5) * 0.5 + 0.5) * h * 0.18;
-      ctx.globalAlpha = 0.5 + Math.random() * 0.3;
-      ctx.fillRect(i * (w/24) + 1, h * 0.78 - bh, (w/24) - 2, bh);
-    }
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#FF6B1A'; ctx.font = '600 10px "JetBrains Mono", monospace';
-    ctx.fillText('BPM 120', 8, 14); ctx.fillText('A min', w - 40, 14);
   }
 
-  // Clean — CSS-style gradient animation
-  function clean(c) {
+  function envelope(c) {
     const ctx = c.getContext('2d');
     const w = c.width = c.clientWidth * 2;
     const h = c.height = c.clientHeight * 2;
-    const t = Date.now() / 1000;
-    const g = ctx.createLinearGradient(0, 0, w * Math.sin(t * 0.5) + w, h);
-    g.addColorStop(0, '#0a0d18');
-    g.addColorStop(0.5, '#00ffa3');
-    g.addColorStop(1, '#00c8ff');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    // Minimalist play icon
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(w * 0.4, h * 0.3);
-    ctx.lineTo(w * 0.4, h * 0.7);
-    ctx.lineTo(w * 0.7, h * 0.5);
-    ctx.closePath();
-    ctx.fill();
+    const pts = [[0,0.8],[0.2,0.2],[0.5,0.5],[0.8,0.1],[1,0.9]];
+    pts.forEach(([t,y], i) => {
+      const px = t * w;
+      const py = h - y * h * 0.8;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+  }
+
+  function credits(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0f1115';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#ff2d95';
+    ctx.font = '600 14px Inter, sans-serif';
+    ctx.fillText('CREDITS', 16, h/2);
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillText('STORYLINE', 16, h/2 + 24);
+  }
+
+  function glitch(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = `hsla(${Math.random()*360},100%,60%,0.7)`;
+      ctx.fillRect(Math.random()*w, Math.random()*h, Math.random()*80+20, 4);
+    }
+  }
+  function pulse(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.min(w,h)/2);
+    g.addColorStop(0, '#ff3d92'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function voidfn(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#050508'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath(); ctx.arc(w*0.6, h*0.4, 8, 0, Math.PI*2); ctx.fill();
+  }
+  function chrome(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#d4af37'); g.addColorStop(0.5, '#c0c0c0'); g.addColorStop(1, '#b87333');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function watercolor(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#f8f0e8'; ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w*0.4, h*0.4, 0, w*0.4, h*0.4, w*0.6);
+    g.addColorStop(0, 'rgba(244,194,194,0.7)'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function fractal(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = '#ff2d8a'; ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, 20 + i*30, 0, Math.PI*2);
+      ctx.stroke();
+    }
+  }
+  function eclipse(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, w, h);
+    const g = ctx.createRadialGradient(w/2, h/2, 40, w/2, h/2, 120);
+    g.addColorStop(0, '#000'); g.addColorStop(0.6, '#ffb347'); g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  }
+  function collage(c) {
+    const ctx = c.getContext('2d');
+    const w = c.width = c.clientWidth * 2;
+    const h = c.height = c.clientHeight * 2;
+    ctx.fillStyle = '#1a0f08'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#d8232a'; ctx.fillRect(20, 30, 80, 60);
+    ctx.fillStyle = '#fff'; ctx.fillRect(50, 50, 70, 50);
   }
 
   const map = {
-    vneon: neon, vfilm: film, vgrid: grid, vspectrum: spectrum,
-    vaurora: aurora, vsimple: simple, vclean: clean, vconsole: consoleV,
+    vneon: neon,
+    vfilm: film,
+    vgrid: grid,
+    vspectrum: spectrum,
+    vaurora: aurora,
+    vsimple: simple,
+    vclean: clean,
+    vconsole: consoleV,
+    venvelope: envelope,
+    vcredits: credits,
+    vglitch: glitch,
+    vpulse: pulse,
+    vvoid: voidfn,
+    vchrome: chrome,
+    vwatercolor: watercolor,
+    vfractal: fractal,
+    veclipse: eclipse,
+    vcollage: collage
   };
-  Object.entries(map).forEach(([id, fn]) => {
-    const el = document.getElementById(id);
-    if (el) fn(el);
-  });
+
+  function paint() {
+    Object.entries(map).forEach(([id, fn]) => {
+      const c = document.getElementById(id);
+      if (c) fn(c);
+    });
+  }
+  paint();
+  window.addEventListener('resize', paint);
 })();
   </script>
-
-  <div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
-      <button id="automix-debug-close" title="Close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; line-height:1;">×</button>
-    </div>
-    <div id="automix-debug-body" style="color:#aaa;">idle</div>
-  </div>
   <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
   <script src="../lib/audio-damp.client.js"></script>

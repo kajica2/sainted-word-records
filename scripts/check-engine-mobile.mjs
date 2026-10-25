@@ -55,6 +55,52 @@ try {
     }
     await page.close();
   }
+
+  // RESIZE, not just load.
+  //
+  // The per-viewport loop above loads each size fresh, which is how the
+  // narrow-layout collapse slipped through: #timeline-host carries an
+  // INLINE `grid-column: 2 / 3` (it sits under the layers column on the
+  // desktop template). In the narrow single-column template that inline
+  // placement creates an implicit ~389px column, which squeezes the 1fr
+  // column holding #stage to 0px. Loading at 390px was fine; RESIZING
+  // down to 390px was not, so the canvas vanished on any narrow window
+  // the user reached by dragging the window rather than by opening a
+  // fresh one.
+  {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto('file://' + resolve(ROOT, 'engine.html'), { waitUntil: 'domcontentloaded' });
+    await sleep(800);
+    // Advanced mode, so #stage is visible rather than hidden behind the
+    // basic-mode placeholder.
+    await page.evaluate(() => {
+      try { localStorage.setItem('swr.engine.mode', 'advanced'); } catch (_) {}
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await sleep(1200);
+    for (const v of VIEWPORTS) {
+      await page.setViewport({ width: v.width, height: v.height });
+      await sleep(700);
+      const info = await page.evaluate(() => {
+        const stage = document.getElementById('stage');
+        const app = document.getElementById('app');
+        return {
+          stageWidth: stage ? stage.getBoundingClientRect().width : null,
+          stageHasCanvas: !!(stage && stage.querySelector('canvas')),
+          cols: app ? getComputedStyle(app).gridTemplateColumns : null,
+        };
+      });
+      const ok = info.stageWidth > v.minStage && info.stageHasCanvas;
+      const status = ok ? 'PASS' : 'FAIL';
+      console.log(`${status}  resized to ${v.name}: stage=${info.stageWidth?.toFixed(0)}px, canvas=${info.stageHasCanvas}`);
+      if (!ok) {
+        failed++;
+        console.log(`       expected stage width > ${v.minStage}px with a canvas, got width=${info.stageWidth} canvas=${info.stageHasCanvas} cols=${info.cols}`);
+      }
+    }
+    await page.close();
+  }
 } finally {
   await browser.close();
 }

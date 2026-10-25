@@ -140,6 +140,14 @@
       "destination": "/atlas.html"
     },
     {
+      "source": "/versions/play",
+      "destination": "/versions/play.html"
+    },
+    {
+      "source": "/versions/play/",
+      "destination": "/versions/play.html"
+    },
+    {
       "source": "/versions/music-video",
       "destination": "/versions/music_video.html"
     },
@@ -466,6 +474,18 @@
     {
       "source": "/artists/vodolija",
       "destination": "/artists/vodolija.html"
+    },
+    {
+      "source": "/versions/credits-storyline",
+      "destination": "/versions/credits-storyline.html"
+    },
+    {
+      "source": "/versions/credits-storyline/",
+      "destination": "/versions/credits-storyline.html"
+    },
+    {
+      "source": "/versions/envelope",
+      "destination": "/versions/envelope.html"
     },
     {
       "source": "/",
@@ -1380,10 +1400,6 @@
       "destination": "/terms.html"
     },
     {
-      "source": "/versions/credits-storyline",
-      "destination": "/versions/credits-storyline.html"
-    },
-    {
       "source": "/login",
       "destination": "/login.html"
     },
@@ -1422,6 +1438,22 @@
     {
       "source": "/enhance/",
       "destination": "/enhance.html"
+    },
+    {
+      "source": "/play",
+      "destination": "/versions/play.html"
+    },
+    {
+      "source": "/play/",
+      "destination": "/versions/play.html"
+    },
+    {
+      "source": "/alternate",
+      "destination": "/engine.html?chain=1"
+    },
+    {
+      "source": "/alternate/",
+      "destination": "/engine.html?chain=1"
     },
     {
       "source": "/atlas/200-steps",

@@ -39,6 +39,8 @@ const EXCLUSIONS = {
   'music-video-gallery': 'a video player page with eight <video> elements, not a render pass',
   'credits-storyline': 'a plugin page, not a version',
   'temple-of-control': 'a standalone page with no render pass',
+  'envelope': 'an interactive LFO envelope editor surfaced on /versions, not a visual language',
+  'play': 'a deep-link engine shell for ?v= URLs, not a visual language page',
 };
 
 const results = [];
