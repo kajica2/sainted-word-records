@@ -25,6 +25,26 @@
     unknown: { preferred: ['raw', 'filter', 'neon'], intensity: 0.5 },
   };
 
+  function availablePersonaKeys() {
+    const P = window.Personas && window.Personas.PERSONAS;
+    if (!P) return new Set();
+    if (Array.isArray(P)) return new Set(P.map(p => p.id || p.key || p.name).filter(Boolean));
+    return new Set(Object.keys(P));
+  }
+
+  function resolvePersona(preferred, available) {
+    if (!preferred || !preferred.length) return 'raw';
+    if (!available || available.size === 0) return preferred[0];
+    for (const key of preferred) {
+      if (available.has(key)) return key;
+    }
+    // last-resort known-good keys
+    for (const fallback of ['raw', 'filter', 'neon', 'fx', 'smoke']) {
+      if (available.has(fallback)) return fallback;
+    }
+    return preferred[0];
+  }
+
   function rms(samples, start, end) {
     let sum = 0;
     const n = end - start;
@@ -131,10 +151,11 @@
         });
       }
 
+      const available = availablePersonaKeys();
       const sections = rawSections.map((s) => {
         const label = classifySection(s);
         const profile = SECTION_PROFILES[label] || SECTION_PROFILES.unknown;
-        const persona = profile.preferred[0];
+        const persona = resolvePersona(profile.preferred, available);
         const intensity = Math.min(1, profile.intensity * (0.7 + s.energy * 0.6));
         return {
           start: +s.start.toFixed(2), end: +s.end.toFixed(2), duration: +s.duration.toFixed(2),
@@ -164,14 +185,16 @@
     applyActive(plan, currentTime) {
       const active = this.getActive(plan, currentTime);
       if (!active) return null;
-      if (window.Personas && typeof window.Personas.apply === 'function' && active.persona) {
-        if (this._lastPersona !== active.persona) {
-          window.Personas.apply(active.persona);
-          this._lastPersona = active.persona;
+      const available = availablePersonaKeys();
+      const persona = resolvePersona([active.persona], available);
+      if (window.Personas && typeof window.Personas.apply === 'function' && persona) {
+        if (this._lastPersona !== persona) {
+          try { window.Personas.apply(persona); } catch (_) {}
+          this._lastPersona = persona;
         }
       }
       if (window.FX && typeof window.FX.setMut === 'function') {
-        window.FX.setMut(active.intensity);
+        try { window.FX.setMut(active.intensity); } catch (_) {}
       }
       return active;
     }
