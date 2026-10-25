@@ -1,13 +1,13 @@
 {
   "team": "Sainted Word Records",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "root": ".",
   "twin_root": "../digital_twin",
   "provider": {
-    "name": "minimax",
-    "base_url": "https://api.minimax.io/anthropic",
-    "api_key_env": "MINIMAX_API_KEY",
-    "note": "Same provider the CI factory uses. The local team and the nightly job must not disagree about which model judges what — software-factory/routing.config.json is the source of truth, and scripts/check-factory-routing.mjs fails the build if the two drift apart."
+    "name": "multi",
+    "providers": ["minimax", "opencode", "xai", "antigravity"],
+    "api_key_envs": ["MINIMAX_API_KEY", "OPENCODE_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY"],
+    "note": "The factory is multi-provider. software-factory/routing.config.json is the source of truth for which model does which job and what happens when a provider is down; this file only records the local team's preferences. scripts/check-factory-routing.mjs fails the build if the two disagree."
   },
   "agents": {
     "SWR-Ops": {
@@ -16,11 +16,16 @@
       "description": "Project manager - decomposes work, owns TASKS.md, routes to teammates",
       "uses_gstack": ["autoplan", "ship", "review", "qa", "investigate"],
       "writes": ["agents/TASKS.md"],
-      "model_default": "MiniMax-M3",
+      "model_default": "minimax/MiniMax-M3",
       "models": {
-        "planning": "MiniMax-M3",
-        "coding": "MiniMax-M2.7",
-        "triage": "MiniMax-M3.1-Flash"
+        "planning": "minimax/MiniMax-M3",
+        "coding": "minimax/MiniMax-M2.7",
+        "triage": "minimax/MiniMax-M3.1-Flash"
+      },
+      "fallbacks": {
+        "planning": ["xai/grok-4.7", "opencode/claude-sonnet-5"],
+        "coding": ["opencode/qwen3.7-plus", "xai/grok-4.6"],
+        "triage": ["opencode/deepseek-v4.1-flash", "xai/grok-4.7"]
       }
     },
     "SWR-Twin": {
@@ -29,10 +34,13 @@
       "description": "Your voice and taste - creative work, decisions",
       "reads": ["../digital_twin/voice/", "../digital_twin/cognitive-twin.html"],
       "confidence_threshold": 0.85,
-      "model_default": "MiniMax-M2.7",
+      "model_default": "minimax/MiniMax-M2.7",
       "models": {
-        "creative": "MiniMax-M2.7",
-        "planning": "MiniMax-M3"
+        "creative": "minimax/MiniMax-M2.7",
+        "planning": "minimax/MiniMax-M3"
+      },
+      "fallbacks": {
+        "creative": ["opencode/qwen3.7-plus", "antigravity/gemini-3.8-flash"]
       }
     },
     "SWR-Check": {
@@ -41,9 +49,12 @@
       "description": "Read-only validation - blocks unconfirmed work",
       "uses_gstack": ["review", "qa", "health"],
       "readonly": true,
-      "model_default": "MiniMax-M3.1-Flash",
+      "model_default": "minimax/MiniMax-M3.1-Flash",
       "models": {
-        "verification": "MiniMax-M3.1-Flash"
+        "verification": "minimax/MiniMax-M3.1-Flash"
+      },
+      "fallbacks": {
+        "verification": ["opencode/deepseek-v4.1-flash", "xai/grok-4.7"]
       }
     }
   },

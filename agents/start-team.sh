@@ -24,10 +24,14 @@
 #   node >= 18                            # the bridge uses global fetch
 #   the twin checkout at ../digital_twin  # for SWR-Twin's voice samples
 #
-# The model per agent comes from agents/team.config.json:
-#   SWR-Ops   → MiniMax-M3         (planning, adaptive thinking)
-#   SWR-Twin  → MiniMax-M2.7       (creative, 8k thinking budget)
-#   SWR-Check → MiniMax-M3.1-Flash (verification, effort=low)
+# The model per agent comes from agents/team.config.json, and the fallback
+# chain from software-factory/routing.config.json:
+#   SWR-Ops   → minimax/MiniMax-M3         (planning, adaptive thinking)
+#   SWR-Twin  → minimax/MiniMax-M2.7       (creative, 8k thinking budget)
+#   SWR-Check → minimax/MiniMax-M3.1-Flash (verification, effort=low)
+#
+# Every provider key is optional. The ones you have not set are skipped and
+# the chain moves on to the next model.
 
 set -euo pipefail
 
@@ -46,10 +50,13 @@ if [ ! -f "$BRIDGE" ]; then
     exit 1
 fi
 
-if [ -z "${MINIMAX_API_KEY:-}" ]; then
-    echo "❌ Error: MINIMAX_API_KEY is not set."
-    echo "   Get a key at https://platform.minimax.io → Account → API keys"
-    echo "   export MINIMAX_API_KEY=sk-..."
+if [ -z "${MINIMAX_API_KEY:-}" ] && [ -z "${OPENCODE_API_KEY:-}" ] && [ -z "${XAI_API_KEY:-}" ] && [ -z "${GEMINI_API_KEY:-}" ]; then
+    echo "❌ Error: no provider key is set."
+    echo "   The factory needs at least one of:"
+    echo "     MINIMAX_API_KEY   https://platform.minimax.io → Account → API keys"
+    echo "     OPENCODE_API_KEY  https://opencode.ai/auth"
+    echo "     XAI_API_KEY       https://console.x.ai"
+    echo "     GEMINI_API_KEY    https://aistudio.google.com/apikey"
     exit 1
 fi
 
