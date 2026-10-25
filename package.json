@@ -46,6 +46,7 @@
     "check:app-version-bust-unit": "node scripts/check-app-version-bust-unit.mjs",
     "check:version-watcher-unit": "node scripts/check-version-watcher-unit.mjs",
     "check:looks-menu-unit": "node scripts/check-looks-menu-unit.mjs",
+    "check:versions-dropdown": "node scripts/check-versions-dropdown.mjs",
     "check:look-filter-cycler-unit": "node scripts/check-look-filter-cycler-unit.mjs",
     "check:kit-zip-unit": "node scripts/check-kit-zip-unit.mjs",
     "check:debug-overlay-unit": "node scripts/check-debug-overlay-unit.mjs",
