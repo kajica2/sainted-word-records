@@ -146,6 +146,7 @@ const GROUPS = {
     'npm run test:asset-curator-unit',
     'npm run test:asset-curator',
     'npm run check:auth-unit',
+    'npm run check:security-gates-unit',
     // Google sign-in: the start endpoint, the signed state, the exchange,
     // the session cookie and the redirect_uri callback. Google's two
     // endpoints are stubbed; everything else is the real handler.

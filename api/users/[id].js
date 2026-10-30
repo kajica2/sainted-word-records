@@ -12,19 +12,17 @@
 //                                user's public profile; required for
 //                                future pack-author pages.
 //
-// PATCH /api/users/[id]        → owner-only. Today only `membershipTier`
-//                                can be patched, and only by the user
-//                                themselves. Future: name, image.
+// PATCH /api/users/[id]        → owner-only profile fields (name, image).
+//                                membershipTier is server/admin only — not
+//                                user-writable via this endpoint.
 //
 // Rate-limited: 30 PATCH per minute per user.
 
 import { requireUser } from '../_lib/session.js';
 import {
   getUser,
-  setMembershipTier,
   updateUser,
   rateLimit,
-  MEMBERSHIP_TIERS,
 } from '../_lib/db.js';
 import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
 
@@ -78,17 +76,13 @@ export default async function handler(req, res) {
     const body = await readJsonBody(req, { maxBytes: 32_000 });
     if (!body || body.__error) return sendJson(res, 400, { error: 'invalid_body' });
 
-    const patch = {};
-    // membershipTier: validated against the allow-list
     if (body.membershipTier != null) {
-      if (!MEMBERSHIP_TIERS.includes(body.membershipTier)) {
-        return sendJson(res, 400, { error: 'invalid_tier', allowed: MEMBERSHIP_TIERS });
-      }
-      // Re-use the dedicated helper so validation lives in one place.
-      const updated = await setMembershipTier(id, body.membershipTier);
-      if (!updated) return sendJson(res, 404, { error: 'not_found' });
-      return sendJson(res, 200, { user: publicProfile(updated) });
+      return sendJson(res, 403, {
+        error: 'tier_readonly',
+        message: 'Membership tier cannot be changed via this endpoint.',
+      });
     }
+    const patch = {};
     // name / image: trimmed; rejects empty strings
     if (typeof body.name === 'string') {
       const t = body.name.trim().slice(0, 80);

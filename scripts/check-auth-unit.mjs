@@ -177,26 +177,26 @@ async function main() {
   assert(!('email' in body.user), 'public profile does NOT include email');
   assert(!('provider' in body.user), 'public profile does NOT include provider');
 
-  // ─── Test 5: PATCH tier to creator ────────────────────────────────
-  console.log('\n=== PATCH tier ===');
+  // ─── Test 5: PATCH tier is forbidden (server/admin only) ───────────
+  console.log('\n=== PATCH tier rejected ===');
   r = await fetch(`http://localhost:${PORT}/api/users/${userId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Cookie: cookieJar },
     body: JSON.stringify({ membershipTier: 'creator' }),
   });
   body = await r.json();
-  assert(r.ok, 'PATCH returns 2xx');
-  assert(body.user.membershipTier === 'creator', 'tier updated to creator');
+  assert(r.status === 403, 'PATCH membershipTier returns 403');
+  assert(body.error === 'tier_readonly', 'error code is tier_readonly');
 
-  // ─── Test 6: PATCH persists across reads ─────────────────────────
-  console.log('\n=== tier persistence ===');
+  // ─── Test 6: tier unchanged after rejected PATCH ─────────────────
+  console.log('\n=== tier unchanged ===');
   r = await fetch(`http://localhost:${PORT}/api/users/${userId}`, {
     headers: { Cookie: cookieJar },
   });
   body = await r.json();
-  assert(body.user.membershipTier === 'creator', 'tier survives subsequent GET');
+  assert(body.user.membershipTier === 'free', 'tier stays free after rejected PATCH');
 
-  // ─── Test 7: PATCH invalid tier ────────────────────────────────────
+  // ─── Test 7: PATCH invalid tier still rejected ─────────────────────
   console.log('\n=== PATCH invalid tier rejected ===');
   r = await fetch(`http://localhost:${PORT}/api/users/${userId}`, {
     method: 'PATCH',
@@ -204,10 +204,8 @@ async function main() {
     body: JSON.stringify({ membershipTier: 'hacker' }),
   });
   body = await r.json();
-  assert(r.status === 400, 'invalid tier returns 400');
-  assert(body.error === 'invalid_tier', 'error code is invalid_tier');
-  assert(Array.isArray(body.allowed) && body.allowed.includes('free'),
-    'response lists allowed tiers');
+  assert(r.status === 403, 'invalid tier PATCH returns 403');
+  assert(body.error === 'tier_readonly', 'error code is tier_readonly');
 
   // ─── Test 8: PATCH another user's profile is forbidden ────────────
   console.log('\n=== PATCH another user is forbidden ===');
@@ -237,15 +235,15 @@ async function main() {
   body = await r.json();
   assert(r.status === 401, 'GET profile without session returns 401');
 
-  // ─── Test 11: PATCH tier back to free ─────────────────────────────
-  console.log('\n=== PATCH tier back to free ===');
+  // ─── Test 11: PATCH name (allowed field) ──────────────────────────
+  console.log('\n=== PATCH name ===');
   r = await fetch(`http://localhost:${PORT}/api/users/${userId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Cookie: cookieJar },
-    body: JSON.stringify({ membershipTier: 'free' }),
+    body: JSON.stringify({ name: 'Updated Name' }),
   });
   body = await r.json();
-  assert(r.ok && body.user.membershipTier === 'free', 'tier reverts to free');
+  assert(r.ok && body.user.name === 'Updated Name', 'owner can PATCH name');
 
   // ─── Test 12: sign out ─────────────────────────────────────────────
   console.log('\n=== sign out ===');

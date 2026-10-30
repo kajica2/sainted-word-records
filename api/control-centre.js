@@ -13,9 +13,10 @@
 //   run-tests   trigger the CI suite        (needs GITHUB_TOKEN)
 //   stop        cancel in-flight CI runs   (needs GITHUB_TOKEN)
 //
-// Reads need no token — the repository is public, so the GitHub API
-// answers unauthenticated. Writes need GITHUB_TOKEN; without it the
-// action refuses and says so. Nothing here ever reports a success it
+// Public reads: status, system, git, health, state (no session).
+// Admin-only (SWR_ADMIN_EMAILS + session): logs, clear-logs, run-tests,
+// stop, and POST log. run-tests/stop also need GITHUB_TOKEN; without it
+// those actions refuse and say so. Nothing here ever reports a success it
 // did not have.
 //
 // Note on "system resources": this is a serverless function, so the
@@ -27,6 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { readJson, writeJson, withLock, health, DATA_ROOT } from './_lib/db.js';
 import { send, sendJson, setCors, readJsonBody, appOrigin } from './_lib/http.js';
+import { requireAdmin } from './_lib/session.js';
 
 const REPO = 'kajica2/sainted-word-records';
 const GH = 'https://api.github.com';
@@ -36,6 +38,13 @@ const LOG_MAX = 200;
 const TOKEN = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '').trim();
 
 function nowIso() { return new Date().toISOString(); }
+
+function actionNeedsAdmin(action, method) {
+  if (action === 'logs' || action === 'clear-logs' || action === 'run-tests' || action === 'stop') {
+    return true;
+  }
+  return action === 'log' && method === 'POST';
+}
 
 // ── the action log ────────────────────────────────────────────────────────
 // Real entries, in the real store (Postgres in production, JSON locally).
@@ -297,6 +306,11 @@ export default async function handler(req, res) {
   // the caller's Origin header, which is caller-controlled and absent on a
   // same-origin GET anyway.
   const site = appOrigin(req);
+
+  if (actionNeedsAdmin(action, req.method)) {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+  }
 
   try {
     if (action === 'status') {

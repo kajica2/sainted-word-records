@@ -164,3 +164,7 @@ media/inventory.json
 # an experiment's working files fall through the gap and show up as
 # untracked in every status.
 /data/swr-*
+
+# Live invite codes — register via /api/invite/register (workflow or admin);
+# must never ship in dist/ or stay in git history after rotation (purge separately).
+/data/invite-codes.csv
