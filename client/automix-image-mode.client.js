@@ -1,6 +1,6 @@
 // client/automix-image-mode.client.js
-// Still-image automix: when the layer stack is mostly photos/GIFs, drive only
-// kill-switch-allowed motion (opacity/grade/hue, JS crossfades, glitch FX).
+// Still-image automix: beat-synced cuts + mild grade pulses; clarity keeps
+// photos sharp (no blur/glitch/chroma/grain displacement).
 
 (function (global) {
   'use strict';
@@ -14,6 +14,23 @@
 
   function mk() {
     return global.SWR_MOTION_KILL || null;
+  }
+
+  function caps() {
+    var M = mk();
+    return (M && M.IMAGE_AUTOMIX_CAPS) || {
+      minOpacity: 0.9,
+      glowMax: 0.12,
+      tempMax: 0.12,
+      toneMax: 0.15,
+      saturationDelta: 0.15,
+      vignetteMax: 0.08,
+    };
+  }
+
+  function clarityOn() {
+    var M = mk();
+    return !M || typeof M.isImageClarityEnabled !== 'function' || M.isImageClarityEnabled();
   }
 
   function swr() {
@@ -49,6 +66,35 @@
     return v < 0 ? 0 : v > 1 ? 1 : v;
   }
 
+  function layerCrossfading(l) {
+    if (!l) return false;
+    if (l._swapPending) return true;
+    if (typeof l._targetOpacity === 'number' && l._targetOpacity < caps().minOpacity - 0.02) {
+      return true;
+    }
+    return false;
+  }
+
+  function enforceOpacityFloor() {
+    if (!clarityOn()) return;
+    var floor = caps().minOpacity;
+    var M = mk();
+    var list = layers();
+    for (var i = 0; i < list.length; i++) {
+      var l = list[i];
+      if (!l || l.kind === 'text') continue;
+      if (M && typeof M.isImageAsset === 'function' && !M.isImageAsset(l.asset)) continue;
+      if (layerCrossfading(l)) continue;
+      if (l.opacity != null && l.opacity < floor) l.opacity = floor;
+      if (typeof l._targetOpacity === 'number' && l._targetOpacity < floor) {
+        l._targetOpacity = floor;
+      }
+      if (typeof l._currentOpacity === 'number' && l._currentOpacity < floor) {
+        l._currentOpacity = floor;
+      }
+    }
+  }
+
   function installReactors() {
     var M = mk();
     var list = layers();
@@ -59,6 +105,11 @@
       if (typeof M.isImageAsset === 'function' && !M.isImageAsset(l.asset)) continue;
       if (typeof M.applyImageAutomixReactors === 'function') {
         M.applyImageAutomixReactors(l, i);
+      }
+      if (clarityOn() && !layerCrossfading(l)) {
+        if (l.opacity == null || l.opacity < caps().minOpacity) {
+          l.opacity = Math.max(l.opacity != null ? l.opacity : 1, caps().minOpacity);
+        }
       }
     }
   }
@@ -96,17 +147,43 @@
     }
   }
 
-  function pushFxFromAudio() {
-    var S = swr();
-    if (!S) return;
-    var feat = audioFeat();
+  function buildClarityFxPreset(feat) {
+    var C = caps();
+    var bass = clamp01(feat.bass);
+    var mid = clamp01(feat.mid);
+    var rms = clamp01(feat.rms);
+    var beat = feat.beatPulse ? 1 : 0;
+
+    var preset = {
+      mut: 0,
+      mutAlgo: 1,
+      blur: 0,
+      chroma: 0,
+      grain: 0,
+      liquid: 0,
+      glitch: 0,
+      pearl: 0,
+      posterize: 0,
+      glow: Math.min(C.glowMax, 0.03 + bass * C.glowMax * 0.7 + beat * 0.02),
+      temp: (mid - 0.5) * C.tempMax * 2,
+      tone: (rms - 0.5) * C.toneMax * 2,
+      vignette: Math.min(C.vignetteMax, 0.04 + (1 - rms) * C.vignetteMax * 0.5),
+    };
+
+    var M = mk();
+    if (M && typeof M.sanitizeFxPresetImage === 'function') {
+      M.sanitizeFxPresetImage(preset);
+    }
+    return preset;
+  }
+
+  function buildLegacyFxPreset(feat) {
     var bass = clamp01(feat.bass);
     var mid = clamp01(feat.mid);
     var treble = clamp01(feat.treble);
     var rms = clamp01(feat.rms);
     var onset = clamp01(feat.onset);
-
-    var preset = Object.assign({}, S._fxOverride || {}, {
+    var preset = Object.assign({}, {
       mutAlgo: 1,
       mut: clamp01(0.08 + onset * 0.55 + feat.beatPulse * 0.25),
       blur: clamp01(0.02 + (1 - treble) * 0.12 - onset * 0.04),
@@ -116,11 +193,20 @@
       glow: clamp01(0.05 + bass * 0.25),
       vignette: clamp01(0.15 + (1 - rms) * 0.1),
     });
-
     var M = mk();
     if (M && typeof M.sanitizeFxPresetImage === 'function') {
       M.sanitizeFxPresetImage(preset);
     }
+    return preset;
+  }
+
+  function pushFxFromAudio() {
+    var S = swr();
+    if (!S) return;
+    var feat = audioFeat();
+    var preset = clarityOn()
+      ? buildClarityFxPreset(feat)
+      : buildLegacyFxPreset(feat);
     S._fxOverride = preset;
   }
 
@@ -132,6 +218,7 @@
     }
     active = true;
     beatCutSwap();
+    enforceOpacityFloor();
     pushFxFromAudio();
     rafId = global.requestAnimationFrame(tick);
   }
@@ -158,10 +245,33 @@
     stopLoop();
   }
 
+  function hookAutomixSetTarget() {
+    var am = global.automix;
+    if (!am || am.__imageClarityTargetHooked || typeof am._setTarget !== 'function') return;
+    am.__imageClarityTargetHooked = true;
+    var orig = am._setTarget.bind(am);
+    am._setTarget = function (preset) {
+      if (!preset) return orig(preset);
+      if (shouldRun() && clarityOn()) {
+        var M = mk();
+        var cleaned = Object.assign({}, preset);
+        if (M && typeof M.zeroImageDistortionFx === 'function') {
+          M.zeroImageDistortionFx(cleaned);
+        }
+        if (M && typeof M.sanitizeFxPresetImage === 'function') {
+          M.sanitizeFxPresetImage(cleaned);
+        }
+        return orig(cleaned);
+      }
+      return orig(preset);
+    };
+  }
+
   function hookAutomix() {
     var am = global.automix;
     if (!am || am.__imageModeHooked) return;
     am.__imageModeHooked = true;
+    hookAutomixSetTarget();
     var origStart = am.start.bind(am);
     var origStop = am.stop.bind(am);
     am.start = function () {
@@ -177,7 +287,10 @@
   }
 
   global.addEventListener('swr-automix-glide', function () {
-    if (shouldRun()) installReactors();
+    if (shouldRun()) {
+      installReactors();
+      if (clarityOn()) pushFxFromAudio();
+    }
   });
 
   global.addEventListener('swr-composition-change', function () {
@@ -202,8 +315,12 @@
   global.SWR_AUTOMIX_IMAGE = {
     shouldRun: shouldRun,
     isActive: function () { return active; },
+    clarityOn: clarityOn,
+    caps: caps,
     installReactors: installReactors,
     pushFxFromAudio: pushFxFromAudio,
     beatCutSwap: beatCutSwap,
+    buildClarityFxPreset: buildClarityFxPreset,
+    enforceOpacityFloor: enforceOpacityFloor,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
