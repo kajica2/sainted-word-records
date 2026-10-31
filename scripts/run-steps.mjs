@@ -116,6 +116,7 @@ const GROUPS = {
     // Image-only still engine (jpg.html + jpg-engine.client.js): ship wiring,
     // classifyStill hue/luma, persona motion strip, blocked CSS filters.
     'npm run check:jpg-engine-unit',
+    'npm run check:image-lane-unit',
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',

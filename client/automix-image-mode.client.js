@@ -43,8 +43,17 @@
   }
 
   function layers() {
+    var lane = global.SWR_IMAGE_LANE;
+    if (lane && lane.list && lane.list.length) {
+      return lane.visible ? lane.visibleList() : [];
+    }
     var S = swr();
     return (S && S.Layers && S.Layers.list) || [];
+  }
+
+  function hasImageLaneStills() {
+    var lane = global.SWR_IMAGE_LANE;
+    return !!(lane && lane.list && lane.list.length);
   }
 
   function audioFeat() {
@@ -55,9 +64,12 @@
 
   function shouldRun() {
     if (!automixOn()) return false;
+    if (hasImageLaneStills()) return true;
     var M = mk();
     if (!M || typeof M.isImageDominantLayerStack !== 'function') return false;
-    return M.isImageDominantLayerStack(layers(), 0.55);
+    var S = swr();
+    var videoList = (S && S.Layers && S.Layers.list) || [];
+    return M.isImageDominantLayerStack(videoList, 0.55);
   }
 
   function clamp01(v) {
@@ -295,6 +307,15 @@
 
   global.addEventListener('swr-composition-change', function () {
     if (shouldRun()) installReactors();
+  });
+
+  global.addEventListener('swr-image-lane-changed', function () {
+    if (shouldRun()) {
+      installReactors();
+      if (!rafId) startLoop();
+    } else if (!hasImageLaneStills()) {
+      stopLoop();
+    }
   });
 
   function boot() {
