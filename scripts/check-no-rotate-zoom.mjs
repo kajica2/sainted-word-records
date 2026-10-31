@@ -275,7 +275,8 @@ for (const name of ['watercolor.html', 'smoke.html']) {
 console.log('no-rotate-zoom: automix entry starts with zero rotation');
 const fxDirty = { temp: 0.2, mut: 0.95, mutAlgo: 0, liquid: 0.4 };
 MK.sanitizeFxPreset(fxDirty);
-check(fxDirty.mut === 0 && fxDirty.mutAlgo === 0, 'sanitizeFxPreset zeros mut spin under kill-switch');
+check(fxDirty.mut === 0 && fxDirty.mutAlgo === 1,
+  'sanitizeFxPreset zeros mut and remaps vortex mutAlgo under kill-switch');
 check(fxDirty.liquid === 0, 'sanitizeFxPreset zeros liquid under zoom kill-switch');
 const stackLayer = {
   rotationEnabled: true,
@@ -298,7 +299,7 @@ const MK3 = stackSb.SWR_MOTION_KILL;
 MK3.sanitizeAutomixEntry();
 check(stackLayer.rotOffset === 0 && stackLayer.reactors.length === 0,
   'sanitizeAutomixEntry clears layer rotation before automix runs');
-check(stackSb.SWR._fxOverride.mut === 0 && stackSb.SWR._fxOverride.mutAlgo === 0,
+check(stackSb.SWR._fxOverride.mut === 0,
   'sanitizeAutomixEntry clears live _fxOverride mut spin');
 const runtimeSrc = fs.readFileSync(path.join(ROOT, 'client/automix-runtime.client.js'), 'utf8');
 check(runtimeSrc.includes('sanitizeAutomixEntry'), 'automix start() calls sanitizeAutomixEntry');
@@ -307,6 +308,33 @@ const compSrc = fs.readFileSync(path.join(ROOT, 'client/automix-composition.clie
 check(compSrc.includes('sanitizeAllLayerStacks'), 'automix composition apply() sanitizes layers');
 const naturalSrc = fs.readFileSync(path.join(ROOT, 'lib/swr-natural.client.js'), 'utf8');
 check(naturalSrc.includes('isRotationGloballyEnabled'), 'natural mirror respects rotation kill-switch');
+
+console.log('no-rotate-zoom: FX vortex mutAlgo path disabled by default');
+check(typeof MK.isVortexGloballyEnabled === 'function' && MK.isVortexGloballyEnabled() === false,
+  'vortex is off by default');
+check(MK.coerceMutAlgo(0) === 1 && MK.coerceMutAlgo(2) === 2,
+  'coerceMutAlgo remaps vortex (0) to glitch (1)');
+const fxSrc = fs.readFileSync(path.join(ROOT, 'fx-postprocess.js'), 'utf8');
+check(fxSrc.includes('uniform float u_vortexEnabled'), 'fx shader declares u_vortexEnabled');
+check(/u_vortexEnabled\s*<\s*0\.5/.test(fxSrc), 'fx mutate() skips vortex when u_vortexEnabled is off');
+check(fxSrc.includes('coerceMutAlgo'), 'fx setAlgo/setPersona coerce mutAlgo');
+const killUi = fs.readFileSync(KILL, 'utf8');
+check(killUi.includes('#mut-algo') && killUi.includes('isVortexGloballyEnabled'),
+  'motion kill UI hides vortex mut-algo option when disabled');
+const mkRotOn = {
+  console: { log() {}, warn() {}, error() {} },
+  Math, Object, Array, Number, Boolean, String, Error, isFinite, isNaN,
+  document: { getElementById() { return null; }, querySelector() { return null; },
+    querySelectorAll() { return []; }, addEventListener() {}, readyState: 'complete' },
+};
+mkRotOn.window = mkRotOn;
+mkRotOn.globalThis = mkRotOn;
+vm.createContext(mkRotOn);
+const killSrcRot = fs.readFileSync(KILL, 'utf8')
+  .replace('var VORTEX_GLOBALLY_ENABLED = false;', 'var VORTEX_GLOBALLY_ENABLED = true;')
+  .replace('var ROTATION_GLOBALLY_ENABLED = false;', 'var ROTATION_GLOBALLY_ENABLED = true;');
+vm.runInContext(killSrcRot, mkRotOn, { filename: 'motion-kill-vortex-on.js' });
+check(mkRotOn.SWR_MOTION_KILL.coerceMutAlgo(0) === 0, 'coerceMutAlgo allows vortex when enabled');
 
 if (failures === 0) {
   console.log('\nALL GREEN (no-rotate-zoom)');

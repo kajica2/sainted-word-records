@@ -38,6 +38,7 @@
     uniform float u_tone;     // 0..1 tone/desaturation grade (warm highs, cool shadows)
     uniform float u_mut;      // 0..1 mutation amount
     uniform float u_mutAlgo;  // 0..5 (selects mutation algorithm)
+    uniform float u_vortexEnabled; // 0=skip mutAlgo 0 vortex branch
 
     // Persona uniforms (0..1 unless noted)
     uniform float u_posterize;   // 0=off, 1=full posterization (color step count)
@@ -111,6 +112,7 @@
       float a = floor(algo + 0.5);
       if (a < 0.5) {
         // 0: vortex — swirl around center, scaled by time + bass
+        if (u_vortexEnabled < 0.5) return uv;
         vec2 c = uv - 0.5;
         float r = length(c);
         float ang = (1.0 - r) * 3.0 * amt + t * 0.6;
@@ -465,6 +467,7 @@
       temp:     gl.getUniformLocation(prog, 'u_temp'),
       mut:      gl.getUniformLocation(prog, 'u_mut'),
       mutAlgo:  gl.getUniformLocation(prog, 'u_mutAlgo'),
+      vortexEnabled: gl.getUniformLocation(prog, 'u_vortexEnabled'),
       posterize:gl.getUniformLocation(prog, 'u_posterize'),
       vignette: gl.getUniformLocation(prog, 'u_vignette'),
       chroma:   gl.getUniformLocation(prog, 'u_chroma'),
@@ -687,7 +690,16 @@
       const k = (typeof FX_INTENSITY === 'number') ? FX_INTENSITY : 1;
       _uf(u.temp,      state.temp * k);
       _uf(u.mut,       state.mut * k);
-      _uf(u.mutAlgo,   state.mutAlgo);
+      var _algo = state.mutAlgo;
+      var _mk = window.SWR_MOTION_KILL;
+      if (_mk && typeof _mk.coerceMutAlgo === 'function') {
+        _algo = _mk.coerceMutAlgo(_algo);
+      }
+      _uf(u.mutAlgo,   _algo);
+      var _vortexOn = (_mk && typeof _mk.isVortexGloballyEnabled === 'function')
+        ? (_mk.isVortexGloballyEnabled() ? 1 : 0)
+        : 0;
+      _uf(u.vortexEnabled, _vortexOn);
       _uf(u.posterize, state.posterize * k);
       _uf(u.vignette,  state.vignette * k);
       _uf(u.chroma,    state.chroma * k);
@@ -751,7 +763,12 @@
       },
       setTemp(v) { state.temp = Math.max(-1, Math.min(1, v)); },
       setMut(v)  { state.mut  = Math.max(0, Math.min(1, v)); },
-      setAlgo(a) { state.mutAlgo = Math.max(0, Math.min(5, Math.floor(a))); },
+      setAlgo(a) {
+        var n = Math.max(0, Math.min(5, Math.floor(a)));
+        var mk = window.SWR_MOTION_KILL;
+        if (mk && typeof mk.coerceMutAlgo === 'function') n = mk.coerceMutAlgo(n);
+        state.mutAlgo = n;
+      },
       setPosterize(v) { state.posterize = Math.max(0, Math.min(1, v)); },
       setVignette(v)  { state.vignette  = Math.max(0, Math.min(1, v)); },
       setChroma(v)    { state.chroma    = Math.max(0, Math.min(1, v)); },
@@ -772,7 +789,12 @@
         if (!profile) return;
         if (profile.temp      !== undefined) state.temp      = profile.temp;
         if (profile.mut       !== undefined) state.mut       = profile.mut;
-        if (profile.mutAlgo   !== undefined) state.mutAlgo   = profile.mutAlgo;
+        if (profile.mutAlgo   !== undefined) {
+          var mk2 = window.SWR_MOTION_KILL;
+          var algo = profile.mutAlgo;
+          if (mk2 && typeof mk2.coerceMutAlgo === 'function') algo = mk2.coerceMutAlgo(algo);
+          state.mutAlgo = algo;
+        }
         if (profile.posterize !== undefined) state.posterize = profile.posterize;
         if (profile.vignette  !== undefined) state.vignette  = profile.vignette;
         if (profile.chroma    !== undefined) state.chroma    = profile.chroma;

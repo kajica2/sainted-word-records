@@ -305,6 +305,10 @@
         baseline[key] = (archTarget === undefined) ? base : base * 0.5 + archTarget * 0.5;
       }
       baseline.mutAlgo = p.mutAlgo || 0;
+      if (typeof window !== 'undefined' && window.SWR_MOTION_KILL
+          && typeof window.SWR_MOTION_KILL.coerceMutAlgo === 'function') {
+        baseline.mutAlgo = window.SWR_MOTION_KILL.coerceMutAlgo(baseline.mutAlgo);
+      }
       acts.push({
         t0: bounds[b],
         t1: bounds[b + 1],
