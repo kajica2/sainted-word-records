@@ -336,6 +336,23 @@ const killSrcRot = fs.readFileSync(KILL, 'utf8')
 vm.runInContext(killSrcRot, mkRotOn, { filename: 'motion-kill-vortex-on.js' });
 check(mkRotOn.SWR_MOTION_KILL.coerceMutAlgo(0) === 0, 'coerceMutAlgo allows vortex when enabled');
 
+console.log('no-rotate-zoom: CSS transitions and animations disabled by default');
+check(typeof MK.isCssTransitionsGloballyEnabled === 'function' && MK.isCssTransitionsGloballyEnabled() === false,
+  'CSS transitions/animations off by default');
+const killCssSrc = fs.readFileSync(KILL, 'utf8');
+check(killCssSrc.includes('CSS_TRANSITIONS_GLOBALLY_ENABLED'), 'CSS_TRANSITIONS_GLOBALLY_ENABLED flag');
+check(killCssSrc.includes('transition:none!important') && killCssSrc.includes('animation:none!important'),
+  'injectCssTransitionKill uses global transition/animation none');
+check(killCssSrc.includes('installCssMotionGuards'), 'installCssMotionGuards runs at boot');
+check(killCssSrc.includes('animationend') && killCssSrc.includes('transitionend'),
+  'addEventListener shim for animationend/transitionend when CSS motion off');
+check(killCssSrc.includes('Element.prototype.animate'), 'element.animate guarded when CSS motion off');
+for (const page of ['index.html', 'jpg.html', 'engine.html', 'super-admin.html', 'versions/index.html']) {
+  const p = path.join(ROOT, page);
+  const txt = fs.readFileSync(p, 'utf8');
+  check(txt.includes('motion-kill-switch.client.js'), page + ' loads motion-kill-switch');
+}
+
 if (failures === 0) {
   console.log('\nALL GREEN (no-rotate-zoom)');
   process.exit(0);
