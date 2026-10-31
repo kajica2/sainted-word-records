@@ -107,6 +107,9 @@
           if (snap.pos) l.pos = Object.assign({ x: 0, y: 0, rot: 0 }, snap.pos);
           if (typeof snap.rotOffset === 'number') l.rotOffset = snap.rotOffset;
           l.rotationEnabled = snap.rotationEnabled !== false;
+          if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+            window.SWR_MOTION_KILL.sanitizeLayer(l);
+          }
           if (typeof snap.z === 'number') l.z = snap.z;
           if (snap.algo) l.algo = snap.algo;
           if (typeof snap.algoIntensity === 'number') l.algoIntensity = snap.algoIntensity;

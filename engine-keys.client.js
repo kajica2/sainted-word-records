@@ -301,7 +301,10 @@
       label: 'Rotate selected clip 90° (no selection → RE-MAP)',
       requires: 'engineRotate',
       action: function () {
-        try { window.SWR_KEYS_HOST_ROTATE(); } catch (_) {}
+        try {
+          if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) return;
+          window.SWR_KEYS_HOST_ROTATE();
+        } catch (_) {}
       },
     },
     // Engine-only affordances: these two keys click buttons that exist on
@@ -1539,23 +1542,29 @@
     // Pages without the "?" button get no button (no-op).
     var ROT_MASTER_KEY = 'swr.rotMaster.enabled';
     function loadMasterEnabled() {
-      // Default ENABLED. The master is a mute switch for rotation, so a
-      // fresh profile should behave the same as a layer with no gate at
-      // all — Layers.add() creates layers with rotationEnabled === true,
-      // and this wrapper copies the master onto every new layer, so a
-      // false default here silently turned rotation off for everything.
-      // The sibling tx-master (transformations) defaults to true for the
-      // same reason. An explicit '0' in localStorage is still honoured:
-      // that is the user having muted it.
+      try {
+        if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) {
+          return false;
+        }
+      } catch (_) {}
       try {
         var v = localStorage.getItem(ROT_MASTER_KEY);
         return v === null ? true : v === '1';
       } catch (_) { return true; }
     }
     function saveMasterEnabled(v) {
-      try { localStorage.setItem(ROT_MASTER_KEY, v ? '1' : '0'); } catch (_) {}
+      try {
+        if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) {
+          localStorage.setItem(ROT_MASTER_KEY, '0');
+          return;
+        }
+        localStorage.setItem(ROT_MASTER_KEY, v ? '1' : '0');
+      } catch (_) {}
     }
     window.SWR_ROT_MASTER = { enabled: loadMasterEnabled() };
+    if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) {
+      window.SWR_ROT_MASTER.enabled = false;
+    }
     function applyMasterToLayers() {
       var L = window.Layers;
       if (!L || !Array.isArray(L.list) || !L.list.length) return 0;
@@ -1563,7 +1572,16 @@
       for (var i = 0; i < L.list.length; i++) {
         var lay = L.list[i];
         if (!lay) continue;
-        lay.rotationEnabled = window.SWR_ROT_MASTER.enabled;
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.isRotationAllowed === 'function') {
+          lay.rotationEnabled = window.SWR_MOTION_KILL.isRotationAllowed({
+            rotationEnabled: window.SWR_ROT_MASTER.enabled,
+          });
+        } else {
+          lay.rotationEnabled = window.SWR_ROT_MASTER.enabled;
+        }
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+          window.SWR_MOTION_KILL.sanitizeLayer(lay);
+        }
         count += 1;
       }
       if (typeof L.render === 'function') L.render();
@@ -1639,6 +1657,10 @@
             if (typeof window.setStatus === 'function') window.setStatus(msg, 'ok');
           }
           btn.addEventListener('click', function (e) {
+            if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) {
+              e.preventDefault();
+              return;
+            }
             // Shift+click (or middle-click) = bulk-clear asset rotations.
             // Plain click = toggle audio rotation on/off as before.
             if (e.shiftKey || e.button === 1 || e.metaKey || e.ctrlKey) {
@@ -1667,6 +1689,13 @@
     if (!bindRotMasterButton()) {
       window.setTimeout(function () { bindRotMasterButton(); }, 250);
     }
+    window.setTimeout(function () {
+      try {
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.applyUiDisabledState === 'function') {
+          window.SWR_MOTION_KILL.applyUiDisabledState();
+        }
+      } catch (_) {}
+    }, 300);
 
     // Wrap window.Layers.add so every newly created layer inherits the
     // current master value. Patches the prototype-style: the function is
@@ -1680,7 +1709,18 @@
         var ret = orig(asset);
         try {
           var last = L.list && L.list[L.list.length - 1];
-          if (last) last.rotationEnabled = window.SWR_ROT_MASTER.enabled;
+          if (last) {
+            if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.isRotationAllowed === 'function') {
+              last.rotationEnabled = window.SWR_MOTION_KILL.isRotationAllowed({
+                rotationEnabled: window.SWR_ROT_MASTER.enabled,
+              });
+            } else {
+              last.rotationEnabled = window.SWR_ROT_MASTER.enabled;
+            }
+            if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+              window.SWR_MOTION_KILL.sanitizeLayer(last);
+            }
+          }
           if (typeof L.render === 'function') L.render();
         } catch (_) {}
         return ret;

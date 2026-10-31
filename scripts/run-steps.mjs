@@ -220,6 +220,7 @@ const GROUPS = {
     // dropped every x / y reactor. This gate pins the unit table, the clamp
     // table, the malformed-input cases AND the sixteen call sites.
     'npm run check:apply-reactor-unit',
+    'npm run check:no-rotate-zoom',
     // P2.2: set + clear session cookies both carry Secure. The plan
     // (docs/PLANS/architecture-audit-2026-10.md) called out that the
     // delete cookie was missing the flag; this is the gate that

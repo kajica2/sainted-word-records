@@ -1,22 +1,8 @@
 #!/usr/bin/env node
-// verify-rotation-enabled.mjs — smoke test for the per-layer ROTATE toggle.
+// verify-rotation-enabled.mjs — smoke test for the global rotation/zoom kill-switch.
 //
-//   node verify-rotation-enabled.mjs
-//
-// Boots a local static server, loads engine.html in headless Chrome (no media
-// required — we drive the Renderer API directly), seeds a synthetic layer
-// with a `rms → rot × 90` reactor, and asserts:
-//
-//   1. A newly-added layer has rotationEnabled === true (default).
-//   2. applyReactors().rot > 0 when the rms reactor fires (audio-driven).
-//   3. Setting layer.rotationEnabled = false → applyReactors().rot === 0.
-//   4. Setting it back to true → applyReactors().rot > 0 again.
-//   5. Other reactor targets (scale, x, y) still apply while rotation is off.
-//   6. The `[rot off]` chip is present in the layer card when rotation is off,
-//      and absent when it's on.
-//   7. The checkbox reflects + writes back to layer.rotationEnabled.
-//
-// Exits 0 on green, 1 on any failure.
+// With SWR_MOTION_KILL defaulting OFF, per-layer rotation and zoom reactors
+// stay inert and saved-state flags cannot re-enable them.
 
 import http from 'http';
 import fs from 'fs';
@@ -64,31 +50,10 @@ let browser;
 try {
   browser = await puppeteer.launch({
     headless: 'new',
-    args: [
-      '--no-sandbox',
-      // Disable service workers: pwa-bootstrap reloads the page on the SW
-      // 'controllerchange' event (first-visit install + claim). With
-      // domcontentloaded that reload lands mid-test and kills the execution
-      // context -- "Execution context was destroyed, most likely because of a
-      // navigation" -- which networkidle0 used to mask by waiting through it.
-      // Same fix, and the same symptom, as verify-presets.mjs and
-      // verify-transitions.mjs. This verify covers rotation, not the PWA shell.
-      '--disable-features=ServiceWorker,ServiceWorkerOnUI',
-    ],
+    args: ['--no-sandbox', '--disable-features=ServiceWorker,ServiceWorkerOnUI'],
   });
   const page = await browser.newPage();
-  // Neutralise the service worker registration for the whole run. The launch
-  // flag above is not enough on its own: Chrome still reports
-  // navigator.serviceWorker.controller, pwa-bootstrap still fires its
-  // 'controllerchange' handler, and the page still reloads ~160ms in — which
-  // destroys the execution context mid-test. Stubbing register() is the
-  // approach verify-transitions.mjs uses for the same reason: this verify
-  // covers rotation, not the PWA shell.
   await page.evaluateOnNewDocument(() => {
-    // Reading navigator.serviceWorker throws a SecurityError when the
-    // service worker is disabled (the launch flag above), so the read has
-    // to be guarded — otherwise the stub installs nothing and the page
-    // logs an uncaught SecurityError.
     try {
       if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
         navigator.serviceWorker.register = () => new Promise(() => {});
@@ -96,27 +61,23 @@ try {
     } catch (_) {}
   });
   page.on('pageerror', (err) => process.stderr.write(`[page error] ${err.message}\n`));
-  // domcontentloaded, not networkidle0: engine.html auto-loads and streams
-  // its demo track, so the network never idles — the condition that made
-  // verify-automix / check:automix-smoke flaky on CI runners. The
-  // waitForFunction below is the real readiness gate.
-  //
-  // The service worker is disabled in launch args above. networkidle0 used to
-  // absorb the PWA's controllerchange reload by waiting through it; without
-  // that wait the reload lands mid-test and destroys the execution context.
   await page.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-  // Wait until the engine has attached window.SWR with the Renderer + Layers.
   await page.waitForFunction(
-    () => !!(window.SWR && window.SWR.Layers && window.SWR.Layers.list && window.SWR.Renderer && typeof window.SWR.Renderer.applyReactors === 'function'),
+    () => !!(window.SWR_MOTION_KILL && window.SWR && window.SWR.Renderer && typeof window.SWR.Renderer.applyReactors === 'function'),
     { timeout: 10000 }
   );
 
-  // Seed a synthetic layer via the public API, then add an rms→rot reactor.
+  await step('SWR_MOTION_KILL defaults rotation and zoom OFF', async () => {
+    const v = await page.evaluate(() => ({
+      rot: window.SWR_MOTION_KILL.isRotationGloballyEnabled(),
+      zoom: window.SWR_MOTION_KILL.isZoomGloballyEnabled(),
+    }));
+    if (v.rot !== false || v.zoom !== false) throw new Error(JSON.stringify(v));
+  });
+
   await page.evaluate(() => {
     const SWR = window.SWR;
-    // Synthetic asset — applyReactors reads from the asset's static fields,
-    // not its media element, so no real media is required.
     SWR.Library.items = [{
       id: 'asset-test-rotation',
       name: 'p01.jpg',
@@ -125,137 +86,76 @@ try {
       _el: { naturalWidth: 100, naturalHeight: 100 },
       url: 'about:blank',
     }];
-    // Add a layer using the engine's add() path (sets rotationEnabled default).
     SWR.Layers.add(SWR.Library.items[0]);
-    const l = SWR.Layers.list[0];
-    // Force a known reactor: rms → rot × 90
-    l.reactors = [{ feature: 'rms', target: 'rot', scale: 90, ease: 'linear' }];
-    // Force known pos.rot + rotOffset so manual contribution is deterministic.
+  });
+
+  await page.waitForFunction(
+    () => {
+      const btn = document.getElementById('swr-rot-master');
+      return btn && btn.disabled === true;
+    },
+    { timeout: 5000 }
+  );
+
+  await page.evaluate(() => {
+    const l = window.SWR.Layers.list.find((x) => x.asset && x.asset.id === 'asset-test-rotation');
+    if (!l) throw new Error('seed layer missing');
+    l.reactors = [
+      { feature: 'rms', target: 'rot', scale: 90, ease: 'linear' },
+      { feature: 'rms', target: 'scale', scale: 2.0, ease: 'linear' },
+    ];
     l.pos.rot = 10;
     l.rotOffset = 20;
-    // Make Audio.feat.rms a known value so getFeature returns something.
-    SWR.Audio.feat = SWR.Audio.feat || {};
-    SWR.Audio.feat.rms = 0.5;
+    l.rotationEnabled = true;
+    window.SWR.Audio.feat = window.SWR.Audio.feat || {};
+    window.SWR.Audio.feat.rms = 0.5;
   });
 
-  await step('new layer has rotationEnabled === true (default)', async () => {
-    const v = await page.evaluate(() => window.SWR.Layers.list[0].rotationEnabled);
-    if (v !== true) throw new Error('expected true, got ' + JSON.stringify(v));
+  await step('new layer cannot opt into rotation while kill-switch off', async () => {
+    const v = await page.evaluate(() => {
+      const l = window.SWR.Layers.list.find((x) => x.asset && x.asset.id === 'asset-test-rotation');
+      if (!l) return { missing: true };
+      return {
+        rotationEnabled: l.rotationEnabled,
+        allowed: window.SWR_MOTION_KILL.isRotationAllowed(l),
+      };
+    });
+    if (v.missing) throw new Error('seed layer missing');
+    if (v.allowed !== false) throw new Error('expected isRotationAllowed false, got ' + JSON.stringify(v));
   });
 
-  await step('rotation ON → applyReactors().rot > 0 (pos.rot 10 + rotOffset 20 + 0.5*90 = 75)', async () => {
-    const r = await page.evaluate(() => window.SWR.Renderer.applyReactors(window.SWR.Layers.list[0]).rot);
-    if (!(r > 0)) throw new Error('expected rot > 0, got ' + r);
-    // 0.5 * 90 * linear(0.5) = 45 added to pos.rot+rotOffset (30) = 75
-    if (Math.abs(r - 75) > 0.5) {
-      // Tolerate float rounding but flag a >0.5 deg drift
-      console.log(`    note: rot=${r}, expected ~75`);
-    }
-  });
-
-  await step('rotation OFF → applyReactors().rot === 0 (manual + audio both silenced)', async () => {
+  await step('forced rotationEnabled true still yields applyReactors().rot === 0', async () => {
     const r = await page.evaluate(() => {
       const l = window.SWR.Layers.list[0];
-      l.rotationEnabled = false;
+      l.rotationEnabled = true;
       return window.SWR.Renderer.applyReactors(l).rot;
     });
     if (r !== 0) throw new Error('expected rot === 0, got ' + r);
   });
 
-  await step('rotation OFF → scale reactor still applies (other targets unaffected)', async () => {
-    // lib/swr-natural.client.js smooths Audio.feat reads with an attack
-    // follower (~80ms τ) — settle it onto the driven rms value before
-    // asserting the exact reactor result.
-    await page.evaluate(async () => {
-      const t0 = performance.now();
-      while (performance.now() - t0 < 600) {
-        void window.SWR.Audio.feat.rms;
-        await new Promise((r) => setTimeout(r, 16));
-      }
-    });
+  await step('scale reactor inert while zoom kill-switch off', async () => {
     const r = await page.evaluate(() => {
       const l = window.SWR.Layers.list[0];
       l.baseScale = 1.0;
       l.reactors = [{ feature: 'rms', target: 'scale', scale: 2.0, ease: 'linear' }];
-      l.rotationEnabled = false;
       return window.SWR.Renderer.applyReactors(l);
     });
-    // baseScale 1.0 + 0.5 * 2.0 = 2.0 (linear easing on 0.5 is 0.5)
-    if (Math.abs(r.scale - 2.0) > 0.001) {
-      throw new Error('expected scale ≈ 2.0 with rotation disabled, got ' + r.scale);
-    }
-    if (r.rot !== 0) {
-      throw new Error('expected rot === 0 with rotation disabled, got ' + r.rot);
-    }
+    if (Math.abs(r.scale - 1.0) > 0.001) throw new Error('expected scale ≈ 1.0, got ' + r.scale);
   });
 
-  await step('rotation back ON → rot > 0 again', async () => {
-    const r = await page.evaluate(() => {
-      const l = window.SWR.Layers.list[0];
-      l.reactors = [{ feature: 'rms', target: 'rot', scale: 90, ease: 'linear' }];
-      l.rotationEnabled = true;
-      return window.SWR.Renderer.applyReactors(l).rot;
+  await step('CSSFX catalog excludes zoom-pulse', async () => {
+    const has = await page.evaluate(() => {
+      return !!(window.CSSFX && window.CSSFX.catalog && window.CSSFX.catalog.find((f) => f.name === 'zoom-pulse'));
     });
-    if (!(r > 0)) throw new Error('expected rot > 0 after re-enabling, got ' + r);
+    if (has) throw new Error('zoom-pulse still in CSSFX.catalog');
   });
 
-  // Existence of [rot off] chip — driven by Layers.render()
-  await step('rotation OFF → [rot off] chip visible in layer card', async () => {
-    await page.evaluate(() => {
-      const l = window.SWR.Layers.list[0];
-      l.rotationEnabled = false;
-      window.SWR.Layers.render();
-    });
-    const has = await page.evaluate(() => !!document.querySelector('.layer .rot-off-tag'));
-    if (!has) throw new Error('expected .rot-off-tag in DOM after re-render with rotation disabled');
-  });
-
-  await step('rotation ON → [rot off] chip hidden in layer card', async () => {
-    await page.evaluate(() => {
-      const l = window.SWR.Layers.list[0];
-      l.rotationEnabled = true;
-      window.SWR.Layers.render();
-    });
-    const has = await page.evaluate(() => !!document.querySelector('.layer .rot-off-tag'));
-    if (has) throw new Error('expected .rot-off-tag absent after re-render with rotation enabled');
-  });
-
-  await step('checkbox reflects layer.rotationEnabled', async () => {
+  await step('rot-master control disabled in DOM', async () => {
     const v = await page.evaluate(() => {
-      const cb = document.querySelector('.layer input.rot-enable-toggle');
-      return cb ? cb.checked : null;
+      const btn = document.getElementById('swr-rot-master');
+      return btn ? btn.disabled : null;
     });
-    if (v !== true) throw new Error('expected checkbox.checked === true, got ' + v);
-  });
-
-  await step('checkbox change → layer.rotationEnabled flips + chip re-renders', async () => {
-    await page.evaluate(() => {
-      const cb = document.querySelector('.layer input.rot-enable-toggle');
-      cb.checked = false;
-      cb.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await new Promise((r) => setTimeout(r, 50));
-    const after = await page.evaluate(() => {
-      const l = window.SWR.Layers.list[0];
-      return { rotationEnabled: l.rotationEnabled, chip: !!document.querySelector('.layer .rot-off-tag') };
-    });
-    if (after.rotationEnabled !== false) {
-      throw new Error('expected rotationEnabled=false after checkbox uncheck, got ' + after.rotationEnabled);
-    }
-    if (!after.chip) {
-      throw new Error('expected chip present after flipping checkbox off');
-    }
-  });
-
-  await step('checkbox tick → layer.rotationEnabled flips back to true', async () => {
-    await page.evaluate(() => {
-      const cb = document.querySelector('.layer input.rot-enable-toggle');
-      cb.checked = true;
-      cb.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await new Promise((r) => setTimeout(r, 50));
-    const v = await page.evaluate(() => window.SWR.Layers.list[0].rotationEnabled);
-    if (v !== true) throw new Error('expected rotationEnabled=true after checkbox tick, got ' + v);
+    if (v !== true) throw new Error('expected swr-rot-master disabled, got ' + v);
   });
 
 } finally {
@@ -266,7 +166,6 @@ try {
 if (failed === 0) {
   console.log('\nALL GREEN');
   process.exit(0);
-} else {
-  console.log(`\n${failed} FAILED`);
-  process.exit(1);
 }
+console.log(`\n${failed} FAILED`);
+process.exit(1);

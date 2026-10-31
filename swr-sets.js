@@ -597,6 +597,9 @@
                 if (typeof ld.rotOffset === 'number') newLayer.rotOffset = ld.rotOffset;
                 if (Array.isArray(ld.reactors)) newLayer.reactors = ld.reactors;
                 if (Array.isArray(ld.modulators)) newLayer.modulators = ld.modulators;
+                if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+                  window.SWR_MOTION_KILL.sanitizeLayer(newLayer);
+                }
               }
             }
             layers.render && layers.render();
