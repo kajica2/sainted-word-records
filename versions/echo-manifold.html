@@ -3,6 +3,7 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script src="/lib/motion-kill-switch.client.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ECHO · Harmonic Manifold 5.0</title>
@@ -1179,7 +1180,7 @@
                 if (type === 'blackhole') {
                     mainCtx.save();
                     mainCtx.translate(cx, cy);
-                    mainCtx.rotate(time * 0.5);
+                    SWR_MOTION_KILL.gateRotate(mainCtx, time * 0.5);
                     const count = 100 * dMult;
                     for(let i=0; i<count; i++) {
                         const r = 100 + i * 2;
@@ -1193,7 +1194,7 @@
 
                 } else if (type === 'pulsar') {
                     mainCtx.beginPath(); mainCtx.arc(cx, cy, 20, 0, Math.PI*2); mainCtx.fillStyle = "white"; mainCtx.fill();
-                    mainCtx.save(); mainCtx.translate(cx, cy); mainCtx.rotate(time * 20);
+                    mainCtx.save(); mainCtx.translate(cx, cy); SWR_MOTION_KILL.gateRotate(mainCtx, time * 20);
                     const grad = mainCtx.createLinearGradient(0,0,0, -400); grad.addColorStop(0, "rgba(255,255,255,0.8)"); grad.addColorStop(1, "rgba(0,255,255,0)");
                     mainCtx.fillStyle = grad;
                     mainCtx.beginPath(); mainCtx.moveTo(-5,0); mainCtx.lineTo(5,0); mainCtx.lineTo(30, -400); mainCtx.lineTo(-30, -400); mainCtx.fill();
@@ -1381,9 +1382,9 @@
                         mainCtx.stroke();
                     }
                 } else if (type === 'magnetic') {
-                    mainCtx.save(); mainCtx.translate(cx, cy); mainCtx.rotate(time);
+                    mainCtx.save(); mainCtx.translate(cx, cy); SWR_MOTION_KILL.gateRotate(mainCtx, time);
                     mainCtx.beginPath(); mainCtx.moveTo(-200, 0); mainCtx.lineTo(200, 0); mainCtx.stroke();
-                    mainCtx.rotate(Math.PI/2 + level);
+                    SWR_MOTION_KILL.gateRotate(mainCtx, Math.PI/2 + level);
                     mainCtx.beginPath(); mainCtx.moveTo(-200, 0); mainCtx.lineTo(200, 0); mainCtx.stroke();
                     mainCtx.restore();
                 } else if (type === 'entropy') {

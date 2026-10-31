@@ -3,6 +3,7 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <meta charset="utf-8" />
   <title>TYPOGRAPHY · SWR version · Animated type for designers</title>
   <meta name="description" content="SWR engine — TYPOGRAPHY: animated type for designers and brands. Drop your copy, audio, and brand kit, get motion typography." />
@@ -216,7 +217,7 @@
       // Center the headline
       ctx.save();
       ctx.translate(W/2, H * 0.45);
-      ctx.scale(beatScale, beatScale);
+      SWR_MOTION_KILL.gateScale(ctx, beatScale, beatScale);
 
       const headline = headlineEl.value || 'MAKE IT LOUD';
       ctx.font = `${weight} ${220}px "Archivo Black", "Inter", sans-serif`;
@@ -451,7 +452,7 @@
 
       ctx.save();
       ctx.translate(W / 2, headBase);
-      ctx.scale(beatScale, beatScale);
+      SWR_MOTION_KILL.gateScale(ctx, beatScale, beatScale);
       ctx.translate(-W / 2, -headBase);
       drawWord(HEADLINE, unit, W / 2, headBase, track, fw, fh, INK, 0.95);
       ctx.restore();

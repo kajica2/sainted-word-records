@@ -1,9 +1,5 @@
 #!/usr/bin/env node
 // scripts/check-no-rotate-zoom.mjs — global rotation/zoom kill-switch gate.
-//
-// Asserts lib/motion-kill-switch.client.js defaults OFF and that
-// lib/apply-reactors.js honours it. Also checks every engine surface that
-// loads apply-reactors loads the kill-switch first.
 
 import vm from 'node:vm';
 import fs from 'node:fs';
@@ -14,6 +10,7 @@ import { execFileSync } from 'node:child_process';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const KILL = path.join(ROOT, 'lib/motion-kill-switch.client.js');
 const REACTORS = path.join(ROOT, 'lib/apply-reactors.js');
+const VERSIONS_DIR = path.join(ROOT, 'versions');
 
 let failures = 0;
 function check(cond, msg, detail) {
@@ -34,6 +31,31 @@ function loadBoth() {
   return sandbox;
 }
 
+function listVersionHtml() {
+  return fs.readdirSync(VERSIONS_DIR)
+    .filter((f) => f.endsWith('.html'))
+    .map((f) => path.join(VERSIONS_DIR, f))
+    .sort();
+}
+
+function isAllowedMotionLine(line) {
+  const t = line.trim();
+  if (!t || t.startsWith('//') || t.startsWith('*')) return true;
+  if (t.includes('SWR_MOTION_KILL.gateRotate') || t.includes('SWR_MOTION_KILL.gateScale')) return true;
+  if (t.includes('text-transform') || t.includes('viewport') || t.includes('initial-scale')) return true;
+  if (/transform:\s*scaleX?\(-1\)|transform:\s*scale\(-1/.test(t)) return true;
+  if (t.includes('transform: translate')) return true;
+  if (/setTransform\(\s*(m\.)?dpr|setTransform\(\s*1,\s*0,\s*0,\s*1/.test(t)) return true;
+  if (t.includes('motion-kill: allow')) return true;
+  if (/@keyframes\s+heartbeat/.test(t)) return true;
+  if (/\.rotate\(/.test(t)) return false;
+  if (/\.scale\(/.test(t) && !/gateScale/.test(t)) {
+    if (/scale\(-1|scaleX\(-1|scaleY\(-1/.test(t)) return true;
+    return false;
+  }
+  return true;
+}
+
 console.log('no-rotate-zoom: kill-switch defaults');
 const sb = loadBoth();
 const MK = sb.SWR_MOTION_KILL;
@@ -51,6 +73,12 @@ const catalog = MK.filterCssFxCatalog([
   { name: 'crt', label: 'C' },
 ]);
 check(catalog.length === 1 && catalog[0].name === 'crt', 'filterCssFxCatalog drops zoom-pulse');
+
+console.log('no-rotate-zoom: canvas gate helpers');
+const fakeCtx = { calls: [], rotate(r) { this.calls.push(['rotate', r]); }, scale(a, b) { this.calls.push(['scale', a, b]); } };
+MK.gateRotate(fakeCtx, 0.5);
+MK.gateScale(fakeCtx, 2, 2);
+check(fakeCtx.calls.length === 0, 'gateRotate/gateScale no-op when globally off');
 
 console.log('no-rotate-zoom: applyReactor inert paths');
 const layer = {
@@ -91,12 +119,33 @@ check(dirty.pos.rot === 0, 'sanitizeLayer clears pos.rot');
 check(dirty.reactors.length === 0, 'sanitizeLayer strips rot reactors');
 check(dirty.modulators.length === 0, 'sanitizeLayer strips scale modulators');
 
+console.log('no-rotate-zoom: every versions/*.html loads kill-switch');
+const versionHtml = listVersionHtml();
+check(versionHtml.length >= 30, 'versions html inventory', 'count=' + versionHtml.length);
+for (const f of versionHtml) {
+  const rel = path.relative(ROOT, f);
+  const txt = fs.readFileSync(f, 'utf8');
+  const killIdx = txt.indexOf('motion-kill-switch.client.js');
+  check(killIdx >= 0, rel + ' loads motion-kill-switch');
+  if (txt.includes('apply-reactors.js')) {
+    const reactIdx = txt.indexOf('apply-reactors.js');
+    check(killIdx < reactIdx, rel + ' kill-switch before apply-reactors');
+  }
+  const lines = txt.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!isAllowedMotionLine(line)) {
+      check(false, rel + ' ungated motion at line ' + (i + 1), line.trim().slice(0, 80));
+    }
+  }
+}
+
 console.log('no-rotate-zoom: script load order on engine surfaces');
 let htmlFiles = [];
 try {
-  htmlFiles = execFileSync('rg', ['-l', '--glob', '*.html', 'apply-reactors\\.js', path.join(ROOT, 'engine.html'), path.join(ROOT, 'versions')], { encoding: 'utf8' })
+  htmlFiles = execFileSync('rg', ['-l', '--glob', '*.html', 'apply-reactors\\.js', path.join(ROOT, 'engine.html'), VERSIONS_DIR], { encoding: 'utf8' })
     .trim().split('\n').filter(Boolean);
-} catch (e) {
+} catch {
   htmlFiles = [];
 }
 check(htmlFiles.length >= 15, 'found HTML surfaces with apply-reactors', 'count=' + htmlFiles.length);
