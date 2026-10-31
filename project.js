@@ -317,7 +317,12 @@
           z: pl.z !== undefined ? pl.z : (zBase + i),
           groupId: pl.groupId || null,
           hidden: !!pl.hidden,
+          rotOffset: pl.rotOffset,
+          rotationEnabled: pl.rotationEnabled,
         });
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+          window.SWR_MOTION_KILL.sanitizeLayer(l);
+        }
       }
       // Restore the group headers themselves (name, visibility, collapsed).
       // Always reassign: a project with no groups must clear the groups

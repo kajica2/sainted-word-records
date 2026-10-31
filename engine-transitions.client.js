@@ -559,6 +559,12 @@
   }
 
   function fire(name, opts) {
+    try {
+      if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.isTransitionAllowed === 'function'
+          && !window.SWR_MOTION_KILL.isTransitionAllowed(name)) {
+        return Promise.resolve();
+      }
+    } catch (_) {}
     // Targeted Engine signal: one place covers every caller (panel, keyboard,
     // hotkey, auto-fire). Guarded so the engine works unchanged when the
     // module is absent.

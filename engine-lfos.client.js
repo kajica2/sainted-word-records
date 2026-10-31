@@ -325,6 +325,7 @@
           out.opacity = Math.max(0, Math.min(1, (out.opacity || 0) + v * gain * 0.5));
           break;
         case 'scale':
+          if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isZoomGloballyEnabled()) break;
           // Multiplicative on top of baseScale.
           out.scale = (out.scale || 1) * (1 + v * gain * 0.3);
           break;
@@ -340,6 +341,7 @@
           if (out.hue < -180) out.hue += 360;
           break;
         case 'rot':
+          if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) break;
           if (layer.rotationEnabled === true) {
             out.rot = (out.rot || 0) + v * gain * 15;
           }

@@ -32,6 +32,7 @@
        Must not carry type="module": vite's strip-absolute-module-scripts
        plugin rewrites a module tag on an absolute path into a plain defer
        classic script, which would load it too late. -->
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <script src="/lib/apply-reactors.js"></script>
   <script src="/lib/adaptive-guard.js" defer></script>
 <!-- SWR-WATERMARK-MARKER -->
@@ -5044,7 +5045,10 @@
         // shared ones, so `scale` is now clamped to [0.05, 4] here too - it
         // was the one thing every surface in the repo left unclamped.
         // See lib/apply-reactors.js for the full contract.
-        const enabled = layer.rotationEnabled === true;  // rotation is ON by default (Layers.add sets rotationEnabled: true, and the rot-master defaults to enabled); when false, both manual rotOffset and any rot-target reactors are silenced
+        const mk = window.SWR_MOTION_KILL;
+        const enabled = mk && typeof mk.isRotationAllowed === 'function'
+          ? mk.isRotationAllowed(layer)
+          : layer.rotationEnabled === true;
         const RX = window.SWR_REACTORS;
         const out = {
           scale: layer.baseScale,
@@ -5089,7 +5093,9 @@
             scale: 0, dx: 0, dy: 0, dBrightness: 0, dHue: 0, opacityMul: 0
           };
           window.SWR_LAYER_AUDIO_ALGOS.apply(layer.algo, feat, layer.algoIntensity, o);
-          out.scale    += o.scale;
+          if (!window.SWR_MOTION_KILL || window.SWR_MOTION_KILL.isZoomGloballyEnabled()) {
+            out.scale += o.scale;
+          }
           out.x        += o.dx;
           out.y        += o.dy;
           out.hue      += o.dHue;
@@ -5333,7 +5339,8 @@
             }
             const kbPh = a._kbSeed;
             const kbTt = a._kbT || 0;
-            const kbZ = 1 + 0.045 * (0.5 + 0.5 * Math.sin(kbTt * 0.10 + kbPh));
+            const zoomOk = !(window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isZoomGloballyEnabled());
+            const kbZ = zoomOk ? (1 + 0.045 * (0.5 + 0.5 * Math.sin(kbTt * 0.10 + kbPh))) : 1;
             const kbX = 0.020 * Math.sin(kbTt * 0.061 + kbPh * 1.7);
             const kbY = 0.014 * Math.cos(kbTt * 0.083 + kbPh * 2.3);
             r = Object.assign({}, r, {
@@ -7161,6 +7168,7 @@
         // to it. Key and button therefore share one implementation instead of
         // each carrying their own copy plus a listener.
         function rotateSelectedOrRemap(delta) {
+          if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) return false;
           const sel = (window.Layers && window.Layers.selected) || null;
           if (!sel) {
             // Nothing selected → the key means RE-MAP, matching the engine's
@@ -7376,6 +7384,13 @@
         this.toggleEl = $('css-fx-toggle');
         if (!this.stageEl || !this.gridEl) return;
 
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.filterCssFxCatalog === 'function') {
+          this.catalog = window.SWR_MOTION_KILL.filterCssFxCatalog(this.catalog);
+        }
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.stripActiveCssFxFromStage === 'function') {
+          window.SWR_MOTION_KILL.stripActiveCssFxFromStage(this.stageEl);
+        }
+
         // Render chips
         const frag = document.createDocumentFragment();
         for (const fx of this.catalog) {
@@ -7432,6 +7447,7 @@
           const saved = JSON.parse(localStorage.getItem('swr-cssfx-active') || '[]');
           if (Array.isArray(saved)) {
             for (const name of saved) {
+              if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isCssFxAllowed(name)) continue;
               if (this.catalog.find((f) => f.name === name)) this._apply(name, true);
             }
           }
@@ -7458,6 +7474,7 @@
       },
 
       _apply(name, on) {
+        if (on && window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isCssFxAllowed(name)) return;
         if (on) {
           this.active.add(name);
           this.stageEl.classList.add(name);

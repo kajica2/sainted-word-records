@@ -43,6 +43,7 @@
     "check:cross-tab-unit": "node scripts/check-cross-tab-unit.mjs",
     "check:dpr-ratchet-unit": "node scripts/check-dpr-ratchet-unit.mjs",
     "check:apply-reactor-unit": "node scripts/check-apply-reactor-unit.mjs",
+    "check:no-rotate-zoom": "node scripts/check-no-rotate-zoom.mjs",
     "check:db-postgres": "node scripts/check-db-postgres-unit.mjs",
     "check:app-version-bust-unit": "node scripts/check-app-version-bust-unit.mjs",
     "check:version-watcher-unit": "node scripts/check-version-watcher-unit.mjs",
