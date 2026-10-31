@@ -225,6 +225,16 @@
   // Tick events only carry the no-arc fallback: act boundaries are tracked
   // on the 1s glide clock (tighter than the 8-20s tick cadence — cuts land
   // on the section change, not whenever the next tick happens to fire).
+  (function loadAutomixImageMode() {
+    if (window.SWR_AUTOMIX_IMAGE) return;
+    try {
+      var s = document.createElement('script');
+      s.src = '/client/automix-image-mode.client.js';
+      s.defer = true;
+      document.head.appendChild(s);
+    } catch (_) {}
+  })();
+
   window.addEventListener('swr-automix-tick', function (ev) {
     var arc = ((ev.detail || {}).mixed || {}).arc;
     if (!arc && lastActIndex !== 'no-arc') {

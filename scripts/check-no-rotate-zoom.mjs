@@ -278,6 +278,10 @@ MK.sanitizeFxPreset(fxDirty);
 check(fxDirty.mut === 0 && fxDirty.mutAlgo === 1,
   'sanitizeFxPreset zeros mut and remaps vortex mutAlgo under kill-switch');
 check(fxDirty.liquid === 0, 'sanitizeFxPreset zeros liquid under zoom kill-switch');
+const fxGlitch = { temp: 0.1, mut: 0.42, mutAlgo: 1, liquid: 0.2 };
+MK.sanitizeFxPreset(fxGlitch);
+check(fxGlitch.mutAlgo === 1 && fxGlitch.mut === 0.42,
+  'sanitizeFxPreset keeps glitch mut when mutAlgo is not vortex');
 const stackLayer = {
   rotationEnabled: true,
   rotOffset: 33,
@@ -289,7 +293,7 @@ const stackSb = {
   console: { log() {}, warn() {}, error() {} },
   Math, Object, Array, Number, Boolean, String, Error, isFinite, isNaN,
   document: { getElementById() { return null; }, querySelector() { return null; } },
-  SWR: { Layers: { list: [stackLayer] }, _fxOverride: { mut: 0.8, mutAlgo: 3 } },
+  SWR: { Layers: { list: [stackLayer] }, _fxOverride: { mut: 0.8, mutAlgo: 0 } },
 };
 stackSb.window = stackSb;
 stackSb.globalThis = stackSb;
@@ -299,13 +303,51 @@ const MK3 = stackSb.SWR_MOTION_KILL;
 MK3.sanitizeAutomixEntry();
 check(stackLayer.rotOffset === 0 && stackLayer.reactors.length === 0,
   'sanitizeAutomixEntry clears layer rotation before automix runs');
-check(stackSb.SWR._fxOverride.mut === 0,
-  'sanitizeAutomixEntry clears live _fxOverride mut spin');
+check(stackSb.SWR._fxOverride.mut === 0 && stackSb.SWR._fxOverride.mutAlgo === 1,
+  'sanitizeAutomixEntry clears vortex mut on live _fxOverride');
 const runtimeSrc = fs.readFileSync(path.join(ROOT, 'client/automix-runtime.client.js'), 'utf8');
 check(runtimeSrc.includes('sanitizeAutomixEntry'), 'automix start() calls sanitizeAutomixEntry');
 check(runtimeSrc.includes('sanitizeFxPreset'), 'automix _setTarget sanitizes FX presets');
 const compSrc = fs.readFileSync(path.join(ROOT, 'client/automix-composition.client.js'), 'utf8');
 check(compSrc.includes('sanitizeAllLayerStacks'), 'automix composition apply() sanitizes layers');
+check(compSrc.includes('automix-image-mode.client.js'), 'automix composition loads image mode script');
+
+console.log('no-rotate-zoom: still-image automix mode');
+check(typeof MK.imageAutomixReactors === 'function', 'imageAutomixReactors exported');
+check(typeof MK.applyImageAutomixReactors === 'function', 'applyImageAutomixReactors exported');
+check(typeof MK.sanitizeFxPresetImage === 'function', 'sanitizeFxPresetImage exported');
+const imgLayer = {
+  rotationEnabled: true,
+  rotOffset: 10,
+  baseScale: 1.4,
+  pos: { rot: 5 },
+  asset: { type: 'image', mime: 'image/png' },
+  reactors: [{ feature: 'bass', target: 'scale', scale: 1 }, { feature: 'treble', target: 'rot', scale: 2 }],
+  modulators: [{ target: 'scale' }],
+};
+MK.applyImageAutomixReactors(imgLayer, 0);
+check(imgLayer.baseScale === 1 && imgLayer.rotationEnabled === false, 'image mode clamps scale and rotation');
+check(imgLayer.reactors.length >= 2, 'image mode installs allowed reactors');
+check(imgLayer.reactors.every((r) => MK.isReactorTargetAllowed(r.target)),
+  'image mode reactors use only allowed targets');
+check(!imgLayer.reactors.some((r) => r.target === 'rot' || r.target === 'scale'),
+  'image mode never assigns rot/scale reactors');
+const imgFx = { mut: 0.6, mutAlgo: 0, liquid: 0.5, blur: 0.1 };
+MK.sanitizeFxPresetImage(imgFx);
+check(imgFx.mutAlgo === 1 && imgFx.mut === 0.6 && imgFx.liquid === 0,
+  'sanitizeFxPresetImage forces glitch mutAlgo and drops liquid');
+const imgList = [
+  { asset: { type: 'image' } },
+  { asset: { type: 'image' } },
+  { asset: { type: 'video' } },
+];
+check(MK.isImageDominantLayerStack(imgList, 0.55) === true, 'image-dominant stack detected');
+const imageModeSrc = fs.readFileSync(path.join(ROOT, 'client/automix-image-mode.client.js'), 'utf8');
+check(imageModeSrc.includes('SWR_TIMING.crossfade'), 'image mode uses JS crossfade not CSS transitions');
+check(imageModeSrc.includes('sanitizeFxPresetImage'), 'image mode sanitizes FX through motion kill');
+check(imageModeSrc.includes('mutAlgo: 1'), 'image mode locks mutAlgo to glitch');
+check(fs.readFileSync(path.join(ROOT, 'engine.html'), 'utf8').includes('automix-image-mode.client.js'),
+  'engine.html loads automix-image-mode');
 const naturalSrc = fs.readFileSync(path.join(ROOT, 'lib/swr-natural.client.js'), 'utf8');
 check(naturalSrc.includes('isRotationGloballyEnabled'), 'natural mirror respects rotation kill-switch');
 
