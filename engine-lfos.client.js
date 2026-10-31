@@ -340,7 +340,9 @@
           if (out.hue < -180) out.hue += 360;
           break;
         case 'rot':
-          out.rot = (out.rot || 0) + v * gain * 15;
+          if (layer.rotationEnabled === true) {
+            out.rot = (out.rot || 0) + v * gain * 15;
+          }
           break;
         case 'brightness':
           out.brightness = Math.max(0.1, (out.brightness || 1) * (1 + v * gain * 0.3));
