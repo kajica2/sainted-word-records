@@ -694,6 +694,10 @@
   box-shadow: inset 0 0 0 1px rgba(255, 154, 77, .25);
 }
 .swr-cc-scene-pad:hover { color: var(--cc-fg); border-color: var(--cc-line-2); }
+.swr-cc-scene-pad.is-holding {
+  color: var(--cc-accent, #c4ff00);
+  border-color: var(--cc-accent, #c4ff00);
+}
 
 /* ── coarse pointers: 44px touch targets (CI gate) ───────────────────── */
 @media (pointer: coarse) {
