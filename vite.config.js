@@ -499,6 +499,7 @@ function copyStatic() {
     'gallery-audio.client.js',
     'dropzone.client.js',
     'engine-keys.client.js',
+    'jpg-engine.client.js',
     'engine-layout.client.js',
     'project.client.js',
     'timeline.client.js',

@@ -105,6 +105,7 @@ const FOOTER_OPTIONAL = new Set([
   'make-video.html',
   'enhance.html',
   'photo.html',
+  'jpg.html',
   'ar-gif.html',
   'spit.html',        // body{overflow:hidden} + .spit-stage{height:100vh} — an app shell
   'personas.html',    // its footer is the register index (persona-library + the 11 landing registers)

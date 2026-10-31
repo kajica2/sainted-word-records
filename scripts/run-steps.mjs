@@ -113,6 +113,9 @@ const GROUPS = {
     'npm run check:engine-keys-digit-filter-unit',
     'npm run check:engine-keys-digit-rotation-guard-unit',
     'npm run check:engine-keys-keyspress-unit',
+    // Image-only still engine (jpg.html + jpg-engine.client.js): ship wiring,
+    // classifyStill hue/luma, persona motion strip, blocked CSS filters.
+    'npm run check:jpg-engine-unit',
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
