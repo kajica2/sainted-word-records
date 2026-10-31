@@ -332,10 +332,21 @@ check(imgLayer.reactors.every((r) => MK.isReactorTargetAllowed(r.target)),
   'image mode reactors use only allowed targets');
 check(!imgLayer.reactors.some((r) => r.target === 'rot' || r.target === 'scale'),
   'image mode never assigns rot/scale reactors');
-const imgFx = { mut: 0.6, mutAlgo: 0, liquid: 0.5, blur: 0.1 };
+const imgFx = { mut: 0.6, mutAlgo: 0, liquid: 0.5, blur: 0.1, chroma: 0.2, grain: 0.3, glitch: 0.4, glow: 0.5, temp: 0.9 };
 MK.sanitizeFxPresetImage(imgFx);
-check(imgFx.mutAlgo === 1 && imgFx.mut === 0.6 && imgFx.liquid === 0,
-  'sanitizeFxPresetImage forces glitch mutAlgo and drops liquid');
+check(imgFx.mut === 0 && imgFx.blur === 0 && imgFx.chroma === 0 && imgFx.grain === 0 && imgFx.glitch === 0,
+  'sanitizeFxPresetImage clarity zeros distortion FX');
+check(imgFx.liquid === 0 && imgFx.glow <= MK.IMAGE_AUTOMIX_CAPS.glowMax,
+  'sanitizeFxPresetImage caps glow and drops liquid');
+check(Math.abs(imgFx.temp) <= MK.IMAGE_AUTOMIX_CAPS.tempMax + 0.001,
+  'sanitizeFxPresetImage caps temp swing');
+const imgReactors = MK.imageAutomixReactors(0);
+check(!imgReactors.some((r) => r.target === 'hue' || r.target === 'opacity'),
+  'image clarity reactors omit hue and opacity');
+check(imgReactors.every((r) => r.target === 'brightness' || r.target === 'contrast'),
+  'image clarity reactors only brightness/contrast');
+check(typeof MK.isImageClarityEnabled === 'function' && MK.isImageClarityEnabled() === true,
+  'IMAGE_CLARITY enabled by default');
 const imgList = [
   { asset: { type: 'image' } },
   { asset: { type: 'image' } },
@@ -345,7 +356,10 @@ check(MK.isImageDominantLayerStack(imgList, 0.55) === true, 'image-dominant stac
 const imageModeSrc = fs.readFileSync(path.join(ROOT, 'client/automix-image-mode.client.js'), 'utf8');
 check(imageModeSrc.includes('SWR_TIMING.crossfade'), 'image mode uses JS crossfade not CSS transitions');
 check(imageModeSrc.includes('sanitizeFxPresetImage'), 'image mode sanitizes FX through motion kill');
-check(imageModeSrc.includes('mutAlgo: 1'), 'image mode locks mutAlgo to glitch');
+check(imageModeSrc.includes('buildClarityFxPreset'), 'image mode builds clarity FX preset');
+check(imageModeSrc.includes('__imageClarityTargetHooked'), 'image mode hooks automix _setTarget');
+check(imageModeSrc.includes('minOpacity'), 'image mode enforces opacity floor');
+check(imageModeSrc.includes('mut: 0'), 'image mode clarity preset keeps mut at zero');
 check(fs.readFileSync(path.join(ROOT, 'engine.html'), 'utf8').includes('automix-image-mode.client.js'),
   'engine.html loads automix-image-mode');
 const naturalSrc = fs.readFileSync(path.join(ROOT, 'lib/swr-natural.client.js'), 'utf8');
