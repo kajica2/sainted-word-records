@@ -1079,6 +1079,9 @@
         ];
         const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
           opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, cover: false, reactors: presets[i%presets.length] };
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+          window.SWR_MOTION_KILL.sanitizeLayer(l);
+        }
         this.list.push(l); this.render(); this.sel = l; this._persist(); },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); this._persist(); },
       // Clear all layers without touching library assets, IDB song, or

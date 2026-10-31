@@ -156,6 +156,11 @@
       // Add up to 3 layers, respecting grouping
       for (var li = 0; li < Math.min(3, pool.length); li++) {
         try { Layers.add(pool[li]); } catch (_) {}
+        var mk = window.SWR_MOTION_KILL;
+        var added = Layers.list && Layers.list[Layers.list.length - 1];
+        if (mk && typeof mk.sanitizeLayer === 'function' && added) {
+          mk.sanitizeLayer(added);
+        }
       }
     }
 
