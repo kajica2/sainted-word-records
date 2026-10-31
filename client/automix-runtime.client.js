@@ -294,6 +294,9 @@
       this._beatIndex = 0;
       var freezeBtn = $('automix-freeze');
       if (freezeBtn) _setBtnActive(freezeBtn, false);
+      if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeAutomixEntry === 'function') {
+        try { window.SWR_MOTION_KILL.sanitizeAutomixEntry(); } catch (_) {}
+      }
       this._ensureArc();
       this.tick();
       this._scheduleNext();
@@ -522,6 +525,9 @@
       if (!preset) return;
       var SWR = window.SWR;
       if (!SWR) return;
+      if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeFxPreset === 'function') {
+        try { window.SWR_MOTION_KILL.sanitizeFxPreset(preset); } catch (_) {}
+      }
       if (SWR._fxOverride) this._fxFrom = Object.assign({}, SWR._fxOverride);
       this._fxT0 = performance.now();
       SWR._fxOverride = preset;

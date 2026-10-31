@@ -272,6 +272,42 @@ for (const name of ['watercolor.html', 'smoke.html']) {
     name + ' guards gateRotate before call');
 }
 
+console.log('no-rotate-zoom: automix entry starts with zero rotation');
+const fxDirty = { temp: 0.2, mut: 0.95, mutAlgo: 0, liquid: 0.4 };
+MK.sanitizeFxPreset(fxDirty);
+check(fxDirty.mut === 0 && fxDirty.mutAlgo === 0, 'sanitizeFxPreset zeros mut spin under kill-switch');
+check(fxDirty.liquid === 0, 'sanitizeFxPreset zeros liquid under zoom kill-switch');
+const stackLayer = {
+  rotationEnabled: true,
+  rotOffset: 33,
+  baseScale: 1.6,
+  pos: { rot: 12 },
+  reactors: [{ feature: 'treble', target: 'rot', scale: 3 }],
+};
+const stackSb = {
+  console: { log() {}, warn() {}, error() {} },
+  Math, Object, Array, Number, Boolean, String, Error, isFinite, isNaN,
+  document: { getElementById() { return null; }, querySelector() { return null; } },
+  SWR: { Layers: { list: [stackLayer] }, _fxOverride: { mut: 0.8, mutAlgo: 3 } },
+};
+stackSb.window = stackSb;
+stackSb.globalThis = stackSb;
+vm.createContext(stackSb);
+vm.runInContext(fs.readFileSync(KILL, 'utf8'), stackSb, { filename: 'motion-kill-switch.client.js' });
+const MK3 = stackSb.SWR_MOTION_KILL;
+MK3.sanitizeAutomixEntry();
+check(stackLayer.rotOffset === 0 && stackLayer.reactors.length === 0,
+  'sanitizeAutomixEntry clears layer rotation before automix runs');
+check(stackSb.SWR._fxOverride.mut === 0 && stackSb.SWR._fxOverride.mutAlgo === 0,
+  'sanitizeAutomixEntry clears live _fxOverride mut spin');
+const runtimeSrc = fs.readFileSync(path.join(ROOT, 'client/automix-runtime.client.js'), 'utf8');
+check(runtimeSrc.includes('sanitizeAutomixEntry'), 'automix start() calls sanitizeAutomixEntry');
+check(runtimeSrc.includes('sanitizeFxPreset'), 'automix _setTarget sanitizes FX presets');
+const compSrc = fs.readFileSync(path.join(ROOT, 'client/automix-composition.client.js'), 'utf8');
+check(compSrc.includes('sanitizeAllLayerStacks'), 'automix composition apply() sanitizes layers');
+const naturalSrc = fs.readFileSync(path.join(ROOT, 'lib/swr-natural.client.js'), 'utf8');
+check(naturalSrc.includes('isRotationGloballyEnabled'), 'natural mirror respects rotation kill-switch');
+
 if (failures === 0) {
   console.log('\nALL GREEN (no-rotate-zoom)');
   process.exit(0);

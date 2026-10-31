@@ -137,6 +137,11 @@
     var sched = window.SWR_LAYER_SCHEDULER;
     if (!sched || typeof sched.setConfig !== 'function') return false;
 
+    var mkEntry = window.SWR_MOTION_KILL;
+    if (mkEntry && typeof mkEntry.sanitizeAllLayerStacks === 'function') {
+      try { mkEntry.sanitizeAllLayerStacks(); } catch (_) {}
+    }
+
     // Auto-populate the stage: variants don't auto-add library items as
     // layers (that's engine-only behaviour), so a user with clips in the
     // library but nothing on stage had NOTHING for the scheduler to
