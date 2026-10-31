@@ -48,6 +48,7 @@ function isAllowedMotionLine(line) {
   if (t.includes('transform: translate')) return true;
   if (/setTransform\(\s*(m\.)?dpr|setTransform\(\s*1,\s*0,\s*0,\s*1/.test(t)) return true;
   if (t.includes('motion-kill: allow')) return true;
+  if (/rc\.rotate\s*\(\s*a\.rotation/.test(t)) return true;
   if (/@keyframes\s+heartbeat/.test(t)) return true;
   if (/\.rotate\(/.test(t)) return false;
   if (/\.scale\(/.test(t) && !/gateScale/.test(t)) {
@@ -242,6 +243,34 @@ const automixLayer = {
 MK2.sanitizeLayer(automixLayer);
 check(automixLayer.baseScale === 1, 'sanitizeLayer clamps automix baseScale');
 check(automixLayer.reactors.length === 0, 'sanitizeLayer strips automix rot/scale reactors');
+
+console.log('no-rotate-zoom: versions pages must not reference _SWR_MOTION_KILL');
+for (const f of versionHtml) {
+  const rel = path.relative(ROOT, f);
+  const txt = fs.readFileSync(f, 'utf8');
+  check(!txt.includes('_SWR_MOTION_KILL'), rel + ' has no _SWR_MOTION_KILL typo');
+}
+
+console.log('no-rotate-zoom: play.html EXIF orientation bypasses gateRotate');
+const playPath = path.join(VERSIONS_DIR, 'play.html');
+const playTxt = fs.readFileSync(playPath, 'utf8');
+check(!playTxt.includes('_SWR_MOTION_KILL'), 'play.html has no _SWR_MOTION_KILL typo');
+const exifMarker = 'motion-kill: allow EXIF/tkhd orientation';
+const exifIdx = playTxt.indexOf(exifMarker);
+check(exifIdx >= 0, 'play.html documents EXIF orientation exception');
+const exifSlice = exifIdx >= 0 ? playTxt.slice(exifIdx, exifIdx + 400) : '';
+check(/rc\.rotate\s*\(\s*a\.rotation/.test(exifSlice),
+  'play.html EXIF block uses rc.rotate(a.rotation) not gateRotate');
+check(!/gateRotate\s*\(\s*rc\s*,\s*a\.rotation/.test(exifSlice),
+  'play.html EXIF block does not gate EXIF rotation');
+
+console.log('no-rotate-zoom: watercolor/smoke gateRotate is guarded');
+for (const name of ['watercolor.html', 'smoke.html']) {
+  const txt = fs.readFileSync(path.join(VERSIONS_DIR, name), 'utf8');
+  check(txt.includes('window.SWR_MOTION_KILL'), name + ' uses window.SWR_MOTION_KILL');
+  check(/typeof\s+\w+\.gateRotate\s*===\s*['"]function['"]/.test(txt),
+    name + ' guards gateRotate before call');
+}
 
 if (failures === 0) {
   console.log('\nALL GREEN (no-rotate-zoom)');

@@ -4765,7 +4765,8 @@
             r.width = sw; r.height = sh;
             const rc = r.getContext('2d');
             rc.translate(sw / 2, sh / 2);
-            SWR_MOTION_KILL.gateRotate(rc, a.rotation * Math.PI / 180);
+            // motion-kill: allow EXIF/tkhd orientation — not decorative rotation
+            rc.rotate(a.rotation * Math.PI / 180);
             // drawImage uses the ORIGINAL source dimensions because that's the
             // un-rotated intrinsic content; rotation happens around the center.
             const ow = src.naturalWidth || src.videoWidth || src.width || drawH;
