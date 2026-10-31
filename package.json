@@ -27,6 +27,7 @@
     "keys:pt": "node scripts/generate-pt-keys.mjs",
     "check:bundle": "bash scripts/build-magenta-dsp-bundle.sh",
     "check:auth-unit": "node scripts/check-auth-unit.mjs",
+    "check:security-gates-unit": "node scripts/check-security-gates-unit.mjs",
     "check:auth-google-signin-unit": "node scripts/check-auth-google-signin-unit.mjs",
     "check:auth-firebase-anon-unit": "node scripts/check-auth-firebase-anon-unit.mjs",
     "check:auth-firestore-unit": "node scripts/check-auth-firestore-unit.mjs",

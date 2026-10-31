@@ -83,8 +83,9 @@ export default async function handler(req, res) {
     return sendJson(res, 405, { error: 'method_not_allowed' });
   }
 
-  const user = await requireUser(req).catch(() => null);
-  if (!user) return sendJson(res, 401, { error: 'not_authenticated' });
+  const ctx = await requireUser(req, res);
+  if (!ctx) return;
+  const user = ctx.user;
 
   if (!user.googleDrive || !user.googleDrive.accessToken) {
     return sendJson(res, 409, { error: 'google_drive_not_linked' });

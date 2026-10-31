@@ -73,11 +73,7 @@ function copyDirRecursive(src, dst) {
     // Skip _archive/ directory — gitignored experimental pages (see
     // scripts/archive-pages.mjs).
     if (f === '_archive') continue;
-    // Skip the invite-code store. data/ ships wholesale because
-    // data/preset-transitions.json and friends are runtime assets, but
-    // data/invite-store/ is runtime STATE (gitignored — the CSV is the
-    // source of truth) and its email index can hold real addresses.
-    // Only reachable from a local build; a git-push deploy never has it.
+    // Legacy: copyDirRecursive is not used for data/ anymore (allowlist copy).
     if (f === 'invite-store') continue;
     const sp = join(src, f);
     const dp = join(dst, f);
@@ -87,6 +83,23 @@ function copyDirRecursive(src, dst) {
     } else if (st.isFile()) {
       copyFileSync(sp, dp);
     }
+  }
+}
+
+// Runtime assets under data/ that the browser fetches (see lib/preset-transitions.client.js).
+// Everything else in data/ — invite CSV, PRDs, invite-store state — must never ship in dist/.
+const DATA_DEPLOY_ALLOWLIST = [
+  'preset-transitions.json',
+];
+
+function copyDataDeployAllowlist(outDir, log) {
+  const dstDir = resolve(outDir, 'data');
+  mkdirSync(dstDir, { recursive: true });
+  for (const name of DATA_DEPLOY_ALLOWLIST) {
+    const src = resolve('data', name);
+    if (!existsSync(src)) continue;
+    copyFileSync(src, join(dstDir, name));
+    if (log) log('copied data/' + name);
   }
 }
 
@@ -715,7 +728,6 @@ function copyStatic() {
 
   const dirs = [
     { src: 'versions', dst: 'versions' },
-    { src: 'data', dst: 'data' },
     // Placeholder MP4s for the music-video-gallery and the landing page's
     // inline video tiles (landing.html:882-896, versions/music-video-gallery.html).
     { src: 'videos', dst: 'videos' },
@@ -821,6 +833,7 @@ function copyStatic() {
     // Unset, the whole directory ships exactly as before, so the local
     // build, the CI build and the dev server are unchanged.
     const packsBase = normalizeBase(process.env.PACKS_BASE || '');
+    copyDataDeployAllowlist(outDir, log);
     for (const d of dirs) {
       const src = resolve(d.src);
       const dst = resolve(outDir, d.dst);
