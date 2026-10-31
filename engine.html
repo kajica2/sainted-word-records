@@ -3597,6 +3597,31 @@
         <button class="tbtn ghost" data-3d="torus"       style="padding:3px 8px; font-size:9px;">Torus</button>
         <button class="tbtn ghost" data-3d="icosahedron" style="padding:3px 8px; font-size:9px;">Icosa</button>
       </div>
+      <div id="image-lane-panel" style="border-bottom:1px solid var(--line);padding:6px 8px;background:var(--panel-2);">
+        <div class="ph" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;">Stills lane</span>
+          <button type="button" class="tbtn ghost" id="image-lane-visible" style="padding:2px 6px;font-size:9px;">Hide</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:9px;margin-bottom:4px;">
+          <label>Order
+            <select id="image-lane-order" style="font-size:9px;margin-left:2px;">
+              <option value="above">Above video</option>
+              <option value="below">Below video</option>
+            </select>
+          </label>
+          <label>Blend
+            <select id="image-lane-blend" style="font-size:9px;margin-left:2px;">
+              <option value="source-over">Normal</option>
+              <option value="screen">Screen</option>
+              <option value="lighter">Lighter</option>
+              <option value="overlay">Overlay</option>
+              <option value="soft-light">Soft light</option>
+            </select>
+          </label>
+          <label>Opacity <input type="range" id="image-lane-opacity" min="0" max="1" step="0.05" value="1" style="width:56px;vertical-align:middle;" /> <b id="image-lane-opacity-v">1.00</b></label>
+        </div>
+        <div id="image-lane-list"></div>
+      </div>
       <div id="layer-list"></div>
     </aside>
 
@@ -4005,6 +4030,8 @@
   <script src="/lib/swr-life.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
+  <script src="/lib/image-lane.client.js" defer></script>
+  <script src="/client/image-lane-panel.client.js" defer></script>
   <!-- A video loaded as the song becomes a layer, sharing the song's own
        <video> element so the picture and the sound cannot drift apart
        (see lib/song-video-layer.client.js). -->
@@ -5840,12 +5867,20 @@
         // Hidden layers (a hidden group writes `hidden` on its members)
         // do not draw at all — and they do not consume the top-N budget
         // either, so hiding a group frees a slot for the next layer down.
+        const _lane = window.SWR_IMAGE_LANE;
+        const _drawLaneBelow = _lane && _lane.stackOrder === 'below';
+        const _drawImageLane = () => {
+          if (!_lane) return;
+          _lane.drawStack(cx, (layer, c, w, h) => this.drawLayer(layer, c, w, h), cx.canvas.width, cx.canvas.height);
+        };
         const sorted = (Layers && Layers.visibleList() || []).sort((a, b) => a.z - b.z);
         const _activeCap = (Layers && Layers.activeCount) || 0;
         const _drawFrom = _activeCap > 0 ? Math.max(0, sorted.length - _activeCap) : 0;
+        if (_drawLaneBelow) _drawImageLane();
         for (let i = _drawFrom; i < sorted.length; i++) {
           this.drawLayer(sorted[i], cx, cx.canvas.width, cx.canvas.height);
         }
+        if (!_drawLaneBelow) _drawImageLane();
         // Selection outline (in manual mode, when a layer is being dragged)
         if (this.dragMode === 'manual' && this.selectedLayer) {
           this.drawSelection(cx, this.selectedLayer);

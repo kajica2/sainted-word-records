@@ -77,6 +77,11 @@
       duration: it.duration || 0,
     }));
 
+    const IL = window.SWR_IMAGE_LANE;
+    if (IL && typeof IL.migrateFromVideoStack === 'function') {
+      try { IL.migrateFromVideoStack(); } catch (_) {}
+    }
+
     const layers = (Layers.list || []).map(l => ({
       id: l.id,
       assetId: l.asset ? l.asset.id : null,
@@ -159,11 +164,14 @@
       panels.layers  = panels.layers  || { rotated: false };
     } catch {}
 
+    const imageLane = IL && typeof IL.toJSON === 'function' ? IL.toJSON() : null;
+
     return {
       version: VERSION,
       savedAt: new Date().toISOString(),
       library,
       layers,
+      imageLane,
       groups,
       fx,
       preset:  presetSel  ? presetSel.value  : null,
@@ -281,6 +289,15 @@
       paletteSel.dispatchEvent(new Event('change'));
     }
 
+    const IL = window.SWR_IMAGE_LANE;
+
+    // 4a. Image lane (dedicated stills stack)
+    if (IL && typeof IL.restoreFromJSON === 'function') {
+      const libMapEarly = new Map((Library.items || []).map(it => [it.id, it]));
+      const byNameEarly = new Map((Library.items || []).map(it => [it.name, it]));
+      IL.restoreFromJSON(project.imageLane || null, libMapEarly, byNameEarly);
+    }
+
     // 4. Re-build layers if Library is populated
     if (Layers.list && project.layers && project.layers.length) {
       // Build assetId → asset map from current Library
@@ -289,6 +306,9 @@
 
       // Capture z baseline so rebuilt layers stack the same way
       const zBase = (Layers.list.length ? Math.max(...Layers.list.map(l => l.z || 0)) : 0) + 1;
+
+      const laneHadSavedStills = !!(project.imageLane && project.imageLane.layers && project.imageLane.layers.length);
+      const MK = window.SWR_MOTION_KILL;
 
       for (let i = 0; i < project.layers.length; i++) {
         const pl = project.layers[i];
@@ -300,8 +320,19 @@
         }
         if (!asset) continue;  // asset missing; skip
 
+        if (laneHadSavedStills && MK && typeof MK.isImageAsset === 'function' && MK.isImageAsset(asset)) {
+          continue;
+        }
+
+        const laneBefore = IL && IL.list ? IL.list.length : 0;
+        const videoBefore = Layers.list.length;
         Layers.add(asset);
-        const l = Layers.list[Layers.list.length - 1];
+        let l = null;
+        if (IL && IL.list && IL.list.length > laneBefore) {
+          l = IL.list[IL.list.length - 1];
+        } else if (Layers.list.length > videoBefore) {
+          l = Layers.list[Layers.list.length - 1];
+        }
         if (!l) continue;
         Object.assign(l, {
           blend: pl.blend,
@@ -337,6 +368,11 @@
       }
       if (Layers.render) Layers.render();
     }
+
+    if (IL && typeof IL.migrateFromVideoStack === 'function') {
+      try { IL.migrateFromVideoStack(); } catch (_) {}
+    }
+    if (IL && IL.render) IL.render();
 
     // 5. Scheduler config
     if (project.scheduler && window.LayerScheduler) {

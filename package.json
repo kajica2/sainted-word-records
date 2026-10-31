@@ -80,6 +80,7 @@
     "check:media-grouping-unit": "node scripts/check-media-grouping-unit.mjs",
     "check:engine-keys-keyspress-unit": "node scripts/check-engine-keys-keyspress-unit.mjs",
     "check:jpg-engine-unit": "node scripts/check-jpg-engine-unit.mjs",
+    "check:image-lane-unit": "node scripts/check-image-lane-unit.mjs",
     "check:shortcuts-movie-unit": "node scripts/check-shortcuts-movie-unit.mjs",
     "check:composer-client-unit": "node scripts/check-composer-client-unit.mjs",
     "check:record-client-unit": "node scripts/check-record-client-unit.mjs",
