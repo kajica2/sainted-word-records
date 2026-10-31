@@ -3,6 +3,7 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
@@ -4764,6 +4765,7 @@
             r.width = sw; r.height = sh;
             const rc = r.getContext('2d');
             rc.translate(sw / 2, sh / 2);
+            // motion-kill: allow EXIF/tkhd orientation — not decorative rotation
             rc.rotate(a.rotation * Math.PI / 180);
             // drawImage uses the ORIGINAL source dimensions because that's the
             // un-rotated intrinsic content; rotation happens around the center.
@@ -4865,7 +4867,7 @@
           dx = (cw - dw) / 2 + r.x; dy = (chh - dh) / 2 + r.y;
           if (r.rot) {
             pc.translate(cw / 2 + r.x, chh / 2 + r.y);
-            pc.rotate(r.rot * Math.PI / 180);
+            SWR_MOTION_KILL.gateRotate(pc, r.rot * Math.PI / 180);
             pc.drawImage(drawSrc, -dw / 2, -dh / 2, dw, dh);
           } else {
             pc.drawImage(drawSrc, dx, dy, dw, dh);
@@ -4877,7 +4879,7 @@
           cx.save();
           if (r.rot) {
             cx.translate(cw / 2 + r.x, chh / 2 + r.y);
-            cx.rotate(r.rot * Math.PI / 180);
+            SWR_MOTION_KILL.gateRotate(cx, r.rot * Math.PI / 180);
             const ar = drawW / drawH;
             const canvasAR = cw / chh;
             let dw, dh;

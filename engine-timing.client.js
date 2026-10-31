@@ -258,8 +258,10 @@
     opts = opts || {};
     const o = Object.assign({}, cfg.eventSwap, opts);
     const oldAsset = layer.asset;
+    var zoomOk = !(window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.isZoomGloballyEnabled === 'function'
+      && !window.SWR_MOTION_KILL.isZoomGloballyEnabled());
     layer._morphFrom = oldAsset ? {
-      baseScale: layer.baseScale, x: 0, y: 0, rot: 0,
+      baseScale: zoomOk ? layer.baseScale : 1, x: 0, y: 0, rot: 0,
       hue: layer.hue, brightness: layer.brightness, contrast: layer.contrast,
     } : null;
     // Kick off fadeOut. The render loop's step() will swap at the midpoint

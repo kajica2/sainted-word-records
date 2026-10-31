@@ -3,6 +3,7 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <meta charset="utf-8" />
   <title>MOSAIC · SWR version · Posterize tile</title>
   <meta name="description" content="Stub preset — stained-glass tile tone (page-target only)" />
@@ -224,7 +225,7 @@
         const r = 60 + i * 50 + Math.sin(t * 1.2 + i) * 20;
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.rotate(t * 0.15 + i * 0.3);
+        SWR_MOTION_KILL.gateRotate(ctx, t * 0.15 + i * 0.3);
         ctx.strokeStyle = `rgba(255, 255, 255, ${0.3 - i * 0.04})`;
         ctx.lineWidth = 2;
         ctx.strokeRect(-r, -r, r * 2, r * 2);
@@ -399,7 +400,7 @@
         const r = 60 + i * 50 + Math.sin(t * 1.2 + i) * 20;
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.rotate(t * 0.15 + i * 0.3);
+        SWR_MOTION_KILL.gateRotate(ctx, t * 0.15 + i * 0.3);
         ctx.strokeStyle = 'rgba(255,255,255,' + (0.10 - i * 0.012 + beatLift * 0.05).toFixed(3) + ')';
         ctx.lineWidth = 2;
         ctx.strokeRect(-r, -r, r * 2, r * 2);

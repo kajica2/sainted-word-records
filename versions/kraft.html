@@ -3,6 +3,7 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <meta charset="utf-8" />
   <title>KRAFT · SWR version · Cardboard paper</title>
   <meta name="description" content="Stub preset — brown-paper texture tone (page-target only)" />
@@ -212,7 +213,7 @@
         const r = 80 + i * 60 + Math.sin(t * 1.3 + i) * 20;
         ctx.save();
         ctx.translate(cx + Math.cos(t * 0.4 + i) * 30, cy + Math.sin(t * 0.5 + i) * 20);
-        ctx.rotate(rot + i);
+        SWR_MOTION_KILL.gateRotate(ctx, rot + i);
         ctx.strokeStyle = `rgba(58, 40, 24, ${0.4 - i * 0.06})`;
         ctx.lineWidth = 3 - i * 0.3;
         ctx.setLineDash([8, 6]);
@@ -234,7 +235,7 @@
       // Hand-stamped typography
       ctx.save();
       ctx.translate(cx, cy);
-      ctx.rotate(-0.05);
+      SWR_MOTION_KILL.gateRotate(ctx, -0.05);
       ctx.font = 'bold 88px "Archivo Black", sans-serif';
       ctx.fillStyle = 'rgba(58, 40, 24, 0.85)';
       ctx.textAlign = 'center';
@@ -361,7 +362,7 @@
         const r = (80 + i * 60 + Math.sin(t * 1.3 + i) * 20) * k * (0.8 + bass * 0.45);
         ctx.save();
         ctx.translate(cx + Math.cos(t * 0.4 + i) * 30 * k, cy + Math.sin(t * 0.5 + i) * 20 * k);
-        ctx.rotate(rot + i);
+        SWR_MOTION_KILL.gateRotate(ctx, rot + i);
         const inkA = clamp((0.34 - i * 0.05) * (0.65 + bass * 0.5), 0, 0.55);
         ctx.strokeStyle = 'rgba(' + INK + ',' + inkA.toFixed(3) + ')';
         ctx.lineWidth = Math.max(1, (3 - i * 0.3) * k);
@@ -384,7 +385,7 @@
       const sr = 40 * k;
       ctx.save();
       ctx.translate(W - 26 * k - sr, H - 26 * k - sr);
-      ctx.rotate(-8 * Math.PI / 180);
+      SWR_MOTION_KILL.gateRotate(ctx, -8 * Math.PI / 180);
       const stampA = clamp(0.45 + beat * 0.4 + onset * 0.25, 0, 0.95);
       ctx.strokeStyle = 'rgba(' + STAMP + ',' + stampA.toFixed(3) + ')';
       ctx.lineWidth = Math.max(1, 3 * k);

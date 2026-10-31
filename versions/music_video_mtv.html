@@ -479,7 +479,8 @@
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
 <script src="/lib/ease.js"></script>
-<script src="/lib/apply-reactors.js"></script>
+<script src="/lib/motion-kill-switch.client.js"></script>
+  <script src="/lib/apply-reactors.js"></script>
   <script src="../engine-render.client.js"></script>
   <script src="../client/preset-anchor-map.client.js"></script>
 <script src="../client/anchor-embed.js"></script>
@@ -1078,6 +1079,9 @@
         ];
         const l = { id:'L'+(i+1), asset: it, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
           opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, cover: false, reactors: presets[i%presets.length] };
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+          window.SWR_MOTION_KILL.sanitizeLayer(l);
+        }
         this.list.push(l); this.render(); this.sel = l; this._persist(); },
       rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); this._persist(); },
       // Clear all layers without touching library assets, IDB song, or
@@ -1517,7 +1521,7 @@
       // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
       if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
       if (Math.abs(r.rot) > 0.5) {
-        ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+        ctx.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(ctx, r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
         ctx.drawImage(src, dx, dy, dw, dh);
       }
@@ -4070,7 +4074,7 @@
         tc.textContent = fmtTC(t);
         // Bounce the title on beat
         const beat = A.feat && A.feat.beat ? A.feat.beat : 0;
-        title.style.transform = 'scale(' + (1 + beat * 0.05) + ')';
+        title.style.transform = 'scale(' + (window.SWR_MOTION_KILL ? SWR_MOTION_KILL.cssZoomFactor(1 + beat * 0.05) : (1 + beat * 0.05)) + ')';
         title.style.letterSpacing = (0.32 + beat * 0.05) + 'em';
         // Show the loaded track name once known
         if (A.el.src && track.textContent.indexOf('—') === 0) {

@@ -868,6 +868,14 @@
       "destination": "/photo.html"
     },
     {
+      "source": "/jpg",
+      "destination": "/jpg.html"
+    },
+    {
+      "source": "/jpg/",
+      "destination": "/jpg.html"
+    },
+    {
       "source": "/enhance",
       "destination": "/enhance.html"
     },

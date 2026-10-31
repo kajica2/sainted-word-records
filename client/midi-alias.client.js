@@ -147,6 +147,7 @@
     const L = window.Layers;
     if (!L || !L.selected) return;
     if (field === 'rotOffset') {
+      if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) return;
       L.selected.rotOffset = val;
     } else if (field === 'opacity') {
       L.selected.opacity = clamp(val, 0, 1);

@@ -422,7 +422,8 @@
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
 <script src="/lib/ease.js"></script>
-<script src="/lib/apply-reactors.js"></script>
+<script src="/lib/motion-kill-switch.client.js"></script>
+  <script src="/lib/apply-reactors.js"></script>
   <script src="../engine-render.client.js"></script>
 
   <!-- Automix + asset-curator stack (Phase 2 port from music_video) -->
@@ -1356,6 +1357,7 @@
     // unit tables still exist, and for exactly what the unification changes.
     const RX = window.SWR_REACTORS;
     function applyR(l) {
+      const rotOn = l.rotationEnabled === true;
       const out = RX.baseTransform(l, { rot: l.hue * 0.05 });
       // The narrative drift bias below reads `sens` directly, so this page
       // keeps the local the old applyR used to declare.
@@ -1368,7 +1370,10 @@
       // survives the global mute).
       const _txOn = (l.reactorsEnabled !== false)
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
-      if (!_txOn) return out;
+      if (!_txOn) {
+        if (!rotOn) out.rot = 0;
+        return out;
+      }
       RX.applyReactor(l, A, 0, {
         base: out,
         units: RX.UNITS.naturalHalfGrade,
@@ -1381,12 +1386,12 @@
         damp: (val, halfLife, key) => (window.SWR_AUDIO_DAMP && window.SWR_AUDIO_DAMP.damp
           ? window.SWR_AUDIO_DAMP.damp(window.SWR_AUDIO_DAMP.damp(val, halfLife, key), halfLife, key)
           : val),
-        // The rot-master toggle (swr-rot-master): when rotation is OFF for
-        // this layer, rot-target reactors are silenced so audio cannot
-        // compound the canvas into 180-degree flips. Rotation is ON by
-        // default (the rot-master defaults to enabled).
-        allowRotation: l.rotationEnabled === true
+        // The rot-master toggle (swr-rot-master): rotation is opt-in per
+        // layer (rotationEnabled === true). When OFF, rot-target reactors
+        // and the hue→rot base seed stay silent.
+        allowRotation: rotOn
       });
+      if (!rotOn) out.rot = 0;
 
       if (window.SWR_NARRATIVE) {
         const n = window.SWR_NARRATIVE;
@@ -1447,8 +1452,9 @@
       // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
       // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
       if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
-      if (Math.abs(r.rot) > 0.5) {
-        ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+      const rotDeg = l.rotationEnabled === true ? r.rot : 0;
+      if (Math.abs(rotDeg) > 0.5) {
+        ctx.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(ctx, rotDeg * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
         ctx.drawImage(src, dx, dy, dw, dh);
       }

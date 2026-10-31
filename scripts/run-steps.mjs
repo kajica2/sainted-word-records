@@ -113,6 +113,9 @@ const GROUPS = {
     'npm run check:engine-keys-digit-filter-unit',
     'npm run check:engine-keys-digit-rotation-guard-unit',
     'npm run check:engine-keys-keyspress-unit',
+    // Image-only still engine (jpg.html + jpg-engine.client.js): ship wiring,
+    // classifyStill hue/luma, persona motion strip, blocked CSS filters.
+    'npm run check:jpg-engine-unit',
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
@@ -146,6 +149,7 @@ const GROUPS = {
     'npm run test:asset-curator-unit',
     'npm run test:asset-curator',
     'npm run check:auth-unit',
+    'npm run check:security-gates-unit',
     // Google sign-in: the start endpoint, the signed state, the exchange,
     // the session cookie and the redirect_uri callback. Google's two
     // endpoints are stubbed; everything else is the real handler.
@@ -216,6 +220,7 @@ const GROUPS = {
     // dropped every x / y reactor. This gate pins the unit table, the clamp
     // table, the malformed-input cases AND the sixteen call sites.
     'npm run check:apply-reactor-unit',
+    'npm run check:no-rotate-zoom',
     // P2.2: set + clear session cookies both carry Secure. The plan
     // (docs/PLANS/architecture-audit-2026-10.md) called out that the
     // delete cookie was missing the flag; this is the gate that
