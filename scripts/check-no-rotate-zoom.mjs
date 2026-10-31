@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const KILL = path.join(ROOT, 'lib/motion-kill-switch.client.js');
 const REACTORS = path.join(ROOT, 'lib/apply-reactors.js');
+const ARC_SRC = path.join(ROOT, 'client/automix-arc.client.js');
 const VERSIONS_DIR = path.join(ROOT, 'versions');
 
 let failures = 0;
@@ -47,6 +48,7 @@ function isAllowedMotionLine(line) {
   if (t.includes('transform: translate')) return true;
   if (/setTransform\(\s*(m\.)?dpr|setTransform\(\s*1,\s*0,\s*0,\s*1/.test(t)) return true;
   if (t.includes('motion-kill: allow')) return true;
+  if (/rc\.rotate\s*\(\s*a\.rotation/.test(t)) return true;
   if (/@keyframes\s+heartbeat/.test(t)) return true;
   if (/\.rotate\(/.test(t)) return false;
   if (/\.scale\(/.test(t) && !/gateScale/.test(t)) {
@@ -160,6 +162,115 @@ for (const f of htmlFiles) {
 const engineHtml = fs.readFileSync(path.join(ROOT, 'engine.html'), 'utf8');
 check(engineHtml.includes('filterCssFxCatalog'), 'engine.html CSSFX uses filterCssFxCatalog');
 check(engineHtml.includes('isCssFxAllowed'), 'engine.html CSSFX guards _apply with isCssFxAllowed');
+
+console.log('no-rotate-zoom: automix transition pools and layer sanitize');
+const arcCtx = {
+  console: { log() {}, warn() {}, error() {} },
+  Math, Object, Array, Number, Boolean, String, Error, isFinite, isNaN,
+  document: {
+    addEventListener() {},
+    createElement() { return { src: '', onload: null, onerror: null }; },
+    head: { appendChild() {} },
+  },
+  window: {},
+  setInterval() {},
+  clearInterval() {},
+  CustomEvent: function CustomEvent() {},
+};
+arcCtx.window = arcCtx;
+arcCtx.globalThis = arcCtx;
+vm.createContext(arcCtx);
+vm.runInContext(fs.readFileSync(KILL, 'utf8'), arcCtx, { filename: 'motion-kill-switch.client.js' });
+vm.runInContext(fs.readFileSync(ARC_SRC, 'utf8'), arcCtx, { filename: 'automix-arc.client.js' });
+const ARC = arcCtx.window.SWR_AUTOMIX_ARC;
+const MK2 = arcCtx.window.SWR_MOTION_KILL;
+const I = ARC && ARC._internals;
+check(!!I, 'automix-arc _internals loaded');
+const blocked = new Set(MK2.BLOCKED_TRANSITIONS);
+const subtleFiltered = MK2.filterTransitionPool(I.SUBTLE);
+check(!subtleFiltered.includes('warp-dissolve'), 'SUBTLE pool drops warp-dissolve under kill-switch');
+check(subtleFiltered.length >= 2, 'SUBTLE pool still has allowed entries', 'len=' + subtleFiltered.length);
+let badPick = null;
+for (let n = 0; n < 120; n++) {
+  const pick = I.pickTransition(0.2, 0.2, { cls: 'subtle' });
+  if (blocked.has(pick)) { badPick = pick; break; }
+}
+check(!badPick, '120 subtle automix transition picks are allowed', badPick || '');
+const fired = [];
+arcCtx.window.SWRTransitions = {
+  _TRANSITIONS: {
+    'fade-to-black': {}, 'cross-dissolve': {}, 'pure-crossfade': {},
+    'glitch-burst': {}, 'chromatic-split': {}, 'circle-wipe': {},
+    'linear-wipe-lr': {}, 'vhs-tracking': {},
+  },
+  fire(name) {
+    if (!MK2.isTransitionAllowed(name)) {
+      check(false, 'automix arc fire attempted blocked transition', name);
+    }
+    fired.push(name);
+    return Promise.resolve();
+  },
+};
+const coldAct = {
+  anchorId: 'a', coords: { warmth: 0.1, intensity: 0.1 }, preset: { temp: 0 }, rampMs: 0,
+};
+const arcObj = {
+  duration: 10,
+  acts: [
+    Object.assign({ t0: 0, t1: 5, name: 'intro' }, coldAct),
+    Object.assign({ t0: 5, t1: 10, name: 'peak' }, coldAct),
+  ],
+  _lastActIndex: 0,
+};
+for (let t = 0; t < 8; t++) {
+  ARC.tick(arcObj, 1 + t * 1.2);
+}
+check(fired.every((name) => MK2.isTransitionAllowed(name)),
+  'automix arc act-boundary fires only allowed transitions',
+  fired.join(', ') || '(none)');
+
+const automixLayer = {
+  rotationEnabled: true,
+  rotOffset: 22,
+  baseScale: 1.8,
+  pos: { rot: 15 },
+  reactors: [
+    { feature: 'bass', target: 'scale', scale: 1 },
+    { feature: 'treble', target: 'rot', scale: 3 },
+  ],
+  modulators: [{ target: 'scale' }],
+};
+MK2.sanitizeLayer(automixLayer);
+check(automixLayer.baseScale === 1, 'sanitizeLayer clamps automix baseScale');
+check(automixLayer.reactors.length === 0, 'sanitizeLayer strips automix rot/scale reactors');
+
+console.log('no-rotate-zoom: versions pages must not reference _SWR_MOTION_KILL');
+for (const f of versionHtml) {
+  const rel = path.relative(ROOT, f);
+  const txt = fs.readFileSync(f, 'utf8');
+  check(!txt.includes('_SWR_MOTION_KILL'), rel + ' has no _SWR_MOTION_KILL typo');
+}
+
+console.log('no-rotate-zoom: play.html EXIF orientation bypasses gateRotate');
+const playPath = path.join(VERSIONS_DIR, 'play.html');
+const playTxt = fs.readFileSync(playPath, 'utf8');
+check(!playTxt.includes('_SWR_MOTION_KILL'), 'play.html has no _SWR_MOTION_KILL typo');
+const exifMarker = 'motion-kill: allow EXIF/tkhd orientation';
+const exifIdx = playTxt.indexOf(exifMarker);
+check(exifIdx >= 0, 'play.html documents EXIF orientation exception');
+const exifSlice = exifIdx >= 0 ? playTxt.slice(exifIdx, exifIdx + 400) : '';
+check(/rc\.rotate\s*\(\s*a\.rotation/.test(exifSlice),
+  'play.html EXIF block uses rc.rotate(a.rotation) not gateRotate');
+check(!/gateRotate\s*\(\s*rc\s*,\s*a\.rotation/.test(exifSlice),
+  'play.html EXIF block does not gate EXIF rotation');
+
+console.log('no-rotate-zoom: watercolor/smoke gateRotate is guarded');
+for (const name of ['watercolor.html', 'smoke.html']) {
+  const txt = fs.readFileSync(path.join(VERSIONS_DIR, name), 'utf8');
+  check(txt.includes('window.SWR_MOTION_KILL'), name + ' uses window.SWR_MOTION_KILL');
+  check(/typeof\s+\w+\.gateRotate\s*===\s*['"]function['"]/.test(txt),
+    name + ' guards gateRotate before call');
+}
 
 if (failures === 0) {
   console.log('\nALL GREEN (no-rotate-zoom)');
