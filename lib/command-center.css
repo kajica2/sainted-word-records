@@ -208,12 +208,24 @@
 /* ── audio analysis ──────────────────────────────────────────────────── */
 .swr-cc-spectrum {
   height: 92px;
+  min-height: 92px;
+  flex-shrink: 0;
   border-radius: 8px;
   border: 1px solid var(--cc-line);
   background: linear-gradient(180deg, rgba(60, 20, 8, .5), rgba(14, 9, 6, .8));
   overflow: hidden;
 }
-.swr-cc-spectrum-canvas { display: block; width: 100%; height: 100%; }
+.swr-cc-spectrum-canvas { display: block; width: 100%; height: 100%; min-height: 92px; }
+
+/* Audio panel grows with reactivity sliders — keep the spectrum from collapsing. */
+.swr-cc-col--left > .swr-cc-panel:first-child {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 52%;
+}
+.swr-cc-col--left > .swr-cc-panel:first-child .swr-cc-panel-body {
+  overflow-y: auto;
+}
 
 .swr-cc-knobs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .swr-cc-knob { display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -615,6 +627,76 @@
   .swr-cc-col--left,
   .swr-cc-col--right { flex-direction: column; }
   .swr-cc-bottom { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── persona family chips ─────────────────────────────────────────── */
+.swr-cc-family-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.swr-cc-family-chip {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cc-line);
+  background: rgba(255, 255, 255, .04);
+  color: var(--cc-dim);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.swr-cc-family-chip:hover { color: var(--cc-fg); border-color: var(--cc-line-2); }
+.swr-cc-family-chip[aria-pressed="true"] {
+  color: #1a0f06;
+  background: linear-gradient(180deg, var(--cc-gold), var(--cc-amber));
+  border-color: var(--cc-amber);
+}
+
+/* ── audio reactivity params ──────────────────────────────────────── */
+.swr-cc-audio-params { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.swr-cc-audio-param { margin: 0; }
+
+/* ── mood & scenes ────────────────────────────────────────────────── */
+.swr-cc-mood-row { margin: 6px 0; }
+.swr-cc-mood-file { font-size: 10px; max-width: 100%; color: var(--cc-dim); }
+.swr-cc-mood-status {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  color: var(--cc-dim);
+  line-height: 1.35;
+  min-height: 2.6em;
+  margin-top: 6px;
+}
+.swr-cc-scenes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.swr-cc-scene-pad {
+  min-height: 44px;
+  padding: 8px 6px;
+  border-radius: 7px;
+  border: 1px solid var(--cc-line);
+  background: rgba(255, 255, 255, .03);
+  color: var(--cc-dim);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.swr-cc-scene-pad.has-snapshot {
+  border-color: var(--cc-amber);
+  color: var(--cc-gold);
+  box-shadow: inset 0 0 0 1px rgba(255, 154, 77, .25);
+}
+.swr-cc-scene-pad:hover { color: var(--cc-fg); border-color: var(--cc-line-2); }
+.swr-cc-scene-pad.is-holding {
+  color: var(--cc-accent, #c4ff00);
+  border-color: var(--cc-accent, #c4ff00);
 }
 
 /* ── coarse pointers: 44px touch targets (CI gate) ───────────────────── */
