@@ -1454,7 +1454,7 @@
       if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
       const rotDeg = l.rotationEnabled === true ? r.rot : 0;
       if (Math.abs(rotDeg) > 0.5) {
-        ctx.translate(W/2, H/2); ctx.rotate(rotDeg * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+        ctx.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(ctx, rotDeg * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
         ctx.drawImage(src, dx, dy, dw, dh);
       }

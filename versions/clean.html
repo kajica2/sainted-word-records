@@ -3,6 +3,7 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>CLEAN · SWR</title>
@@ -411,12 +412,29 @@
       const timeCurrent = document.getElementById('time-current');
       const timeDuration = document.getElementById('time-duration');
       const timeDisplay = document.getElementById('time-display');
+
+      function syncEffectSelectOptions() {
+        if (!window.SWR_MOTION_KILL) return;
+        effectSelect.querySelectorAll('option').forEach(function (opt) {
+          if (!opt.value) return;
+          var ok = SWR_MOTION_KILL.isCssFxAllowed(opt.value);
+          opt.disabled = !ok;
+          opt.hidden = !ok;
+        });
+      }
+      syncEffectSelectOptions();
       
-      // Available CSS effects from video-fx.css
-      const CSS_EFFECTS = [
-        '', 'kenburns', 'pan-scan', 'light-leak', 'film-grain', 
+      function filterCssEffects(list) {
+        if (!window.SWR_MOTION_KILL || !SWR_MOTION_KILL.filterCssFxCatalog) return list;
+        return SWR_MOTION_KILL.filterCssFxCatalog(list.map(function (n) { return { name: n || '' }; }))
+          .map(function (e) { return e.name; });
+      }
+
+      const CSS_EFFECTS_RAW = [
+        '', 'kenburns', 'pan-scan', 'light-leak', 'film-grain',
         'vhs', 'hue-shift', 'kaleidoscope', 'zoom-pulse', 'camera-shake'
       ];
+      const CSS_EFFECTS = filterCssEffects(CSS_EFFECTS_RAW);
       
       // Format time helper
       function formatTime(seconds) {
@@ -434,7 +452,7 @@
         });
         
         // Apply new effect
-        if (effect) {
+        if (effect && (!window.SWR_MOTION_KILL || SWR_MOTION_KILL.isCssFxAllowed(effect))) {
           preview.classList.add(effect);
           
           // Adjust animation speed based on intensity
