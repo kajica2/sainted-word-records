@@ -7,7 +7,7 @@
 //
 //   A. Install   — the launcher appears and the script publishes its API.
 //   B. Open      — ?cc=1 opens it; Escape closes it.
-//   C. Structure — the twelve panels, the nav and the regions are present.
+//   C. Structure — the fourteen panels, the nav and the regions are present.
 //   D. Stacking  — it paints ABOVE the host surface's own overlays
 //                  (#swr-start sits at z-index 10000, the engine's tour at
 //                  10001), so the two UIs never compete.
@@ -204,7 +204,7 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
       faders: 0,
     };
   });
-  check(structure.panels === 12, 'C1 twelve panels', `got ${structure.panels}`);
+  check(structure.panels === 14, 'C1 fourteen panels', `got ${structure.panels}`);
   check(structure.navButtons === 6, 'C2 six nav sections', `got ${structure.navButtons}`);
   check(structure.cols === 3, 'C3 three columns', `got ${structure.cols}`);
   check(structure.bottom === 5, 'C4 five bottom panels', `got ${structure.bottom}`);
@@ -213,7 +213,7 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   check(structure.demandCols === 4, 'C7 four peak-demand columns', `got ${structure.demandCols}`);
   check(structure.filterRows === 12, 'C8 twelve filter rows', `got ${structure.filterRows}`);
   const wantTitles = ['Audio Analysis', 'Personas', 'Layers lifecycle', 'Program', 'Library',
-    'Filters', 'Recording / Export', 'Beat confidence', 'Hook detector', 'Auto-drift',
+    'Filters', 'Recording / Export', 'Mood', 'Scenes', 'Beat confidence', 'Hook detector', 'Auto-drift',
     'Credits', 'Lifecycle cost / render time'];
   const missing = wantTitles.filter((t) => structure.titles.indexOf(t) === -1);
   check(missing.length === 0, 'C9 every expected panel is titled', missing.join('|'));
@@ -248,6 +248,8 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
       hud: (document.querySelector('[data-cc-hud="stats"]') || {}).textContent,
       costText: (document.querySelector('[data-cc-cost]') || {}).textContent,
       hookText: (document.querySelector('[data-cc-hook]') || {}).textContent,
+      moodPanel: !!document.querySelector('[data-cc-mood-status]'),
+      scenesPanel: !!document.querySelector('[data-cc-scenes]'),
     };
   });
   check(data.personas.length > 0, 'E1 the personas panel is populated', `${data.personas.length} looks`);
@@ -271,6 +273,8 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     'E6 the hook panel is wired or degrades to "no hook detected"',
     data.api.hook ? 'hook present' : `hook="${data.hookText}"`);
   check(data.fxState > 5, 'E7 the FX state carries its real values', `${data.fxState} keys`);
+  check(data.moodPanel, 'E8 Mood panel is present');
+  check(data.scenesPanel, 'E9 Scenes panel is present');
 
   // ── F. Wiring ────────────────────────────────────────────────────────
   const wiring = await page.evaluate(() => {
@@ -344,7 +348,7 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     ccVisible: !!document.getElementById('swr-cc'),
     panels: document.querySelectorAll('.swr-cc-panel').length,
   }));
-  check(mobile.ccVisible && mobile.panels === 12, 'H1 the Command Center is intact on mobile');
+  check(mobile.ccVisible && mobile.panels === 14, 'H1 the Command Center is intact on mobile');
   check(mobile.overflow <= 2, 'H2 no horizontal overflow at 390px', `${mobile.overflow}px`);
 
   // ── Close ────────────────────────────────────────────────────────────
