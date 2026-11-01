@@ -126,3 +126,133 @@
   --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.4);
   --shadow-3: 0 4px 16px rgba(0, 0, 0, 0.5), 0 24px 64px rgba(0, 0, 0, 0.6);
 }
+
+/* ==========================================================================
+ * TOKEN LAYERS (additive — existing semantic tokens above are unchanged)
+ *   1. Primitives  --lh-*     raw brand values, never used directly in pages
+ *   2. Scales      --lh-type-*, --lh-dur-*, --lh-ease-*, --lh-icon-*
+ *   3. Themes      [data-brand="longhorn"] maps primitives onto the semantic
+ *                  tokens (--bg, --ink, --accent …) so every page re-skins.
+ * Source: OPENCODE_LONGHORICON_SPEC.md + reference index.html
+ * ========================================================================== */
+
+:root {
+  /* --- 1. Primitives: brand palette --- */
+  --lh-midnight: #1a1a2e;
+  --lh-charcoal: #2d2d44;
+  --lh-umber: #5c4033;
+  --lh-sienna: #8b4513;
+  --lh-rust: #c1440e;
+  --lh-sunset: #e07b39;
+  --lh-amber: #f5a623;
+  --lh-cream: #f5e6d3;
+  --lh-bone: #faf3eb;
+  --lh-snow: #ffffff;
+
+  /* functional */
+  --lh-success: #3d9a6e;
+  --lh-warning: #e07b39;
+  --lh-danger: #c1440e;
+  --lh-info: #4a7fa5;
+
+  /* surfaces (0 lightest → 4 darkest) */
+  --lh-surface-0: #fafafa;
+  --lh-surface-1: #f0ebe3;
+  --lh-surface-2: #e0d9cf;
+  --lh-surface-3: #1a1a2e;
+  --lh-surface-4: #0f0f1a;
+  --lh-card-dark: #232338;
+  --lh-border-dark: #3d3d5c;
+  --lh-border-dark-2: #4a4a70;
+  --lh-text-dim: #a09585;
+  --lh-text-faint: #6b6170;
+  --lh-rust-dim: #7a2a08;
+
+  /* --- 2. Scales: type --- */
+  --lh-font-display: 'Bebas Neue', Impact, Haettenschweiler, sans-serif;
+  --lh-font-body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --lh-font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --lh-type-display: clamp(2.5rem, 6vw, 5rem);
+  --lh-type-h1: clamp(2rem, 4vw, 3rem);
+  --lh-type-h2: clamp(1.5rem, 3vw, 2rem);
+  --lh-type-h3: clamp(1.125rem, 2vw, 1.5rem);
+  --lh-type-body-lg: 1.125rem;
+  --lh-type-body: 1rem;
+  --lh-type-small: 0.875rem;
+  --lh-type-micro: 0.75rem;
+  --lh-tracking-wordmark: 0.08em;
+
+  /* --- 2. Scales: motion --- */
+  --lh-ease-brand: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --lh-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --lh-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --lh-ease-snap: cubic-bezier(0.2, 0, 0, 1);
+  --lh-dur-micro: 120ms;
+  --lh-dur-fast: 200ms;
+  --lh-dur-std: 300ms;
+  --lh-dur-slow: 500ms;
+  --lh-dur-dramatic: 800ms;
+
+  /* --- 2. Scales: icon system --- */
+  --lh-icon-grid: 24px;
+  --lh-icon-stroke: 1.5px;
+  --lh-icon-stroke-thin: 1px;
+  --lh-icon-stroke-lg: 2px;
+  --lh-icon-stroke-xl: 2.5px;
+  --lh-icon-radius-max: 2px;
+  --lh-icon-disabled-opacity: 0.4;
+  --lh-icon-fill-opacity: 0.2;
+
+  /* --- 2. Scales: focus --- */
+  --lh-focus-ring: 0 0 0 2px var(--lh-midnight), 0 0 0 4px var(--lh-amber);
+}
+
+/* --- 3. Theme: longhorn (opt-in via <html data-brand="longhorn">) ---
+ * Light by default; pair with data-theme="dark" for the midnight variant.
+ * Rust on light is large-text/UI-only (4.8:1); body text uses midnight/umber. */
+[data-brand="longhorn"] {
+  --bg: var(--lh-surface-0);
+  --bg-2: var(--lh-surface-1);
+  --bg-3: var(--lh-snow);
+  --ink: var(--lh-midnight);
+  --ink-2: var(--lh-umber);
+  --muted: var(--lh-sienna);
+  --line: var(--lh-surface-2);
+  --line-2: #cfc6b8;
+  --accent: var(--lh-rust);
+  --accent-2: var(--lh-amber);
+  --accent-3: var(--lh-success);
+  --hot: var(--lh-rust);
+  --cool: var(--lh-info);
+  --warn: var(--lh-warning);
+  --ok: var(--lh-success);
+  --font-display: var(--lh-font-display);
+  --font-body: var(--lh-font-body);
+  --font-mono: var(--lh-font-mono);
+  --transition: var(--lh-dur-fast) var(--lh-ease-brand);
+  --transition-slow: var(--lh-dur-std) var(--lh-ease-brand);
+}
+
+[data-brand="longhorn"][data-theme="dark"] {
+  --bg: var(--lh-surface-4);
+  --bg-2: var(--lh-surface-3);
+  --bg-3: var(--lh-charcoal);
+  --ink: var(--lh-bone);
+  --ink-2: var(--lh-surface-2);
+  --muted: var(--lh-text-dim);
+  --line: var(--lh-border-dark);
+  --line-2: var(--lh-border-dark-2);
+  --accent: var(--lh-sunset);
+  --accent-2: var(--lh-amber);
+  --hot: var(--lh-sunset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --lh-dur-micro: 0.01ms;
+    --lh-dur-fast: 0.01ms;
+    --lh-dur-std: 0.01ms;
+    --lh-dur-slow: 0.01ms;
+    --lh-dur-dramatic: 0.01ms;
+  }
+}
