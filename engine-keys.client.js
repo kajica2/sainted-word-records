@@ -1107,10 +1107,13 @@
       helpRows = helpRows.filter(function (r) { return r.keys !== '0'; });
       helpRows = helpRows.concat(holoKeys.HELP);
     }
+    helpRows = annotateMotionKillHelp(helpRows);
+    helpRows = helpRows.concat(extraHelpRows());
     const rows = helpRows.map(function (r) {
-      return '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0;border-bottom:1px solid rgba(255,61,146,0.08);">' +
+      const label = r.muted ? ('<span style="color:#666;">' + r.label + '</span>') : r.label;
+      return '<div style="display:flex;justify-content:space-between;gap:12px;padding:2px 0;border-bottom:1px solid rgba(255,61,146,0.08);' + (r.muted ? 'opacity:0.65;' : '') + '">' +
                '<span style="color:#ff3d92;font-family:monospace;flex-shrink:0;min-width:90px;">' + r.keys + '</span>' +
-               '<span style="text-align:right;color:#ccc;">' + r.label + '</span>' +
+               '<span style="text-align:right;color:#ccc;">' + label + '</span>' +
              '</div>';
     }).join('');
     helpEl.innerHTML =
@@ -1126,6 +1129,60 @@
     state.helpVisible = false;
   }
 
+  function motionKillOff() {
+    try {
+      return !!(window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled());
+    } catch (_) { return false; }
+  }
+
+  function annotateMotionKillHelp(rows) {
+    if (!motionKillOff()) return rows;
+    const mutedKeys = {
+      R: true,
+      'Shift+Y': true,
+      'Shift+[': true,
+      'Shift+]': true,
+      'Shift+,': true,
+      'Shift+.': true,
+      'Shift+;': true,
+      "Shift+'": true,
+    };
+    return rows.map(function (r) {
+      if (!mutedKeys[r.keys]) return r;
+      return {
+        keys: r.keys,
+        label: r.label + ' (no-op — rotation/zoom/mutate kill-switch)',
+        muted: true,
+      };
+    });
+  }
+
+  function extraHelpRows() {
+    const out = [];
+    if (document.getElementById('automix-toggle')) {
+      out.push(
+        { keys: 'Shift+A', label: 'toggle automix on/off' },
+        { keys: 'Shift+F', label: 'automix freeze (hold blend, stop ticking)' },
+        { keys: 'Shift+B', label: 'save automix blend as manual preset' },
+        { keys: 'Shift+K', label: 'lock automix to nearest anchor' },
+        { keys: 'Shift+D', label: 'toggle automix debug panel' },
+      );
+    }
+    if (window.SWR_SCENES_KEYBOARD && typeof window.SWR_SCENES_KEYBOARD.helpRows === 'function') {
+      out.push.apply(out, window.SWR_SCENES_KEYBOARD.helpRows());
+    } else if (window.SWR_SCENES) {
+      out.push({ keys: '1..4', label: 'scene recall (tap) · hold ~1s to save' });
+    }
+    if (window.SWR_IMAGE_LANE) {
+      out.push({ keys: '(panel)', label: 'image lane — stills stack under Layers (visibility, order, blend, opacity)' });
+    }
+    const scenesOn = !!(window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
+    if (scenesOn) {
+      out.push({ keys: '5..9', label: 'look filter slots (1..4 reserved for scenes; T+digit still works for 0..9)' });
+    }
+    return out;
+  }
+
   // ---- main keydown handler -----------------------------------------
 
   function isFormField(el) {
@@ -1138,6 +1195,7 @@
 
   function handle(ev) {
     if (!state.enabled) return;
+    if (ev.defaultPrevented) return;
     if (isFormField(ev.target)) return;
 
     const code = ev.code;
@@ -1245,11 +1303,13 @@
       if (!action && (key === '?' || (ev.shiftKey && code === 'Slash'))) {
         action = ACTIONS.showHelp;
       }
-      // 1..9 = apply look filter slot N (no rotation). The Cmd/Alt guards
-      // matter because this block keys off `key` alone: without them it
-      // would also fire on Cmd/Ctrl+1..9 palette and Alt+1..6 remap
-      // combos and strand them.
-      if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey && /^[1-9]$/.test(key)) {
+      // 5..9 (or 1..9 when scene pads are absent) = look filter slot N.
+      // When SWR_SCENES is mounted, bare 1..4 recall/save scenes via
+      // client/scenes-keyboard.client.js (capture phase + preventDefault).
+      if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+        const scenesActive = !!(window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
+        const filterKeyRe = scenesActive ? /^[5-9]$/ : /^[1-9]$/;
+        if (filterKeyRe.test(key)) {
         const slot = parseInt(key, 10);
         withNoRotation(function () { applyFilterFromDigit(slot); });
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
@@ -1257,6 +1317,7 @@
         })); } catch (_) {}
         if (ev.preventDefault) ev.preventDefault();
         return;
+        }
       }
       // Shift+1..9 to advance the STORY runtime through its 9 chapters
       // (Fragments, Signal, Pursuit, Fracture, Overload, Afterimage,
@@ -1435,7 +1496,7 @@
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '[ / ]',          label: 'cycle prev / next layer' },
       { keys: '0',              label: 'home — reset every layer to its original transform' },
-      { keys: '1..9',           label: 'apply look filter slot (soft / old cinema / 5 cinematic / void / echo); no rotation' },
+      { keys: '1..9',           label: 'apply look filter slot (on engine/play with scenes: 5..9 only; 1..4 = scenes)' },
       { keys: 'G',              label: 'group media by name (media panel)', action: ACTIONS.toggleMediaGrouping },
       { keys: 'T + 1..9',       label: 'alias of 1..9 filter cycler (kept for muscle memory)' },
       { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },

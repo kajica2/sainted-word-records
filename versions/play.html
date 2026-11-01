@@ -159,6 +159,7 @@
     .nav-arrow.nav-pulse { animation: navPulse 0.25s ease; }
     @keyframes navPulse { 0% { transform: scale(1); } 50% { transform: scale(1.18); background: var(--accent); color: #fff; border-color: var(--accent); } 100% { transform: scale(1); } }
     .tbtn.ghost { background: transparent; border-color: var(--line); }
+    #scenes-list .swr-scene-capturing { box-shadow: 0 0 0 2px var(--accent); background: rgba(255, 61, 146, 0.12); }
     .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .spacer { flex: 1; }
@@ -2801,25 +2802,17 @@
           if (e.key === 'Escape' && !root.hidden) close();
         });
 
-        // ---- Wire the existing ? button ----
-        if (helpBtn) {
-          helpBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            toggle();
-          });
-        }
+        // ? button + ? key → unified keyboard help (SWR_KEYS); welcome panel
+        // stays available via SWR_ONBOARD.open() / first-visit auto-open only.
 
-        // ---- "?" key opens the panel ----
-        // The engine itself listens to keydown for shortcuts; ours is
-        // an OR — any keydown whose shift state matches the ? key
-        // gets caught. We don't preventDefault because the engine uses
-        // other keys; if the user wants to type "?" in an input the
-        // engine already filters those out via its own target check.
         document.addEventListener('keydown', function (e) {
           if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
           if (e.key === '?' || (e.shiftKey && e.code === 'Slash')) {
-            e.preventDefault();
-            toggle();
+            if (window.SWR_KEYS && typeof window.SWR_KEYS.showHelp === 'function') {
+              e.preventDefault();
+              if (window.SWR_KEYS.isEnabled && !window.SWR_KEYS.isEnabled()) return;
+              window.SWR_KEYS.showHelp();
+            }
           }
         });
 
@@ -3450,11 +3443,11 @@
       <span class="separator"></span>
       <button class="tbtn" id="scenes-btn" style="padding:4px 10px; font-size:9px;" title="Scene pads (4): click=recall, hold 1s=save">Scenes</button>
       <span class="separator"></span>
-      <button class="tbtn" id="automix-toggle" style="padding:4px 10px; font-size:9px; cursor:pointer;" title="Toggle Automix (A)">Automix <b id="automix-state" style="color:var(--m);">OFF</b></button>
-      <button class="tbtn" id="automix-freeze" style="padding:4px 10px; font-size:9px;" title="Freeze: stop ticking but keep the current blend (F)">Freeze</button>
-      <button class="tbtn" id="automix-save" style="padding:4px 10px; font-size:9px;" title="Save the current blend as a manual preset (B)">Save</button>
-      <button class="tbtn" id="automix-lock" style="padding:4px 10px; font-size:9px;" title="Lock to the single nearest anchor (K)">Lock</button>
-      <button class="tbtn" id="automix-debug" style="padding:4px 10px; font-size:9px;" title="Toggle the automix debug panel (D)">Debug</button>
+      <button class="tbtn" id="automix-toggle" style="padding:4px 10px; font-size:9px; cursor:pointer;" title="Toggle Automix (Shift+A)">Automix <b id="automix-state" style="color:var(--m);">OFF</b></button>
+      <button class="tbtn" id="automix-freeze" style="padding:4px 10px; font-size:9px;" title="Freeze: stop ticking but keep the current blend (Shift+F)">Freeze</button>
+      <button class="tbtn" id="automix-save" style="padding:4px 10px; font-size:9px;" title="Save the current blend as a manual preset (Shift+B)">Save</button>
+      <button class="tbtn" id="automix-lock" style="padding:4px 10px; font-size:9px;" title="Lock to the single nearest anchor (Shift+K)">Lock</button>
+      <button class="tbtn" id="automix-debug" style="padding:4px 10px; font-size:9px;" title="Toggle the automix debug panel (Shift+D)">Debug</button>
       <span class="separator"></span>
       <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions; 1-9 to fire from dropdown)">TRANSITIONS<span id="swr-tx-flash" class="swr-tx-flash" aria-hidden="true"></span></button>
       <span class="spacer" style="flex:1"></span>
@@ -7858,20 +7851,25 @@
           try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(arr)); } catch (_) {}
         },
 
+        _sliderVal(primary, alias) {
+          const el = document.getElementById(primary) || (alias ? document.getElementById(alias) : null);
+          return el ? parseFloat(el.value) : null;
+        },
+
         _currentSnapshot() {
-          const get = (id) => {
-            const el = document.getElementById(id);
-            return el ? parseFloat(el.value) : null;
-          };
           const presetOverride = (typeof window.__swrCurrentPreset === 'string' && window.__swrCurrentPreset)
             ? window.__swrCurrentPreset
             : 'neon';
+          const sensitivity = this._sliderVal('sensitivity', 'sens');
+          const beatGate = this._sliderVal('beat-gate', 'gate');
           return {
-            depth: get('depth'),
-            gate: get('gate'),
-            decay: get('decay'),
-            sens: get('sens'),
-            neighbourCount: get('neighbour-count'),
+            depth: this._sliderVal('depth'),
+            sensitivity,
+            beatGate,
+            decay: this._sliderVal('decay'),
+            gate: beatGate,
+            sens: sensitivity,
+            neighbourCount: this._sliderVal('neighbour-count'),
             presetOverride,
             automixOn: !!(document.getElementById('automix-toggle') && /ON/i.test(document.getElementById('automix-toggle').textContent || '')),
           };
@@ -7885,9 +7883,13 @@
             el.dispatchEvent(new Event('input', { bubbles: true }));
           };
           set('depth', s.depth);
-          set('gate', s.gate);
+          const sens = s.sensitivity != null ? s.sensitivity : s.sens;
+          const gate = s.beatGate != null ? s.beatGate : s.gate;
+          set('sensitivity', sens);
+          set('sens', sens);
+          set('beat-gate', gate);
+          set('gate', gate);
           set('decay', s.decay);
-          set('sens', s.sens);
           set('neighbour-count', s.neighbourCount);
           if (s.presetOverride && window.VersionsPresets && typeof window.VersionsPresets.setPresetOverride === 'function') {
             if (window.VersionsPresets.setPresetOverride(s.presetOverride) !== false) {
@@ -7987,8 +7989,13 @@
             }
           });
           pad.addEventListener('mouseleave', () => window.SWR_SCENES.cancelCapture());
+          pad.setAttribute('data-scene-index', String(i));
+          pad.setAttribute('tabindex', '0');
           listEl.appendChild(pad);
         }
+        try {
+          window.dispatchEvent(new CustomEvent('swr-scenes-panel-refresh'));
+        } catch (_) {}
       }
 
       // Wire all 8 footer buttons after the DOM is ready.
@@ -8177,7 +8184,8 @@
 
   <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
   <script src="/client/automix-session-store.client.js"></script>
-  <script src="/client/automix-runtime.client.js"></script>
+  <script src="/client/automix-runtime.client.js" defer></script>
+  <script src="/client/scenes-keyboard.client.js" defer></script>
   <!-- Act-driven clip cutting (L3 composition coupling). The 22 variant
        pages have shipped this since the port; engine.html was missed in the
        same rollout that omitted automix-arc (see above). -->

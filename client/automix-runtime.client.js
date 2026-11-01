@@ -1007,7 +1007,9 @@
       }
     } catch (_) {}
 
-    // Keyboard shortcuts: A/F/B/K/D
+    // Keyboard shortcuts: Shift+A / Shift+F / Shift+B / Shift+K / Shift+D
+    // (document listener runs before window/engine-keys and preventDefault
+    // keeps A/F/B/K/D owned by engine-keys alone.)
     document.addEventListener('keydown', _onKey);
 
     // SWR_LAST_MIX.save() is debounced by 1s, so a reload/close within 1s of
@@ -1034,22 +1036,23 @@
 
   function _onKey(ev) {
     if (!ev || ev.defaultPrevented) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey || !ev.shiftKey) return;
     var k = ev.key;
     var lower = typeof k === 'string' ? k.toLowerCase() : '';
     var toggleKey = _toggleShortcut || 'a';
-    if (lower === toggleKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    if (lower === toggleKey) {
       automix.toggle();
       ev.preventDefault();
-    } else if (lower === 'f' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    } else if (lower === 'f') {
       automix.freeze();
       ev.preventDefault();
-    } else if (lower === 'b' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    } else if (lower === 'b') {
       automix.saveBlend();
       ev.preventDefault();
-    } else if (lower === 'k' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    } else if (lower === 'k') {
       automix.lockToNearest();
       ev.preventDefault();
-    } else if (lower === 'd' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    } else if (lower === 'd') {
       _toggleDebug();
       ev.preventDefault();
     }
