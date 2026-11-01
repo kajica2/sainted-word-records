@@ -134,6 +134,7 @@
     "check:get-preset-unit": "node scripts/check-get-preset-unit.mjs",
     "check:preset-cycle-unit": "node scripts/check-preset-cycle-unit.mjs",
     "check:neon-demo-panel-unit": "node scripts/check-neon-demo-panel-unit.mjs",
+    "check:neon-demo-panel-verify": "node scripts/check-neon-demo-panel-verify.mjs",
     "check:neon-demo-panel-smoke": "node scripts/check-neon-demo-panel-smoke.mjs",
     "check:preset-pick-unit": "node scripts/check-preset-pick-unit.mjs",
     "check:layer-state-unit": "node scripts/check-layer-state-unit.mjs",

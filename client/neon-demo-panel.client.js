@@ -27,6 +27,42 @@
     root: null,
   };
 
+  /** @type {Record<string, { id: string, label: string, skipVerify: boolean, invoke: function(): * }>} */
+  var controls = {};
+
+  function invalidateRender() {
+    try {
+      if (window.SWR_RENDER && typeof window.SWR_RENDER.invalidate === 'function') {
+        window.SWR_RENDER.invalidate();
+      }
+    } catch (_) {}
+  }
+
+  function regControl(el, id, meta) {
+    if (!el || !id || !meta || typeof meta.invoke !== 'function') return;
+    el.setAttribute('data-demo-control', id);
+    if (meta.skipVerify) el.setAttribute('data-demo-skip-verify', '1');
+    controls[id] = {
+      id: id,
+      label: meta.label || id,
+      skipVerify: !!meta.skipVerify,
+      invoke: meta.invoke,
+    };
+  }
+
+  function assertAllControlsBound() {
+    if (!state.root) return;
+    var missing = [];
+    state.root.querySelectorAll('[data-demo-control]').forEach(function (el) {
+      var id = el.getAttribute('data-demo-control');
+      var c = controls[id];
+      if (!c || typeof c.invoke !== 'function') missing.push(id || '(empty id)');
+    });
+    if (missing.length) {
+      throw new Error('SWR_NEON_DEMO unbound demo controls: ' + missing.join(', '));
+    }
+  }
+
   function mk(tag, cls, text) {
     var el = document.createElement(tag);
     if (cls) el.className = cls;
@@ -97,6 +133,7 @@
     }
     state.activePreset = pageKey;
     paintPresetButtons();
+    invalidateRender();
     return true;
   }
 
@@ -114,6 +151,7 @@
     window.__swrCurrentPreset = id;
     state.activePreset = id;
     paintPresetButtons();
+    invalidateRender();
     return true;
   }
 
@@ -123,6 +161,7 @@
     K.apply(slot);
     state.activeFilter = slot;
     paintFilterButtons();
+    invalidateRender();
     return true;
   }
 
@@ -183,6 +222,7 @@
       sel[field] = Math.max(min, Math.min(max, v));
       var L = layers();
       if (L && typeof L.render === 'function') L.render();
+      invalidateRender();
     });
   }
 
@@ -323,7 +363,9 @@
       var b = mk('button', null, presetLabel(id));
       b.type = 'button';
       b.setAttribute('data-demo-preset', id);
-      b.addEventListener('click', function () { applyShortcutPreset(id); });
+      var inv = function () { return applyShortcutPreset(id); };
+      regControl(b, 'fx:' + id, { label: 'FX ' + presetLabel(id), invoke: inv });
+      b.addEventListener('click', inv);
       gridShort.appendChild(b);
     });
     secPresets.appendChild(gridShort);
@@ -338,7 +380,9 @@
         var b = mk('button', null, presetLabel(id));
         b.type = 'button';
         b.setAttribute('data-demo-preset', id);
-        b.addEventListener('click', function () { applyGradePreset(id); });
+        var inv = function () { return applyGradePreset(id); };
+        regControl(b, 'grade:' + id, { label: 'Grade ' + presetLabel(id), invoke: inv });
+        b.addEventListener('click', inv);
         gridGrades.appendChild(b);
       });
       secGrades.appendChild(gridGrades);
@@ -354,12 +398,19 @@
         var b = mk('button', null, label);
         b.type = 'button';
         b.setAttribute('data-demo-filter', String(slot));
-        if (slot === 9 && isDistortionFxOff()) {
+        var skipF = slot === 9 && isDistortionFxOff();
+        if (skipF) {
           b.disabled = true;
           b.title = 'Disabled while distortion FX are suppressed';
           b.setAttribute('data-demo-disabled', '1');
         }
-        b.addEventListener('click', function () { applyLookFilter(slot); });
+        var invF = function () { return applyLookFilter(slot); };
+        regControl(b, 'filter:' + slot, {
+          label: 'Filter ' + label,
+          skipVerify: skipF,
+          invoke: invF,
+        });
+        b.addEventListener('click', invF);
         gridF.appendChild(b);
       })(f);
     }
@@ -373,11 +424,14 @@
       (function (idx) {
         var b = mk('button', null, 'Scene ' + (idx + 1));
         b.type = 'button';
-        b.addEventListener('click', function () {
+        var invSc = function () {
           if (window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function') {
-            window.SWR_SCENES.recall(idx);
+            return window.SWR_SCENES.recall(idx);
           }
-        });
+          return false;
+        };
+        regControl(b, 'scene:' + idx, { label: 'Scene ' + (idx + 1), invoke: invSc });
+        b.addEventListener('click', invSc);
         b.addEventListener('mousedown', function () {
           if (window.SWR_SCENES && typeof window.SWR_SCENES.startCapture === 'function') {
             window.SWR_SCENES.startCapture(idx);
@@ -399,27 +453,33 @@
     secAm.appendChild(mk('h3', null, 'Automix'));
     var amRow = mk('div', 'demo-grid');
     [
-      ['automix-toggle', 'Toggle'],
-      ['automix-freeze', 'Freeze'],
-      ['automix-lock', 'Lock'],
-      ['automix-save', 'Save blend'],
+      ['automix-toggle', 'Toggle', 'automix:toggle'],
+      ['automix-freeze', 'Freeze', 'automix:freeze'],
+      ['automix-lock', 'Lock', 'automix:lock'],
+      ['automix-save', 'Save blend', 'automix:save'],
     ].forEach(function (pair) {
       var b = mk('button', null, pair[1]);
       b.type = 'button';
       b.setAttribute('data-demo-layer-always', '1');
-      b.addEventListener('click', function () { clickId(pair[0]); });
+      var invAm = function () { return clickId(pair[0]); };
+      regControl(b, pair[2], { label: pair[1], invoke: invAm });
+      b.addEventListener('click', invAm);
       amRow.appendChild(b);
     });
     if (window.SWR_AUTOMAP) {
       var recipe = mk('button', null, 'Next recipe');
       recipe.type = 'button';
       recipe.setAttribute('data-demo-layer-always', '1');
-      recipe.addEventListener('click', function () { runKeysAction('cycleNextRecipe'); });
+      var invRec = function () { return runKeysAction('cycleNextRecipe'); };
+      regControl(recipe, 'automix:nextRecipe', { label: 'Next recipe', invoke: invRec });
+      recipe.addEventListener('click', invRec);
       amRow.appendChild(recipe);
       var remap = mk('button', null, 'Re-map');
       remap.type = 'button';
       remap.setAttribute('data-demo-layer-always', '1');
-      remap.addEventListener('click', function () { runKeysAction('cycleAutoMap'); });
+      var invMap = function () { return runKeysAction('cycleAutoMap'); };
+      regControl(remap, 'automix:remap', { label: 'Re-map', invoke: invMap });
+      remap.addEventListener('click', invMap);
       amRow.appendChild(remap);
     }
     secAm.appendChild(amRow);
@@ -440,25 +500,52 @@
         range.step = src.step;
         range.value = src.value;
       }
+      var invG = function () {
+        var el = document.getElementById(id);
+        if (!el) return false;
+        var cur = parseFloat(el.value);
+        var next = Number.isFinite(cur) ? Math.min(parseFloat(el.max), cur + (parseFloat(el.max) - parseFloat(el.min)) * 0.15) : el.value;
+        range.value = String(next);
+        el.value = String(next);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        invalidateRender();
+        return true;
+      };
+      regControl(range, 'global:' + id, { label: 'Global ' + id, invoke: invG });
       range.addEventListener('input', function () {
         var el = document.getElementById(id);
         if (!el) return;
         el.value = range.value;
         el.dispatchEvent(new Event('input', { bubbles: true }));
+        invalidateRender();
       });
       row.appendChild(range);
       secGlobal.appendChild(row);
     });
     var globBtns = mk('div', 'demo-grid');
     [
-      ['Mirror', 'cycleMirror'],
-      ['Blackout', 'toggleBlackout'],
-      ['Home layers', 'home'],
+      ['Mirror', 'cycleMirror', 'keys:mirror'],
+      ['Blackout', 'toggleBlackout', 'keys:blackout'],
+      ['Home layers', 'home', 'keys:home'],
     ].forEach(function (pair) {
       var b = mk('button', null, pair[0]);
       b.type = 'button';
       b.setAttribute('data-demo-layer-always', '1');
-      b.addEventListener('click', function () { runKeysAction(pair[1]); });
+      var invK = function () {
+        if (pair[1] === 'home') {
+          if (window.SWR_KEYS && typeof window.SWR_KEYS.home === 'function') {
+            window.SWR_KEYS.home();
+            invalidateRender();
+            return true;
+          }
+          return false;
+        }
+        var ok = runKeysAction(pair[1]);
+        if (ok) invalidateRender();
+        return ok;
+      };
+      regControl(b, pair[2], { label: pair[0], invoke: invK });
+      b.addEventListener('click', invK);
       globBtns.appendChild(b);
     });
     secGlobal.appendChild(globBtns);
@@ -479,12 +566,26 @@
       o.textContent = b;
       blendSel.appendChild(o);
     });
+    var invBlend = function () {
+      var sel = selectedLayer();
+      if (!sel) return false;
+      var i = BLENDS.indexOf(sel.blend || 'screen');
+      var next = BLENDS[(i + 1) % BLENDS.length];
+      blendSel.value = next;
+      sel.blend = next;
+      var L = layers();
+      if (L && L.render) L.render();
+      invalidateRender();
+      return true;
+    };
+    regControl(blendSel, 'layer:blend', { label: 'Layer blend', invoke: invBlend });
     blendSel.addEventListener('change', function () {
       var sel = selectedLayer();
       if (!sel) return;
       sel.blend = blendSel.value;
       var L = layers();
       if (L && L.render) L.render();
+      invalidateRender();
     });
     blendRow.appendChild(blendSel);
     layerHost.appendChild(blendRow);
@@ -506,16 +607,32 @@
       input.min = String(spec[3]);
       input.max = String(spec[4]);
       input.step = String(spec[5]);
+      var skipLayer = false;
       if (spec[2] === 'baseScale' && isZoomOff()) {
         input.disabled = true;
         input.title = 'Scale disabled while zoom motion is off';
         input.setAttribute('data-demo-disabled', '1');
+        skipLayer = true;
       }
       if (spec[2] === 'mutate' && isDistortionFxOff()) {
         input.disabled = true;
         input.title = 'Mutate disabled while distortion FX are suppressed';
         input.setAttribute('data-demo-disabled', '1');
+        skipLayer = true;
       }
+      (function (field, min, max, inp) {
+        var invL = function () {
+          var sel = selectedLayer();
+          if (!sel || inp.disabled) return false;
+          var cur = sel[field];
+          var bump = (max - min) * 0.35;
+          var v = Number.isFinite(cur) && cur < (min + max) / 2 ? cur + bump : min + bump;
+          inp.value = String(Math.max(min, Math.min(max, v)));
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          return true;
+        };
+        regControl(inp, 'layer:' + field, { label: 'Layer ' + field, skipVerify: skipLayer, invoke: invL });
+      })(spec[2], spec[3], spec[4], input);
       row.appendChild(input);
       layerHost.appendChild(row);
       bindLayerInput(input, spec[2], spec[3], spec[4]);
@@ -524,22 +641,32 @@
     var layerBtns = mk('div', 'demo-grid');
     var cycleBlendBtn = mk('button', null, 'Cycle blend');
     cycleBlendBtn.type = 'button';
-    cycleBlendBtn.addEventListener('click', function () { runKeysAction('cycleBlend'); syncLayerControlsFromSelection(); });
+    var invCycleBlend = function () {
+      var ok = runKeysAction('cycleBlend');
+      syncLayerControlsFromSelection();
+      invalidateRender();
+      return ok;
+    };
+    regControl(cycleBlendBtn, 'layer:cycleBlend', { label: 'Cycle blend', invoke: invCycleBlend });
+    cycleBlendBtn.addEventListener('click', invCycleBlend);
     layerBtns.appendChild(cycleBlendBtn);
     var rotBtn = mk('button', null, 'Master rot');
     rotBtn.type = 'button';
-    if (isRotationOff()) {
+    var rotOff = isRotationOff();
+    var invRot = function () { return runKeysAction('toggleMasterRotation'); };
+    regControl(rotBtn, 'layer:masterRot', { label: 'Master rot', skipVerify: rotOff, invoke: invRot });
+    if (rotOff) {
       rotBtn.disabled = true;
       rotBtn.title = 'Rotation is globally disabled';
     } else {
-      rotBtn.addEventListener('click', function () { runKeysAction('toggleMasterRotation'); });
+      rotBtn.addEventListener('click', invRot);
     }
     layerBtns.appendChild(rotBtn);
     var reactBtn = mk('button', null, 'Next reactors');
     reactBtn.type = 'button';
-    reactBtn.addEventListener('click', function () {
+    var invReact = function () {
       var sel = selectedLayer();
-      if (!sel) return;
+      if (!sel) return false;
       state.reactorIdx = (state.reactorIdx + 1) % REACTOR_PRESETS.length;
       var preset = REACTOR_PRESETS[state.reactorIdx];
       if (isRotationOff()) {
@@ -551,7 +678,11 @@
       sel.reactors = JSON.parse(JSON.stringify(preset.length ? preset : REACTOR_PRESETS[0]));
       var L = layers();
       if (L && L.render) L.render();
-    });
+      invalidateRender();
+      return true;
+    };
+    regControl(reactBtn, 'layer:nextReactors', { label: 'Next reactors', invoke: invReact });
+    reactBtn.addEventListener('click', invReact);
     layerBtns.appendChild(reactBtn);
     layerHost.appendChild(layerBtns);
     secLayer.appendChild(layerHost);
@@ -562,15 +693,23 @@
     demoAll.type = 'button';
     demoAll.setAttribute('data-demo-all', '1');
     demoAll.setAttribute('data-demo-layer-always', '1');
-    demoAll.addEventListener('click', function () {
-      if (state.demoAllTimer || state.demoBeatRaf) stopDemoAll();
-      else startDemoAll();
-    });
+    var invDemoAll = function () {
+      if (state.demoAllTimer || state.demoBeatRaf) {
+        stopDemoAll();
+        return true;
+      }
+      startDemoAll();
+      return !!(state.demoAllTimer || state.demoBeatRaf);
+    };
+    regControl(demoAll, 'demo:demoAll', { label: 'Demo all', invoke: invDemoAll });
+    demoAll.addEventListener('click', invDemoAll);
     actions.appendChild(demoAll);
     var resetBtn = mk('button', null, 'Reset');
     resetBtn.type = 'button';
     resetBtn.setAttribute('data-demo-layer-always', '1');
-    resetBtn.addEventListener('click', resetDemo);
+    var invReset = function () { resetDemo(); return true; };
+    regControl(resetBtn, 'demo:reset', { label: 'Reset', invoke: invReset });
+    resetBtn.addEventListener('click', invReset);
     actions.appendChild(resetBtn);
     body.appendChild(actions);
 
@@ -586,6 +725,7 @@
     var el = buildPanel();
     (host || document.body).appendChild(el);
     state.mounted = true;
+    assertAllControlsBound();
     window.addEventListener('swr:preset-applied', function (ev) {
       if (ev.detail && ev.detail.pageKey) {
         state.activePreset = ev.detail.pageKey;
@@ -618,6 +758,82 @@
     state.mounted = false;
   }
 
+  function listControls() {
+    return Object.keys(controls).sort().map(function (id) {
+      var c = controls[id];
+      return { id: id, label: c.label, skipVerify: c.skipVerify };
+    });
+  }
+
+  function invokeControl(id) {
+    var c = controls[id];
+    if (!c || typeof c.invoke !== 'function') return { ok: false, error: 'unknown_control' };
+    try {
+      var result = c.invoke();
+      return { ok: result !== false, result: result };
+    } catch (err) {
+      return { ok: false, error: err && err.message ? err.message : String(err) };
+    }
+  }
+
+  function readProbe(id) {
+    var fxSnap = function () {
+      if (!window.FX || !window.FX.state) return null;
+      var s = window.FX.state;
+      return [s.temp, s.grain, s.glow, s.sepia, s.vignette, s.grayscale, s.blur].join(',');
+    };
+    if (id.indexOf('fx:') === 0) {
+      return { preset: window.__swrCurrentPreset, fx: fxSnap() };
+    }
+    if (id.indexOf('grade:') === 0) {
+      return { grade: id.split(':')[1], preset: window.__swrCurrentPreset, fx: fxSnap() };
+    }
+    if (id.indexOf('filter:') === 0) {
+      var slot = parseInt(id.split(':')[1], 10);
+      var cur = window.SWR_LOOK_FILTER_CYCLER && window.SWR_LOOK_FILTER_CYCLER.get
+        ? window.SWR_LOOK_FILTER_CYCLER.get() : {};
+      return { filterSlot: cur.slot, fx: fxSnap(), slot: slot };
+    }
+    if (id.indexOf('scene:') === 0) {
+      var sens = document.getElementById('sens');
+      return { sens: sens ? parseFloat(sens.value) : null };
+    }
+    if (id.indexOf('automix:') === 0) {
+      var lab = document.getElementById('automix-state');
+      return { automix: lab ? lab.textContent : null };
+    }
+    if (id.indexOf('global:') === 0) {
+      var gid = id.split(':')[1];
+      var el = document.getElementById(gid);
+      return { value: el ? parseFloat(el.value) : null };
+    }
+    if (id.indexOf('keys:') === 0) {
+      return {
+        blackout: window.SWR_KEYS && window.SWR_KEYS.isBlackoutActive
+          ? window.SWR_KEYS.isBlackoutActive() : null,
+        mirror: window.SWR_NATURAL && typeof window.SWR_NATURAL.mirror === 'function'
+          ? window.SWR_NATURAL.mirror() : null,
+      };
+    }
+    if (id.indexOf('layer:') === 0) {
+      var sel = selectedLayer();
+      if (!sel) return { layer: null };
+      var field = id.split(':')[1];
+      if (field === 'blend') return { blend: sel.blend };
+      if (field === 'cycleBlend') return { blend: sel.blend };
+      if (field === 'masterRot') return { rotationEnabled: sel.rotationEnabled };
+      if (field === 'nextReactors') return { reactors: JSON.stringify(sel.reactors || []) };
+      return { layerField: field, value: sel[field] };
+    }
+    if (id === 'demo:demoAll') {
+      return { running: !!(state.demoAllTimer || state.demoBeatRaf) };
+    }
+    if (id === 'demo:reset') {
+      return { preset: state.activePreset, filter: state.activeFilter };
+    }
+    return {};
+  }
+
   window.SWR_NEON_DEMO = {
     mount: mount,
     unmount: unmount,
@@ -629,6 +845,10 @@
     isRotationOff: isRotationOff,
     isZoomOff: isZoomOff,
     isDistortionFxOff: isDistortionFxOff,
+    listControls: listControls,
+    invokeControl: invokeControl,
+    readProbe: readProbe,
+    assertAllControlsBound: assertAllControlsBound,
     getState: function () { return { collapsed: state.collapsed, activePreset: state.activePreset, activeFilter: state.activeFilter }; },
   };
 

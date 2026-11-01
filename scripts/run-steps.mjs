@@ -76,6 +76,7 @@ const GROUPS = {
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
     'npm run check:neon-demo-panel-unit',
+    'npm run check:neon-demo-panel-verify',
     'npm run check:preset-pick-unit',
     'npm run check:webgl-uniform-guard',
     'npm run check:webgl-no-invalid-op',
