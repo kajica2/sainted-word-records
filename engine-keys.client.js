@@ -1875,6 +1875,18 @@
     isEnabled:  function () { return !!state.enabled; },
     isBlackoutActive: function () { return !!state.blackoutActive; },
     reapplyBlackout: reapplyBlackoutIfActive,
+    home: function () {
+      const L = layers();
+      homeLayers(L);
+      if (L) selectLayer(L, null);
+    },
+    run: function (name) {
+      const a = ACTIONS[name];
+      if (!a || !actionAllowed(a)) return false;
+      if (typeof a.action !== 'function') return false;
+      a.action();
+      return true;
+    },
     simulate: function (keyOrCode, mods) {
       // Programmatic keypress for tests + future macros. Calls handle()
       // directly with a synthetic event shape.
