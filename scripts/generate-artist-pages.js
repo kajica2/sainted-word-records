@@ -196,6 +196,7 @@ function artistPage(a) {
     </header>
 
     <h1>${esc(a.name)}</h1>
+    <p><a class="link" href="/bookings?artist=${encodeURIComponent(a.name)}">Book this artist →</a></p>
     <div class="loc">${esc(a.location || '')}</div>
     <div class="tagline">${esc(a.tagline)}</div>
     <p class="bio">${esc(a.bio)}</p>
@@ -271,6 +272,10 @@ function artistPage(a) {
 }
 
 function indexPage() {
+  const booked = artists.map(a => {
+    const ini = a.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    return `<a href="/bookings?artist=${encodeURIComponent(a.name)}" style="--accent:${esc(a.color)}"><span class="av">${esc(ini)}</span><b>${esc(a.name)}</b><i>Book →</i></a>`;
+  }).join('\n        ');
   const cards = artists.map(a => `
     <a class="card" href="/artists/${esc(a.id)}" style="--accent:${esc(a.color)}">
       <div class="card-bg" aria-hidden="true"></div>
@@ -311,6 +316,20 @@ function indexPage() {
     h1 { font-size: 32px; font-weight: 700; margin: 0 0 6px; letter-spacing: 0.04em; }
     .lede { color: var(--ink-2); font-size: 13px; font-style: italic; max-width: 720px;
       margin: 0 0 32px; line-height: 1.5; }
+    .booked { margin: 0 0 40px; }
+    .booked-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+    .booked-head h2 { margin: 0; font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .booked-head a { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-2); }
+    .booked-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px; }
+    .booked-row a { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+    .booked-row .av { width: 96px; height: 96px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 26px; font-weight: 800; color: var(--accent);
+      border: 2px solid var(--line); transition: border-color 0.2s, transform 0.2s;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, #0a0612), #150b22); }
+    .booked-row a:hover .av { border-color: var(--accent); transform: translateY(-3px); }
+    .booked-row b { font-size: 13px; }
+    .booked-row i { font-size: 10px; color: var(--muted); font-style: normal; letter-spacing: 0.1em; text-transform: uppercase; }
+    .booked-cta { margin: 22px 0 0; display: flex; gap: 12px; flex-wrap: wrap; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
     .card { position: relative; display: block; aspect-ratio: 4/5; border-radius: 8px;
       overflow: hidden; border: 1px solid var(--line); transition: transform 0.2s, border-color 0.2s; }
@@ -344,6 +363,17 @@ function indexPage() {
     </header>
     <h1>${artists.length} artists · one loop each</h1>
     <p class="lede">Each artist page holds a single track on infinite loop. Click into one and the room fills. Their works — videos, audio, projects saved through the engine — live underneath. New artists land here by submitting through the engine's "Save project" flow.</p>
+
+    <section class="booked" aria-labelledby="booked-h">
+      <div class="booked-head">
+        <h2 id="booked-h">Most booked</h2>
+        <a href="/booking">Booking →</a>
+      </div>
+      <div class="booked-row">
+        ${booked}
+      </div>
+      <p class="booked-cta"><a class="btn btn-primary" href="/bookings">Book an artist</a> <a class="btn btn-outline" href="/booking">How booking works</a></p>
+    </section>
 
     <div class="grid">
       ${cards}
