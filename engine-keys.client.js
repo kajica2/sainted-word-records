@@ -92,7 +92,13 @@
   'use strict';
   if (window.SWR_KEYS) return;
 
-  const state = { enabled: true, helpVisible: false };
+  const state = {
+    enabled: true,
+    helpVisible: false,
+    blackoutActive: false,
+    blackoutSnapshot: null,
+    readoutTimer: null,
+  };
 
   // ---- keymap --------------------------------------------------------
 
@@ -194,6 +200,17 @@
     // the rows drop out of the help table there instead of advertising a
     // dead key.
     variants: function () { return currentVariantIndex() >= 0; },
+    engineSliders: function () {
+      return !!(document.getElementById('sensitivity') || document.getElementById('sens'));
+    },
+    imageLane: function () {
+      var lane = window.SWR_IMAGE_LANE;
+      return !!(lane && typeof lane.stepStill === 'function');
+    },
+    jpgSurface: function () {
+      var J = window.SWR_JPG;
+      return !!(J && typeof J.stepStill === 'function');
+    },
   };
 
   // Canonical variant order. Mirrors the taxonomy in AGENTS.md: the 5 core
@@ -640,35 +657,91 @@
     // The selected layer is mutated directly. Default nudge = 5% of the
     // field's typical range; Shift+key = 4x nudge (Photoshop convention).
 
-    nudgeAlphaDown: {
+    nudgeSensitivityDown: {
       keys: '[',
-      label: '− alpha (selected layer, ×0.05 / Shift ×0.20)',
-      action: function () { nudgeLayer('alpha', -0.05, 0, 1.5); },
+      label: '− sensitivity (#sensitivity)',
+      requires: 'engineSliders',
+      action: function () { nudgeRangeInput('sensitivity', 'sens', -1); },
+    },
+    nudgeSensitivityUp: {
+      keys: ']',
+      label: '+ sensitivity (#sensitivity)',
+      requires: 'engineSliders',
+      action: function () { nudgeRangeInput('sensitivity', 'sens', +1); },
+    },
+    nudgeBeatGateDown: {
+      keys: ';',
+      label: '− beat gate (#beat-gate)',
+      requires: 'engineSliders',
+      action: function () { nudgeRangeInput('beat-gate', 'gate', -1); },
+    },
+    nudgeBeatGateUp: {
+      keys: "'",
+      label: '+ beat gate (#beat-gate)',
+      requires: 'engineSliders',
+      action: function () { nudgeRangeInput('beat-gate', 'gate', +1); },
+    },
+    nudgeAlphaDown: {
+      keys: 'Shift+[',
+      label: '− opacity (selected video layer, ×0.05 / Shift ×0.20)',
+      action: function () { nudgeLayerOpacity(-0.05); },
     },
     nudgeAlphaUp: {
-      keys: ']',
-      label: '+ alpha (selected layer)',
-      action: function () { nudgeLayer('alpha', +0.05, 0, 1.5); },
+      keys: 'Shift+]',
+      label: '+ opacity (selected video layer)',
+      action: function () { nudgeLayerOpacity(+0.05); },
     },
     nudgeHueDown: {
       keys: ',',
-      label: '− hue (selected layer, −6° / Shift −24°)',
+      label: '− hue (selected video layer, −6° / Shift −24°)',
       action: function () { nudgeLayer('hue', -6, -180, 180); },
     },
     nudgeHueUp: {
       keys: '.',
-      label: '+ hue (selected layer)',
+      label: '+ hue (selected video layer)',
       action: function () { nudgeLayer('hue', +6, -180, 180); },
     },
     nudgeScaleDown: {
-      keys: ';',
+      keys: 'Shift+;',
       label: '− scale (selected layer, −0.05)',
       action: function () { nudgeLayer('baseScale', -0.05, 0.1, 3); },
     },
     nudgeScaleUp: {
-      keys: "'",
-      label: "+ scale (selected layer)",
+      keys: "Shift+'",
+      label: '+ scale (selected layer)',
       action: function () { nudgeLayer('baseScale', +0.05, 0.1, 3); },
+    },
+    toggleBlackout: {
+      keys: 'Q',
+      label: 'blackout — hide stage layers (audio keeps playing); Q again restores',
+      action: function () { toggleBlackout(); },
+    },
+    restoreBlackout: {
+      keys: 'Shift+Q',
+      label: 'restore visibility after blackout',
+      action: function () { restoreBlackout(true); },
+    },
+    toggleImageLaneVisible: {
+      keys: 'I',
+      label: 'show / hide image lane (stills stack)',
+      requires: 'imageLane',
+      action: function () { toggleImageLaneVisible(); },
+    },
+    flipImageLaneOrder: {
+      keys: 'Shift+I',
+      label: 'image lane above / below video',
+      requires: 'imageLane',
+      action: function () { flipImageLaneOrder(); },
+    },
+    imageLanePrevStill: {
+      keys: ',',
+      label: 'previous still (image lane / JPG)',
+      action: function () { stepImageStill(-1); },
+    },
+    imageLaneNextStill: {
+      keys: '.',
+      label: 'next still (image lane / JPG)',
+      action: function () { stepImageStill(+1); },
     },
     nudgeContrastDown: {
       keys: 'Shift+,',
@@ -878,8 +951,229 @@
 
   // ---- helpers --------------------------------------------------------
 
-  function layers() { return window.SWR && window.SWR.Layers; }
-  function audio()  { return window.SWR && window.SWR.Audio; }
+  function layers() { return window.Layers || (window.SWR && window.SWR.Layers); }
+  function audio()  {
+    if (window.Audio) return window.Audio;
+    return window.SWR && window.SWR.Audio;
+  }
+
+  function videoLayerSelected() {
+    const L = layers();
+    return !!(L && selectedOf(L));
+  }
+
+  function stillStepPreferred() {
+    if (getHost().jpgSurface) return true;
+    const lane = window.SWR_IMAGE_LANE;
+    if (!lane || !lane.list || !lane.list.length) return false;
+    if (videoLayerSelected()) return false;
+    return true;
+  }
+
+  function flashReadout(msg) {
+    if (typeof window.setStatus === 'function') window.setStatus(msg, 'ok');
+    try {
+      if (state.readoutTimer) window.clearTimeout(state.readoutTimer);
+      state.readoutTimer = window.setTimeout(function () {
+        state.readoutTimer = null;
+      }, 1200);
+    } catch (_) {}
+  }
+
+  function nudgeRangeInput(primaryId, alias, steps) {
+    const el = document.getElementById(primaryId) || (alias ? document.getElementById(alias) : null);
+    if (!el) return;
+    const ev = window.__swrLastKeydown;
+    const mul = (ev && ev.shiftKey) ? 4 : 1;
+    const step = parseFloat(el.step);
+    const delta = (Number.isFinite(step) ? step : 0.05) * steps * mul;
+    const min = parseFloat(el.min);
+    const max = parseFloat(el.max);
+    let v = parseFloat(el.value);
+    if (!Number.isFinite(v)) v = 0;
+    v = Math.max(min, Math.min(max, v + delta));
+    el.value = String(v);
+    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+    try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+    const label = primaryId === 'beat-gate' ? 'beat gate' : 'sensitivity';
+    flashReadout(label + ': ' + v.toFixed(2));
+  }
+
+  function captureBlackoutSnapshot() {
+    const L = layers();
+    const lane = window.SWR_IMAGE_LANE;
+    const snap = {
+      video: [],
+      lane: null,
+      jpg: null,
+    };
+    if (L && Array.isArray(L.list)) {
+      for (let i = 0; i < L.list.length; i++) {
+        const l = L.list[i];
+        if (!l) continue;
+        snap.video.push({ id: l.id, hidden: !!l.hidden, opacity: l.opacity != null ? l.opacity : 1 });
+      }
+    }
+    if (lane) {
+      snap.lane = {
+        visible: !!lane.visible,
+        opacity: lane.opacity != null ? lane.opacity : 1,
+        layers: (lane.list || []).map(function (l) {
+          return { id: l.id, hidden: !!l.hidden, opacity: l.opacity != null ? l.opacity : 1 };
+        }),
+      };
+    }
+    const J = window.SWR_JPG;
+    if (J && Array.isArray(J.layers)) {
+      snap.jpg = J.layers.map(function (l) {
+        return { id: l.id, hidden: !!l.hidden, opacity: l.opacity != null ? l.opacity : 1 };
+      });
+    }
+    return snap;
+  }
+
+  function applyBlackoutVisuals(on) {
+    const L = layers();
+    if (L && Array.isArray(L.list)) {
+      for (let i = 0; i < L.list.length; i++) {
+        const l = L.list[i];
+        if (!l) continue;
+        if (on) {
+          l.hidden = true;
+        }
+      }
+      if (typeof L.render === 'function') L.render();
+    }
+    const lane = window.SWR_IMAGE_LANE;
+    if (lane) {
+      if (on) lane.setVisible(false);
+    }
+    const J = window.SWR_JPG;
+    if (J && Array.isArray(J.layers)) {
+      for (let j = 0; j < J.layers.length; j++) {
+        if (on) J.layers[j].hidden = true;
+      }
+      if (typeof window.Layers !== 'undefined' && typeof window.Layers.render === 'function') {
+        window.Layers.render();
+      }
+    }
+    const stage = document.getElementById('stage');
+    if (stage) stage.classList.toggle('swr-blackout', !!on);
+  }
+
+  function restoreBlackoutSnapshot(snap) {
+    if (!snap) return;
+    const L = layers();
+    if (L && Array.isArray(L.list) && Array.isArray(snap.video)) {
+      for (let i = 0; i < snap.video.length; i++) {
+        const s = snap.video[i];
+        const l = L.list.find(function (x) { return x.id === s.id; });
+        if (!l) continue;
+        l.hidden = s.hidden;
+        l.opacity = s.opacity;
+      }
+      if (typeof L.render === 'function') L.render();
+    }
+    const lane = window.SWR_IMAGE_LANE;
+    if (lane && snap.lane) {
+      lane.visible = snap.lane.visible;
+      lane.opacity = snap.lane.opacity;
+      if (Array.isArray(snap.lane.layers)) {
+        for (let k = 0; k < snap.lane.layers.length; k++) {
+          const sl = snap.lane.layers[k];
+          const ll = (lane.list || []).find(function (x) { return x.id === sl.id; });
+          if (!ll) continue;
+          ll.hidden = sl.hidden;
+          ll.opacity = sl.opacity;
+        }
+      }
+      if (typeof lane.render === 'function') lane.render();
+    }
+    const J = window.SWR_JPG;
+    if (J && Array.isArray(J.layers) && Array.isArray(snap.jpg)) {
+      for (let j = 0; j < snap.jpg.length; j++) {
+        const sj = snap.jpg[j];
+        const jl = J.layers.find(function (x) { return x.id === sj.id; });
+        if (!jl) continue;
+        jl.hidden = sj.hidden;
+        jl.opacity = sj.opacity;
+      }
+      if (typeof window.Layers !== 'undefined' && typeof window.Layers.render === 'function') {
+        window.Layers.render();
+      }
+    }
+    const stage = document.getElementById('stage');
+    if (stage) stage.classList.remove('swr-blackout');
+  }
+
+  function reapplyBlackoutIfActive() {
+    if (!state.blackoutActive) return;
+    applyBlackoutVisuals(true);
+  }
+
+  function toggleBlackout() {
+    if (state.blackoutActive) {
+      restoreBlackout(false);
+      return;
+    }
+    state.blackoutSnapshot = captureBlackoutSnapshot();
+    state.blackoutActive = true;
+    applyBlackoutVisuals(true);
+    flashReadout('blackout — Q or Shift+Q to restore');
+  }
+
+  function restoreBlackout(fromShift) {
+    if (!state.blackoutActive) {
+      if (fromShift) flashReadout('blackout off');
+      return;
+    }
+    const snap = state.blackoutSnapshot;
+    state.blackoutActive = false;
+    state.blackoutSnapshot = null;
+    restoreBlackoutSnapshot(snap);
+    flashReadout('blackout restored');
+  }
+
+  function toggleImageLaneVisible() {
+    const lane = window.SWR_IMAGE_LANE;
+    if (!lane) return;
+    lane.setVisible(!lane.visible);
+    flashReadout('image lane: ' + (lane.visible ? 'visible' : 'hidden'));
+  }
+
+  function flipImageLaneOrder() {
+    const lane = window.SWR_IMAGE_LANE;
+    if (!lane || typeof lane.toggleStackOrder !== 'function') return;
+    const order = lane.toggleStackOrder();
+    flashReadout('image lane: ' + order + ' video');
+  }
+
+  function stepImageStill(delta) {
+    const J = window.SWR_JPG;
+    if (J && typeof J.stepStill === 'function') {
+      if (J.stepStill(delta)) flashReadout(delta < 0 ? 'previous still' : 'next still');
+      return;
+    }
+    const lane = window.SWR_IMAGE_LANE;
+    if (lane && typeof lane.stepStill === 'function') {
+      if (lane.stepStill(delta)) flashReadout(delta < 0 ? 'previous still' : 'next still');
+    }
+  }
+
+  function nudgeLayerOpacity(delta) {
+    const L = layers();
+    const sel = selectedOf(L);
+    if (!sel) return;
+    const ev = window.__swrLastKeydown;
+    const step = delta * ((ev && ev.shiftKey) ? 4 : 1);
+    const field = typeof sel.alpha === 'number' ? 'alpha' : 'opacity';
+    const before = sel[field];
+    if (typeof before !== 'number') return;
+    const after = Math.max(0, Math.min(1.5, before + step));
+    sel[field] = after;
+    if (typeof L.render === 'function') L.render();
+    flashReadout(field + ': ' + before.toFixed(2) + ' → ' + after.toFixed(2));
+  }
 
   // Bare 1..9 = apply look filter slot N. NO LAYER SELECTION on the bare
   // digit row: the user reported pressing 1 was starting rotation, which
@@ -1173,8 +1467,26 @@
     } else if (window.SWR_SCENES) {
       out.push({ keys: '1..4', label: 'scene recall (tap) · hold ~1s to save' });
     }
-    if (window.SWR_IMAGE_LANE) {
-      out.push({ keys: '(panel)', label: 'image lane — stills stack under Layers (visibility, order, blend, opacity)' });
+    if (getHost().imageLane) {
+      out.push(
+        { keys: 'I', label: 'show / hide image lane (stills)' },
+        { keys: 'Shift+I', label: 'image lane above / below video' },
+        { keys: ', / .', label: 'prev / next still (when no video layer selected; else hue nudge)' },
+      );
+    }
+    if (getHost().jpgSurface) {
+      out.push(
+        { keys: ', / .', label: 'prev / next still layer' },
+        { keys: 'Q', label: 'blackout / restore still visibility' },
+      );
+    }
+    if (getHost().engineSliders) {
+      out.push(
+        { keys: '[ / ]', label: 'sensitivity − / + (Shift = ×4 step)' },
+        { keys: '; / \'', label: 'beat gate − / + (Shift = ×4 step)' },
+        { keys: 'Shift+[ / Shift+]', label: 'opacity nudge on selected video layer' },
+        { keys: 'Q / Shift+Q', label: 'blackout stage / restore last visibility' },
+      );
     }
     const scenesOn = !!(window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
     if (scenesOn) {
@@ -1265,6 +1577,13 @@
         case 'KeyY':            action = ev.shiftKey ? ACTIONS.toggleMasterRotation : ACTIONS.duplicateLayer; break;
         case 'KeyV':            action = ev.shiftKey ? ACTIONS.mirrorVertical : ACTIONS.cycleMirror; break;
         case 'KeyF':            action = ACTIONS.fullscreen; break;
+        case 'KeyQ':
+          action = ev.shiftKey ? ACTIONS.restoreBlackout : ACTIONS.toggleBlackout;
+          break;
+        case 'KeyI':
+          if (ev.shiftKey) action = ACTIONS.flipImageLaneOrder;
+          else action = ACTIONS.toggleImageLaneVisible;
+          break;
         case 'KeyU':            if (ev.shiftKey) action = ACTIONS.actionsRunAutoMap; break;
         case 'ArrowUp':         action = ev.shiftKey ? ACTIONS.nudgeLayerUp : ACTIONS.selectPrev; ev.preventDefault(); break;
         case 'ArrowDown':       action = ev.shiftKey ? ACTIONS.nudgeLayerDown : ACTIONS.selectNext; ev.preventDefault(); break;
@@ -1281,12 +1600,20 @@
         case 'NumpadAdd':       action = ev.shiftKey ? ACTIONS.bumpFadeIn : ACTIONS.nudgeOpacityUp; break;
         case 'Minus':           // -
         case 'NumpadSubtract':  action = ev.shiftKey ? ACTIONS.bumpFadeOut : ACTIONS.nudgeOpacityDown; break;
-        case 'BracketLeft':     action = ev.shiftKey ? ACTIONS.nudgeMutateUp : ACTIONS.nudgeAlphaDown; break;
-        case 'BracketRight':    action = ev.shiftKey ? ACTIONS.nudgeMutateDown : ACTIONS.nudgeAlphaUp; break;
-        case 'Comma':           action = ev.shiftKey ? ACTIONS.nudgeContrastUp : ACTIONS.nudgeHueDown; break;
-        case 'Period':          action = ev.shiftKey ? ACTIONS.nudgeContrastDown : ACTIONS.nudgeHueUp; break;
-        case 'Semicolon':       action = ev.shiftKey ? ACTIONS.nudgeBrightnessUp : ACTIONS.nudgeScaleDown; break;
-        case 'Quote':           action = ev.shiftKey ? ACTIONS.nudgeBrightnessDown : ACTIONS.nudgeScaleUp; break;
+        case 'BracketLeft':     action = ev.shiftKey ? ACTIONS.nudgeAlphaDown : ACTIONS.nudgeSensitivityDown; break;
+        case 'BracketRight':    action = ev.shiftKey ? ACTIONS.nudgeAlphaUp : ACTIONS.nudgeSensitivityUp; break;
+        case 'Comma':
+          if (ev.shiftKey) action = ACTIONS.nudgeContrastUp;
+          else if (stillStepPreferred()) action = ACTIONS.imageLanePrevStill;
+          else action = ACTIONS.nudgeHueDown;
+          break;
+        case 'Period':
+          if (ev.shiftKey) action = ACTIONS.nudgeContrastDown;
+          else if (stillStepPreferred()) action = ACTIONS.imageLaneNextStill;
+          else action = ACTIONS.nudgeHueUp;
+          break;
+        case 'Semicolon':       action = ev.shiftKey ? ACTIONS.nudgeBrightnessUp : ACTIONS.nudgeBeatGateDown; break;
+        case 'Quote':           action = ev.shiftKey ? ACTIONS.nudgeBrightnessDown : ACTIONS.nudgeBeatGateUp; break;
         // '?' must be claimed INSIDE the switch, before the bare-Slash
         // case: on US layouts Shift+/ sends code 'Slash', and a plain
         // `case 'Slash': break` would swallow it — the post-switch
@@ -1494,7 +1821,6 @@
 
       // ---- Layers (documentation-only rows; no single action) ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
-      { keys: '[ / ]',          label: 'cycle prev / next layer' },
       { keys: '0',              label: 'home — reset every layer to its original transform' },
       { keys: '1..9',           label: 'apply look filter slot (on engine/play with scenes: 5..9 only; 1..4 = scenes)' },
       { keys: 'G',              label: 'group media by name (media panel)', action: ACTIONS.toggleMediaGrouping },
@@ -1512,18 +1838,17 @@
       { keys: 'Cmd+1..9',       label: 'FX palette preset (PULSE / NEON / GRID / …)', requires: 'presets' },
 
       // ---- Per-layer tweaks (right-hand bracket pattern) ----
-      { keys: '[ / ]',          label: '− / + alpha',                    requires: 'layerAlpha' },
-      { keys: ', / .',          label: '− / + hue (±6°)' },
-      { keys: "; / '",          label: '− / + scale' },
+      { keys: '[ / ]',          label: '− / + sensitivity',              requires: 'engineSliders' },
+      { keys: "; / '",          label: '− / + beat gate',                requires: 'engineSliders' },
+      { keys: ', / .',          label: '− / + hue on selected video layer (stills: prev/next when none selected)' },
+      { keys: 'Shift+[ / Shift+]', label: '− / + opacity (selected layer)' },
+      { keys: 'Shift+; / Shift+\'', label: '− / + scale (selected layer)' },
       { keys: '/',              label: '− opacity' },
       { keys: '= / -',          label: '+ / − opacity  ·  Shift = bump fadeIn/fadeOut' },
       { keys: 'Shift+,',        label: '− contrast  ·  Shift = ×4 nudge' },
       { keys: 'Shift+.',        label: '+ contrast' },
       { keys: 'Shift+;',        label: '− brightness' },
       { keys: "Shift+'",        label: '+ brightness' },
-      { keys: 'Shift+[',        label: '− mutate jitter',               requires: 'layerMutate' },
-      { keys: 'Shift+]',        label: '+ mutate jitter',               requires: 'layerMutate' },
-
       // ---- Per-layer ops ----
       { keys: 'C',              label: 'cycle blend mode',             action: ACTIONS.cycleBlend },
       { keys: 'Y',              label: 'duplicate selected layer',     action: ACTIONS.duplicateLayer },
@@ -1548,6 +1873,8 @@
     help: help,
     setEnabled: function (b) { state.enabled = !!b; },
     isEnabled:  function () { return !!state.enabled; },
+    isBlackoutActive: function () { return !!state.blackoutActive; },
+    reapplyBlackout: reapplyBlackoutIfActive,
     simulate: function (keyOrCode, mods) {
       // Programmatic keypress for tests + future macros. Calls handle()
       // directly with a synthetic event shape.
@@ -1958,6 +2285,33 @@
 
     // Apply master state to whatever layers already exist on first load.
     applyTxMasterToLayers();
+
+    (function patchBlackoutPersistence() {
+      var S = window.SWR_SCENES;
+      if (S && typeof S.recall === 'function' && !S.recall.__swrBlackoutPatched) {
+        var origRecall = S.recall.bind(S);
+        S.recall = function (index) {
+          var ok = origRecall(index);
+          if (ok) reapplyBlackoutIfActive();
+          return ok;
+        };
+        S.recall.__swrBlackoutPatched = true;
+      }
+      window.addEventListener('swr-automix-tick', reapplyBlackoutIfActive);
+      try {
+        document.addEventListener('swr-automix-tick', reapplyBlackoutIfActive);
+      } catch (_) {}
+    })();
+
+    (function ensureBlackoutStyle() {
+      try {
+        if (document.getElementById('swr-blackout-style')) return;
+        var s = document.createElement('style');
+        s.id = 'swr-blackout-style';
+        s.textContent = '#stage.swr-blackout canvas{visibility:hidden;}';
+        (document.head || document.documentElement).appendChild(s);
+      } catch (_) {}
+    })();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', install);

@@ -487,12 +487,24 @@ async function boot() {
 
   rafId = requestAnimationFrame(frame);
 
+  function stepStill(delta) {
+    if (!layers.length) return false;
+    let idx = layers.findIndex((l) => l.id === selectedId);
+    if (idx < 0) idx = 0;
+    const next = (idx + (delta < 0 ? -1 : 1) + layers.length) % layers.length;
+    selectedId = layers[next].id;
+    renderPanel();
+    setStatus((delta < 0 ? 'previous' : 'next') + ' still: ' + layers[next].name, 'ok');
+    return true;
+  }
+
   window.SWR_JPG = {
     layers,
     classifyStill,
     personaForJpg,
     cyclePersona,
     homeAll,
+    stepStill,
     JPG_BLOCKED_CSS_FX,
   };
 }
