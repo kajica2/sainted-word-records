@@ -145,7 +145,13 @@
     if ((L.list || []).length) return;   // user already has a composition
     try {
       L.autoMap();
-      console.info('[default-library] staged', (L.list || []).length, 'layers');
+      const lane = window.SWR_IMAGE_LANE;
+      if (lane && typeof lane.migrateFromVideoStack === 'function') {
+        const moved = lane.migrateFromVideoStack();
+        if (moved) console.info('[default-library] migrated', moved, 'still(s) to image lane');
+      }
+      const laneN = lane && lane.list ? lane.list.length : 0;
+      console.info('[default-library] staged', (L.list || []).length, 'video layers', laneN ? ('+ ' + laneN + ' stills') : '');
     } catch (e) { console.warn('[default-library] autoMap failed:', e.message); }
   }
 
