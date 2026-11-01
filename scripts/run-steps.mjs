@@ -113,6 +113,7 @@ const GROUPS = {
     'npm run check:engine-keys-digit-filter-unit',
     'npm run check:engine-keys-digit-rotation-guard-unit',
     'npm run check:engine-keys-keyspress-unit',
+    'npm run check:engine-keys-shortcuts-unit',
     // Image-only still engine (jpg.html + jpg-engine.client.js): ship wiring,
     // classifyStill hue/luma, persona motion strip, blocked CSS filters.
     'npm run check:jpg-engine-unit',

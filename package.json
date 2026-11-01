@@ -79,6 +79,7 @@
     "check:engine-keys-digit-rotation-guard-unit": "node scripts/check-engine-keys-digit-rotation-guard-unit.mjs",
     "check:media-grouping-unit": "node scripts/check-media-grouping-unit.mjs",
     "check:engine-keys-keyspress-unit": "node scripts/check-engine-keys-keyspress-unit.mjs",
+    "check:engine-keys-shortcuts-unit": "node scripts/check-engine-keys-shortcuts-unit.mjs",
     "check:jpg-engine-unit": "node scripts/check-jpg-engine-unit.mjs",
     "check:image-lane-unit": "node scripts/check-image-lane-unit.mjs",
     "check:shortcuts-movie-unit": "node scripts/check-shortcuts-movie-unit.mjs",
