@@ -104,6 +104,7 @@ const GROUPS = {
     // at the host. The unit pins the base normalisation, the manifest
     // rewrite, the copy plan and the publish plan.
     'npm run check:media-offsite-unit',
+    'npm run check:media-budget',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.

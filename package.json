@@ -68,6 +68,8 @@
     "check:preset-editor-smoke": "node scripts/check-preset-editor-smoke.mjs",
     "check:bench-smoke": "node scripts/check-bench-smoke.mjs",
     "check:media-offsite-unit": "node scripts/check-media-offsite-unit.mjs",
+    "check:media-budget": "node scripts/check-media-budget.mjs",
+    "media:optimize": "node scripts/media-optimize.mjs",
     "check:media-offsite-smoke": "node scripts/check-media-offsite-smoke.mjs",
     "media:publish": "node scripts/publish-media-offsite.mjs",
     "check:layer-text-unit": "node scripts/check-layer-text-unit.mjs",
