@@ -1164,6 +1164,14 @@
       "destination": "/entrance-step2.html"
     },
     {
+      "source": "/entrance-step3",
+      "destination": "/entrance-step3.html"
+    },
+    {
+      "source": "/entrance-step3/",
+      "destination": "/entrance-step3.html"
+    },
+    {
       "source": "/entrance-stats",
       "destination": "/entrance-stats.html"
     },
