@@ -661,6 +661,7 @@
     "/entrance-wizard",
     "/entrance-step1",
     "/entrance-step2",
+    "/entrance-step3",
     "/entrance-stats"
   ],
   "archived": [],
@@ -719,6 +720,7 @@
     "entrance-stats.html",
     "entrance-step1.html",
     "entrance-step2.html",
+    "entrance-step3.html",
     "entrance-wizard.html",
     "font-vault.html",
     "fonts.html",

@@ -251,6 +251,8 @@
   // carrying every panel it knows how to toggle.
   function actionAllowed(a) {
     if (!a) return false;
+    // Automix owns Shift+A on engine.html; do not advertise or bind recipe cycle.
+    if (a === ACTIONS.cycleNextRecipe && document.getElementById('automix-toggle')) return false;
     if (a.requires && !getHost()[a.requires]) return false;
     if (a.panel && !document.getElementById(a.panel)) return false;
     return true;

@@ -65,6 +65,8 @@ function pickHandlerPath(urlPath) {
   }
   // Public waitlist signup (no auth): /api/early-access.
   if (segs[1] === 'early-access' && !segs[2]) return '../api/early-access.js';
+  // Entrance funnel beacons (no auth): /api/entrance-analytics.
+  if (segs[1] === 'entrance-analytics' && !segs[2]) return '../api/entrance-analytics.js';
   if (segs[1] === 'storage') {
     if (segs[2] === 'sign-upload') return HANDLER_PATHS['storage/sign-upload'];
     if (segs[2] === 'sign-download') return HANDLER_PATHS['storage/sign-download'];
