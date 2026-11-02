@@ -297,13 +297,14 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     const fxState = C.state.filters.glow;
     // Auto-drift switch
     const drift = document.querySelector('[data-cc-toggle="autodrift"]');
+    const driftBefore = drift.getAttribute('aria-pressed');
     drift.click();
     const driftOn = drift.getAttribute('aria-pressed');
     // A persona
     const p = document.querySelector('[data-cc-persona]');
     if (p) p.click();
     const personaPressed = p ? p.getAttribute('aria-pressed') : null;
-    return { navOn, section, cssState, mirrorFilter, fxState, driftOn, personaPressed };
+    return { navOn, section, cssState, mirrorFilter, fxState, driftBefore, driftOn, personaPressed };
   });
   check(wiring.navOn === 'true' && wiring.section === 'personas',
     'F1 the nav switches sections', `${wiring.section}`);
@@ -312,7 +313,7 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   check(/saturate\(180\)/.test(wiring.mirrorFilter || ''),
     'F3 the CSS filter reaches the mirror canvas', wiring.mirrorFilter);
   check(wiring.fxState === 60, 'F4 the FX slider drives the state', `glow=${wiring.fxState}`);
-  check(wiring.driftOn === 'true', 'F5 the auto-drift switch toggles');
+  check((wiring.driftBefore === 'true' || wiring.driftBefore === 'false') && wiring.driftOn !== wiring.driftBefore, 'F5 the auto-drift switch toggles', `before=${wiring.driftBefore} after=${wiring.driftOn}`);
   check(wiring.personaPressed === 'true', 'F6 selecting a persona marks it pressed');
 
   // ── G. Canvas ────────────────────────────────────────────────────────
