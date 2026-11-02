@@ -328,16 +328,17 @@ try {
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const am = window.automix;
       if (am && typeof am._glideTick === 'function') {
-        am._glideTick();
-        await sleep(50);
-        am._glideTick();
+        for (let g = 0; g < 3; g++) {
+          am._glideTick();
+          await sleep(80);
+        }
       }
       const rampMs = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
       const frames = 90;
       for (let i = 0; i < frames; i++) {
         await new Promise((r) => requestAnimationFrame(r));
       }
-      await sleep(rampMs + 200);
+      await sleep(rampMs + 600);
       for (let i = 0; i < 45; i++) {
         await new Promise((r) => requestAnimationFrame(r));
       }
