@@ -470,7 +470,19 @@
       var recipe = mk('button', null, 'Next recipe');
       recipe.type = 'button';
       recipe.setAttribute('data-demo-layer-always', '1');
-      var invRec = function () { return runKeysAction('cycleNextRecipe'); };
+      var invRec = function () {
+        if (document.getElementById('automix-toggle') && window.SWR_AUTOMAP) {
+          var M = window.SWR_AUTOMAP;
+          var all = M.list();
+          if (!all || !all.length) return false;
+          var cur = M.pageIdFromBody ? M.pageIdFromBody() : null;
+          var idx = all.findIndex(function (r) { return r.id === cur; });
+          var next = all[(idx + 1 + all.length) % all.length];
+          M.apply(next.id);
+          return true;
+        }
+        return runKeysAction('cycleNextRecipe');
+      };
       regControl(recipe, 'automix:nextRecipe', { label: 'Next recipe', invoke: invRec });
       recipe.addEventListener('click', invRec);
       amRow.appendChild(recipe);

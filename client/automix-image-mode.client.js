@@ -7,9 +7,14 @@
 
   if (global.SWR_AUTOMIX_IMAGE) return;
 
+  /** Minimum time between still advances (lane order or library random). */
+  var MIN_STILL_DWELL_MS = 2800;
+
   var rafId = 0;
   var active = false;
   var lastBeat = false;
+  var lastSwapMs = 0;
+  var lastSectionName = null;
   var crossfadeMs = { out: 220, in: 280 };
 
   function mk() {
@@ -42,6 +47,11 @@
     return !!(am && am.enabled);
   }
 
+  function automixHoldStill() {
+    var am = global.automix;
+    return !!(am && (am.frozen || am.locked));
+  }
+
   function layers() {
     var lane = global.SWR_IMAGE_LANE;
     if (lane && lane.list && lane.list.length) {
@@ -54,6 +64,27 @@
   function hasImageLaneStills() {
     var lane = global.SWR_IMAGE_LANE;
     return !!(lane && lane.list && lane.list.length);
+  }
+
+  function resolveSwapMode() {
+    try {
+      var q = new URLSearchParams(global.location && global.location.search ? global.location.search : '');
+      var v = q.get('automix-image');
+      if (v === 'library') return 'library';
+      if (v === 'lane') return 'lane';
+    } catch (_) {}
+    return 'auto';
+  }
+
+  function usesLaneOrder() {
+    var mode = resolveSwapMode();
+    if (mode === 'library') return false;
+    if (mode === 'lane') return hasImageLaneStills();
+    return hasImageLaneStills();
+  }
+
+  function canDwellSwap() {
+    return (Date.now() - lastSwapMs) >= MIN_STILL_DWELL_MS;
   }
 
   function audioFeat() {
@@ -126,27 +157,41 @@
     }
   }
 
-  function beatCutSwap() {
+  function tryLaneAdvance(_source) {
+    if (automixHoldStill()) return false;
+    if (!canDwellSwap()) return false;
+    var lane = global.SWR_IMAGE_LANE;
+    if (!lane || !lane.list || lane.list.length < 2) return false;
+    if (typeof lane.stepStill !== 'function') return false;
+    if (lane.stepStill(1)) {
+      lastSwapMs = Date.now();
+      return true;
+    }
+    return false;
+  }
+
+  function libraryRandomSwapOnBeat() {
+    if (automixHoldStill()) return false;
+    if (!canDwellSwap()) return false;
     var feat = audioFeat();
     var beat = !!feat.beatPulse;
     var rising = beat && !lastBeat;
-    lastBeat = beat;
-    if (!rising) return;
+    if (!rising) return false;
     var LS = global.LayerScheduler;
     var S = swr();
     var Lib = S && S.Library;
-    if (!LS || !Lib || !Lib.items || !Lib.items.length) return;
+    if (!LS || !Lib || !Lib.items || !Lib.items.length) return false;
     var imgs = Lib.items.filter(function (it) {
       return it && it.url && mk() && mk().isImageAsset(it);
     });
-    if (imgs.length < 2) return;
+    if (imgs.length < 2) return false;
     var list = layers();
-    if (!list.length) return;
+    if (!list.length) return false;
     var layer = list[0];
-    if (!layer || !mk().isImageAsset(layer.asset)) return;
+    if (!layer || !mk().isImageAsset(layer.asset)) return false;
     var curId = layer.asset && layer.asset.id;
     var candidates = imgs.filter(function (it) { return it.id !== curId; });
-    if (!candidates.length) return;
+    if (!candidates.length) return false;
     var pick = candidates[Math.floor(Math.random() * candidates.length)];
     if (global.SWR_TIMING && typeof global.SWR_TIMING.crossfade === 'function') {
       global.SWR_TIMING.attach(layer);
@@ -157,6 +202,28 @@
     } else {
       layer.asset = pick;
     }
+    lastSwapMs = Date.now();
+    return true;
+  }
+
+  function beatCutSwap() {
+    if (!shouldRun() || automixHoldStill()) return;
+    if (usesLaneOrder()) return;
+    libraryRandomSwapOnBeat();
+  }
+
+  function onAutomixTick() {
+    if (!shouldRun()) return;
+    if (usesLaneOrder()) tryLaneAdvance('tick');
+  }
+
+  function onSectionChange(ev) {
+    if (!shouldRun()) return;
+    var detail = ev && ev.detail;
+    if (!detail || !detail.to) return;
+    if (detail.to === lastSectionName) return;
+    lastSectionName = detail.to;
+    if (usesLaneOrder()) tryLaneAdvance('section');
   }
 
   function buildClarityFxPreset(feat) {
@@ -229,6 +296,9 @@
       return;
     }
     active = true;
+    var feat = audioFeat();
+    var beat = !!feat.beatPulse;
+    lastBeat = beat;
     beatCutSwap();
     enforceOpacityFloor();
     pushFxFromAudio();
@@ -305,6 +375,10 @@
     }
   });
 
+  global.addEventListener('swr-automix-tick', onAutomixTick);
+
+  global.addEventListener('swr-section-change', onSectionChange);
+
   global.addEventListener('swr-composition-change', function () {
     if (shouldRun()) installReactors();
   });
@@ -341,6 +415,12 @@
     installReactors: installReactors,
     pushFxFromAudio: pushFxFromAudio,
     beatCutSwap: beatCutSwap,
+    tryLaneAdvance: tryLaneAdvance,
+    libraryRandomSwapOnBeat: libraryRandomSwapOnBeat,
+    usesLaneOrder: usesLaneOrder,
+    resolveSwapMode: resolveSwapMode,
+    automixHoldStill: automixHoldStill,
+    MIN_STILL_DWELL_MS: MIN_STILL_DWELL_MS,
     buildClarityFxPreset: buildClarityFxPreset,
     enforceOpacityFloor: enforceOpacityFloor,
   };
