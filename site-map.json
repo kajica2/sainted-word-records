@@ -97,6 +97,11 @@
           "description": "Quick tutorial"
         },
         {
+          "label": "No-budget music video",
+          "href": "/guides/music-video-no-budget",
+          "description": "How-to guide for indie musicians"
+        },
+        {
           "label": "Interactive How-to",
           "href": "/interactive-howto",
           "description": "Interactive tutorial"
@@ -668,9 +673,9 @@
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-10-25",
-    "totalPages": 184,
-    "corePages": 184,
+    "lastUpdated": "2026-11-02",
+    "totalPages": 186,
+    "corePages": 186,
     "archivedPages": 0
   },
   "discovered": [
@@ -747,6 +752,7 @@
     "gallery-vr.html",
     "gallery.html",
     "generations.html",
+    "guides/music-video-no-budget.html",
     "index.html",
     "interactive-howto.html",
     "intro.html",
