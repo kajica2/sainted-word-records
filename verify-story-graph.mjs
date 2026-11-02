@@ -142,11 +142,22 @@ try {
     await page.evaluate(() => {
       const SWR = window.SWR;
       if (!SWR.Library.items.length) {
-        SWR.Library.items = [{ id: 'a', name: 'a.jpg', type: 'image', w: 100, h: 100 }];
+        SWR.Library.items = [{
+          id: 'story-seed-video',
+          name: 'story-seed.mp4',
+          type: 'video',
+          w: 100,
+          h: 100,
+          _el: { videoWidth: 100, videoHeight: 100, readyState: 4 },
+          url: 'about:blank',
+        }];
       }
       if (!SWR.Layers.list.length) SWR.Layers.add(SWR.Library.items[0]);
-      SWR.Layers.list[0].opacity = 1.0;
-      SWR.Layers.list[0].baseScale = 1.0;
+      const l = SWR.Layers.list.find((x) => x.asset && x.asset.id === 'story-seed-video')
+        || SWR.Layers.list[0];
+      if (!l) throw new Error('seed layer missing');
+      l.opacity = 1.0;
+      l.baseScale = 1.0;
     });
   };
 

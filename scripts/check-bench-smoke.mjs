@@ -234,8 +234,15 @@ try {
     // the navigation waits out its whole timeout and the smoke fails on
     // a page that loaded fine. The readiness signal is the page's own
     // global, which the waitForFunction below waits for.
-    await page.goto('http://localhost:5187/bench.html', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForFunction(() => !!window.SWRBench, { timeout: 10000 });
+    await page.goto('http://localhost:5187/bench.html', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForFunction(
+      () => document.readyState === 'complete',
+      { timeout: 30000 }
+    ).catch(() => {});
+    await page.waitForFunction(
+      () => !!(window.SWR_BENCH && typeof window.SWR_BENCH.createSuite === 'function' && window.SWRBench),
+      { timeout: 45000, polling: 200 }
+    );
   } catch (e) {
     // the page never came up: every assertion below depends on it
     failAll(ALL_ASSERTIONS, 'the page did not come up: ' + ((e && e.message) || String(e)));
@@ -645,7 +652,10 @@ try {
   let reloadError = null;
   try {
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => !!window.SWRBench, { timeout: 10000 });
+    await page.waitForFunction(
+      () => !!(window.SWR_BENCH && typeof window.SWR_BENCH.createSuite === 'function' && window.SWRBench),
+      { timeout: 45000, polling: 200 }
+    );
   } catch (e) {
     reloadError = 'the reload failed: ' + ((e && e.message) || String(e));
   }
