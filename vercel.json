@@ -796,6 +796,14 @@
       "destination": "/tiktok.html"
     },
     {
+      "source": "/spotify-canvas-maker",
+      "destination": "/spotify-canvas-maker.html"
+    },
+    {
+      "source": "/spotify-canvas-maker/",
+      "destination": "/spotify-canvas-maker.html"
+    },
+    {
       "source": "/spit",
       "destination": "/spit.html"
     },

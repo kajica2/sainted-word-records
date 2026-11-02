@@ -372,6 +372,11 @@
       "description": "Vertical 9:16 studio: drop a track, pick a vibe, export four lengths"
     },
     {
+      "label": "Spotify Canvas Maker",
+      "href": "/spotify-canvas-maker",
+      "description": "Make a vertical 9:16 Canvas loop from your track: beat-synced engine export and upload steps for Spotify for Artists"
+    },
+    {
       "label": "Spit Live",
       "href": "/spit",
       "description": "One-take freestyle studio for hip-hop MCs"
