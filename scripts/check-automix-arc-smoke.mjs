@@ -307,6 +307,29 @@ try {
 
   const acts = await page.evaluate(() => window.automix.arc.acts.map((a) => ({ t0: a.t0, t1: a.t1, anchorId: a.anchorId, name: a.name })));
 
+  // Stop realtime automix loops while sampling. tick() and beat drift rewrite
+  // _fxOverride on their own clocks; on a loaded GHA runner (second smoke
+  // run right after check:full) that noise collapsed act-to-act Δ while the
+  // offline arc presets still differed — a wiring pass, not an arc pass.
+  await page.evaluate(() => {
+    const am = window.automix;
+    if (!am) return;
+    // stop() tears down tick/beat/glide clocks AND the image-mode rAF loop
+    // (onAutomixStop). Re-enable without calling start() so the image hook
+    // does not restart pushFxFromAudio — this gate is arc wiring only.
+    if (typeof am.stop === 'function') am.stop();
+    am.enabled = true;
+    am.frozen = false;
+    am._lastGlideKey = null;
+    // Image-mode _setTarget wraps arc presets when stills dominate the stack;
+    // this gate measures video-song arc → _fxOverride, so isolate that path.
+    const lane = window.SWR_IMAGE_LANE;
+    if (lane && Array.isArray(lane.list) && lane.list.length) {
+      lane.__arcSmokeSavedList = lane.list.slice();
+      lane.list.length = 0;
+    }
+  });
+
   // 4. Sample each act. Seek to its start, then wait for FX.state to converge
   //    rather than sleeping a fixed time — a slow CI runner needs longer, a
   //    fast one should not pay for it.
@@ -337,7 +360,11 @@ try {
 
   /** After a seek, run the arc glide clock and pump FX so _fxOverride reaches FX.state. */
   async function settleActSample(actIndex, sampleT) {
-    await page.evaluate((t) => { try { window.SWR.Audio.audioEl.currentTime = t; } catch (_) {} }, sampleT);
+    await page.evaluate((t) => {
+      try { window.SWR.Audio.audioEl.currentTime = t; } catch (_) {}
+      const am = window.automix;
+      if (am) am._lastGlideKey = null;
+    }, sampleT);
     try {
       await page.waitForFunction(
         (wantIdx) => {
@@ -359,6 +386,23 @@ try {
       }, actIndex, sampleT);
       await sleep(120);
     }
+    // Mirror _glideTick's _setTarget without the 0.005 skip guard: after
+    // motion-kill sanitization two acts can look identical in 8-space even
+    // when the raw arc presets differ, so _glideTick may not re-arm on seek.
+    await page.evaluate((sampleT) => {
+      const am = window.automix;
+      const ARC = window.SWR_AUTOMIX_ARC;
+      if (!am || !am.arc || !ARC) return;
+      const arcSample = typeof ARC.sampleAt === 'function'
+        ? ARC.sampleAt(am.arc, sampleT)
+        : null;
+      if (!arcSample || typeof am._arcGlidePreset !== 'function') return;
+      const preset = am._arcGlidePreset(arcSample);
+      if (preset && typeof am._setTarget === 'function') {
+        am._setTarget(preset);
+        am._lastGlideKey = arcSample.actIndex + '|' + arcSample.actProgress;
+      }
+    }, sampleT);
     const rampMs = await page.evaluate(() => (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000);
     await page.evaluate(async () => {
       for (let i = 0; i < 60; i++) {
@@ -409,7 +453,6 @@ try {
     const sampleT = acts[i].t0 + Math.min(span * 0.35, Math.max(1, span - 0.5));
     const snap = await settleActSample(i, sampleT);
     samples.push({ name: acts[i].name, t0: acts[i].t0, fields: snap });
-    await page.evaluate(() => { const A = window.SWR.Audio; if (A.audioEl.paused) { try { A.play(); } catch (_) {} } });
     if (IS_CI && i + 1 < acts.length) await sleep(3500);
   }
   ok(`sampled ${samples.length} act baselines`);
@@ -439,16 +482,14 @@ try {
   }
 
   // 5. The contract: the arc must move the automix FX target across the song
-  //    (window.SWR._fxOverride). The three shipped bugs left every act
-  //    identical. Use presetDistance on the live overrides (same metric as the
-  //    arc builder) so one strong pair anywhere in the song suffices — not only
-  //    adjacent acts, which can land mid-glide on headless runners.
+  //    (window.SWR._fxOverride). Pairwise presetDistance on sampled overrides
+  //    (8-space, same as SWR_AUTOMIX). Sampling isolates the video-arc path
+  //    (no image-mode rAF / clarity _setTarget wrap).
   await page.evaluate((rawSamples) => {
     window.__swrArcSmokeSamples = rawSamples.map((s) => {
-      const out = { preset: {} };
+      const out = {};
       for (const k in s.fields) {
         if (s.fields[k] != null) out[k] = s.fields[k];
-        if (s.fields[k] != null) out.preset[k] = s.fields[k];
       }
       return out;
     });
