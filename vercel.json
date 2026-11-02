@@ -860,6 +860,14 @@
       "destination": "/make-video.html"
     },
     {
+      "source": "/muzicki-spot-beograd",
+      "destination": "/muzicki-spot-beograd.html"
+    },
+    {
+      "source": "/muzicki-spot-beograd/",
+      "destination": "/muzicki-spot-beograd.html"
+    },
+    {
       "source": "/photo",
       "destination": "/photo.html"
     },
