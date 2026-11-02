@@ -786,7 +786,7 @@
       // Cached slider values — read once per slider input, not once
       // per audio frame. Avoids forcing layout every audio sample.
       params: { sens: 1.5, gate: 1.2, decay: 0.7 },
-      hist: { prev:null, bassAvg:0, fluxAvg:0 }, beats: [], playing: false,
+      hist: { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity }, beats: [], playing: false,
       unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
         this.an = this.ctx.createAnalyser(); this.an.fftSize = 2048; this.an.smoothingTimeConstant = 0.6;
         this.fft = new Uint8Array(this.an.frequencyBinCount);
@@ -816,7 +816,7 @@
         if (window.SWR_NARRATIVE) window.SWR_NARRATIVE.init(120, this.el.duration || 0);
         this.src = this.ctx.createMediaElementSource(this.el);
         this.src.connect(this.an);
-        this.hist = { prev:null, bassAvg:0, fluxAvg:0 }; this.beats=[]; this.feat.bpm=0;
+        this.hist = { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity }; this.beats=[]; this.feat.bpm=0;
         $('play').disabled=false; $('rec').disabled=false;
         // AUTO-RESUME-SWAP: loading a song while the transport is playing
         // used to leave `playing === true` on a paused element — the new
@@ -847,7 +847,7 @@
         const r = { sub:[1,Math.floor(60/hz)], bass:[Math.floor(60/hz),Math.floor(250/hz)],
           mid:[Math.floor(250/hz),Math.floor(2000/hz)], treble:[Math.floor(2000/hz),Math.floor(6000/hz)],
           air:[Math.floor(6000/hz),N-1] };
-        const mean = (lo,hi) => { let s=0,c=0; for (let i=lo;i<=hi&&i<N;i++){s+=this.fft[i];c++;} return s/c/255; };
+        const mean = (lo,hi) => { let s=0,c=0; for (let i=Math.max(1,lo);i<=hi&&i<N;i++){s+=this.fft[i];c++;} return c ? s/c/255 : 0; };
         this.feat.sub=mean(r.sub[0],r.sub[1]); this.feat.bass=mean(r.bass[0],r.bass[1]);
         this.feat.mid=mean(r.mid[0],r.mid[1]); this.feat.treble=mean(r.treble[0],r.treble[1]);
         this.feat.air=mean(r.air[0],r.air[1]);
@@ -858,13 +858,19 @@
         let flux=0; if (this.hist.prev) for (let i=1;i<N;i++){const d=this.fft[i]-this.hist.prev[i]; if (d>0) flux+=d;}
         flux /= 255*N;
         this.hist.fluxAvg = lerp(this.hist.fluxAvg, flux, 0.08);
-        const onsetHit = flux > this.hist.fluxAvg * this.params.gate && flux > 0.02;
-        this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.06);
-        const beatHit = this.feat.bass > this.hist.bassAvg * this.params.gate && this.feat.bass > 0.18;
         const now = this.ctx.currentTime;
+        // One transient must not count as many beats across consecutive RAF samples.
+        // Ignore new detections briefly, but leave envelope decay unchanged.
+        const onsetCandidate = flux > this.hist.fluxAvg * this.params.gate && flux > 0.02;
+        const onsetHit = onsetCandidate && now - this.hist.lastOnsetAt >= 0.08;
+        if (onsetHit) this.hist.lastOnsetAt = now;
+        this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.06);
+        const beatCandidate = this.feat.bass > this.hist.bassAvg * this.params.gate && this.feat.bass > 0.18;
+        const beatHit = beatCandidate && now - this.hist.lastBeatAt >= 0.22;
+        if (beatHit) this.hist.lastBeatAt = now;
         if (beatHit) { this.beats.push(now); while (this.beats.length&&this.beats[0]<now-8) this.beats.shift();
           if (this.beats.length>=4) { let t=0; for (let i=1;i<this.beats.length;i++) t+=this.beats[i]-this.beats[i-1];
-            const a=t/(this.beats.length-1); if (a>0) this.feat.bpm=Math.round(60/a); } }
+            const a=t/(this.beats.length-1); if (a >= 1/3 && a <= 1) this.feat.bpm=Math.round(60/a); } }
         const dec = this.params.decay;
         this.feat.beat = beatHit ? 1 : this.feat.beat*dec;
         this.feat.onset = onsetHit ? 1 : this.feat.onset*dec;
