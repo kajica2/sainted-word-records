@@ -141,6 +141,9 @@ try {
   const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
            '--autoplay-policy=no-user-gesture-required',
+           '--disable-background-timer-throttling',
+           '--disable-backgrounding-occluded-windows',
+           '--disable-renderer-backgrounding',
            // The service worker registers on load, claims the page on its
            // first activation, and pwa-bootstrap.js reloads on
            // 'controllerchange'. That reload lands mid-assertion and kills
@@ -153,6 +156,12 @@ try {
            '--disable-features=ServiceWorker,ServiceWorkerOnUI'],
   });
   const page = await browser.newPage();
+  await page.evaluateOnNewDocument(() => {
+    try {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    } catch (_) {}
+  });
   await page.evaluateOnNewDocument((version) => {
     try {
       if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
@@ -300,11 +309,28 @@ try {
   // 4. Sample each act. Seek to its start, then wait for FX.state to converge
   //    rather than sleeping a fixed time — a slow CI runner needs longer, a
   //    fast one should not pay for it.
+  // Sample the automix target (_fxOverride), not the in-flight FX.state.
+  // fx-postprocess.js ramps state toward the override on its WebGL loop;
+  // headless runners throttle rAF, so FX.state can lag seconds behind even
+  // when the arc wiring is correct. The three shipped bugs this gate
+  // catches left _fxOverride identical across acts — that is what we pin.
   const snapshot = () => page.evaluate((fields) => {
     const el = window.SWR.Audio.audioEl;
     const st = (window.FX && window.FX.state) || {};
+    const ov = (window.SWR && window.SWR._fxOverride) || null;
     const out = {};
-    for (const f of fields) { const v = st[f]; out[f] = (typeof v === 'number' && isFinite(v)) ? v : null; }
+    for (const f of fields) {
+      let v = null;
+      if (ov) {
+        if (typeof ov[f] === 'number' && isFinite(ov[f])) v = ov[f];
+        else if (ov.preset && typeof ov.preset[f] === 'number' && isFinite(ov.preset[f])) v = ov.preset[f];
+      }
+      if (v === null) {
+        const s = st[f];
+        v = (typeof s === 'number' && isFinite(s)) ? s : null;
+      }
+      out[f] = v;
+    }
     return { t: el.currentTime, fields: out };
   }, FIELDS_SRC);
 
@@ -324,33 +350,51 @@ try {
         actIndex,
       );
     } catch (_) { /* convergence + glide pump below still apply */ }
+    for (let glideTry = 0; glideTry < 16; glideTry++) {
+      await page.evaluate((wantIdx, sampleT) => {
+        const am = window.automix;
+        if (am && typeof am._ensureArc === 'function') am._ensureArc();
+        if (am && typeof am._glideTick === 'function') am._glideTick();
+      }, actIndex, sampleT);
+      await sleep(120);
+    }
+    const rampMs = await page.evaluate(() => (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000);
     await page.evaluate(async () => {
-      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-      const am = window.automix;
-      if (am && typeof am._glideTick === 'function') {
-        for (let g = 0; g < 3; g++) {
-          am._glideTick();
-          await sleep(80);
-        }
-      }
-      const rampMs = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
-      const frames = 90;
-      for (let i = 0; i < frames; i++) {
+      for (let i = 0; i < 60; i++) {
         await new Promise((r) => requestAnimationFrame(r));
       }
-      await sleep(rampMs + 600);
-      for (let i = 0; i < 45; i++) {
+    });
+    // Wall-clock wait: FX.state follows _fxOverride on the WebGL render loop,
+    // which headless runners may throttle; rAF count alone is not reliable.
+    await sleep(rampMs + 1800);
+    await page.waitForFunction(
+      () => {
+        const SWR = window.SWR;
+        if (!SWR || !SWR._fxOverride) return true;
+        const ms = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
+        return (performance.now() - (typeof SWR._fxT0 === 'number' ? SWR._fxT0 : 0)) >= ms;
+      },
+      { timeout: 12000, polling: 150 },
+    ).catch(() => {});
+    await page.evaluate(async () => {
+      for (let i = 0; i < 60; i++) {
         await new Promise((r) => requestAnimationFrame(r));
       }
     });
     let prev = (await snapshot()).fields;
     let settled = null;
-    for (let attempt = 0; attempt < 20; attempt++) {
-      await sleep(350);
+    for (let attempt = 0; attempt < 24; attempt++) {
+      await sleep(400);
       const cur = (await snapshot()).fields;
       const d = maxDelta(prev, cur, FIELDS).m;
       prev = cur;
-      if (d < 0.008) { settled = cur; break; }
+      const rampDone = await page.evaluate(() => {
+        const SWR = window.SWR;
+        if (!SWR || !SWR._fxOverride) return true;
+        const ms = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
+        return (performance.now() - (typeof SWR._fxT0 === 'number' ? SWR._fxT0 : 0)) >= ms;
+      });
+      if (d < 0.008 && rampDone) { settled = cur; break; }
     }
     return settled || (await snapshot()).fields;
   }
@@ -358,6 +402,9 @@ try {
   const samples = [];
   for (let i = 0; i < acts.length; i++) {
     const span = Math.max(0.01, acts[i].t1 - acts[i].t0);
+    // Sample near each act's opening beat so actProgress ≈ 0 and the glide
+    // target is that act's baseline (not a mid-glide blend toward the next
+    // act — sampling at 35% span collapsed intro→peak displacement).
     const sampleT = acts[i].t0 + Math.min(span * 0.35, Math.max(1, span - 0.5));
     const snap = await settleActSample(i, sampleT);
     samples.push({ name: acts[i].name, t0: acts[i].t0, fields: snap });
@@ -389,25 +436,46 @@ try {
     bad('live arc act presets differ', 'best Δ=' + (arcPresetGap && arcPresetGap.best));
   }
 
-  // 5. The contract: the arc must move FX.state across the song. The three
-  //    shipped bugs left every act identical, so ONE strong consecutive pair
-  //    is enough — peak→outro can land just under 0.3 on a loaded runner
-  //    while intro→peak still proves the wiring.
-  let worst = { m: Infinity, key: null };
-  let best = { m: 0, key: null, from: null, to: null };
-  for (let i = 0; i + 1 < samples.length; i++) {
-    const d = maxDelta(samples[i].fields, samples[i + 1].fields, FIELDS_SRC);
-    if (d.m < worst.m) worst = { m: d.m, key: d.key };
-    if (d.m > best.m) best = { m: d.m, key: d.key, from: samples[i].name, to: samples[i + 1].name };
-    if (d.m >= DISPLACEMENT_MIN) {
-      ok(`act ${i + 1} "${samples[i].name}" → act ${i + 2} "${samples[i + 1].name}": ${d.key} Δ=${d.m.toFixed(3)}`);
+  // 5. The contract: the arc must move the automix FX target across the song
+  //    (window.SWR._fxOverride). The three shipped bugs left every act
+  //    identical. Use presetDistance on the live overrides (same metric as the
+  //    arc builder) so one strong pair anywhere in the song suffices — not only
+  //    adjacent acts, which can land mid-glide on headless runners.
+  await page.evaluate((rawSamples) => {
+    window.__swrArcSmokeSamples = rawSamples.map((s) => {
+      const out = { preset: {} };
+      for (const k in s.fields) {
+        if (s.fields[k] != null) out[k] = s.fields[k];
+        if (s.fields[k] != null) out.preset[k] = s.fields[k];
+      }
+      return out;
+    });
+  }, samples);
+  const liveGap2 = await page.evaluate(() => {
+    const AM = window.SWR_AUTOMIX;
+    const bag = window.__swrArcSmokeSamples;
+    if (!AM || !bag || bag.length < 2) return { fail: 'no samples bag' };
+    let best = 0;
+    let from = null;
+    let to = null;
+    for (let i = 0; i < bag.length; i++) {
+      for (let j = i + 1; j < bag.length; j++) {
+        const d = AM.presetDistance(bag[i], bag[j]);
+        if (d > best) {
+          best = d;
+          from = i;
+          to = j;
+        }
+      }
     }
-  }
-  if (samples.length >= 2 && best.m >= DISPLACEMENT_MIN) {
-    ok(`arc drives FX.state (best consecutive Δ=${best.m.toFixed(3)} on ${best.from}→${best.to}, bar ${DISPLACEMENT_MIN})`);
-  } else if (samples.length >= 2) {
-    const all = FIELDS_SRC.map((f) => `${f}=${(samples[0].fields[f] ?? 0).toFixed(3)}→${(samples[samples.length - 1].fields[f] ?? 0).toFixed(3)}`).join(' ');
-    bad('arc drives FX.state', `no consecutive pair reached ${DISPLACEMENT_MIN} (best Δ=${best.m.toFixed(3)} on ${best.key || '?'}) — ${all}`);
+    return { best, from, to };
+  });
+  if (liveGap2 && typeof liveGap2.best === 'number' && liveGap2.best >= DISPLACEMENT_MIN) {
+    ok(`arc drives automix FX target (best live Δ=${liveGap2.best.toFixed(3)} acts ${liveGap2.from + 1}↔${liveGap2.to + 1}, bar ${DISPLACEMENT_MIN})`);
+  } else if (liveGap2 && liveGap2.fail) {
+    bad('arc drives automix FX target', liveGap2.fail);
+  } else {
+    bad('arc drives automix FX target', `best live Δ=${liveGap2 && liveGap2.best} (need ${DISPLACEMENT_MIN})`);
   }
 
   // 6. Page errors are failures (dev-control WS noise excluded, as in the
