@@ -1,0 +1,44 @@
+name: Visual correct
+
+# Runs after every push to main (Vercel auto-deploys).
+# Waits for the new deploy to be reachable, then runs the visual
+# correction loop against the live Command Center.
+'on':
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: visual-correct-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual:
+    name: correct Command Center layout
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for deploy
+        run: |
+          echo "Waiting 45s for Vercel to publish..."
+          sleep 45
+
+      - name: Visual correct (loop)
+        env:
+          CC_BASE_URL: https://sainted-word-records.vercel.app
+          CC_LOOP: '1'
+          CC_LOOP_MS: '180000'
+        run: node scripts/visual-correct.mjs
