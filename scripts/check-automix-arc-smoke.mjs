@@ -105,6 +105,7 @@ function ok(name) { results.push('  ✓ ' + name); }
 function bad(name, got) { results.push('  ✗ ' + name + (got !== undefined ? ' (got: ' + got + ')' : '')); process.exitCode = 1; }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const IS_CI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 const maxDelta = (a, b, fields) => {
   let m = 0, key = null;
   for (const f of fields) {
@@ -366,7 +367,7 @@ try {
     });
     // Wall-clock wait: FX.state follows _fxOverride on the WebGL render loop,
     // which headless runners may throttle; rAF count alone is not reliable.
-    await sleep(rampMs + 1800);
+    await sleep(rampMs + (IS_CI ? 3200 : 1800));
     await page.waitForFunction(
       () => {
         const SWR = window.SWR;
@@ -409,6 +410,7 @@ try {
     const snap = await settleActSample(i, sampleT);
     samples.push({ name: acts[i].name, t0: acts[i].t0, fields: snap });
     await page.evaluate(() => { const A = window.SWR.Audio; if (A.audioEl.paused) { try { A.play(); } catch (_) {} } });
+    if (IS_CI && i + 1 < acts.length) await sleep(3500);
   }
   ok(`sampled ${samples.length} act baselines`);
 
