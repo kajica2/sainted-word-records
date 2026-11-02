@@ -564,12 +564,28 @@
       "destination": "/intro.html"
     },
     {
+      "source": "/music-video-maker",
+      "destination": "/music-video-maker.html"
+    },
+    {
+      "source": "/music-video-maker/",
+      "destination": "/music-video-maker.html"
+    },
+    {
       "source": "/tutorial-30s",
       "destination": "/tutorial-30s.html"
     },
     {
       "source": "/tutorial-30s/",
       "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/guides/music-video-no-budget",
+      "destination": "/guides/music-video-no-budget.html"
+    },
+    {
+      "source": "/guides/music-video-no-budget/",
+      "destination": "/guides/music-video-no-budget.html"
     },
     {
       "source": "/interactive-howto",
@@ -796,6 +812,14 @@
       "destination": "/tiktok.html"
     },
     {
+      "source": "/spotify-canvas-maker",
+      "destination": "/spotify-canvas-maker.html"
+    },
+    {
+      "source": "/spotify-canvas-maker/",
+      "destination": "/spotify-canvas-maker.html"
+    },
+    {
       "source": "/spit",
       "destination": "/spit.html"
     },
@@ -860,6 +884,14 @@
       "destination": "/make-video.html"
     },
     {
+      "source": "/muzicki-spot-beograd",
+      "destination": "/muzicki-spot-beograd.html"
+    },
+    {
+      "source": "/muzicki-spot-beograd/",
+      "destination": "/muzicki-spot-beograd.html"
+    },
+    {
       "source": "/photo",
       "destination": "/photo.html"
     },
@@ -882,6 +914,14 @@
     {
       "source": "/enhance/",
       "destination": "/enhance.html"
+    },
+    {
+      "source": "/beatstars-visualizer",
+      "destination": "/beatstars-visualizer.html"
+    },
+    {
+      "source": "/beatstars-visualizer/",
+      "destination": "/beatstars-visualizer.html"
     },
     {
       "source": "/gallery",

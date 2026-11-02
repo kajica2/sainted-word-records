@@ -2911,10 +2911,12 @@
         <option value="landscape" selected>YouTube · 1920×1080</option>
         <option value="square">Square · 1080×1080</option>
         <option value="portrait">Instagram · 1080×1350</option>
-        <option value="reel">Reel / TikTok · 1080×1920</option>
+        <option value="reel">Reel / TikTok / Canvas · 1080×1920</option>
       </select>
       <select id="rec-dur" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
+        <option value="5">5s</option>
+        <option value="8">8s</option>
         <option value="10">10s</option>
         <option value="15">15s</option>
         <option value="30" selected>30s</option>
@@ -5985,6 +5987,7 @@
     window.SIZE_PRESETS.youtube = window.SIZE_PRESETS.landscape;
     window.SIZE_PRESETS.instagram = window.SIZE_PRESETS.portrait;
     window.SIZE_PRESETS.tiktok = window.SIZE_PRESETS.reel;
+    window.SIZE_PRESETS.canvas = window.SIZE_PRESETS.reel;
 
     // ======================================================================
     // RECORDER
@@ -6436,6 +6439,27 @@
         $('rec').addEventListener('click', withInviteGate(() => {
           if (Recorder.recording) Recorder.stop(); else Recorder.start();
         }));
+      // Deep-link record presets (?canvas=1 or ?rec-size=reel&rec-dur=8).
+      (function applyRecordQueryPresets() {
+        let params;
+        try { params = new URLSearchParams(window.location.search); } catch (_) { return; }
+        const sizeEl = $('rec-size');
+        const durEl = $('rec-dur');
+        if (!sizeEl || !durEl) return;
+        const canvasMode = params.get('canvas') === '1' || params.get('spotify-canvas') === '1';
+        if (canvasMode) {
+          sizeEl.value = 'reel';
+          if (durEl.querySelector('option[value="8"]')) durEl.value = '8';
+        }
+        const sizeKey = params.get('rec-size');
+        if (sizeKey && window.SIZE_PRESETS && window.SIZE_PRESETS[sizeKey]) {
+          sizeEl.value = sizeKey;
+        }
+        const durKey = params.get('rec-dur');
+        if (durKey && durEl.querySelector('option[value="' + durKey + '"]')) {
+          durEl.value = durKey;
+        }
+      })();
       // === Export video (one-click 30s WebM) ===
       $('export-video').addEventListener('click', withInviteGate(() => {
         if (Recorder.recording) { Recorder.stop(); return; }

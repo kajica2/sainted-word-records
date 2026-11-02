@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spotify Canvas Maker · Audio-Reactive Loop from Your Track · SWR</title>
+  <meta name="description" content="Make a vertical 9:16 Spotify Canvas loop from your song in the browser. Load your track and clips, sync to the beat, export a short MP4, then upload in Spotify for Artists." />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/spotify-canvas-maker" />
+  <meta property="og:title" content="Spotify Canvas Maker · Audio-Reactive Loop from Your Track · SWR" />
+  <meta property="og:description" content="Make a vertical 9:16 Canvas loop from your song in the browser. Beat-synced layers, 1080×1920 export, no account required to try." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/spotify-canvas-maker" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Spotify Canvas Maker · SWR" />
+  <meta name="twitter:description" content="Make a vertical 9:16 Canvas loop from your song in the browser. Beat-synced layers and short MP4 export." />
+  <meta name="twitter:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0e0c0a" />
+  <meta name="author" content="Kai Djuric" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e0c0a'/%3E%3Crect x='10' y='5' width='12' height='22' rx='3' fill='none' stroke='%231db954' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%231db954'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/components.css" />
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <style>
+    :root {
+      --scm-accent: #1db954;
+      --scm-accent-2: #1ed760;
+      --scm-ink: var(--ink);
+      --scm-muted: var(--muted);
+      --scm-line: var(--line);
+      --scm-card: var(--bg-2);
+      --scm-raise: var(--bg-3);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--scm-ink);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.55;
+    }
+    .scm-wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4) var(--space-8);
+    }
+    .scm-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--scm-muted);
+    }
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.06;
+      margin: var(--space-2) 0 var(--space-3);
+      max-width: 18ch;
+    }
+    h2 {
+      font-family: var(--font-display);
+      font-size: clamp(22px, 3.5vw, 28px);
+      margin: var(--space-7) 0 var(--space-3);
+    }
+    h3 {
+      font-size: 17px;
+      margin: 0 0 var(--space-2);
+    }
+    .scm-lead {
+      color: var(--scm-muted);
+      max-width: 62ch;
+      margin: 0 0 var(--space-4);
+      font-size: 17px;
+    }
+    .scm-answer {
+      background: var(--scm-card);
+      border: 1px solid var(--scm-line);
+      border-left: 4px solid var(--scm-accent);
+      border-radius: var(--radius);
+      padding: var(--space-4) var(--space-5);
+      margin: var(--space-5) 0 var(--space-6);
+    }
+    .scm-answer p {
+      margin: 0;
+      font-size: 16px;
+      color: var(--scm-ink);
+    }
+    .scm-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: var(--space-6);
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .scm-hero { grid-template-columns: 1fr; }
+      .scm-phone { max-width: 260px; margin: 0 auto; }
+    }
+    .scm-trust {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3) var(--space-5);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--scm-muted);
+      margin-bottom: var(--space-4);
+    }
+    .scm-trust b { color: var(--scm-ink); font-weight: 600; }
+    .scm-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      margin: var(--space-4) 0 var(--space-2);
+    }
+    .scm-phone {
+      background: var(--scm-card);
+      border: 1px solid var(--scm-line);
+      border-radius: 24px;
+      padding: 12px;
+      box-shadow: var(--shadow-2, 0 16px 48px rgba(0,0,0,.12));
+    }
+    .scm-phone__screen {
+      aspect-ratio: 9 / 16;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #050505;
+      position: relative;
+    }
+    .scm-phone__screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 62%, rgba(29,185,84,.22), transparent 55%),
+        radial-gradient(circle at 72% 28%, rgba(103,232,249,.18), transparent 45%);
+    }
+    .scm-phone__bars {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      bottom: 10%;
+      height: 14%;
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+    }
+    .scm-phone__bars i {
+      flex: 1;
+      background: linear-gradient(to top, var(--scm-accent), rgba(29,185,84,.35));
+      border-radius: 2px 2px 0 0;
+      animation: scm-pulse 1.2s ease-in-out infinite;
+    }
+    .scm-phone__bars i:nth-child(2) { animation-delay: .1s; height: 55%; }
+    .scm-phone__bars i:nth-child(3) { animation-delay: .2s; height: 80%; }
+    .scm-phone__bars i:nth-child(4) { animation-delay: .15s; height: 45%; }
+    .scm-phone__bars i:nth-child(5) { animation-delay: .25s; height: 70%; }
+    .scm-phone__bars i:nth-child(1) { height: 60%; }
+    .scm-phone__caption {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--scm-muted);
+      text-align: center;
+      margin-top: var(--space-3);
+    }
+    @keyframes scm-pulse {
+      0%, 100% { transform: scaleY(.85); opacity: .85; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+    .scm-steps {
+      counter-reset: scmstep;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+    .scm-steps li {
+      counter-increment: scmstep;
+      background: var(--scm-card);
+      border: 1px solid var(--scm-line);
+      border-radius: var(--radius);
+      padding: var(--space-4) var(--space-4) var(--space-4) 3.5rem;
+      position: relative;
+    }
+    .scm-steps li::before {
+      content: counter(scmstep);
+      position: absolute;
+      left: var(--space-4);
+      top: var(--space-4);
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--scm-accent);
+      color: #041008;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+    .scm-steps p { margin: 0; color: var(--scm-muted); font-size: 15px; }
+    .scm-steps a { font-weight: 600; }
+    .scm-spec {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: var(--space-3) 0;
+    }
+    .scm-spec th, .scm-spec td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--scm-line);
+    }
+    .scm-spec th { color: var(--scm-muted); font-weight: 500; width: 38%; }
+    .scm-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-4);
+    }
+    @media (max-width: 720px) { .scm-grid-2 { grid-template-columns: 1fr; } }
+    .scm-card {
+      background: var(--scm-card);
+      border: 1px solid var(--scm-line);
+      border-radius: var(--radius);
+      padding: var(--space-4);
+    }
+    .scm-card p { margin: 0; color: var(--scm-muted); font-size: 14px; }
+    .scm-faq details {
+      background: var(--scm-card);
+      border: 1px solid var(--scm-line);
+      border-radius: var(--radius);
+      padding: var(--space-3) var(--space-4);
+      margin-bottom: var(--space-3);
+    }
+    .scm-faq summary {
+      cursor: pointer;
+      font-weight: 600;
+      list-style: none;
+    }
+    .scm-faq summary::-webkit-details-marker { display: none; }
+    .scm-faq p {
+      margin: var(--space-3) 0 0;
+      color: var(--scm-muted);
+      font-size: 15px;
+    }
+    .scm-disclaimer {
+      font-size: 13px;
+      color: var(--scm-muted);
+      margin-top: var(--space-6);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--scm-line);
+    }
+    .scm-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3) var(--space-5);
+      margin: var(--space-4) 0;
+      font-size: 14px;
+    }
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What are Spotify Canvas size and length requirements?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Spotify Canvas is a short looping vertical video shown behind the progress bar on mobile. Public guidance from Spotify describes a portrait (9:16) clip, typically a few seconds long (often cited as between 3 and 8 seconds). Exact file limits and codecs can change; confirm the current rules in Spotify for Artists before you upload."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How do I make a Spotify Canvas from my track with Sainted Word Records?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Open the SWR engine with the Canvas preset, load your song and optional video or image clips, pick a reactive look, set the export to 9:16 (1080 by 1920) and an 8-second auto-stop, record while the track plays, download the MP4 or WebM, then upload the file to your release in Spotify for Artists."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does the exported video loop seamlessly on Spotify?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Spotify loops whatever you upload. SWR does not render a special loop-closing transition; choose a look and clip timing where the first and last frame feel close, or trim the file in an editor so the cut point loops cleanly."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What file format should I upload for Canvas?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "The engine records H.264 MP4 when your browser supports it, otherwise WebM. Spotify for Artists accepts common video formats for Canvas, but requirements can change. Export MP4 when available and check Spotify's upload screen if a file is rejected."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does my song upload to SWR servers?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. The engine runs in your browser. Your audio and clips stay on your device unless you choose a cloud feature separately. Rendering and export happen locally."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is there a watermark on Canvas exports?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Engine recordings include a small Sainted Word Records watermark composited into the video. There is no separate paid tier on this page to remove it; plan on the mark appearing in your export."
+        }
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <main class="scm-wrap" id="main">
+    <div class="scm-hero">
+      <div>
+        <p class="scm-eyebrow">For musicians releasing on Spotify</p>
+        <h1>Spotify Canvas maker from your track</h1>
+        <p class="scm-lead">
+          Turn your song into a beat-synced vertical loop for Canvas: load audio, stack clips or textures,
+          react layers to bass and drums, export a short 9:16 file, upload in Spotify for Artists.
+          Not affiliated with Spotify.
+        </p>
+        <div class="scm-trust">
+          <span><b>9:16</b> · 1080×1920 export</span>
+          <span><b>8s</b> Canvas preset in the engine</span>
+          <span><b>Local</b> · files stay on your device</span>
+        </div>
+        <div class="scm-cta-row">
+          <a class="btn primary" href="/engine/?canvas=1">Open engine · Canvas preset</a>
+          <a class="btn ghost" href="/make-video">Full music video maker</a>
+        </div>
+      </div>
+      <aside class="scm-phone" aria-hidden="true">
+        <div class="scm-phone__screen">
+          <div class="scm-phone__bars" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+        <p class="scm-phone__caption">Portrait loop · audio-reactive</p>
+      </aside>
+    </div>
+
+    <section class="scm-answer" aria-labelledby="scm-quick">
+      <h2 id="scm-quick" class="sr-only">Quick answer</h2>
+      <p>
+        <strong>How do I make a Spotify Canvas from my track?</strong>
+        Use the SWR engine: open
+        <a href="/engine/?canvas=1">/engine/?canvas=1</a>
+        (sets 9:16 and an 8-second record timer), load your song, add visuals, press record while the track plays,
+        download the file, then upload it on your track in
+        <a href="https://artists.spotify.com/help/article/canvas-guidelines" rel="noopener noreferrer" target="_blank">Spotify for Artists</a>.
+      </p>
+    </section>
+
+    <section aria-labelledby="scm-steps-h">
+      <h2 id="scm-steps-h">Steps: Canvas from your song</h2>
+      <ol class="scm-steps">
+        <li>
+          <h3>Open the engine with the Canvas preset</h3>
+          <p>
+            Go to <a href="/engine/?canvas=1">the engine with <code>?canvas=1</code></a>.
+            That selects <strong>Reel / TikTok / Canvas · 1080×1920</strong> and an <strong>8s</strong> auto-stop on the record controls
+            (within Spotify’s commonly cited 3–8 second window).
+          </p>
+        </li>
+        <li>
+          <h3>Load your track</h3>
+          <p>
+            Drop your audio file into the engine. Analysis runs locally so layers can follow beats, onsets, and frequency bands.
+            See the <a href="/tutorial-30s">30-second tutorial</a> if you are new to the transport controls.
+          </p>
+        </li>
+        <li>
+          <h3>Add visuals that move with the music</h3>
+          <p>
+            Upload short clips, GIFs, or stills, or use the default library. Try a
+            <a href="/versions/neon">Neon</a>,
+            <a href="/versions/film">Film</a>, or
+            <a href="/versions/smoke">Smoke</a>
+            look from the Looks menu so the loop feels alive on a phone screen.
+          </p>
+        </li>
+        <li>
+          <h3>Record an 8-second vertical clip</h3>
+          <p>
+            Start playback, press <strong>REC</strong> (or use <strong>Export video</strong> for a one-click capture at the selected duration).
+            The engine re-fits the stage to 1080×1920 for the export. Prefer a section where the energy matches your single.
+          </p>
+        </li>
+        <li>
+          <h3>Upload to Spotify for Artists</h3>
+          <p>
+            Download the MP4 (or WebM if your browser did not offer MP4). In Spotify for Artists, open your release,
+            add Canvas, and upload the file. Confirm current specs in Spotify’s help center before going live.
+          </p>
+        </li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="scm-spec-h">
+      <h2 id="scm-spec-h">Canvas specs (check Spotify for the latest)</h2>
+      <p class="scm-lead" style="font-size: 15px; margin-bottom: var(--space-2);">
+        Spotify publishes Canvas guidelines for artists. The table below matches what SWR exports today and what Spotify has described publicly;
+        if anything conflicts, follow Spotify for Artists.
+      </p>
+      <table class="scm-spec">
+        <tbody>
+          <tr>
+            <th>Aspect ratio</th>
+            <td>9:16 portrait (vertical)</td>
+          </tr>
+          <tr>
+            <th>SWR export size</th>
+            <td>1080 × 1920 pixels (<a href="/record">Record page</a> and engine reel preset)</td>
+          </tr>
+          <tr>
+            <th>Length</th>
+            <td>Spotify: short loop, often cited as 3–8 seconds · SWR Canvas preset: 8s auto-stop</td>
+          </tr>
+          <tr>
+            <th>Audio in file</th>
+            <td>Engine export includes your song audio in the recording (Canvas playback is usually silent on Spotify; mute in editor if needed)</td>
+          </tr>
+          <tr>
+            <th>Format</th>
+            <td>MP4 (H.264) when supported; otherwise WebM</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section aria-labelledby="scm-why-h">
+      <h2 id="scm-why-h">Why use an audio-reactive loop?</h2>
+      <div class="scm-grid-2">
+        <div class="scm-card">
+          <h3>More than a zooming cover</h3>
+          <p>
+            Many Canvas tools only animate artwork. SWR routes your mix through the same engine as
+            <a href="/make-video">music video projects</a>: layers cut and pulse on beats, not on a generic preset.
+          </p>
+        </div>
+        <div class="scm-card">
+          <h3>Vertical-first export</h3>
+          <p>
+            The reel preset matches TikTok and Reels sizing as well.
+            For a simpler capture UI without the full engine, try
+            <a href="/record">Record</a> in 9:16 portrait (manual stop; trim to 8 seconds yourself).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="scm-links" aria-label="Related tools">
+      <a href="/engine/">Engine</a>
+      <a href="/versions/">Visual languages</a>
+      <a href="/marketplace">Template marketplace</a>
+      <a href="/interactive-howto">Interactive how-to</a>
+      <a href="/tiktok">TikTok Studio</a>
+    </section>
+
+    <section class="scm-faq" aria-labelledby="scm-faq-h">
+      <h2 id="scm-faq-h">FAQ</h2>
+
+      <details>
+        <summary>What are Spotify Canvas size and length requirements?</summary>
+        <p>
+          Canvas is a short looping vertical video on mobile. Spotify’s public artist guidance describes a portrait clip,
+          commonly summarized as 9:16 and roughly 3 to 8 seconds long, with file type and size limits that can change.
+          Always confirm in
+          <a href="https://artists.spotify.com/help/article/canvas-guidelines" rel="noopener noreferrer" target="_blank">Spotify for Artists help</a>
+          before upload.
+        </p>
+      </details>
+
+      <details>
+        <summary>How is this different from a “Spotify Canvas generator”?</summary>
+        <p>
+          Most generators animate a static cover. Here you compose reactive layers in the browser, driven by your actual track,
+          then record a slice of that performance. You control clips, look, and timing.
+        </p>
+      </details>
+
+      <details>
+        <summary>Will my loop be seamless?</summary>
+        <p>
+          Spotify loops the file end-to-end. SWR does not add a dedicated “perfect loop” pass.
+          Pick a stable visual moment, or edit the file so the last frame matches the first.
+        </p>
+      </details>
+
+      <details>
+        <summary>Is the export free? Any watermark?</summary>
+        <p>
+          The engine is free to use in the browser. Recordings include a small SWR watermark.
+          We do not claim “no watermark” on this page; plan for the mark in the corner.
+        </p>
+      </details>
+
+      <details>
+        <summary>Does Spotify endorse Sainted Word Records?</summary>
+        <p>
+          No. “Spotify” and “Canvas” refer to the feature on the streaming service.
+          SWR is an independent tool; upload through your own Spotify for Artists account.
+        </p>
+      </details>
+
+      <details>
+        <summary>Can I use unreleased music?</summary>
+        <p>
+          Yes for local preview and export. Your files are not sent to SWR for rendering.
+          Only upload to Spotify when you have rights to distribute the track.
+        </p>
+      </details>
+    </section>
+
+    <p class="scm-disclaimer">
+      Sainted Word Records is not affiliated with Spotify AB. Canvas is a feature of the Spotify platform;
+      trademarks belong to their owners. Feature names on this page are for search clarity only.
+    </p>
+  </main>
+
+  <swr-footer></swr-footer>
+</body>
+</html>
