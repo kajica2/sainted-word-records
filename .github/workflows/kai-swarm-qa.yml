@@ -1,0 +1,45 @@
+name: KAI SWARM Phase 1 QA
+'on':
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: kai-swarm-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  bounded-qa:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Start static preview
+        run: |
+          (npm run preview -- --host 127.0.0.1 > /tmp/kai-swarm-preview.log 2>&1 &)
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/kai-swarm-preview.log
+          exit 1
+      - name: Run bounded QA
+        run: node qa/swarm-runner.mjs
+      - name: Upload evidence and revision report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kai-swarm-qa-${{ github.run_id }}
+          path: |
+            qa-results/
+            /tmp/kai-swarm-preview.log
+          if-no-files-found: warn
+          retention-days: 14
