@@ -34,6 +34,7 @@
       --bg: #05030a; --bg-2: #0a0612; --panel: #0e0818; --panel-2: #150b22;
       --ink: #f5e9ff; --muted: #8a7aa0; --line: #2a1d3e;
       --m: #ff2d8a; --c: #00f0ff; --y: #fff04a; --g: #00ffa3;
+      --r: var(--m); /* legacy startup overlay accent */
       /* iPhone safe-area insets, read through custom properties so
          each fixed overlay can use max(n, var(--safe-bottom)) instead of
          repeating env(). The 0px fallback keeps every non-notched
@@ -46,7 +47,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: #000; color: var(--ink);
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
+    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px minmax(0, 1fr) 36px; height: 100vh; height: 100dvh; }
     /* iPhone safe-area (P2.3): the transport header clears the
        Dynamic Island and the footer bar clears the home indicator;
        left/right cover landscape, where the notch side insets 59px
@@ -143,14 +144,14 @@
     @media (max-width: 720px) {
       #app {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto auto 1fr auto auto;
+        grid-template-rows: auto minmax(220px, 1fr) minmax(0, auto) minmax(0, auto) auto;
       }
       header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
       .meter { width: min(8vw, 80px); }
       aside.lib, aside.layers { max-height: 30vh; }
       aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
       aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
-      section.stage { grid-row: 2; min-height: 320px; }
+      section.stage { grid-row: 2; min-height: 220px; }
     }
 
     /* ---------- Mobile icons-only header ----------
@@ -337,6 +338,12 @@
     #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
     #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--g); margin-top: 8px; }
     #swr-start.hide { opacity: 0; pointer-events: none; }
+    #swr-start:focus-visible { outline: 3px solid var(--c); outline-offset: -5px; }
+    @media (prefers-reduced-motion: reduce) {
+      #swr-start { transition: none; }
+      .swr-watermark { animation: none; }
+      .pill.live { animation: none; }
+    }
     .li .rm { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px;
       background: rgba(0,0,0,0.6); color: var(--muted); border: none; border-radius: 2px;
       font: 11px/1 ui-monospace, monospace; cursor: pointer; padding: 0;
@@ -601,7 +608,7 @@
 
 
   
-  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+  <div id="swr-start" role="button" tabindex="0" aria-label="Start Sainted Word Records">
     <div class="box">
       <div class="arrow">▶</div>
       <div class="label">Drop a song</div>
@@ -612,6 +619,12 @@
   (function(){
     var DEFAULT_SONG = '../audios/endless-tomorrow.mp3';
     var overlay = document.getElementById('swr-start');
+    overlay.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        overlay.click();
+      }
+    });
     var sub = document.getElementById('swr-start-sub');
     var fired = false;
 
