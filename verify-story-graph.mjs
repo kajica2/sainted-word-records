@@ -119,7 +119,8 @@ try {
     for (let i = 0; i < tries; i++) {
       try { return await fn(); }
       catch (e) {
-        if (!/Execution context was destroyed|Cannot find context|Target closed|navigat/i.test(String((e && e.message) || e))) throw e;
+        const msg = String((e && e.message) || e);
+        if (!/Execution context was destroyed|Cannot find context|Target closed|Not attached to an active page|navigat/i.test(msg)) throw e;
         await new Promise((r) => setTimeout(r, 500));
       }
     }
@@ -128,7 +129,18 @@ try {
 
   const reloadFresh = async () => {
     await retryOnNav(() => page.evaluate(() => { try { localStorage.removeItem('swr.story'); } catch (_) {} }));
-    await retryOnNav(() => page.reload({ waitUntil: 'load' }));
+    await retryOnNav(async () => {
+      try {
+        await page.reload({ waitUntil: 'load', timeout: 45000 });
+      } catch (e) {
+        const msg = String((e && e.message) || e);
+        if (/Not attached to an active page|Target closed|Session closed/i.test(msg)) {
+          await page.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+        } else {
+          throw e;
+        }
+      }
+    });
     await retryOnNav(() => page.waitForFunction(
       () => !!(window.SWR && window.SWR.Story && window.SWR.Story.STORY && window.SWR.Story.STORY.fragments),
       { timeout: 20000, polling: 500 }
@@ -139,20 +151,42 @@ try {
   // Seed a minimal layer so applyPreset / enter has something to apply to.
   // Returns nothing; mutates the page state.
   const seedLayer = async () => {
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       const SWR = window.SWR;
-      if (!SWR.Library.items.length) {
-        SWR.Library.items = [{
+      let el = document.getElementById('story-seed-video-el');
+      if (!el) {
+        el = document.createElement('video');
+        el.id = 'story-seed-video-el';
+        el.muted = true;
+        el.playsInline = true;
+        el.setAttribute('playsinline', '');
+        el.style.cssText = 'position:fixed;left:-9999px;width:2px;height:2px;opacity:0;pointer-events:none';
+        document.body.appendChild(el);
+      }
+      if (!el.getAttribute('src')) {
+        el.src = '/audios/swr-intro-10s-voice.mp4';
+        await new Promise((resolve, reject) => {
+          const t = setTimeout(resolve, 8000);
+          el.addEventListener('loadeddata', () => { clearTimeout(t); resolve(); }, { once: true });
+          el.addEventListener('error', () => { clearTimeout(t); resolve(); }, { once: true });
+        });
+      }
+      let item = SWR.Library.items.find((it) => it.id === 'story-seed-video');
+      if (!item) {
+        item = {
           id: 'story-seed-video',
           name: 'story-seed.mp4',
           type: 'video',
-          w: 100,
-          h: 100,
-          _el: { videoWidth: 100, videoHeight: 100, readyState: 4 },
-          url: 'about:blank',
-        }];
+          w: el.videoWidth || 100,
+          h: el.videoHeight || 100,
+          _el: el,
+          url: el.currentSrc || el.src,
+        };
+        SWR.Library.items.push(item);
+      } else {
+        item._el = el;
       }
-      if (!SWR.Layers.list.length) SWR.Layers.add(SWR.Library.items[0]);
+      if (!SWR.Layers.list.length) SWR.Layers.add(item);
       const l = SWR.Layers.list.find((x) => x.asset && x.asset.id === 'story-seed-video')
         || SWR.Layers.list[0];
       if (!l) throw new Error('seed layer missing');
