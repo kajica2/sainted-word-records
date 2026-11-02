@@ -378,31 +378,22 @@ try {
         actIndex,
       );
     } catch (_) { /* convergence + glide pump below still apply */ }
-    for (let glideTry = 0; glideTry < 16; glideTry++) {
-      await page.evaluate((wantIdx, sampleT) => {
+    // Pump the real 1s glide clock path (_glideTick → _arcGlidePreset →
+    // _setTarget with the runtime's 0.005 skip guard). Do not call _setTarget
+    // here — a broken glide or arc wiring must fail this gate.
+    for (let glideTry = 0; glideTry < 24; glideTry++) {
+      const armed = await page.evaluate(() => {
         const am = window.automix;
         if (am && typeof am._ensureArc === 'function') am._ensureArc();
-        if (am && typeof am._glideTick === 'function') am._glideTick();
-      }, actIndex, sampleT);
+        if (!am || typeof am._glideTick !== 'function') return false;
+        const before = window.SWR && window.SWR._fxOverride;
+        am._glideTick();
+        const after = window.SWR && window.SWR._fxOverride;
+        return !!(after && after !== before);
+      });
+      if (armed) break;
       await sleep(120);
     }
-    // Mirror _glideTick's _setTarget without the 0.005 skip guard: after
-    // motion-kill sanitization two acts can look identical in 8-space even
-    // when the raw arc presets differ, so _glideTick may not re-arm on seek.
-    await page.evaluate((sampleT) => {
-      const am = window.automix;
-      const ARC = window.SWR_AUTOMIX_ARC;
-      if (!am || !am.arc || !ARC) return;
-      const arcSample = typeof ARC.sampleAt === 'function'
-        ? ARC.sampleAt(am.arc, sampleT)
-        : null;
-      if (!arcSample || typeof am._arcGlidePreset !== 'function') return;
-      const preset = am._arcGlidePreset(arcSample);
-      if (preset && typeof am._setTarget === 'function') {
-        am._setTarget(preset);
-        am._lastGlideKey = arcSample.actIndex + '|' + arcSample.actProgress;
-      }
-    }, sampleT);
     const rampMs = await page.evaluate(() => (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000);
     await page.evaluate(async () => {
       for (let i = 0; i < 60; i++) {
