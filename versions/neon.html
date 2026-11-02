@@ -786,7 +786,7 @@
       // Cached slider values — read once per slider input, not once
       // per audio frame. Avoids forcing layout every audio sample.
       params: { sens: 1.5, gate: 1.2, decay: 0.7 },
-      hist: { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity }, beats: [], playing: false,
+      hist: { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity, lastSampleAt:null }, beats: [], playing: false,
       unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
         this.an = this.ctx.createAnalyser(); this.an.fftSize = 2048; this.an.smoothingTimeConstant = 0.6;
         this.fft = new Uint8Array(this.an.frequencyBinCount);
@@ -816,7 +816,7 @@
         if (window.SWR_NARRATIVE) window.SWR_NARRATIVE.init(120, this.el.duration || 0);
         this.src = this.ctx.createMediaElementSource(this.el);
         this.src.connect(this.an);
-        this.hist = { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity }; this.beats=[]; this.feat.bpm=0;
+        this.hist = { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity, lastSampleAt:null }; this.beats=[]; this.feat.bpm=0;
         $('play').disabled=false; $('rec').disabled=false;
         // AUTO-RESUME-SWAP: loading a song while the transport is playing
         // used to leave `playing === true` on a paused element — the new
@@ -871,6 +871,20 @@
         if (beatHit) { this.beats.push(now); while (this.beats.length&&this.beats[0]<now-8) this.beats.shift();
           if (this.beats.length>=4) { let t=0; for (let i=1;i<this.beats.length;i++) t+=this.beats[i]-this.beats[i-1];
             const a=t/(this.beats.length-1); if (a >= 1/3 && a <= 1) this.feat.bpm=Math.round(60/a); } }
+        // Musical response envelopes: fast attack, slower release, independent of RAF rate.
+        // Keep transient detection on raw FFT values above; only presentation features are smoothed.
+        const dt = this.hist.lastSampleAt == null ? 1/60 : Math.max(0, Math.min(0.25, now - this.hist.lastSampleAt));
+        this.hist.lastSampleAt = now;
+        const smooth = (previous, target, attack, release) => {
+          const tau = target > previous ? attack : release;
+          return previous + (target - previous) * (1 - Math.exp(-dt / tau));
+        };
+        for (const band of ['sub', 'bass', 'mid', 'treble', 'air']) {
+          const key = 'smooth_' + band;
+          const raw = this.feat[band];
+          const previous = this.hist[key] == null ? raw : this.hist[key];
+          this.feat[band] = this.hist[key] = smooth(previous, raw, 0.045, 0.24);
+        }
         const dec = this.params.decay;
         this.feat.beat = beatHit ? 1 : this.feat.beat*dec;
         this.feat.onset = onsetHit ? 1 : this.feat.onset*dec;
