@@ -564,6 +564,14 @@
       "destination": "/intro.html"
     },
     {
+      "source": "/music-video-maker",
+      "destination": "/music-video-maker.html"
+    },
+    {
+      "source": "/music-video-maker/",
+      "destination": "/music-video-maker.html"
+    },
+    {
       "source": "/tutorial-30s",
       "destination": "/tutorial-30s.html"
     },

@@ -92,6 +92,11 @@
           "description": "30-second intro"
         },
         {
+          "label": "Music Video Maker",
+          "href": "/music-video-maker",
+          "description": "Free browser music video maker — local files, MP4 export"
+        },
+        {
           "label": "30s Tutorial",
           "href": "/tutorial-30s",
           "description": "Quick tutorial"
@@ -669,7 +674,7 @@
   "meta": {
     "version": "1.0.0",
     "lastUpdated": "2026-10-25",
-    "totalPages": 184,
+    "totalPages": 185,
     "corePages": 184,
     "archivedPages": 0
   },
@@ -763,6 +768,7 @@
     "legal/beta-test.html",
     "login.html",
     "make-video.html",
+    "music-video-maker.html",
     "marketplace-claim.html",
     "marketplace.html",
     "offline.html",
