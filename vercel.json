@@ -884,6 +884,14 @@
       "destination": "/enhance.html"
     },
     {
+      "source": "/beatstars-visualizer",
+      "destination": "/beatstars-visualizer.html"
+    },
+    {
+      "source": "/beatstars-visualizer/",
+      "destination": "/beatstars-visualizer.html"
+    },
+    {
       "source": "/gallery",
       "destination": "/gallery.html"
     },
