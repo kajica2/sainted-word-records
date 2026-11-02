@@ -92,9 +92,19 @@
           "description": "30-second intro"
         },
         {
+          "label": "Music Video Maker",
+          "href": "/music-video-maker",
+          "description": "Free browser music video maker — local files, MP4 export"
+        },
+        {
           "label": "30s Tutorial",
           "href": "/tutorial-30s",
           "description": "Quick tutorial"
+        },
+        {
+          "label": "No-budget music video",
+          "href": "/guides/music-video-no-budget",
+          "description": "How-to guide for indie musicians"
         },
         {
           "label": "Interactive How-to",
@@ -372,6 +382,11 @@
       "description": "Vertical 9:16 studio: drop a track, pick a vibe, export four lengths"
     },
     {
+      "label": "Spotify Canvas Maker",
+      "href": "/spotify-canvas-maker",
+      "description": "Make a vertical 9:16 Canvas loop from your track: beat-synced engine export and upload steps for Spotify for Artists"
+    },
+    {
       "label": "Spit Live",
       "href": "/spit",
       "description": "One-take freestyle studio for hip-hop MCs"
@@ -618,10 +633,12 @@
   "unlisted": [
     "_comment: shipped pages deliberately kept OUT of the navigation (owner request, 2026-09-29). They still resolve — scripts/generate-vercel-rewrites.mjs emits a rewrite for every entry here, so the pretty route survives without a nav item. Add an entry here rather than deleting a nav child when a page should stay reachable but unlisted.",
     "/make-video",
+    "/muzicki-spot-beograd",
     "/photo",
     "/jpg",
     "/enhance",
     "/atlas",
+    "/beatstars-visualizer",
     "/gallery",
     "/artists",
     "/shop",
@@ -668,9 +685,9 @@
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-10-25",
-    "totalPages": 184,
-    "corePages": 184,
+    "lastUpdated": "2026-11-02",
+    "totalPages": 190,
+    "corePages": 190,
     "archivedPages": 0
   },
   "discovered": [
@@ -698,6 +715,7 @@
     "auth/google-callback.html",
     "auth/login.html",
     "auth/verify.html",
+    "beatstars-visualizer.html",
     "bench.html",
     "bookings.html",
     "buy.html",
@@ -747,6 +765,7 @@
     "gallery-vr.html",
     "gallery.html",
     "generations.html",
+    "guides/music-video-no-budget.html",
     "index.html",
     "interactive-howto.html",
     "intro.html",
@@ -765,6 +784,8 @@
     "make-video.html",
     "marketplace-claim.html",
     "marketplace.html",
+    "music-video-maker.html",
+    "muzicki-spot-beograd.html",
     "offline.html",
     "packs.html",
     "persona-library.html",
@@ -807,6 +828,7 @@
     "sitemap.html",
     "slots-admin.html",
     "spit.html",
+    "spotify-canvas-maker.html",
     "status.html",
     "style-guide.html",
     "super-admin.html",
