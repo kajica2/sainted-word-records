@@ -227,6 +227,22 @@ try {
       return buf.duration;
     } catch (_) { return null; }
   }, DEMO_SONG);
+  if (!(typeof demoDuration === 'number' && demoDuration > 10)) {
+    bad('demo song duration decoded', String(demoDuration));
+  } else {
+    ok('demo song duration decoded', demoDuration.toFixed(1) + 's');
+  }
+
+  // Reject a late default-library swap: the element duration must match the
+  // demo file we pinned, not audios/test-clip.mp3 (~60s).
+  const elDur = await page.evaluate(() => {
+    const el = window.SWR && window.SWR.Audio && window.SWR.Audio.audioEl;
+    return el && isFinite(el.duration) ? el.duration : null;
+  });
+  if (typeof demoDuration === 'number' && typeof elDur === 'number' &&
+      Math.abs(elDur - demoDuration) > 1) {
+    bad('audio element still on demo song', 'el.duration=' + elDur + ' want≈' + demoDuration);
+  }
 
   // 2. Start automix and wait for the arc. No arc → the L3 layer is inert and
   //    every downstream assertion is meaningless, so this is the first gate.
@@ -292,10 +308,8 @@ try {
     return { t: el.currentTime, fields: out };
   }, FIELDS_SRC);
 
-  const samples = [];
-  for (let i = 0; i < acts.length; i++) {
-    const span = Math.max(0.01, acts[i].t1 - acts[i].t0);
-    const sampleT = acts[i].t0 + Math.min(span * 0.35, Math.max(1, span - 0.5));
+  /** After a seek, run the arc glide clock and pump FX so _fxOverride reaches FX.state. */
+  async function settleActSample(actIndex, sampleT) {
     await page.evaluate((t) => { try { window.SWR.Audio.audioEl.currentTime = t; } catch (_) {} }, sampleT);
     try {
       await page.waitForFunction(
@@ -307,29 +321,72 @@ try {
           return !!(s && s.actIndex === wantIdx);
         },
         { timeout: 8000, polling: 200 },
-        i,
+        actIndex,
       );
-    } catch (_) { /* fall through — convergence loop still catches stale FX */ }
-    // The act is only re-read on the 1s glide clock, so give it at least one
-    // full tick before trusting stability — otherwise the state is already
-    // "converged" from the PREVIOUS act and the convergence loop returns stale
-    // values (this made act 3 sample identical to act 2).
-    await sleep(1500);
+    } catch (_) { /* convergence + glide pump below still apply */ }
+    await page.evaluate(async () => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const am = window.automix;
+      if (am && typeof am._glideTick === 'function') {
+        am._glideTick();
+        await sleep(50);
+        am._glideTick();
+      }
+      const rampMs = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
+      const frames = 90;
+      for (let i = 0; i < frames; i++) {
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      await sleep(rampMs + 200);
+      for (let i = 0; i < 45; i++) {
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    });
     let prev = (await snapshot()).fields;
     let settled = null;
-    for (let attempt = 0; attempt < 18; attempt++) {   // ≤ 7.2s more
-      await sleep(400);
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await sleep(350);
       const cur = (await snapshot()).fields;
       const d = maxDelta(prev, cur, FIELDS).m;
       prev = cur;
-      if (d < 0.01) { settled = cur; break; }
+      if (d < 0.008) { settled = cur; break; }
     }
-    const snap = settled || (await snapshot()).fields;
+    return settled || (await snapshot()).fields;
+  }
+
+  const samples = [];
+  for (let i = 0; i < acts.length; i++) {
+    const span = Math.max(0.01, acts[i].t1 - acts[i].t0);
+    const sampleT = acts[i].t0 + Math.min(span * 0.35, Math.max(1, span - 0.5));
+    const snap = await settleActSample(i, sampleT);
     samples.push({ name: acts[i].name, t0: acts[i].t0, fields: snap });
-    // Keep the element rolling so the next seek lands on a live transport.
     await page.evaluate(() => { const A = window.SWR.Audio; if (A.audioEl.paused) { try { A.play(); } catch (_) {} } });
   }
   ok(`sampled ${samples.length} act baselines`);
+
+  // Offline arc contract on the live object: consecutive act baselines must
+  // already differ (unit-tested at build time; catches a stale/wrong arc here).
+  const arcPresetGap = await page.evaluate((minActs) => {
+    const AM = window.SWR_AUTOMIX;
+    const arc = window.automix && window.automix.arc;
+    if (!AM || !arc || !Array.isArray(arc.acts) || arc.acts.length < minActs) return { fail: 'no arc' };
+    let best = 0;
+    for (let i = 0; i + 1 < arc.acts.length; i++) {
+      const a = arc.acts[i].preset;
+      const b = arc.acts[i + 1].preset;
+      if (a && b && typeof AM.presetDistance === 'function') {
+        best = Math.max(best, AM.presetDistance(a, b));
+      }
+    }
+    return { best };
+  }, MIN_ACTS);
+  if (arcPresetGap && typeof arcPresetGap.best === 'number' && arcPresetGap.best >= DISPLACEMENT_MIN) {
+    ok(`live arc act presets differ (best Δ=${arcPresetGap.best.toFixed(3)})`);
+  } else if (arcPresetGap && arcPresetGap.fail) {
+    bad('live arc act presets differ', arcPresetGap.fail);
+  } else {
+    bad('live arc act presets differ', 'best Δ=' + (arcPresetGap && arcPresetGap.best));
+  }
 
   // 5. The contract: the arc must move FX.state across the song. The three
   //    shipped bugs left every act identical, so ONE strong consecutive pair
