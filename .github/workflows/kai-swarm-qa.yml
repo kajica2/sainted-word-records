@@ -37,6 +37,9 @@ jobs:
         if: always()
         run: |
           if test -f qa-results/report.json; then node software-factory/kai-dev-swarm.mjs; fi
+      - name: Run bounded self-improvement review
+        if: always()
+        run: node software-factory/kai-self-improve.mjs
       - name: Upload evidence and revision report
         if: always()
         uses: actions/upload-artifact@v4
