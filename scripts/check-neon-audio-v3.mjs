@@ -9,6 +9,10 @@ for (const [name, pattern] of [
   ['onset refractory interval', /now - this\.hist\.lastOnsetAt >= 0\.08/],
   ['valid tempo range', /a >= 1\/3 && a <= 1/],
   ['zero-band guard', /return c \? s\/c\/255 : 0/],
+  ['frame-independent envelopes', /Math\.exp\(-dt \/ tau\)/],
+  ['five frequency bands', /\['sub', 'bass', 'mid', 'treble', 'air'\]/],
+  ['fast attack', /smooth\(previous, raw, 0\.045, 0\.24\)/],
+  ['reset envelope state on load', /lastSampleAt:null \}; this\.beats=\[\]/],
   ['original reactor contract', /this\.feat\.beatPulse = beatHit; this\.feat\.onsetPulse = onsetHit/]
 ]) {
   assert.match(src, pattern, name);
