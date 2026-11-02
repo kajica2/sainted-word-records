@@ -75,6 +75,33 @@ async function waitFor(page, predicate, label, timeoutMs = 30000) {
   throw new Error(`${label} not ready after ${timeoutMs}ms`);
 }
 
+// engine-transitions.client.js serializes fires; tx.fire() resolves before the
+// queue drains. FX-burst transitions finish on rAF, so a burst sample loop can
+// leave circle-wipe (etc.) queued for seconds — overlay-class probes then see
+// nothing. Wait for a quiet window after the last swr-tx:fire event.
+async function waitForTransitionQueueIdle(page, quietMs = 900, timeoutMs = 20000) {
+  const ok = await page.evaluate(
+    async (quiet, timeout) => {
+      let last = Date.now();
+      const bump = () => { last = Date.now(); };
+      document.addEventListener('swr-tx:fire', bump);
+      try {
+        const deadline = Date.now() + timeout;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 100));
+          if (Date.now() - last >= quiet) return true;
+        }
+        return false;
+      } finally {
+        document.removeEventListener('swr-tx:fire', bump);
+      }
+    },
+    quietMs,
+    timeoutMs
+  );
+  if (!ok) throw new Error(`transition queue still busy after ${timeoutMs}ms`);
+}
+
 const browser = await puppeteer.launch({
   headless: 'new',
   args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
@@ -169,6 +196,8 @@ try {
     });
   }
 
+  await waitForTransitionQueueIdle(page);
+
   // --- 3. UI popover wiring ---
   await step('TRANSITIONS button toggles the popover', async () => {
     // Popover starts closed.
@@ -210,10 +239,7 @@ try {
   });
 
   // --- 4. Auto-fire via onBeat ---
-  // Trigger one CSS fire first so the overlay element exists, otherwise
-  // MutationObserver can't observe it (parameter 1 is not of type 'Node').
-  await page.evaluate(() => window.SWRTransitions.fire('fade-to-black'));
-  await new Promise((r) => setTimeout(r, 50));
+  await waitForTransitionQueueIdle(page);
 
   await step('onBeat fires the configured auto-fire transition', async () => {
     const fired = await page.evaluate(async () => {
@@ -221,45 +247,37 @@ try {
         const tx = window.SWRTransitions;
         if (!tx) return { err: 'no SWRTransitions' };
         if (typeof tx.onBeat !== 'function') return { err: 'tx.onBeat is not a function' };
-        const overlay = document.getElementById('swr-tx-layer');
-        if (!overlay) return { err: 'no overlay' };
-        overlay.className = '';
-        let firedKind = null;
-        const obs = new MutationObserver(() => {
-          const cls = overlay.className;
-          const match = cls.match(/swr-tx-\d+/);
-          if (match && !firedKind) firedKind = match[0];
-        });
-        obs.observe(overlay, { attributes: true, attributeFilter: ['class'] });
-        // Try to call fire() directly first to confirm the chain works.
-        const directFireOk = await tx.fire('circle-wipe');
-        // Wait for the queue to drain fully (circle-wipe is 520ms; the
-        // module resolves fire() after duration+120=640ms). 800ms gives
-        // some slack.
-        await new Promise(r => setTimeout(r, 800));
-        const directFired = firedKind;
-        // Reset and try auto-fire via onBeat.
-        overlay.className = '';
-        firedKind = null;
-        tx.setAutoFire({ everyNBeats: 1, transition: 'circle-wipe', bpm: 120 });
-        await new Promise(r => setTimeout(r, 30));
-        tx.onBeat(120, false);
-        await new Promise(r => setTimeout(r, 30));
-        tx.onBeat(120, true);
-        // Wait for the queue to dispatch (fire sets className on first
-        // animation tick). 800ms gives the queue plenty of time — the
-        // queue can be busy with a previous transition's tail.
-        await new Promise(r => setTimeout(r, 800));
-        obs.disconnect();
-        tx.setAutoFire(null);
-        return { directFired, autoFired: firedKind, overlayClassAfter: overlay.className };
+        const ARMED = 'circle-wipe';
+        const origOnBeat = tx.onBeat;
+        tx.onBeat = function () {}; // swallow analyser beats from the live engine
+        let autoFires = 0;
+        const details = [];
+        const onFire = (e) => {
+          const d = (e && e.detail) || {};
+          if (d.name === ARMED && d.source === 'auto') {
+            autoFires++;
+            details.push(d);
+          }
+        };
+        document.addEventListener('swr-tx:fire', onFire);
+        try {
+          tx.setAutoFire(null);
+          tx.setAutoFire({ everyNBeats: 1, transition: ARMED, bpm: 120 });
+          origOnBeat.call(tx, 120, true);
+          await new Promise((r) => setTimeout(r, 400));
+          return { autoFires, details };
+        } finally {
+          document.removeEventListener('swr-tx:fire', onFire);
+          tx.onBeat = origOnBeat;
+          tx.setAutoFire(null);
+        }
       } catch (err) {
         return { err: 'threw: ' + err.message };
       }
     });
     if (typeof fired === 'object' && fired.err) throw new Error(fired.err);
-    if (!fired.autoFired) {
-      throw new Error(`no overlay class observed (debug: ${JSON.stringify(fired)})`);
+    if (!fired.autoFires) {
+      throw new Error(`onBeat hit did not auto-fire ${JSON.stringify(fired.details)}`);
     }
   });
 
