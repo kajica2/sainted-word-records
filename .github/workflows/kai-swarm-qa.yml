@@ -33,6 +33,10 @@ jobs:
           exit 1
       - name: Run bounded QA
         run: node qa/swarm-runner.mjs
+      - name: Prepare bounded dev swarm queue
+        if: always()
+        run: |
+          if test -f qa-results/report.json; then node software-factory/kai-dev-swarm.mjs; fi
       - name: Upload evidence and revision report
         if: always()
         uses: actions/upload-artifact@v4
