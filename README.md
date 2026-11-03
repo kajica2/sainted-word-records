@@ -1,6 +1,12 @@
 # Sainted Word Records
 
-> **Audio-reactive video engine that lives in your browser.** Drop a song, drop your clips, get a music video. **23 personas, 20 CSS filters, local-first, zero backend, your-footage-driven.**
+## Start here
+
+[Repository guide](docs/REPOSITORY-GUIDE.md) — entry points, module responsibilities, and the product voice.
+
+A visual instrument by Kai Djuric. Bring your song, add your footage, and shape the way they move together.
+
+> **Audio-reactive video engine that lives in your browser.** Drop a song, drop your clips, get a music video. **23 personas, 20 CSS filters, local-first rendering, optional cloud services, your-footage-driven.**
 
 **🌐 Live:** [sainted-word-records.vercel.app](https://sainted-word-records.vercel.app/)
 
@@ -43,15 +49,9 @@ Pick one. Mix-and-match. The engine stays open-source under MIT.
 
 ## What is this?
 
-A browser-native, audio-reactive video engine for indie musicians, beatmakers, small labels, and live performers. The product exists because the current options for music-driven visuals split into three bad categories:
+A browser-native, audio-reactive video engine for independent musicians, beatmakers, small labels, and live performers. Load your clips and your song, then use audio analysis, layered motion, and visual presets to shape a real-time composition.
 
-1. **Template tools** (Renderforest, VibeMV) — quick, generic, every visualizer looks the same
-2. **AI tools** (Freebeat, Plazmapunk, Neural Frames) — novel footage, but not yours
-3. **Pro VJ** (Resolume €799, TouchDesigner $600/yr, Notch $3,500/yr) — total control, 3-month learning curve
-
-SWR is the **fourth category**: load **your** clips, drop in **your** song, the engine analyses the audio (BPM, key, beats, onsets, chromagram) and renders a **real-time reactive composition** with 23 persona presets, 5 character presets, and 20 stackable CSS filters. Output: WebM at 1080p (MP4 in v1.1).
-
-The whole pipeline runs **locally in the browser** — no upload, no server render, no SaaS fees, no telemetry. Your song and clips are stored in **IndexedDB** and persist across reloads. **PWA-installable** on iOS, Android, and desktop.
+The core audio-reactive composition runs **locally in the browser**. Optional authentication, cloud-library, project-storage, and commercial features have separate server-side paths. Your song and clips are stored in **IndexedDB** and persist across reloads. **PWA-installable** on iOS, Android, and desktop.
 
 ---
 
@@ -129,7 +129,7 @@ Credit-bank, not subscription. Credits never expire. Top up with another key any
 ## Quick start (dev)
 
 ```bash
-git clone git@github.com:kai-djuric/sainted-word-records.git
+git clone https://github.com/kajica2/sainted-word-records.git
 cd sainted-word-records
 npm install
 npm run dev   # http://localhost:5174
