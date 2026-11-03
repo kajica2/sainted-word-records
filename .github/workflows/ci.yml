@@ -1,6 +1,6 @@
 name: CI
 
-# On every push to a non-main branch and every PR against main:
+# On every push and every PR against main:
 #   1. install deps with npm ci
 #   2. run npm run check:full — check (syntax + manifest + bundle + api
 #      smoke) + check:verify (the 5 curated Puppeteer smokes — see
@@ -35,8 +35,6 @@ name: CI
 # (GitHub Actions uses YAML 1.2 and parses 'on:' correctly unquoted).
 'on':
   push:
-    branches-ignore:
-      - main
   pull_request:
     branches:
       - main
@@ -47,10 +45,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: check + verify + build-size
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     # 30-minute budget. The chain ran 19m54s on 2026-09-29 (a 19-step group
     # including check:automix-smoke 534s) and was cancelled by GitHub at step
     # 9/13. 30 minutes gives the slowest single gate (check:verify at ~19m) the
