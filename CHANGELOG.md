@@ -8,6 +8,7 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- Repository guide with task-based entry points, module responsibilities, and product voice guidance; README introduction distinguishes browser rendering from optional cloud services.
 - **Guest sign-in with Firebase Anonymous Auth** — a "Continue as guest"
   button on the login page: no consent screen, no test-user list. The
   browser signs in anonymously with the Firebase Web SDK, and the ID
