@@ -42,7 +42,27 @@ const server = http.createServer((req, res) => {
     res.end(data);
   });
 });
-server.listen(5181);
+// The port is chosen by the OS (0 = ephemeral) and read back below: a
+// hardcoded port collides with whatever else on the machine holds it —
+// a parallel gate run is enough to fail the whole step with EADDRINUSE.
+await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen(0, '127.0.0.1', resolve);
+});
+const PORT = server.address().port;
+const BASE = `http://localhost:${PORT}`;
+
+// A gate that HANGS is worse than a gate that fails: this step is a
+// member of the check:full group, so a stuck browser would burn the
+// group's whole budget and report nothing. The watchdog turns a hang into
+// a failure with a reason. It is unref'd, so it never keeps the process
+// alive on a normal finish.
+const WATCHDOG_MS = 8 * 60 * 1000;
+const watchdog = setTimeout(() => {
+  process.stderr.write('[automix-smoke] still running after 8 minutes — failing instead of hanging\n');
+  process.exit(1);
+}, WATCHDOG_MS);
+watchdog.unref();
 
 // --autoplay-policy: the pages this suite drives call play() on the demo track.
 // Without the flag Chrome rejects it ("NotAllowedError: play() failed because
@@ -72,7 +92,7 @@ async function nav(url) {
   await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
 }
 
-await nav('http://localhost:5181/versions/music_video.html');
+await nav(`${BASE}/versions/music_video.html`);
 
 const results = [];
 function ok(name) { results.push('  ✓ ' + name); }
@@ -1111,7 +1131,7 @@ else bad('reset fade-out', JSON.stringify(resetFadeShape));
 //     "skip pages without swapAsset method or reset method" guard fires
 //     cleanly on the 13 variant pages instead of corrupting them with
 //     phantom anchors.
-await nav('http://localhost:5181/versions/neon.html');
+await nav(`${BASE}/versions/neon.html`);
 const variantShape = await page.evaluate(() => {
   return {
     swrPresent: typeof window.SWR === 'object' && window.SWR !== null,
@@ -1134,7 +1154,7 @@ else bad('variant page F-patch skip shape', JSON.stringify(variantShape));
 //     the body[data-fit] attribute, and that the CSS rule is present
 //     in a stylesheet (the selector that flips object-fit).
 //     Run on music_video.html — SWR_FIT lives there, not on neon.
-await nav('http://localhost:5181/versions/music_video.html');
+await nav(`${BASE}/versions/music_video.html`);
 const fitShape = await page.evaluate(() => {
   if (!window.SWR_FIT) return { ok: false, reason: 'no SWR_FIT' };
   const initial = window.SWR_FIT.isOn;
@@ -1468,7 +1488,7 @@ if (statsShape.ok
 else bad('SWR_STATS', JSON.stringify(statsShape));
 
 // 70. Brandkit module loads on swr-app.html.
-await nav('http://localhost:5181/swr-app.html');
+await nav(`${BASE}/swr-app.html`);
 await new Promise(r => setTimeout(r, 200));
 const brandkitApp = await page.evaluate(() => ({
   ok: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
@@ -1484,7 +1504,7 @@ else bad('swr-app brandkit', JSON.stringify(brandkitApp));
 // 71. Brandkit module loads on music_video.html.
 // (The #70 navigation moved the page to swr-app.html — re-navigate back
 // before evaluating brandkitMV, or this quietly re-checks swr-app.)
-await nav('http://localhost:5181/versions/music_video.html');
+await nav(`${BASE}/versions/music_video.html`);
 const brandkitMV = await page.evaluate(() => ({
   ok: typeof window.SWR_Brandkit === 'object' && window.SWR_Brandkit !== null,
   hasReadProfile: window.SWR_Brandkit && typeof window.SWR_Brandkit.readProfile === 'function',
@@ -1499,7 +1519,7 @@ else bad('music_video brandkit', JSON.stringify(brandkitMV));
 // 72. SWR_MOOD API shape + k-means returns k centroids on synthetic input.
 // (Re-navigate to music_video.html — the assertion above #70/#71 moved
 // the page to swr-app.html, which doesn't load SWR_MOOD.)
-await nav('http://localhost:5181/versions/music_video.html');
+await nav(`${BASE}/versions/music_video.html`);
 await new Promise(r => setTimeout(r, 200));
 const moodShape = await page.evaluate(() => {
   if (!window.SWR_MOOD) return { ok: false, reason: 'no SWR_MOOD' };
@@ -1619,7 +1639,7 @@ else bad('SWR_SCENES', JSON.stringify(scenesShape));
 // 74. engine.html has all 8 post-2026 SWR_* globals + brandkit + recorder
 // (parity with versions/music_video.html — see
 // .hermes/plans/2026-09-09_065000-engine-page-parity.md).
-await nav('http://localhost:5181/engine.html');
+await nav(`${BASE}/engine.html`);
 // SWR_RECORDER is published by a deferred module (/lib/recorder.client.js),
 // so the globals below only exist once the deferred scripts have run. A
 // fixed 400ms wait is a coin flip on a loaded CI runner — the wait has to
@@ -1686,7 +1706,7 @@ async function variantEnabledCheck(name) {
     try { localStorage.removeItem('swr.automix.locked'); } catch (_) {}
     try { localStorage.removeItem('swr.automix.debugOpen'); } catch (_) {}
   });
-  await nav('http://localhost:5181/versions/' + name + '.html');
+  await nav(`${BASE}/versions/` + name + '.html');
   // Reset _fxOverride to a sentinel so we can prove the runtime
   // populates it after toggling. Otherwise a prior page's value may
   // bleed through (window survives across navigations in this puppeteer
@@ -1804,7 +1824,7 @@ for (const name of ENABLED_VARIANTS) {
 // 76. (Task 4) Disabled variants — #automix-toggle must be hidden
 //     (style.display === 'none'). No _fxOverride evolution is expected.
 async function variantDisabledCheck(name) {
-  await nav('http://localhost:5181/versions/' + name + '.html');
+  await nav(`${BASE}/versions/` + name + '.html');
   return await page.evaluate(() => {
     const t = document.getElementById('automix-toggle');
     if (!t) return { ok: false, reason: 'no #automix-toggle' };
@@ -1818,7 +1838,12 @@ for (const name of DISABLED_VARIANTS) {
   else bad('versions/' + name + '.html: disabled → toggle hidden', JSON.stringify(res));
 }
 
-await browser.close();
+// Bounded: a browser that will not close must not hang the gate.
+await Promise.race([
+  browser.close().catch(() => {}),
+  new Promise((r) => setTimeout(r, 5000)),
+]);
+clearTimeout(watchdog);
 server.close();
 console.log(results.join('\n'));
 console.log('AUTOMIX SMOKE: ' + (process.exitCode ? 'FAILED' : 'ALL GREEN') + ' (' + results.length + ' assertions)');
