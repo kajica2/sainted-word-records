@@ -297,6 +297,7 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     const fxState = C.state.filters.glow;
     // Auto-drift switch
     const drift = document.querySelector('[data-cc-toggle="autodrift"]');
+    const driftBefore = drift.getAttribute('aria-pressed');
     drift.click();
     const driftOn = drift.getAttribute('aria-pressed');
     const driftState = C.state.autoDrift;
@@ -304,7 +305,7 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
     const p = document.querySelector('[data-cc-persona]');
     if (p) p.click();
     const personaPressed = p ? p.getAttribute('aria-pressed') : null;
-    return { navOn, section, cssState, mirrorFilter, fxState, driftOn, driftState, personaPressed };
+    return { navOn, section, cssState, mirrorFilter, fxState, driftBefore, driftOn, driftState, personaPressed };
   });
   check(wiring.navOn === 'true' && wiring.section === 'personas',
     'F1 the nav switches sections', `${wiring.section}`);
@@ -313,11 +314,17 @@ async function settle(page, quietMs = 2200, timeout = 45000) {
   check(/saturate\(180\)/.test(wiring.mirrorFilter || ''),
     'F3 the CSS filter reaches the mirror canvas', wiring.mirrorFilter);
   check(wiring.fxState === 60, 'F4 the FX slider drives the state', `glow=${wiring.fxState}`);
-  // State is authoritative; aria-pressed can lag one frame after filter
-  // sliders and drift.click() run in the same synchronous evaluate (the CC
-  // tick loop syncs aria from state.autoDrift every ~66ms).
+  // Two guards, one invariant: the switch's STATE must flip AND the
+  // attribute the user (and the screen reader) reads must change.
+  // The state check alone would pass while aria-pressed stayed stale —
+  // which is exactly what happened when the Command Center and
+  // command-center-wire.client.js both owned the same attribute.
   check(wiring.driftState === true, 'F5 the auto-drift switch toggles',
     `state=${wiring.driftState} aria=${wiring.driftOn}`);
+  check((wiring.driftBefore === 'true' || wiring.driftBefore === 'false')
+    && wiring.driftOn !== wiring.driftBefore,
+    'F5b the auto-drift switch reports its new state in aria-pressed',
+    `before=${wiring.driftBefore} after=${wiring.driftOn}`);
   check(wiring.personaPressed === 'true', 'F6 selecting a persona marks it pressed');
 
   // ── G. Canvas ────────────────────────────────────────────────────────
