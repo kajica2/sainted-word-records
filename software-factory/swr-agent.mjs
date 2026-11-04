@@ -45,6 +45,7 @@ import { fileURLToPath } from 'node:url';
 import { createInterface as readline } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { FORMATS } from './providers.mjs';
+import { SwarmGuard, estimateTokensFromChars } from './swarm-guard.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..');
@@ -547,6 +548,136 @@ function assembleUserText(config, args, route) {
   return parts.join('\n');
 }
 
+// ---------------------------------------------------------- budget guard ---
+//
+// The swarm's two rails, applied to every turn that can reach a provider:
+//
+//   * a durable per-UTC-day money ledger with a hard daily cap
+//   * a global lease pool that allows at most two active agents
+//
+// A turn is RESERVED before the request goes out and SETTLED after it
+// comes back, from the answering model's own rates. A chain that cannot
+// be priced is refused before the first byte leaves the machine. There is
+// no flag to turn this off.
+//
+// The guard is built HERE — inside the live path of `run` and `chat` — so
+// the read-only commands (`formats`, `models`, `show`) and the dry-run
+// preview never create a state directory as a side effect.
+
+function createGuard() {
+  // The two env vars relocate WHERE the state lives (a scratch dir in a
+  // test, a scratch dir on another machine). They cannot raise the cap
+  // or the worker count: those come from the swarm config and the
+  // committed defaults, never from the environment.
+  return SwarmGuard.create({
+    stateDir: process.env.SWR_BUDGET_DIR || undefined,
+    leaseDir: process.env.SWR_LEASE_DIR || undefined,
+  });
+}
+
+/** The output ceiling a turn will actually ask for. */
+function effectiveMaxTokens(config, requested) {
+  return Number(requested) || Number(config.defaults?.max_tokens) || 16384;
+}
+
+/**
+ * A pessimistic input-token estimate for one turn: system prompt, message
+ * history and tool schema. The parts are measured, not concatenated, so a
+ * long history costs nothing to estimate.
+ */
+function estimateTurnInput({ system, messages, tools }) {
+  const chars =
+    String(system || '').length +
+    JSON.stringify(messages || []).length +
+    JSON.stringify(tools || []).length;
+  return estimateTokensFromChars(chars);
+}
+
+/**
+ * Take one of the global worker slots.
+ *
+ * Two agents may run at once, machine-wide. A third is refused BEFORE it
+ * does any work — the refusal is the whole point of the pool.
+ */
+function claimWorkerSlot(guard, agentName, taskName) {
+  const workerId = `${agentName}-${process.pid}`;
+  const claim = guard.claimWorker({
+    workerId,
+    mission: taskName ? `${agentName}/${taskName}` : agentName,
+  });
+  if (!claim.ok) {
+    if (claim.reason === 'cap') {
+      fail(
+        1,
+        `worker pool is full — ${claim.active} of ${claim.maxWorkers} agents are already active. ` +
+          `Nothing was sent.`,
+      );
+    }
+    fail(1, `could not claim a worker slot — ${claim.reason}. Nothing was sent.`);
+  }
+  return workerId;
+}
+
+/**
+ * One guarded turn: reserve, call, settle.
+ *
+ * The reservation is sized by the most expensive model in the failover
+ * chain, because a failover can land on it. A refusal returns without
+ * calling the provider at all.
+ */
+async function guardedTurn(guard, { config, chain, ctx, reservationId, inputTokens, maxTokens }) {
+  const reservation = guard.reserveTurn({
+    reservationId,
+    chain,
+    maxTokens,
+    inputTokens,
+  });
+
+  if (!reservation.ok) {
+    const detail =
+      reservation.reason === 'cap'
+        ? `the daily budget cannot cover it (needs $${Number(reservation.requestedUsd || 0).toFixed(4)}, ` +
+          `$${Number(reservation.remainingUsd || 0).toFixed(4)} left today)`
+        : reservation.reason;
+    return {
+      ok: false,
+      refused: true,
+      reason: reservation.reason,
+      reservation,
+      message: `turn refused before it was sent — ${detail}. No request was made.`,
+    };
+  }
+
+  const { result, attempts } = await runTurnWithFailover(config, chain, ctx);
+
+  if (!result) {
+    // Every model failed: there is no completion, so there is nothing to
+    // bill. The reservation goes back.
+    guard.releaseTurn({ reservationId, reason: 'every model in the chain failed — no completion, no bill' });
+    return { ok: false, refused: false, result: null, attempts, reservation };
+  }
+
+  const settlement = guard.settleTurn({
+    reservationId,
+    modelRef: result.modelRef,
+    usage: result.usage,
+  });
+  return { ok: true, result, attempts, reservation, settlement };
+}
+
+/**
+ * The cost shown to the operator.
+ *
+ * `estimateCost()` coerces a missing rate to zero, so it can under-report
+ * a real spend. The ledger's settlement is authoritative: it is computed
+ * from the answering model's own rates and is the number that was charged.
+ */
+function costPayload(result, settlement) {
+  const estimate = estimateCost(result.modelRef, result.usage);
+  const usd = settlement && typeof settlement.settledUsd === 'number' ? settlement.settledUsd : estimate.usd;
+  return { ...estimate, usd };
+}
+
 // -------------------------------------------------------------- commands ---
 
 async function cmdRun(args) {
@@ -596,57 +727,96 @@ async function cmdRun(args) {
   const toolLog = [];
   let payload = null;
   const attempts = [];
+  let refusal = null;
 
-  for (let turn = 0; turn < 3; turn++) {
-    const messages = [{ role: 'user', content: [{ type: 'text', text: userText }] }];
-    const ctx = {
-      agent: route.agent,
-      system,
-      messages,
-      maxTokens: args['max-tokens'] ? Number(args['max-tokens']) : route.maxTokens,
-      effort: route.effort,
-      transport,
-    };
+  // From here on the run holds a worker slot and every turn is reserved
+  // before it is sent. The slot is released on every exit path.
+  const guard = createGuard();
+  const workerId = claimWorkerSlot(guard, args.agent, route.task);
+  const releaseOnExit = () => {
+    try { guard.releaseWorker({ workerId, reason: 'exit' }); } catch { /* the pool is best-effort on the way out */ }
+  };
+  process.on('exit', releaseOnExit);
 
-    // The first turn decides the tools; later turns reuse the same format.
-    const probe = resolveFormat(config, chain[0]);
-    const tools = toolDefsFor(config, route.agent, probe.format);
+  // The first turn decides the tools; later turns reuse the same format.
+  // Resolved once, before the loop, so a bad wire format is a config
+  // error rather than a mid-run exit that would strand the lease.
+  const probe = resolveFormat(config, chain[0]);
+  const tools = toolDefsFor(config, route.agent, probe.format);
 
-    const { result, attempts: chainAttempts } = await runTurnWithFailover(config, chain, { ...ctx, tools });
-    attempts.push(...chainAttempts);
-    if (!result) {
-      const why = chainAttempts.map((a) => `${a.model}: ${a.error || a.skipped}`).join(' | ');
-      fail(1, `every model in the chain failed — ${why}`);
-    }
-
-    if (result.thinking && args.verbose) process.stderr.write(`[thinking]\n${result.thinking}\n`);
-
-    if (!result.toolCalls?.length) {
-      payload = {
-        model: result.modelRef,
-        provider: result.provider,
-        format: result.format,
-        effort: result.effort,
-        stop_reason: result.stopReason,
-        text: result.text,
-        thinking: args.verbose ? result.thinking : undefined,
-        usage: result.usage,
-        cost: estimateCost(result.modelRef, result.usage),
-        tool_calls: toolLog,
-        attempts,
+  try {
+    for (let turn = 0; turn < 3 && !refusal; turn++) {
+      const messages = [{ role: 'user', content: [{ type: 'text', text: userText }] }];
+      const maxTokens = effectiveMaxTokens(config, args['max-tokens'] ? Number(args['max-tokens']) : route.maxTokens);
+      const ctx = {
+        agent: route.agent,
+        system,
+        messages,
+        maxTokens,
+        effort: route.effort,
+        transport,
+        tools,
       };
-      break;
-    }
 
-    const results = runToolCalls(config, route.agent, result, result.toolCalls, {
-      allowWrites: Boolean(args['allow-writes']),
-      toolLog,
-    });
-    // Feed the tool results back and ask again — on the same model that
-    // asked for them, so the plan survives the round trip.
-    messages.push({ role: 'assistant', content: result.toolCalls.map((c) => ({ type: 'tool_use', id: c.id, name: c.name, input: c.input })) });
-    messages.push({ role: 'tool', content: results });
+      // A long run keeps its slot: renew before every turn.
+      guard.renewWorker({ workerId });
+
+      const turnResult = await guardedTurn(guard, {
+        config,
+        chain,
+        ctx,
+        reservationId: guard.nextReservationId({ runId: `run-${process.pid}` }),
+        inputTokens: estimateTurnInput({ system, messages, tools }),
+        maxTokens,
+      });
+
+      if (!turnResult.ok) {
+        if (turnResult.refused) {
+          refusal = turnResult;
+          break;
+        }
+        const why = turnResult.attempts.map((a) => `${a.model}: ${a.error || a.skipped}`).join(' | ');
+        refusal = { message: `every model in the chain failed — ${why}` };
+        break;
+      }
+
+      const result = turnResult.result;
+      attempts.push(...turnResult.attempts);
+
+      if (result.thinking && args.verbose) process.stderr.write(`[thinking]\n${result.thinking}\n`);
+
+      if (!result.toolCalls?.length) {
+        payload = {
+          model: result.modelRef,
+          provider: result.provider,
+          format: result.format,
+          effort: result.effort,
+          stop_reason: result.stopReason,
+          text: result.text,
+          thinking: args.verbose ? result.thinking : undefined,
+          usage: result.usage,
+          cost: costPayload(result, turnResult.settlement),
+          tool_calls: toolLog,
+          attempts,
+        };
+        break;
+      }
+
+      const results = runToolCalls(config, route.agent, result, result.toolCalls, {
+        allowWrites: Boolean(args['allow-writes']),
+        toolLog,
+      });
+      // Feed the tool results back and ask again — on the same model that
+      // asked for them, so the plan survives the round trip.
+      messages.push({ role: 'assistant', content: result.toolCalls.map((c) => ({ type: 'tool_use', id: c.id, name: c.name, input: c.input })) });
+      messages.push({ role: 'tool', content: results });
+    }
+  } finally {
+    process.removeListener('exit', releaseOnExit);
+    guard.releaseWorker({ workerId, reason: 'done' });
   }
+
+  if (refusal) fail(1, refusal.message);
 
   if (!payload) {
     payload = { model: chain[0], text: '', usage: null, cost: null, tool_calls: toolLog, attempts };
@@ -685,38 +855,86 @@ async function cmdChat(args) {
   const probe = resolveFormat(config, chain[0]);
   const tools = toolDefsFor(config, route.agent, probe.format);
 
-  const first = await runTurnWithFailover(config, chain, { agent: route.agent, system, messages: history, tools, maxTokens: route.maxTokens, effort: route.effort, transport });
-  if (!first.result) fail(1, 'every model in the chain failed on the opening turn');
-  if (first.result.text) process.stdout.write(`${first.result.text}\n`);
-  history.push({ role: 'assistant', content: [{ type: 'text', text: first.result.text }] });
+  // A chat holds its worker slot for the whole conversation. Every turn —
+  // the opening one and every line the operator types — is reserved before
+  // it is sent and settled after it comes back.
+  const guard = createGuard();
+  const workerId = claimWorkerSlot(guard, args.agent, route.task);
+  const releaseOnExit = () => {
+    try { guard.releaseWorker({ workerId, reason: 'exit' }); } catch { /* the pool is best-effort on the way out */ }
+  };
+  process.on('exit', releaseOnExit);
 
-  const rl = readline({ input: process.stdin, output: process.stdout, prompt: '> ' });
-  rl.prompt();
-  for await (const line of rl) {
-    const trimmed = line.trim();
-    if (!trimmed) {
+  const maxTokens = effectiveMaxTokens(config, route.maxTokens);
+  let refusal = null;
+
+  try {
+    guard.renewWorker({ workerId });
+    const first = await guardedTurn(guard, {
+      config,
+      chain,
+      ctx: { agent: route.agent, system, messages: history, tools, maxTokens, effort: route.effort, transport },
+      reservationId: guard.nextReservationId({ runId: `chat-${process.pid}` }),
+      inputTokens: estimateTurnInput({ system, messages: history, tools }),
+      maxTokens,
+    });
+    if (!first.ok) {
+      refusal = first.refused
+        ? first
+        : { message: 'every model in the chain failed on the opening turn' };
+    } else {
+      if (first.result.text) process.stdout.write(`${first.result.text}\n`);
+      history.push({ role: 'assistant', content: [{ type: 'text', text: first.result.text }] });
+    }
+
+    if (!refusal) {
+      const rl = readline({ input: process.stdin, output: process.stdout, prompt: '> ' });
       rl.prompt();
-      continue;
-    }
-    if (trimmed === '/exit' || trimmed === '/quit') break;
+      for await (const line of rl) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          rl.prompt();
+          continue;
+        }
+        if (trimmed === '/exit' || trimmed === '/quit') break;
 
-    history.push({ role: 'user', content: [{ type: 'text', text: trimmed }] });
-    for (let turn = 0; turn < 3; turn++) {
-      const { result } = await runTurnWithFailover(config, chain, { agent: route.agent, system, messages: history, tools, maxTokens: route.maxTokens, effort: route.effort, transport });
-      if (!result) break;
-      if (result.thinking && args.verbose) process.stderr.write(`[thinking]\n${result.thinking}\n`);
-      if (result.text) process.stdout.write(`${result.text}\n`);
-      if (!result.toolCalls?.length) {
-        history.push({ role: 'assistant', content: [{ type: 'text', text: result.text }] });
-        break;
+        history.push({ role: 'user', content: [{ type: 'text', text: trimmed }] });
+        for (let turn = 0; turn < 3; turn++) {
+          guard.renewWorker({ workerId });
+          const turnResult = await guardedTurn(guard, {
+            config,
+            chain,
+            ctx: { agent: route.agent, system, messages: history, tools, maxTokens, effort: route.effort, transport },
+            reservationId: guard.nextReservationId({ runId: `chat-${process.pid}` }),
+            inputTokens: estimateTurnInput({ system, messages: history, tools }),
+            maxTokens,
+          });
+          if (!turnResult.ok) {
+            if (turnResult.refused) refusal = turnResult;
+            break;
+          }
+          const result = turnResult.result;
+          if (result.thinking && args.verbose) process.stderr.write(`[thinking]\n${result.thinking}\n`);
+          if (result.text) process.stdout.write(`${result.text}\n`);
+          if (!result.toolCalls?.length) {
+            history.push({ role: 'assistant', content: [{ type: 'text', text: result.text }] });
+            break;
+          }
+          const results = runToolCalls(config, route.agent, result, result.toolCalls, { allowWrites: Boolean(args['allow-writes']) });
+          history.push({ role: 'assistant', content: result.toolCalls.map((c) => ({ type: 'tool_use', id: c.id, name: c.name, input: c.input })) });
+          history.push({ role: 'tool', content: results });
+        }
+        if (refusal) break;
+        rl.prompt();
       }
-      const results = runToolCalls(config, route.agent, result, result.toolCalls, { allowWrites: Boolean(args['allow-writes']) });
-      history.push({ role: 'assistant', content: result.toolCalls.map((c) => ({ type: 'tool_use', id: c.id, name: c.name, input: c.input })) });
-      history.push({ role: 'tool', content: results });
+      rl.close();
     }
-    rl.prompt();
+  } finally {
+    process.removeListener('exit', releaseOnExit);
+    guard.releaseWorker({ workerId, reason: 'done' });
   }
-  rl.close();
+
+  if (refusal) fail(1, refusal.message);
   return 0;
 }
 

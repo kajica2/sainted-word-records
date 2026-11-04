@@ -125,6 +125,9 @@ software-factory/
   routing.config.json   the router: providers, model catalog, agents, triggers
   providers.mjs         the five wire formats
   swr-agent.mjs         the bridge: routing, tools, guards, failover
+  budget-ledger.mjs     the money: a durable per-UTC-day ledger
+  worker-lease.mjs      the brakes: a global pool of two active agents
+  swarm-guard.mjs       the two composed: price a turn, claim a slot
   README.md             this file
 .github/workflows/
   factory.yml           the factory floor: triage, PR verdict, nightly drift
@@ -169,6 +172,55 @@ with the API key redacted, without calling anything.
 `SWR-Check` is read-only by construction: the bridge does not declare `write_file`
 for it, so a verdict can never edit the tree it is judging.
 `node software-factory/swr-agent.mjs self-test` proves all of this without an API key.
+
+### The guard — `budget-ledger.mjs`, `worker-lease.mjs`, `swarm-guard.mjs`
+
+The bridge will not spend money it has not reserved, and it will not start a third
+agent while two are already running. Three modules, zero dependencies:
+
+| Module | What it owns |
+|---|---|
+| `budget-ledger.mjs` | a durable per-UTC-day ledger: reserve before a call, settle after it, release when nothing was billed |
+| `worker-lease.mjs` | the global worker pool: at most `maxConcurrentAgents` live leases, idempotent re-claims, TTL recovery of a crashed agent |
+| `swarm-guard.mjs` | the two composed: worst-case chain pricing, fail-closed on unknown pricing, settle-the-difference |
+
+**How a turn is priced.** The reservation is sized by the **most expensive model in
+the failover chain**, because a failover can land on it. If ANY member of the chain
+is a paid model whose price is unknown, the whole chain is refused **before the
+request is built** — an unpriceable call is not a free call. A local CLI provider
+runs a binary on this machine, so it is free by construction and never blocks a run.
+
+**What the money does.** `reserve` → the request goes out → `settle` with the
+answering model's own rates and the provider's reported usage. The difference
+between the reservation and the real cost goes back to the day. A chain that failed
+outright releases its reservation: no completion, no bill.
+
+**Where the state lives.** `data/swr-budget/` and `data/swr-leases/` — both
+gitignored (`/data/swr-*`). One file per UTC day, append-only, one JSON line per
+event; a half-written line closes the day until `reconcile` repairs it.
+
+```bash
+node software-factory/budget-ledger.mjs status
+node software-factory/worker-lease.mjs status
+node software-factory/budget-ledger.mjs reconcile --day 2026-11-04
+```
+
+`SWR_BUDGET_DIR` and `SWR_LEASE_DIR` relocate *where* the state is. They cannot
+raise the cap or the worker count: those come from `qa/swarm.config.json` when it
+exists and from the committed defaults (`$2` a day, `2` agents) when it does not.
+
+Four test suites gate this, all inside the `check` group so `check:full` runs them:
+
+```bash
+npm run test:budget-ledger        # the ledger: cap, idempotency, torn writes, concurrency
+npm run test:worker-lease         # the pool: two workers, re-claims, TTL recovery
+npm run test:swarm-guard          # the guard: chain pricing, settle-the-difference, refusals
+npm run test:swarm-guard-wiring   # the bridge: the real CLI, every provider key blanked
+```
+
+The wiring test drives the real CLI as a child process with **every provider key
+blanked**, so the guards are exercised end to end without a provider ever being
+contacted — and the run refuses before the request is built.
 
 ---
 
@@ -261,3 +313,8 @@ only ever guess. It stays unchecked on purpose.
   without measuring it first.
 - **The verdict is a model opinion.** It is a brake, not a proof. The test gate is
   `ci.yml`.
+- **The ledger is a local brake, not a vault.** It protects against a runaway run on
+  this machine; it cannot stop a determined operator from deleting the state
+  directory or pointing `SWR_BUDGET_DIR` somewhere fresh. The cap and the worker
+  count are policy, not secrets, and they live in `qa/swarm.config.json` when it
+  exists and in the committed defaults when it does not.
