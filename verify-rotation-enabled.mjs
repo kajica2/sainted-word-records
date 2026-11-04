@@ -80,10 +80,10 @@ try {
     const SWR = window.SWR;
     SWR.Library.items = [{
       id: 'asset-test-rotation',
-      name: 'p01.jpg',
-      type: 'image',
+      name: 'p01.mp4',
+      type: 'video',
       w: 100, h: 100,
-      _el: { naturalWidth: 100, naturalHeight: 100 },
+      _el: { videoWidth: 100, videoHeight: 100, readyState: 4 },
       url: 'about:blank',
     }];
     SWR.Layers.add(SWR.Library.items[0]);
