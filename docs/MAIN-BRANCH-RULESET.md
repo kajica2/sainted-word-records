@@ -215,18 +215,45 @@ The ruleset is the gate; the extra workflow is a report.
 
 ---
 
-## 6. Why now
+## 6. Why now — and what must be true first
 
 The baseline run on clean `main` (`3e663405`, 2026-11-04) failed **9 of 33**
-`check:full` steps. A repair candidate exists (the integration branch, green on
-all 33 locally) but has no CI-hosted verdict yet. **A ruleset on a red `main`
-would block every merge** — including the one that carries the repair.
+`check:full` steps. A repair candidate exists ([PR #275](https://github.com/kajica2/sainted-word-records/pull/275),
+green on all 33 locally and green on its PR-event CI run) but has not been merged.
+**A ruleset on a red `main` would block every merge** — including the one that
+carries the repair.
 
-So the order matters:
+There is a second, less obvious precondition, found on the same day: **the gate
+is not yet deterministic.** On the *same commit* `8aa49ada`, two CI runs started
+six seconds apart gave opposite verdicts:
 
-1. land the repair (integration branch → draft PR → CI green → merge by a human);
-2. then apply the ruleset;
-3. then re-run the baseline to confirm `main` is green.
+| Run | Event | Verdict |
+|---|---|---|
+| [41865245728](https://github.com/kajica2/sainted-word-records/actions/runs/41865245728) | push | **failure** — `full: 1/33 step(s) FAILED: npm run check:bench-smoke` |
+| [41865260224](https://github.com/kajica2/sainted-word-records/actions/runs/41865260224) | pull_request | **success** |
+
+The failing assertion is a timing threshold in `scripts/check-bench-smoke.mjs`
+(`offQ - onQ >= 4` — the non-interpolated sampling error must exceed the
+interpolated one by at least 4 ms). The failed run measured **0.0 vs 3.5 ms**;
+the passing run measured **0.0 vs 9.7 ms**. The measurement is against a
+real-time audio clock, so the margin depends on runner scheduling.
+
+**Why this matters for the ruleset specifically:** a required status check that
+is occasionally red turns every merge into a coin toss. The operator will learn
+to re-run the failed check, and the gate stops being a signal. `ci.yml` runs on
+both `push` (non-`main`) and `pull_request` to `main`, so every PR already runs
+the whole suite **twice, concurrently** — which is exactly the condition that
+produced the two opposite verdicts above.
+
+So the order is:
+
+1. **fix the `check:bench-smoke` timing flake** (the file is owned by PR #267 —
+   do not open a second PR against it);
+2. land the repair (PR #275 → CI green → merge by a human);
+3. **then** apply the ruleset;
+4. then re-run the baseline to confirm `main` is green.
 
 Applying the ruleset first is not wrong — it is *safe* — but it will stop the
-repair from landing until the check is green, which is a feature, not a bug.
+repair from landing until the check is green, and it will turn any future flake
+into a blocked merge. That is a feature for a deterministic gate and a bug for
+a flaky one.
