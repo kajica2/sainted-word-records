@@ -129,13 +129,21 @@ const server = http.createServer((req, res) => {
   });
 });
 server.on('error', (err) => {
-  const why = 'port 5187: ' + (err && err.code ? err.code : err);
+  const why = (err && err.code ? err.code : err);
   console.log('BENCH SMOKE');
   console.log('  ✗ the gate could not start (' + why + ')');
   console.log('FAILURES ABOVE');
   process.exit(1);
 });
-server.listen(5187);
+// The port is chosen by the OS (0 = ephemeral) and read back below: a
+// hardcoded port collides with whatever else on the machine holds it —
+// a parallel gate run is enough to fail the whole step with EADDRINUSE,
+// and on CI every one of this gate's 42 assertions then fails with the
+// same "the page did not come up" message.
+const PORT = await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen(0, '127.0.0.1', () => resolve(server.address().port));
+});
 
 const BROWSER_ARGS = [
   '--no-sandbox',
@@ -253,7 +261,7 @@ try {
     // the navigation waits out its whole timeout and the smoke fails on
     // a page that loaded fine. The readiness signal is the page's own
     // global, which the waitForFunction below waits for.
-    await page.goto('http://localhost:5187/bench.html', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(`http://localhost:${PORT}/bench.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(
       () => document.readyState === 'complete',
       { timeout: 30000 }
