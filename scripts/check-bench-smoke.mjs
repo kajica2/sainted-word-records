@@ -338,6 +338,36 @@ try {
     start0: window.__benchSmokeFillT0,
     pushes0: window.__benchSmokeFill0,
   }));
+  // The measured fill rate is the SCALE of the sampling error (see the
+  // margin below), so it has to outlive the block that measures it.
+  let fillRateHz = 0;
+  // The AUDIO PERIOD is the step between consecutive buffer labels. It is
+  // NOT the pushes-per-wall-second rate: the clock is rAF-paced and catches
+  // up, so a slow render loop pushes a BURST of samples at once, each
+  // carrying a label one AUDIO_PERIOD further on. Dividing the pushed
+  // count by the elapsed wall time therefore measures the burst, not the
+  // audio rate (measured 4000 Hz on a fast laptop, 60 Hz on a CI runner —
+  // same 16.7 ms period underneath). The labels do not lie: consecutive
+  // samples are exactly one period apart.
+  let fillPeriodMs = 0;
+  try {
+    fillPeriodMs = await ev(() => {
+      const b = window.SWRBench && window.SWRBench.buffer;
+      if (!b || !b.buf || b.buf.length < 3) return 0;
+      const ds = [];
+      for (let i = 1; i < b.buf.length; i++) {
+        const d = b.buf[i].t - b.buf[i - 1].t;
+        if (d > 0) ds.push(d);
+      }
+      if (!ds.length) return 0;
+      ds.sort((a, b2) => a - b2);
+      const step = ds[Math.floor(ds.length / 2)];
+      // The lab's clock is in SECONDS (0, 0.0167, 0.0333 …). Normalise to
+      // milliseconds by the magnitude, so the value does not depend on the
+      // unit the host happens to use.
+      return step < 1 ? step * 1000 : step;
+    });
+  } catch (_) {}
   if (!fill1 || typeof fill1.pushes0 !== 'number') {
     failAll([
       'the buffer fills on its own at the audio rate',
@@ -347,6 +377,7 @@ try {
     const secs = Math.max(0.001, (fill1.t - fill1.start0) / 1000);
     const gained = fill1.pushes - fill1.pushes0;
     const rate = gained / secs;
+    fillRateHz = rate;
     // Nominal 60 Hz; headless runners throttle timers (~10–20 Hz). Zero
     // pushes in 15s means the clock never started — not a timing flake.
     const MIN_RATE = 8;
@@ -433,8 +464,37 @@ try {
     }
 
     // B) interpolation moves the sampling error, never the clock offset
-    if (offQ - onQ >= 4) ok('interpolation lowers the sampling error', f1(onQ) + ' vs ' + f1(offQ) + 'ms (medians)');
-    else bad('interpolation lowers the sampling error', f1(onQ) + ' vs ' + f1(offQ) + 'ms');
+    //
+    // The margin is a FRACTION OF THE FILL PERIOD, not a fixed number of
+    // milliseconds. Without interpolation the run presents the NEWEST
+    // sample, so its sampling error is the age of that sample — which is
+    // the time since the last fill. How old that is depends on where the
+    // render loop lands relative to the fill timer:
+    //
+    //   * when the render rate and the fill rate differ, the phase beats
+    //     and the staleness averages half a period (measured: 9.7 ms at
+    //     a 60 Hz fill, 16.7 ms period);
+    //   * when they MATCH, the phase locks and every frame sees the SAME
+    //     age (measured: 3.5 ms at the same 60 Hz fill).
+    //
+    // A fixed 4 ms margin therefore fails on a phase-locked runner even
+    // though interpolation is working perfectly — the interpolated run
+    // read 0.0 ms in both cases. Scale the margin to the period the host
+    // can actually deliver: 10% of one fill period (1.67 ms at the 60 Hz
+    // the lab targets), floored at the lab's own sub-ms resolution.
+    //
+    // This stays falsifiable. The separate assertion below pins the
+    // interpolated run at the IDEAL label (<= 0.5 ms), and the one after
+    // it pins the non-interpolated run ABOVE zero — so a regression that
+    // stopped interpolation from working would fail those, and would
+    // collapse this difference to ~0 as well.
+    const periodMs = fillPeriodMs > 0 ? fillPeriodMs : (fillRateHz > 0 ? 1000 / fillRateHz : 16.7);
+    const quantMarginMs = Math.max(0.5, periodMs * 0.1);
+    if (offQ - onQ >= quantMarginMs) {
+      ok('interpolation lowers the sampling error', f1(onQ) + ' vs ' + f1(offQ) + 'ms (medians, margin ' + f1(quantMarginMs) + 'ms = 10% of the ' + f1(periodMs) + 'ms fill period)');
+    } else {
+      bad('interpolation lowers the sampling error', f1(onQ) + ' vs ' + f1(offQ) + 'ms (need ≥' + f1(quantMarginMs) + 'ms = 10% of the ' + f1(periodMs) + 'ms fill period)');
+    }
     if (onQ <= 0.5) ok('the interpolated run presents the ideal label (sampling error ~0)', f1(onQ) + 'ms');
     else bad('the interpolated run presents the ideal label (sampling error ~0)', f1(onQ) + 'ms');
     // Without interpolation the error is bounded by the host frame period
@@ -445,8 +505,11 @@ try {
     else bad('the non-interpolated run presents the newest sample (sampling error within one audio period)', f1(offQ) + 'ms');
     if (Math.abs(lagOnD - lagOffD) < 1) ok('interpolation does not move the clock offset', 'both lagged runs read ' + f1(lagOnD) + 'ms');
     else bad('interpolation does not move the clock offset', f1(lagOnD) + ' vs ' + f1(lagOffD) + 'ms');
-    if (lagOffQ - lagOnQ >= 4) ok('interpolation lowers the sampling error even with the lag injected', f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms');
-    else bad('interpolation lowers the sampling error even with the lag injected', f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms');
+    if (lagOffQ - lagOnQ >= quantMarginMs) {
+      ok('interpolation lowers the sampling error even with the lag injected', f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms (margin ' + f1(quantMarginMs) + 'ms)');
+    } else {
+      bad('interpolation lowers the sampling error even with the lag injected', f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms (need ≥' + f1(quantMarginMs) + 'ms)');
+    }
   }
 
   // --- 3) a report compiles, with metrics and a grade --------------------

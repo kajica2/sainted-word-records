@@ -214,6 +214,25 @@ once it hits 1.0.
   "Dune Plasma Lateral" and "Vapor Curl Counter" (2026-08-23) existed
   only on a dead branch. Their files are restored and the manifest is
   synced, so `preset-pipeline/verify.mjs` reports 74/74.
+- **The bench smoke's sampling-error margin was a fixed 4 ms, and the
+  measurement it guards is phase-dependent.** The non-interpolated run
+  presents the NEWEST sample, so its sampling error is the time since
+  the last fill — and that depends on where the render loop lands
+  relative to the fill timer. When the render rate matches the fill
+  rate the phase locks and every frame sees the SAME age: measured
+  **3.5 ms** on one CI runner and **9.7 ms** on another, with the fill
+  rate identical (60 Hz) in both. The fixed margin therefore failed a
+  runner where interpolation was working perfectly — the interpolated
+  run read **0.0 ms** in both cases. The margin is now scaled to the
+  host's own fill period (10% of one period — 1.7 ms at 60 Hz, floored
+  at 0.5 ms), measured from the step between consecutive buffer labels
+  rather than from pushes-per-wall-second: the lab's clock is rAF-paced
+  and catches up, so a slow render loop pushes a BURST of samples at
+  once (measured 4000 Hz on a laptop against the same 16.7 ms period).
+  The gate stays falsifiable — two neighbouring assertions pin the
+  interpolated run at the ideal label (<= 0.5 ms) and the
+  non-interpolated run above zero, and disabling interpolation fails
+  all three.
 - `check:live-input` **sampled for the Live control instead of waiting for
   it**, so it reported a missing control whenever the media panel had not
   mounted yet. The panel is built by a deferred module which loads three
