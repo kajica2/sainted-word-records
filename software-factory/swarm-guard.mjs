@@ -214,12 +214,21 @@ export class SwarmGuard {
    */
   startHeartbeat(workerId, { intervalMs } = {}) {
     const ttl = this.leaseTtlMs || DEFAULT_LEASE_TTL_MS;
-    const every = intervalMs || Math.max(1000, Math.floor(ttl / 3));
+    const every = intervalMs || Math.max(50, Math.floor(ttl / 3));
     let lost = null;
     const timer = setInterval(() => {
       if (lost) return;
-      const res = this.renewWorker({ workerId });
-      if (!res.ok) lost = res.reason || 'lease-lost';
+      try {
+        const res = this.renewWorker({ workerId });
+        if (!res.ok) lost = res.reason || 'lease-lost';
+      } catch (err) {
+        // A throw inside a timer callback is an UNCAUGHT exception: it
+        // would kill the process mid-request, before the settlement is
+        // written, and the reservation would burn the day's budget with
+        // no spend record. The failure is recorded instead, and the run
+        // stops cleanly after it settles.
+        lost = `renew-failed: ${(err && err.message) || String(err)}`;
+      }
     }, every);
     if (typeof timer.unref === 'function') timer.unref();
     return {
@@ -230,6 +239,23 @@ export class SwarmGuard {
         return lost;
       },
     };
+  }
+
+  /**
+   * Make sure this worker still holds a slot.
+   *
+   * A renewal can fail because the lease EXPIRED (the agent was idle) or
+   * because the file was pruned. In the first case the agent is still
+   * alive and should get its slot back — and the pool still enforces the
+   * cap, so a re-claim that finds the pool full is refused and the run
+   * stops. A lost slot is never re-taken by force.
+   */
+  ensureWorkerSlot(workerId, { mission = null } = {}) {
+    const renewed = this.renewWorker({ workerId });
+    if (renewed.ok) return { ok: true, renewed: true };
+    const claim = this.claimWorker({ workerId, mission });
+    if (claim.ok) return { ok: true, renewed: false, reclaimed: true };
+    return { ok: false, reason: claim.reason || renewed.reason || 'lease-lost' };
   }
 
   // --------------------------------------------------------------- turns ---

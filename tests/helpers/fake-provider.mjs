@@ -12,17 +12,37 @@
 //   LOG           the file the request observations are appended to
 //   DELAY_MS      how long to hold the response
 //   DELETE_LEASES "1" → delete the agent's lease file while the request is in flight
+//   CLAIM_WORKER  a worker id to claim a lease for while the request is in flight —
+//                 used to fill the pool so a re-claim has nowhere to go
 //
 // stdout: the chosen port, as a single line.
 import { createServer } from 'node:http';
 import { appendFileSync, existsSync, readFileSync, readdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const LEDGER_DIR = process.env.LEDGER_DIR || '';
 const LEASE_DIR = process.env.LEASE_DIR || '';
 const LOG = process.env.LOG || '';
 const DELAY_MS = Number(process.env.DELAY_MS) || 0;
 const DELETE_LEASES = process.env.DELETE_LEASES === '1';
+const CLAIM_WORKER = process.env.CLAIM_WORKER || '';
+const HELPER_DIR = process.argv[2] || process.cwd();
+
+/** Fill the pool with other workers, so a re-claim has nowhere to go. */
+async function claimSlot() {
+  if (!CLAIM_WORKER || !LEASE_DIR) return;
+  try {
+    const mod = await import(pathToFileURL(join(HELPER_DIR, 'software-factory', 'worker-lease.mjs')).href);
+    const manager = mod.createLeaseManager({ dir: LEASE_DIR });
+    // Two workers: the pool's cap is two, so the third one has nowhere
+    // to go.
+    manager.claim({ workerId: CLAIM_WORKER, mission: 'usurper' });
+    manager.claim({ workerId: `${CLAIM_WORKER}-2`, mission: 'usurper' });
+  } catch {
+    /* the helper could not reach the lease module — the test will say so */
+  }
+}
 
 function ledgerRecords() {
   if (!LEDGER_DIR || !existsSync(LEDGER_DIR)) return [];
@@ -58,6 +78,7 @@ const server = createServer((req, res) => {
     };
     if (LOG) appendFileSync(LOG, JSON.stringify(observation) + '\n');
     if (DELETE_LEASES) deleteLeases();
+    if (CLAIM_WORKER) claimSlot();
     const respond = () => {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(

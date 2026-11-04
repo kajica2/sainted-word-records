@@ -413,6 +413,53 @@ console.log('\n14. the heartbeat keeps a long turn alive');
   cleanup(guard);
 }
 
+{
+  // A renewal that THROWS (the lock could not be acquired) must not take
+  // the process down: an exception inside a timer callback is uncaught,
+  // and the process would die before the settlement is written — the
+  // reservation would burn the day's budget with no spend record.
+  const guard = makeGuard({ maxWorkers: 2 });
+  guard.claimWorker({ workerId: 'hb-3' });
+  guard.renewWorker = () => {
+    throw new Error('worker-lease: could not acquire the lease lock');
+  };
+  const heartbeat = guard.startHeartbeat('hb-3', { intervalMs: 10 });
+  await new Promise((r) => setTimeout(r, 60));
+  heartbeat.stop();
+  assert(typeof heartbeat.lost === 'string', 'a throwing renewal is recorded, not thrown');
+  assert(String(heartbeat.lost).includes('renew-failed'), 'the recorded failure says what happened');
+  cleanup(guard);
+}
+
+// ---------------------------------------------------------------------------
+console.log('\n14b. an expired slot is re-claimed; a full pool is not');
+// ---------------------------------------------------------------------------
+{
+  const guard = makeGuard({ maxWorkers: 2 });
+  guard.claimWorker({ workerId: 're-1' });
+  // The lease file vanishes (an operator cleaned it, or it was pruned).
+  rmSync(join(guard.leases.dir, 're-1.lease.json'), { force: true });
+  const slot = guard.ensureWorkerSlot('re-1');
+  assert(slot.ok === true, 'an expired slot is re-claimed');
+  assert(slot.reclaimed === true, 'the re-claim is reported as a re-claim');
+  cleanup(guard);
+}
+
+{
+  const guard = makeGuard({ maxWorkers: 2 });
+  guard.claimWorker({ workerId: 're-2' });
+  guard.claimWorker({ workerId: 'other' });
+  // The slot's file vanishes, and somebody else takes the free slot before
+  // this worker comes back for it.
+  rmSync(join(guard.leases.dir, 're-2.lease.json'), { force: true });
+  const taken = guard.claimWorker({ workerId: 'third' });
+  assert(taken.ok === true, 'the freed slot is taken by another worker');
+  const slot = guard.ensureWorkerSlot('re-2');
+  assert(slot.ok === false, 'a slot is NOT re-claimed when the pool is full');
+  assert(slot.reason === 'cap', 'the refusal says the pool is full');
+  cleanup(guard);
+}
+
 // ---------------------------------------------------------------------------
 console.log('\n15. an overage stops the NEXT reservation');
 // ---------------------------------------------------------------------------

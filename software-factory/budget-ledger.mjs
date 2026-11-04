@@ -566,6 +566,29 @@ export class BudgetLedger {
     return summary;
   }
 
+  /** Remove repair temp files left behind by a crashed repair. */
+  _pruneRepairTemps(maxAgeMs = 3600_000) {
+    let names = [];
+    try {
+      names = fs.readdirSync(this.stateDir);
+    } catch {
+      return 0;
+    }
+    let removed = 0;
+    for (const name of names) {
+      if (!name.includes('.repair-')) continue;
+      const file = path.join(this.stateDir, name);
+      try {
+        if (Date.now() - fs.statSync(file).mtimeMs < maxAgeMs) continue;
+        fs.unlinkSync(file);
+        removed++;
+      } catch {
+        /* already gone */
+      }
+    }
+    return removed;
+  }
+
   /**
    * Repair a day whose ledger has a torn line: keep the parsable records,
    * drop the fragment, and record the repair. This is an explicit operator
@@ -579,6 +602,9 @@ export class BudgetLedger {
    */
   reconcile(day = this.day) {
     return this._withLock(() => {
+      // A crashed repair leaves its temp file behind. The day file is the
+      // important part and it is intact; the fragment is just litter.
+      this._pruneRepairTemps();
       const { records, torn } = this._readRecords(day);
       if (!torn) return { ok: true, repaired: false, day };
       const kept = records.map((r) => JSON.stringify(r)).join('\n');

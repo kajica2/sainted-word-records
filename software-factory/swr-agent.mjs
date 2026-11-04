@@ -619,6 +619,23 @@ function claimWorkerSlot(guard, agentName, taskName) {
 }
 
 /**
+ * Make sure the run still holds its worker slot.
+ *
+ * A renewal can fail because the lease expired while the agent was idle.
+ * The pool still enforces the cap, so a re-claim that finds the pool full
+ * is refused — a lost slot is never re-taken by force.
+ *
+ * The failure is RETURNED, not fatal here: the caller breaks out of the
+ * turn loop so the lease is released on the normal path, and the run
+ * reports the refusal afterwards.
+ */
+function ensureWorkerSlot(guard, workerId, mission) {
+  const slot = guard.ensureWorkerSlot(workerId, { mission });
+  if (slot.ok) return slot;
+  return { ok: false, reason: slot.reason || 'lease-lost' };
+}
+
+/**
  * One guarded turn: reserve, call, settle.
  *
  * The reservation is sized by the most expensive model in the failover
@@ -770,11 +787,12 @@ async function cmdRun(args) {
       };
 
       // A long run keeps its slot: renew before every turn. The result is
-      // CHECKED — a renewal that failed means the slot is gone, and a run
-      // without a slot is a run outside the pool.
-      const renewed = guard.renewWorker({ workerId });
-      if (!renewed.ok) {
-        refusal = { message: `the worker slot was lost before the turn (${renewed.reason}) — the run stopped rather than continue without a slot.` };
+      // CHECKED — a renewal that failed means the slot may be gone, and a
+      // run without a slot is a run outside the pool. A slot that merely
+      // EXPIRED is re-claimed (the pool still enforces the cap).
+      const slot = ensureWorkerSlot(guard, workerId, route.task ? `${args.agent}/${route.task}` : args.agent);
+      if (!slot.ok) {
+        refusal = { message: `the worker slot was lost before the turn (${slot.reason}) — the run stopped rather than continue without a slot.` };
         break;
       }
 
@@ -893,13 +911,19 @@ async function cmdChat(args) {
   };
   process.on('exit', releaseOnExit);
 
+  // The chat can sit idle for a long time between lines. Without this the
+  // lease expires while the operator is thinking, and the chat then dies
+  // with "the slot was lost" for a slot nobody stole. The heartbeat keeps
+  // it alive; the pool's cap still decides whether a re-claim is allowed.
+  const chatHeartbeat = guard.startHeartbeat(workerId);
+
   const maxTokens = effectiveMaxTokens(config, route.maxTokens);
   let refusal = null;
 
   try {
-    const renewed = guard.renewWorker({ workerId });
-    if (!renewed.ok) {
-      refusal = { message: `the worker slot was lost before the opening turn (${renewed.reason}) — the chat stopped rather than continue without a slot.` };
+    const slot = ensureWorkerSlot(guard, workerId, route.task ? `${args.agent}/${route.task}` : args.agent);
+    if (!slot.ok) {
+      refusal = { message: `the worker slot was lost before the opening turn (${slot.reason}) — the chat stopped rather than continue without a slot.` };
     }
     const first = refusal
       ? null
@@ -938,9 +962,9 @@ async function cmdChat(args) {
 
         history.push({ role: 'user', content: [{ type: 'text', text: trimmed }] });
         for (let turn = 0; turn < 3; turn++) {
-          const renewed = guard.renewWorker({ workerId });
-          if (!renewed.ok) {
-            refusal = { message: `the worker slot was lost before the turn (${renewed.reason}) — the chat stopped rather than continue without a slot.` };
+          const slot = ensureWorkerSlot(guard, workerId, route.task ? `${args.agent}/${route.task}` : args.agent);
+          if (!slot.ok) {
+            refusal = { message: `the worker slot was lost before the turn (${slot.reason}) — the chat stopped rather than continue without a slot.` };
             break;
           }
           const turnResult = await guardedTurn(guard, {
@@ -979,6 +1003,7 @@ async function cmdChat(args) {
   } finally {
     // Release FIRST, then drop the fallback: if the release throws (a lock
     // timeout), the exit handler is still installed and will try again.
+    chatHeartbeat.stop();
     guard.releaseWorker({ workerId, reason: 'done' });
     process.removeListener('exit', releaseOnExit);
   }

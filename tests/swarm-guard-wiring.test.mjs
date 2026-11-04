@@ -77,9 +77,9 @@ function leaseFilesIn(dir) {
  * timeout. The helper appends one JSON line per request to a log file;
  * the test reads that file afterwards.
  */
-function startFakeProvider({ ledgerDir, leaseDir, delayMs = 0, deleteLeases = false } = {}) {
+function startFakeProvider({ ledgerDir, leaseDir, delayMs = 0, deleteLeases = false, claimWorker = '' } = {}) {
   const logFile = join(scratch, `fake-provider-${Math.random().toString(36).slice(2)}.jsonl`);
-  const child = spawn(process.execPath, [FAKE_PROVIDER], {
+  const child = spawn(process.execPath, [FAKE_PROVIDER, ROOT], {
     cwd: ROOT,
     env: {
       ...process.env,
@@ -88,6 +88,7 @@ function startFakeProvider({ ledgerDir, leaseDir, delayMs = 0, deleteLeases = fa
       LOG: logFile,
       DELAY_MS: String(delayMs || 0),
       DELETE_LEASES: deleteLeases ? '1' : '0',
+      CLAIM_WORKER: claimWorker || '',
     },
     stdio: ['ignore', 'pipe', 'inherit'],
   });
@@ -225,28 +226,57 @@ console.log('\n4. a turn that cannot be priced never reaches a provider');
 }
 
 // ---------------------------------------------------------------------------
-console.log('\n5. a run that loses its slot mid-flight STOPS');
+console.log('\n5. a lease that vanishes is re-claimed — unless the pool is full');
 // ---------------------------------------------------------------------------
 {
   // The fake provider deletes the agent's lease while the request is in
-  // flight. The next renewal cannot find the worker, so the run must stop
-  // rather than continue outside the pool.
+  // flight. Nobody stole it: it simply went missing. The pool still
+  // decides — with a free slot, the agent takes its own back.
+  const leaseDir = join(scratch, 'leases-reclaim');
+  const budgetDir = join(scratch, 'budget-reclaim');
   const provider = await startFakeProvider({
-    ledgerDir: BUDGET_DIR,
-    leaseDir: LEASE_DIR,
+    ledgerDir: budgetDir,
+    leaseDir,
     delayMs: 50,
     deleteLeases: true,
   });
   const res = runCli(['chat', '--agent', 'SWR-Check', '--task', 'verification', '--prompt', 'hello there'], {
+    budgetDir,
+    leaseDir,
     extraEnv: { MINIMAX_BASE_URL: provider.url, MINIMAX_API_KEY: 'fake-key' },
     input: 'another line\n/exit\n',
   });
   provider.close();
 
-  assert(res.status === 1, 'the chat stops when the slot is lost');
+  assert(res.status === 0, 'the chat continues when the pool still has room');
+  assert(provider.requests().length >= 2, 'the second line was answered too');
+  assert(leaseFilesIn(leaseDir).length === 0, 'no slot was left behind');
+}
+
+{
+  // The same vanishing lease, but somebody else takes the free slot while
+  // the request is in flight. The pool's cap wins: the agent stops rather
+  // than run outside the pool.
+  const leaseDir = join(scratch, 'leases-usurped');
+  const budgetDir = join(scratch, 'budget-usurped');
+  const provider = await startFakeProvider({
+    ledgerDir: budgetDir,
+    leaseDir,
+    delayMs: 50,
+    deleteLeases: true,
+    claimWorker: 'usurper',
+  });
+  const res = runCli(['chat', '--agent', 'SWR-Check', '--task', 'verification', '--prompt', 'hello there'], {
+    budgetDir,
+    leaseDir,
+    extraEnv: { MINIMAX_BASE_URL: provider.url, MINIMAX_API_KEY: 'fake-key' },
+    input: 'another line\n/exit\n',
+  });
+  provider.close();
+
+  assert(res.status === 1, 'the chat stops when the pool has no room for it');
   assert(/worker slot was lost/.test(res.stderr || ''), 'the message says the slot was lost');
   assert(/stopped rather than continue without a slot/.test(res.stderr || ''), 'the message says why it stopped');
-  assert(leaseFilesIn(LEASE_DIR).length === 0, 'no slot was left behind');
 }
 
 // ---------------------------------------------------------------------------

@@ -41,8 +41,12 @@ export const REPO_ROOT = path.resolve(HERE, '..');
 export const DEFAULT_MAX_WORKERS = 2;
 export const DEFAULT_LEASE_DIR = path.join(REPO_ROOT, 'data', 'swr-leases');
 export const DEFAULT_LEASE_TTL_MS = 15 * 60 * 1000; // 15 minutes
-export const STALE_LOCK_MS = 30_000;
-export const LOCK_WAIT_MS = 10_000;
+export const STALE_LOCK_MS = 5_000;
+export const LOCK_WAIT_MS = 15_000;
+// A lease file younger than this is assumed to be a writer's work in
+// progress, not debris. It is never deleted on the strength of being
+// unreadable.
+export const CORRUPT_FILE_MS = 60_000;
 
 function sleepSync(ms) {
   const sab = new SharedArrayBuffer(4);
@@ -67,6 +71,7 @@ export class WorkerLeaseManager {
     ttlMs = DEFAULT_LEASE_TTL_MS,
     staleLockMs = STALE_LOCK_MS,
     lockWaitMs = LOCK_WAIT_MS,
+    corruptFileMs = CORRUPT_FILE_MS,
   } = {}) {
     this.dir = dir;
     this.maxWorkers = maxWorkers;
@@ -74,6 +79,7 @@ export class WorkerLeaseManager {
     this.ttlMs = ttlMs;
     this.staleLockMs = staleLockMs;
     this.lockWaitMs = lockWaitMs;
+    this.corruptFileMs = corruptFileMs;
     fs.mkdirSync(this.dir, { recursive: true });
   }
 
@@ -132,12 +138,16 @@ export class WorkerLeaseManager {
   /**
    * Every lease file on disk, expired ones flagged.
    *
-   * A CORRUPT lease file (a crash between the exclusive create and the
-   * write) carries no information: it cannot say who holds it or until
-   * when. It is pruned rather than thrown on — otherwise one truncated
-   * file bricks the whole pool until an operator deletes it by hand, and
-   * the pool exists to stop agents from starting, not to stop them
-   * starting forever.
+   * A CORRUPT lease file (a crash between the create and the write) carries
+   * no information: it cannot say who holds it or until when. It is pruned
+   * rather than thrown on — otherwise one truncated file bricks the whole
+   * pool until an operator deletes it by hand.
+   *
+   * BUT a file that is merely *young* is not corrupt: a writer that has
+   * not finished yet looks exactly like a truncated file. Lease files are
+   * now written atomically, and the prune additionally refuses to touch a
+   * file that was modified within `corruptFileMs` — so a live lease can
+   * never be deleted by a reader that caught it mid-write.
    */
   _readLeases() {
     const out = [];
@@ -152,12 +162,22 @@ export class WorkerLeaseManager {
       if (!name.endsWith('.lease.json')) continue;
       const file = path.join(this.dir, name);
       let lease = null;
+      let unreadable = false;
       try {
         lease = readJsonFile(file);
-      } catch {
-        lease = null; // corrupt — pruned below
+      } catch (err) {
+        if (err && err.code === 'ENOENT') continue; // a normal race: it is gone
+        unreadable = true;
       }
-      if (!lease || typeof lease !== 'object') {
+      if (unreadable || !lease || typeof lease !== 'object') {
+        const age = this._fileAgeMs(file);
+        if (age === null) continue; // gone
+        if (age < this.corruptFileMs) {
+          // Too young to be debris: a writer is probably still on it. Do not
+          // count it, do not delete it, and do not let it hold a slot.
+          this.youngUnreadable = (this.youngUnreadable || 0) + 1;
+          continue;
+        }
         this.corrupt = (this.corrupt || 0) + 1;
         try {
           fs.unlinkSync(file);
@@ -173,6 +193,15 @@ export class WorkerLeaseManager {
     return out;
   }
 
+  /** How old a file is, in milliseconds, or null if it is gone. */
+  _fileAgeMs(file) {
+    try {
+      return this._nowMs() - fs.statSync(file).mtimeMs;
+    } catch {
+      return null;
+    }
+  }
+
   _pruneExpired(leases) {
     const expired = leases.filter((l) => l.expired);
     for (const l of expired) {
@@ -185,15 +214,33 @@ export class WorkerLeaseManager {
     return { expired, live: leases.filter((l) => !l.expired) };
   }
 
+  /**
+   * Write a lease file ATOMICALLY.
+   *
+   * The file used to be created empty and then filled in place, which
+   * leaves a window in which another process reads a zero-length file. A
+   * reader that treats "unreadable" as "corrupt" then deletes a LIVE
+   * lease — and the pool hands out more slots than the cap allows. The
+   * temp file plus the rename closes the window: a reader sees either the
+   * old lease or the new one, never a fragment.
+   */
   _writeLease(lease) {
     const file = this._leasePath(lease.workerId);
-    const fd = fs.openSync(file, 'wx');
+    this._writeJsonAtomic(file, lease);
+    return file;
+  }
+
+  /** Write JSON to `file` through a temp file and an atomic rename. */
+  _writeJsonAtomic(file, value) {
+    const tmp = `${file}.tmp-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+    const fd = fs.openSync(tmp, 'w');
     try {
-      fs.writeSync(fd, JSON.stringify(lease, null, 2) + '\n');
+      fs.writeSync(fd, JSON.stringify(value, null, 2) + '\n');
+      fs.fsyncSync(fd);
     } finally {
       fs.closeSync(fd);
     }
-    return file;
+    fs.renameSync(tmp, file);
   }
 
   /**
@@ -213,12 +260,7 @@ export class WorkerLeaseManager {
       if (mine) {
         mine.expiresAt = this._nowMs() + ttl;
         mine.renewedAt = new Date(this._nowMs()).toISOString();
-        const fd = fs.openSync(mine.file, 'w');
-        try {
-          fs.writeSync(fd, JSON.stringify(mine, null, 2) + '\n');
-        } finally {
-          fs.closeSync(fd);
-        }
+        this._writeJsonAtomic(mine.file, mine);
         return { ok: true, idempotent: true, lease: mine, active: live.length, pruned: expired.length };
       }
 
@@ -275,12 +317,7 @@ export class WorkerLeaseManager {
       if (!mine) return { ok: false, reason: 'unknown-worker' };
       mine.expiresAt = this._nowMs() + ttl;
       mine.renewedAt = new Date(this._nowMs()).toISOString();
-      const fd = fs.openSync(mine.file, 'w');
-      try {
-        fs.writeSync(fd, JSON.stringify(mine, null, 2) + '\n');
-      } finally {
-        fs.closeSync(fd);
-      }
+      this._writeJsonAtomic(mine.file, mine);
       return { ok: true, lease: mine, active: live.length };
     });
   }

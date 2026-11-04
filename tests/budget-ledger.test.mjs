@@ -333,6 +333,15 @@ section('atomic repair');
   assert(crashed === true, 'the repair did crash, as simulated');
   const after = l.status();
   assert(after.spentUsd === spentBefore, 'the money that was already spent survived the crashed repair');
+  // The crashed repair left a temp file. The next repair prunes it — once
+  // it is old enough to be litter rather than a repair in flight.
+  const litter = fs.readdirSync(dir).filter((f) => f.includes('.repair-'));
+  assert(litter.length >= 1, 'the crashed repair left its temp file behind');
+  const old = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  for (const name of litter) fs.utimesSync(path.join(dir, name), old, old);
+  l.reconcile();
+  const litterAfter = fs.readdirSync(dir).filter((f) => f.includes('.repair-'));
+  assert(litterAfter.length === 0, 'the next repair prunes the litter');
 }
 
 // ---------------------------------------------------------------------------

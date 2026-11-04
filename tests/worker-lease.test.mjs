@@ -236,20 +236,42 @@ section('defaults');
 section('a corrupt lease file does not brick the pool');
 {
   const dir = tmpDir();
-  // A crash between the exclusive create and the write leaves a truncated
-  // file. It says nothing about who holds a slot — and a pool that throws
-  // on it stops every agent until an operator deletes it by hand.
-  fs.writeFileSync(path.join(dir, 'broken.lease.json'), '{"workerId": "broken", "expiresA');
+  // A crash between the create and the write leaves a truncated file. It
+  // says nothing about who holds a slot — and a pool that throws on it
+  // stops every agent until an operator deletes it by hand.
+  const broken = path.join(dir, 'broken.lease.json');
+  fs.writeFileSync(broken, '{"workerId": "broken", "expiresA');
+  // Debris is old. A file that is merely YOUNG is a writer's work in
+  // progress, and deleting it would delete a LIVE lease.
+  const old = new Date(Date.now() - 5 * 60 * 1000);
+  fs.utimesSync(broken, old, old);
   const m = createLeaseManager({ dir, maxWorkers: 2 });
 
   const status = m.status();
   assert(status.active === 0, 'a corrupt lease file does not count as an active worker');
   assert(status.corruptPruned === 1, 'the corrupt lease file is pruned');
-  assert(!fs.existsSync(path.join(dir, 'broken.lease.json')), 'the corrupt file is gone');
+  assert(!fs.existsSync(broken), 'the corrupt file is gone');
 
   const claim = m.claim({ workerId: 'after-corrupt' });
   assert(claim.ok === true, 'the pool still hands out a slot after a corrupt file');
   assert(claim.active === 1, 'the pool counts the new worker');
+}
+
+// ---------------------------------------------------------------------------
+section('a young unreadable lease file is NOT pruned');
+{
+  const dir = tmpDir();
+  // A live lease caught mid-write looks exactly like a truncated file.
+  // Deleting it would hand the pool's slot to somebody else while the
+  // agent is still running — the cap would be broken by a reader.
+  const fresh = path.join(dir, 'fresh.lease.json');
+  fs.writeFileSync(fresh, '{"workerId": "fresh", "expiresA');
+  const m = createLeaseManager({ dir, maxWorkers: 2 });
+
+  const status = m.status();
+  assert(status.active === 0, 'the unreadable file does not count as an active worker');
+  assert(status.corruptPruned === 0, 'a young unreadable file is not counted as debris');
+  assert(fs.existsSync(fresh), 'a young unreadable file is left alone');
 }
 
 // ---------------------------------------------------------------------------
