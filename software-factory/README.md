@@ -136,7 +136,7 @@ scripts/
   check-fx-doc-drift.mjs      the doc-vs-code drift gate
 agents/
   team.config.json       the same model pins, for the local team
-  start-team.sh          launches the three agents
+  start-team.sh          launches the team, up to the worker-pool cap
 ```
 
 ### The router — `routing.config.json`
@@ -265,7 +265,7 @@ export MINIMAX_API_KEY=...
 npm run check:factory          # the router gate + the drift gate
 node software-factory/swr-agent.mjs self-test
 node software-factory/swr-agent.mjs models --live   # which providers are actually reachable
-./agents/start-team.sh          # three agents
+./agents/start-team.sh          # the team (up to the worker-pool cap)
 ```
 
 ---
