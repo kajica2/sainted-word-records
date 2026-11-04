@@ -233,6 +233,26 @@ section('defaults');
 }
 
 // ---------------------------------------------------------------------------
+section('a corrupt lease file does not brick the pool');
+{
+  const dir = tmpDir();
+  // A crash between the exclusive create and the write leaves a truncated
+  // file. It says nothing about who holds a slot — and a pool that throws
+  // on it stops every agent until an operator deletes it by hand.
+  fs.writeFileSync(path.join(dir, 'broken.lease.json'), '{"workerId": "broken", "expiresA');
+  const m = createLeaseManager({ dir, maxWorkers: 2 });
+
+  const status = m.status();
+  assert(status.active === 0, 'a corrupt lease file does not count as an active worker');
+  assert(status.corruptPruned === 1, 'the corrupt lease file is pruned');
+  assert(!fs.existsSync(path.join(dir, 'broken.lease.json')), 'the corrupt file is gone');
+
+  const claim = m.claim({ workerId: 'after-corrupt' });
+  assert(claim.ok === true, 'the pool still hands out a slot after a corrupt file');
+  assert(claim.active === 1, 'the pool counts the new worker');
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 console.log('');

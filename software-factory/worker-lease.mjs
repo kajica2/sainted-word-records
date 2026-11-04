@@ -129,7 +129,16 @@ export class WorkerLeaseManager {
     }
   }
 
-  /** Every lease file on disk, expired ones flagged. */
+  /**
+   * Every lease file on disk, expired ones flagged.
+   *
+   * A CORRUPT lease file (a crash between the exclusive create and the
+   * write) carries no information: it cannot say who holds it or until
+   * when. It is pruned rather than thrown on — otherwise one truncated
+   * file bricks the whole pool until an operator deletes it by hand, and
+   * the pool exists to stop agents from starting, not to stop them
+   * starting forever.
+   */
   _readLeases() {
     const out = [];
     let names = [];
@@ -142,8 +151,21 @@ export class WorkerLeaseManager {
     for (const name of names) {
       if (!name.endsWith('.lease.json')) continue;
       const file = path.join(this.dir, name);
-      const lease = readJsonFile(file);
-      if (!lease || typeof lease !== 'object') continue;
+      let lease = null;
+      try {
+        lease = readJsonFile(file);
+      } catch {
+        lease = null; // corrupt — pruned below
+      }
+      if (!lease || typeof lease !== 'object') {
+        this.corrupt = (this.corrupt || 0) + 1;
+        try {
+          fs.unlinkSync(file);
+        } catch {
+          /* already gone */
+        }
+        continue;
+      }
       lease.file = file;
       lease.expired = Number(lease.expiresAt) <= this._nowMs();
       out.push(lease);
@@ -295,6 +317,9 @@ export class WorkerLeaseManager {
         expiresAt: l.expiresAt,
       })),
       expired: expired.map((l) => ({ workerId: l.workerId, expiresAt: l.expiresAt })),
+      // How many unreadable lease files this process has pruned. Non-zero
+      // means an agent crashed while writing its lease.
+      corruptPruned: this.corrupt || 0,
     };
   }
 }

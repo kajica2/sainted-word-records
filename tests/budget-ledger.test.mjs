@@ -129,6 +129,10 @@ const withCache = estimateUsd({ input: 0.3, output: 1.2, cacheRead: 0.06 }, { in
 assert(Math.abs(withCache.usd - 0.06) < 1e-9, 'a cache read is billed at the cache rate');
 const noUsage = estimateUsd({ input: 0.3, output: 1.2, cacheRead: 0 }, null);
 assert(noUsage.usd === 0, 'no usage costs nothing');
+const missingRate = estimateUsd({ input: null, output: 1.2 }, { input_tokens: 1000, output_tokens: 1000 });
+assert(missingRate.usd === null, 'a missing rate is a NULL cost, not a zero — an unpriceable call must not look free');
+const unknownBoth = estimateUsd({}, { input_tokens: 1000, output_tokens: 1000 });
+assert(unknownBoth.usd === null, 'no rates at all is a null cost');
 
 // ---------------------------------------------------------------------------
 // 4. limits
@@ -277,6 +281,58 @@ section('torn ledger');
   assert(l.status().torn === false, 'the repaired day is no longer torn');
   const after = l.reserve({ reservationId: 't3', modelRef: 'test/paid', pricing: paidPricing(), usage: ONE_MTOK });
   assert(after.ok === true, 'reservations work again after the repair');
+}
+
+// ---------------------------------------------------------------------------
+// 9b. the repair never truncates the day
+// ---------------------------------------------------------------------------
+section('atomic repair');
+{
+  const dir = tmpDir();
+  const l = createLedger({ stateDir: dir, maxDailyUsd: 1 });
+  l.reserve({ reservationId: 'a1', modelRef: 'test/paid', pricing: paidPricing(), usage: ONE_MTOK });
+  l.settle({ reservationId: 'a1', usd: 0.25 });
+  fs.appendFileSync(l.ledgerPath(l.day), '{"type":"reserve","reservationId":"tor');
+  const before = l.status();
+  assert(before.torn === true, 'the day is torn before the repair');
+  l.reconcile();
+  const after = l.status();
+  assert(after.torn === false, 'the day is whole after the repair');
+  assert(after.spentUsd === before.spentUsd, 'the repair kept the money that was already spent');
+  assert(after.reservations.length === before.reservations.length, 'the repair kept every reservation');
+  const leftovers = fs.readdirSync(dir).filter((f) => f.includes('.repair-'));
+  assert(leftovers.length === 0, 'the repair leaves no temp file behind');
+  // The rewrite goes through a rename, so a reader never sees an empty day.
+  const body = fs.readFileSync(l.ledgerPath(l.day), 'utf8');
+  assert(body.includes('"type":"settle"'), 'the settled record survived the repair');
+}
+
+{
+  // A crash DURING the repair must not erase the day. Truncating the file
+  // in place and then writing it is the failure this repair exists to fix:
+  // a crash between the two leaves an empty day, and the spent money with it.
+  const dir = tmpDir();
+  const l = createLedger({ stateDir: dir, maxDailyUsd: 1 });
+  l.reserve({ reservationId: 'c1', modelRef: 'test/paid', pricing: paidPricing(), usage: ONE_MTOK });
+  l.settle({ reservationId: 'c1', usd: 0.25 });
+  fs.appendFileSync(l.ledgerPath(l.day), '{"type":"reserve","reservationId":"tor');
+  const spentBefore = l.status().spentUsd;
+
+  const realRename = fs.renameSync;
+  fs.renameSync = () => {
+    throw new Error('simulated crash during the repair');
+  };
+  let crashed = false;
+  try {
+    l.reconcile();
+  } catch {
+    crashed = true;
+  } finally {
+    fs.renameSync = realRename;
+  }
+  assert(crashed === true, 'the repair did crash, as simulated');
+  const after = l.status();
+  assert(after.spentUsd === spentBefore, 'the money that was already spent survived the crashed repair');
 }
 
 // ---------------------------------------------------------------------------

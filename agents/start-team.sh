@@ -72,12 +72,37 @@ mkdir -p "$LOG_DIR"
 ONLY_AGENT="${1:-}"
 PIDS=()
 
+# The global worker pool allows a fixed number of agents at once (two by
+# default; qa/swarm.config.json can say otherwise). The bridge refuses a
+# third agent BEFORE it does any work, so the launcher has to ask the same
+# question the bridge asks — otherwise it starts an agent, watches it get
+# refused, and still prints "Team launched".
+MAX_WORKERS="$(node -e '
+const fs = require("fs");
+let n = 2;
+try {
+  const cfg = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  if (cfg && Number.isFinite(Number(cfg.maxConcurrentAgents)) && Number(cfg.maxConcurrentAgents) > 0) {
+    n = Number(cfg.maxConcurrentAgents);
+  }
+} catch { /* no config: the committed default stands */ }
+process.stdout.write(String(n));
+' "$REPO_ROOT/qa/swarm.config.json")"
+LAUNCHED=0
+
 launch() {
     local name="$1"
     local task="$2"
     local extra="${3:-}"
 
     if [ -n "$ONLY_AGENT" ] && [ "$ONLY_AGENT" != "$name" ]; then
+        return
+    fi
+
+    if [ "$LAUNCHED" -ge "$MAX_WORKERS" ]; then
+        echo "  ⏭ $name ($task) — not started: the worker pool allows $MAX_WORKERS active agent(s)."
+        echo "     Start it once one of the running agents exits:"
+        echo "       ./agents/start-team.sh $name"
         return
     fi
 
@@ -91,6 +116,7 @@ launch() {
             2>&1 | tee "$LOG_DIR/${name,,}-$(date +%Y%m%d-%H%M%S).log"
     ) &
     PIDS+=($!)
+    LAUNCHED=$((LAUNCHED + 1))
 }
 
 # SWR-Ops (orchestrator) — owns agents/TASKS.md
@@ -104,7 +130,11 @@ launch "SWR-Check" "verification" ""
 
 echo ""
 echo "════════════════════════════════════════════════════════════"
-echo "  ✅ Team launched on MiniMax"
+if [ "$LAUNCHED" -ge "$MAX_WORKERS" ] && [ -z "$ONLY_AGENT" ]; then
+    echo "  ✅ Team launched on MiniMax — $LAUNCHED of 3 agents (the pool allows $MAX_WORKERS)"
+else
+    echo "  ✅ Team launched on MiniMax — $LAUNCHED agent(s)"
+fi
 echo "════════════════════════════════════════════════════════════"
 echo ""
 echo "📝 Logs: $LOG_DIR/"

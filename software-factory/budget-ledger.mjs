@@ -155,20 +155,32 @@ export function resolvePricing(config, modelRef) {
 
 /**
  * The money function. Prices are per million tokens.
+ *
  * Mirrors `estimateCost()` in swr-agent.mjs, but WITHOUT the `|| 0`
  * coercion on the input/output rates — that coercion is the bug this
- * module exists to make impossible.
+ * module exists to make impossible. A missing rate is not a zero rate:
+ * it yields a **null** cost and the caller must treat that as "unknown",
+ * not as "free".
  */
 export function estimateUsd(rates, usage) {
   const inTok = Number(usage?.input_tokens) || 0;
   const outTok = Number(usage?.output_tokens) || 0;
   const cacheTok = Number(usage?.cache_read_input_tokens) || 0;
   const r = rates || {};
-  const usd =
-    (inTok * (Number(r.input) || 0) +
-      outTok * (Number(r.output) || 0) +
-      cacheTok * (Number(r.cacheRead) || 0)) /
-    1e6;
+  const known = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+  const inputRate = known(r.input) ? Number(r.input) : null;
+  const outputRate = known(r.output) ? Number(r.output) : null;
+  const cacheRate = r.cacheRead === null || r.cacheRead === undefined ? 0 : (known(r.cacheRead) ? Number(r.cacheRead) : null);
+  if (inputRate === null || outputRate === null || cacheRate === null) {
+    return {
+      usd: null,
+      input_tokens: inTok,
+      output_tokens: outTok,
+      cache_read_input_tokens: cacheTok,
+      unknownRates: true,
+    };
+  }
+  const usd = (inTok * inputRate + outTok * outputRate + cacheTok * cacheRate) / 1e6;
   return {
     usd: round6(usd),
     input_tokens: inTok,
@@ -420,6 +432,25 @@ export class BudgetLedger {
       }
 
       const est = estimateUsd(pricing.rates, usage);
+      if (est.usd === null) {
+        // The pricing claimed to be known but the arithmetic cannot price
+        // it. Refuse rather than reserve a number nobody can justify.
+        this._append(day, {
+          type: 'refuse',
+          reservationId,
+          ts: this._ts(),
+          day,
+          reason: 'unknown-pricing',
+          model: modelRef,
+          note,
+        });
+        return {
+          ok: false,
+          reason: 'unknown-pricing',
+          reservedUsd: 0,
+          status: this._summarize(records, day),
+        };
+      }
       const before = this._summarize(records, day);
       if (before.remainingUsd + 1e-9 < est.usd) {
         this._append(day, {
@@ -539,6 +570,12 @@ export class BudgetLedger {
    * Repair a day whose ledger has a torn line: keep the parsable records,
    * drop the fragment, and record the repair. This is an explicit operator
    * action — until it runs, the day refuses new reservations.
+   *
+   * The rewrite goes through a TEMP FILE and a rename. Truncating the day
+   * in place and then writing it is exactly the failure this method exists
+   * to repair: a crash between the two leaves an EMPTY day file, and the
+   * spent money is gone. The rename is atomic, so a reader sees either the
+   * old day or the repaired one — never a half-written one.
    */
   reconcile(day = this.day) {
     return this._withLock(() => {
@@ -547,12 +584,15 @@ export class BudgetLedger {
       const kept = records.map((r) => JSON.stringify(r)).join('\n');
       const file = this.ledgerPath(day);
       const body = kept ? kept + '\n' : '';
-      const fd = fs.openSync(file, 'w');
+      const tmp = `${file}.repair-${process.pid}-${Date.now()}`;
+      const fd = fs.openSync(tmp, 'w');
       try {
         fs.writeSync(fd, body);
+        fs.fsyncSync(fd);
       } finally {
         fs.closeSync(fd);
       }
+      fs.renameSync(tmp, file);
       this._append(day, { type: 'repair', ts: this._ts(), day, note: 'torn append removed' });
       return { ok: true, repaired: true, day };
     });

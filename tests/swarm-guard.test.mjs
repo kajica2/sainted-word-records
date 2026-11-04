@@ -365,7 +365,71 @@ console.log('\n13. reservation ids do not collide inside one run');
   const a = guard.nextReservationId({ runId: 'run-1' });
   const b = guard.nextReservationId({ runId: 'run-1' });
   assert(a !== b, 'two turns of one run get different reservation ids');
-  assert(a.startsWith('run-1-t'), 'the reservation id carries the run');
+  assert(a.startsWith('run-1-'), 'the reservation id carries the run');
+  assert(a.endsWith('-t1') && b.endsWith('-t2'), 'the reservation id carries the turn number');
+  cleanup(guard);
+}
+
+{
+  // A pid is NOT unique: it is reused, it is 1 in most containers, and two
+  // machines can share a state directory. A collision would make the second
+  // run's reservation look idempotent — the call would go out with no money
+  // reserved and its settlement would be dropped.
+  const a = makeGuard({ maxDailyUsd: 5 });
+  const b = makeGuard({ maxDailyUsd: 5 });
+  const idA = a.nextReservationId({ runId: 'run-1' });
+  const idB = b.nextReservationId({ runId: 'run-1' });
+  assert(idA !== idB, 'two runs with the same run id do not collide');
+  cleanup(a);
+  cleanup(b);
+}
+
+// ---------------------------------------------------------------------------
+console.log('\n14. the heartbeat keeps a long turn alive');
+// ---------------------------------------------------------------------------
+{
+  const guard = makeGuard({ maxWorkers: 2 });
+  guard.claimWorker({ workerId: 'hb-1' });
+  const before = guard.leases.status().leases[0].expiresAt;
+  const heartbeat = guard.startHeartbeat('hb-1', { intervalMs: 10 });
+  await new Promise((r) => setTimeout(r, 60));
+  heartbeat.stop();
+  const after = guard.leases.status().leases[0].expiresAt;
+  assert(after > before, 'the heartbeat renewed the lease while the turn was in flight');
+  assert(heartbeat.lost === null, 'the heartbeat did not report a lost lease');
+  cleanup(guard);
+}
+
+{
+  // A lease that vanishes under a running agent is a lost slot: the pool
+  // may now be running someone else in it, so the run has to stop.
+  const guard = makeGuard({ maxWorkers: 2 });
+  guard.claimWorker({ workerId: 'hb-2' });
+  const heartbeat = guard.startHeartbeat('hb-2', { intervalMs: 10 });
+  rmSync(join(guard.leases.dir, 'hb-2.lease.json'), { force: true });
+  await new Promise((r) => setTimeout(r, 60));
+  heartbeat.stop();
+  assert(heartbeat.lost !== null, 'the heartbeat reports a lost lease');
+  cleanup(guard);
+}
+
+// ---------------------------------------------------------------------------
+console.log('\n15. an overage stops the NEXT reservation');
+// ---------------------------------------------------------------------------
+{
+  const guard = makeGuard({ maxDailyUsd: 0.05 });
+  guard.reserveTurn({ reservationId: 'ov-1', chain: ['minimax/MiniMax-M2.7'], maxTokens: 1000, inputTokens: 100 });
+  // The provider bills far more than the reservation asked for.
+  guard.settleTurn({
+    reservationId: 'ov-1',
+    modelRef: 'minimax/MiniMax-M2.7',
+    usage: { input_tokens: 1_000_000, output_tokens: 1_000_000 },
+  });
+  const status = guard.ledger.status();
+  assert(status.spentUsd > status.capUsd, 'a provider that bills more than reserved can exceed the day');
+  assert(status.remainingUsd < 0, 'the remaining budget goes negative');
+  const next = guard.reserveTurn({ reservationId: 'ov-2', chain: ['minimax/MiniMax-M2.7'], maxTokens: 1000, inputTokens: 100 });
+  assert(next.ok === false && next.reason === 'cap', 'the next reservation is refused after an overage');
   cleanup(guard);
 }
 

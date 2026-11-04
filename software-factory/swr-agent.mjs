@@ -625,7 +625,7 @@ function claimWorkerSlot(guard, agentName, taskName) {
  * chain, because a failover can land on it. A refusal returns without
  * calling the provider at all.
  */
-async function guardedTurn(guard, { config, chain, ctx, reservationId, inputTokens, maxTokens }) {
+async function guardedTurn(guard, { config, chain, ctx, reservationId, inputTokens, maxTokens, workerId }) {
   const reservation = guard.reserveTurn({
     reservationId,
     chain,
@@ -648,13 +648,20 @@ async function guardedTurn(guard, { config, chain, ctx, reservationId, inputToke
     };
   }
 
-  const { result, attempts } = await runTurnWithFailover(config, chain, ctx);
+  const heartbeat = workerId ? guard.startHeartbeat(workerId) : null;
+  let result = null;
+  let attempts = [];
+  try {
+    ({ result, attempts } = await runTurnWithFailover(config, chain, ctx));
+  } finally {
+    if (heartbeat) heartbeat.stop();
+  }
 
   if (!result) {
     // Every model failed: there is no completion, so there is nothing to
     // bill. The reservation goes back.
     guard.releaseTurn({ reservationId, reason: 'every model in the chain failed — no completion, no bill' });
-    return { ok: false, refused: false, result: null, attempts, reservation };
+    return { ok: false, refused: false, result: null, attempts, reservation, leaseLost: heartbeat?.lost || null };
   }
 
   const settlement = guard.settleTurn({
@@ -662,7 +669,7 @@ async function guardedTurn(guard, { config, chain, ctx, reservationId, inputToke
     modelRef: result.modelRef,
     usage: result.usage,
   });
-  return { ok: true, result, attempts, reservation, settlement };
+  return { ok: true, result, attempts, reservation, settlement, leaseLost: heartbeat?.lost || null };
 }
 
 /**
@@ -671,10 +678,14 @@ async function guardedTurn(guard, { config, chain, ctx, reservationId, inputToke
  * `estimateCost()` coerces a missing rate to zero, so it can under-report
  * a real spend. The ledger's settlement is authoritative: it is computed
  * from the answering model's own rates and is the number that was charged.
+ * When even the settlement is unknown, the RESERVATION is the last honest
+ * number — never a zero.
  */
-function costPayload(result, settlement) {
+function costPayload(result, settlement, reservation) {
   const estimate = estimateCost(result.modelRef, result.usage);
-  const usd = settlement && typeof settlement.settledUsd === 'number' ? settlement.settledUsd : estimate.usd;
+  let usd = estimate.usd;
+  if (settlement && typeof settlement.settledUsd === 'number') usd = settlement.settledUsd;
+  else if (reservation && typeof reservation.usd === 'number') usd = reservation.usd;
   return { ...estimate, usd };
 }
 
@@ -758,13 +769,20 @@ async function cmdRun(args) {
         tools,
       };
 
-      // A long run keeps its slot: renew before every turn.
-      guard.renewWorker({ workerId });
+      // A long run keeps its slot: renew before every turn. The result is
+      // CHECKED — a renewal that failed means the slot is gone, and a run
+      // without a slot is a run outside the pool.
+      const renewed = guard.renewWorker({ workerId });
+      if (!renewed.ok) {
+        refusal = { message: `the worker slot was lost before the turn (${renewed.reason}) — the run stopped rather than continue without a slot.` };
+        break;
+      }
 
       const turnResult = await guardedTurn(guard, {
         config,
         chain,
         ctx,
+        workerId,
         reservationId: guard.nextReservationId({ runId: `run-${process.pid}` }),
         inputTokens: estimateTurnInput({ system, messages, tools }),
         maxTokens,
@@ -783,6 +801,14 @@ async function cmdRun(args) {
       const result = turnResult.result;
       attempts.push(...turnResult.attempts);
 
+      if (turnResult.leaseLost) {
+        // The slot was lost WHILE the request was in flight: the pool may
+        // now be running someone else in it. The turn is settled (the
+        // money was spent) and the run stops.
+        refusal = { message: `the worker slot was lost during the turn (${turnResult.leaseLost}) — the run stopped rather than continue without a slot.` };
+        break;
+      }
+
       if (result.thinking && args.verbose) process.stderr.write(`[thinking]\n${result.thinking}\n`);
 
       if (!result.toolCalls?.length) {
@@ -795,7 +821,7 @@ async function cmdRun(args) {
           text: result.text,
           thinking: args.verbose ? result.thinking : undefined,
           usage: result.usage,
-          cost: costPayload(result, turnResult.settlement),
+          cost: costPayload(result, turnResult.settlement, turnResult.reservation),
           tool_calls: toolLog,
           attempts,
         };
@@ -812,8 +838,10 @@ async function cmdRun(args) {
       messages.push({ role: 'tool', content: results });
     }
   } finally {
-    process.removeListener('exit', releaseOnExit);
+    // Release FIRST, then drop the fallback: if the release throws (a lock
+    // timeout), the exit handler is still installed and will try again.
     guard.releaseWorker({ workerId, reason: 'done' });
+    process.removeListener('exit', releaseOnExit);
   }
 
   if (refusal) fail(1, refusal.message);
@@ -869,22 +897,32 @@ async function cmdChat(args) {
   let refusal = null;
 
   try {
-    guard.renewWorker({ workerId });
-    const first = await guardedTurn(guard, {
-      config,
-      chain,
-      ctx: { agent: route.agent, system, messages: history, tools, maxTokens, effort: route.effort, transport },
-      reservationId: guard.nextReservationId({ runId: `chat-${process.pid}` }),
-      inputTokens: estimateTurnInput({ system, messages: history, tools }),
-      maxTokens,
-    });
-    if (!first.ok) {
-      refusal = first.refused
-        ? first
-        : { message: 'every model in the chain failed on the opening turn' };
-    } else {
-      if (first.result.text) process.stdout.write(`${first.result.text}\n`);
-      history.push({ role: 'assistant', content: [{ type: 'text', text: first.result.text }] });
+    const renewed = guard.renewWorker({ workerId });
+    if (!renewed.ok) {
+      refusal = { message: `the worker slot was lost before the opening turn (${renewed.reason}) — the chat stopped rather than continue without a slot.` };
+    }
+    const first = refusal
+      ? null
+      : await guardedTurn(guard, {
+          config,
+          chain,
+          ctx: { agent: route.agent, system, messages: history, tools, maxTokens, effort: route.effort, transport },
+          workerId,
+          reservationId: guard.nextReservationId({ runId: `chat-${process.pid}` }),
+          inputTokens: estimateTurnInput({ system, messages: history, tools }),
+          maxTokens,
+        });
+    if (first) {
+      if (!first.ok) {
+        refusal = first.refused
+          ? first
+          : { message: 'every model in the chain failed on the opening turn' };
+      } else if (first.leaseLost) {
+        refusal = { message: `the worker slot was lost during the opening turn (${first.leaseLost}) — the chat stopped rather than continue without a slot.` };
+      } else {
+        if (first.result.text) process.stdout.write(`${first.result.text}\n`);
+        history.push({ role: 'assistant', content: [{ type: 'text', text: first.result.text }] });
+      }
     }
 
     if (!refusal) {
@@ -900,17 +938,26 @@ async function cmdChat(args) {
 
         history.push({ role: 'user', content: [{ type: 'text', text: trimmed }] });
         for (let turn = 0; turn < 3; turn++) {
-          guard.renewWorker({ workerId });
+          const renewed = guard.renewWorker({ workerId });
+          if (!renewed.ok) {
+            refusal = { message: `the worker slot was lost before the turn (${renewed.reason}) — the chat stopped rather than continue without a slot.` };
+            break;
+          }
           const turnResult = await guardedTurn(guard, {
             config,
             chain,
             ctx: { agent: route.agent, system, messages: history, tools, maxTokens, effort: route.effort, transport },
+            workerId,
             reservationId: guard.nextReservationId({ runId: `chat-${process.pid}` }),
             inputTokens: estimateTurnInput({ system, messages: history, tools }),
             maxTokens,
           });
           if (!turnResult.ok) {
             if (turnResult.refused) refusal = turnResult;
+            break;
+          }
+          if (turnResult.leaseLost) {
+            refusal = { message: `the worker slot was lost during the turn (${turnResult.leaseLost}) — the chat stopped rather than continue without a slot.` };
             break;
           }
           const result = turnResult.result;
@@ -930,8 +977,10 @@ async function cmdChat(args) {
       rl.close();
     }
   } finally {
-    process.removeListener('exit', releaseOnExit);
+    // Release FIRST, then drop the fallback: if the release throws (a lock
+    // timeout), the exit handler is still installed and will try again.
     guard.releaseWorker({ workerId, reason: 'done' });
+    process.removeListener('exit', releaseOnExit);
   }
 
   if (refusal) fail(1, refusal.message);

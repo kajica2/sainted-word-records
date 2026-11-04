@@ -33,7 +33,8 @@ import {
   resolvePricing,
   utcDayKey,
 } from './budget-ledger.mjs';
-import { WorkerLeaseManager, createLeaseManager } from './worker-lease.mjs';
+import { WorkerLeaseManager, createLeaseManager, DEFAULT_LEASE_TTL_MS } from './worker-lease.mjs';
+import { randomUUID } from 'node:crypto';
 
 // A rough, deliberately pessimistic token estimate. Four characters per
 // token is the rule of thumb that keeps a reservation from being smaller
@@ -94,6 +95,13 @@ export function resolveChainPlan({ config, chain, maxTokens, inputTokens = 0 } =
     }
     const usage = { input_tokens: Number(inputTokens) || 0, output_tokens: Number(maxTokens) || 0 };
     const estUsd = pricing.free ? 0 : estimateUsd(pricing.rates, usage).usd;
+    if (estUsd === null) {
+      // The pricing claimed to be known but the arithmetic cannot price it.
+      // A member we cannot price fails the whole chain — fail closed.
+      failures.push({ modelRef, reason: 'unknown-pricing' });
+      members.push({ modelRef, known: false, free: false, reason: 'unknown-pricing', estUsd: null });
+      continue;
+    }
     members.push({ modelRef, known: true, free: Boolean(pricing.free), reason: pricing.reason, estUsd, pricing, usage });
   }
 
@@ -189,12 +197,56 @@ export class SwarmGuard {
     return this.leases.release({ workerId, reason });
   }
 
+  /**
+   * Keep a worker slot alive for as long as a turn takes.
+   *
+   * A turn can OUTLIVE the lease TTL: the routing config allows three
+   * attempts per model at a ten-minute timeout each, and a chain has
+   * three models — up to ninety minutes for one turn, against a
+   * fifteen-minute lease. Renewing only BETWEEN turns is not enough: the
+   * lease expires mid-request, the pool prunes it, and a third agent
+   * starts while this one is still working.
+   *
+   * The heartbeat renews while the request is in flight and RECORDS the
+   * first failure. The caller checks `lost` afterwards: a lease that was
+   * lost means the pool may now be running someone else in this slot, and
+   * the run has to stop rather than continue outside the pool.
+   */
+  startHeartbeat(workerId, { intervalMs } = {}) {
+    const ttl = this.leaseTtlMs || DEFAULT_LEASE_TTL_MS;
+    const every = intervalMs || Math.max(1000, Math.floor(ttl / 3));
+    let lost = null;
+    const timer = setInterval(() => {
+      if (lost) return;
+      const res = this.renewWorker({ workerId });
+      if (!res.ok) lost = res.reason || 'lease-lost';
+    }, every);
+    if (typeof timer.unref === 'function') timer.unref();
+    return {
+      stop() {
+        clearInterval(timer);
+      },
+      get lost() {
+        return lost;
+      },
+    };
+  }
+
   // --------------------------------------------------------------- turns ---
 
-  /** A fresh, collision-resistant reservation id for one turn of one run. */
+  /**
+   * A fresh, collision-resistant reservation id for one turn of one run.
+   *
+   * The id carries a random component on purpose. A pid is NOT unique: it is
+   * reused, it is 1 in most containers, and two machines can share a state
+   * directory. A collision would make the second run's reservation look
+   * idempotent — the call would go out with no money reserved and its
+   * settlement would be dropped.
+   */
   nextReservationId({ runId = 'run' } = {}) {
     this.turnCounter += 1;
-    return `${runId}-t${this.turnCounter}`;
+    const unique = randomUUID().replace(/-/g, '').slice(0, 12);
+    return `${runId}-${unique}-t${this.turnCounter}`;
   }
 
   /**
@@ -273,7 +325,11 @@ export class SwarmGuard {
       usage,
       note: priced ? note : note || 'actual model unpriced — settled at reservation',
     });
-    return { ...result, priced, settledUsd: priced ? usd : null };
+    // The LEDGER's settlement record is the truth about what was charged:
+    // when the actual could not be priced it settles at the reservation, and
+    // the caller must see that number, not a null.
+    const settledUsd = result?.settlement?.usd ?? (priced ? usd : null);
+    return { ...result, priced, settledUsd };
   }
 
   /**
@@ -291,7 +347,9 @@ export class SwarmGuard {
   /** A combined view: money for today, workers right now. */
   status() {
     return {
-      day: utcDayKey(),
+      // The LEDGER's day, not the wall clock's: under an injected clock the
+      // two would disagree, and the day is the ledger's business.
+      day: this.ledger.day,
       budget: this.ledger.status(),
       workers: this.leases.status(),
       limits: this.limits,

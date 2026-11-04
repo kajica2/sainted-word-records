@@ -189,15 +189,28 @@ the failover chain**, because a failover can land on it. If ANY member of the ch
 is a paid model whose price is unknown, the whole chain is refused **before the
 request is built** — an unpriceable call is not a free call. A local CLI provider
 runs a binary on this machine, so it is free by construction and never blocks a run.
+A missing rate is a **null** cost, never a zero: `estimateUsd()` refuses to price
+what it cannot price.
 
 **What the money does.** `reserve` → the request goes out → `settle` with the
 answering model's own rates and the provider's reported usage. The difference
 between the reservation and the real cost goes back to the day. A chain that failed
 outright releases its reservation: no completion, no bill.
 
+**What the cap does and does not bound.** The cap is enforced on the *reservation*,
+so a turn that bills more than it reserved can push the day's total past the cap —
+the money is already spent. What the guard guarantees is that **nothing else is
+spent after that**: the remaining budget goes negative and every later reservation
+is refused until the next UTC day.
+
 **Where the state lives.** `data/swr-budget/` and `data/swr-leases/` — both
 gitignored (`/data/swr-*`). One file per UTC day, append-only, one JSON line per
-event; a half-written line closes the day until `reconcile` repairs it.
+event; a half-written line closes the day until `reconcile` repairs it. The repair
+writes a temp file and renames it, so a crash during the repair leaves the day
+exactly as it was — the spent money is never erased by the thing meant to save it.
+A **corrupt lease file** (a crash between the exclusive create and the write) is
+pruned rather than thrown on: it says nothing about who holds a slot, and one
+truncated file must not brick the pool until an operator deletes it by hand.
 
 ```bash
 node software-factory/budget-ledger.mjs status
@@ -209,18 +222,26 @@ node software-factory/budget-ledger.mjs reconcile --day 2026-11-04
 raise the cap or the worker count: those come from `qa/swarm.config.json` when it
 exists and from the committed defaults (`$2` a day, `2` agents) when it does not.
 
+**The slot outlives the turn.** A turn can take ninety minutes (three attempts ×
+ten-minute timeout × three chain models) against a fifteen-minute lease. The
+bridge therefore renews the lease **while the request is in flight**, and it
+*checks* the renewal: a lease that was lost stops the run rather than letting it
+continue outside the pool. `agents/start-team.sh` reads the same cap and starts at
+most that many agents — and says which one it did not start.
+
 Four test suites gate this, all inside the `check` group so `check:full` runs them:
 
 ```bash
 npm run test:budget-ledger        # the ledger: cap, idempotency, torn writes, concurrency
-npm run test:worker-lease         # the pool: two workers, re-claims, TTL recovery
+npm run test:worker-lease         # the pool: two workers, re-claims, TTL recovery, corrupt files
 npm run test:swarm-guard          # the guard: chain pricing, settle-the-difference, refusals
-npm run test:swarm-guard-wiring   # the bridge: the real CLI, every provider key blanked
+npm run test:swarm-guard-wiring   # the bridge: the real CLI against a local fake provider
 ```
 
-The wiring test drives the real CLI as a child process with **every provider key
-blanked**, so the guards are exercised end to end without a provider ever being
-contacted — and the run refuses before the request is built.
+The wiring test drives the real CLI as a child process against a **local fake
+provider** (`tests/helpers/fake-provider.mjs`, its own process). The fake reads the
+ledger **at request time**, so "the reservation comes first" is an observation and
+not a claim — and a refused turn is proved by the fake receiving **zero** requests.
 
 ---
 
