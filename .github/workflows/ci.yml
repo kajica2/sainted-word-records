@@ -73,6 +73,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Scene persistence regression tests
+        run: node --test tests/scenes-persistence.test.mjs
+
       - name: check + check:verify (the 5 curated Puppeteer smokes)
         # check:full runs every gate through scripts/run-steps.mjs and reports
         # each one — it is deliberately NOT an `&&` chain, because a chain
