@@ -52,7 +52,7 @@ A branch ruleset closes both.
 | Ruleset Name | `main` |
 | Enforcement status | **Active** |
 | Target branch | **Include** → `main` (the default branch) |
-| Bypass list | **empty** — no actor may push without the ruleset |
+| Bypass list | **empty** — no actor may push without the ruleset. A bypass was tried and **removed**: `bypass_mode: always` excuses every rule, and it was measured re-opening the direct-push hole (§3b) |
 
 ### Restrict pushes
 * **Do not allow anyone to push to this branch.**
@@ -62,11 +62,45 @@ A branch ruleset closes both.
 ### Require a pull request before merging
 | Setting | Value | Why |
 |---|---|---|
-| Required approvals | **1** | one human review; the repo has no CODEOWNERS file |
+| Required approvals | **0** | **this repository has ONE collaborator**, and GitHub refuses a self-approval outright (*"Review Can not approve your own pull request"*) — so a required approval could never be satisfied and the ruleset would wedge `main` permanently. See §2b. |
 | Dismiss stale approvals when a new commit is pushed | **on** | an approval must be for the code that merges |
-| Require approval from the most recent pusher | **on** | stops the author approving their own PR |
+| Require approval from the most recent pusher | **off** | moot at 0 approvals, and it is the setting that makes the wedge worst — it bars the only person who could approve |
 | Require conversation resolution | **on** | no unresolved threads at merge time |
-| Allowed merge methods | **Merge** and **Squash** | the history contains merge commits (`Merge branch 'cursor/…'`) and squash merges (`feat(neon): … (#266)`) |
+| Allowed merge methods | **Squash** and **Rebase** | `required_linear_history` forbids a merge commit, so "Merge" is unreachable however the list reads. The history contains merge commits (`Merge branch 'cursor/…'`) and squash merges (`feat(neon): … (#266)`); the linear-history rule means new merges must be squash or rebase. |
+
+> **Two of these values contradict each other in the UI.** "Require linear
+> history" disables the *Create a merge commit* button outright, so leaving
+> "Merge" in the allowed list does not make merge commits available — it
+> only makes the list look inconsistent. Pick **Squash and Rebase**.
+
+### 2b. The one-collaborator problem (read this before setting approvals)
+
+This repository has **exactly one** collaborator with push access, and every
+branch commit is pushed as that account. GitHub **refuses a self-approval**
+at the API level:
+
+```
+GraphQL: Review Can not approve your own pull request (addPullRequestReview)
+```
+
+So a ruleset that asks for **1 approving review** can never be satisfied here.
+It does not fail loudly and it does not wait — the PR simply sits at
+`mergeStateStatus=BLOCKED`, `reviewDecision=REVIEW_REQUIRED`, forever. That
+was measured on PR #276: a **green** required check, and still unmergeable.
+
+`require_last_push_approval: true` makes it strictly worse: it bars the one
+person who could have approved.
+
+**For a solo operator the working shape is `required_approving_review_count:
+0`.** The real gate is then the status check: every change arrives through a
+pull request, and `check + verify + build-size` must be green on it. What is
+lost is the "a second human must look at this" property — which was never
+available here anyway.
+
+**If a second collaborator is ever added**, put the count back to 1 (and
+`require_last_push_approval` back to on). The ruleset can be edited in place:
+the `rules` array is replaced wholesale on update, so a PUT must carry every
+rule, not just the one being changed.
 
 ### Require status checks to pass
 | Setting | Value |
@@ -82,7 +116,36 @@ A branch ruleset closes both.
 > only offers contexts it has actually seen on a PR to `main`.
 
 ### Bypass list
-Leave it empty. The whole point is that **no path to production skips the gate**.
+**Empty.** The whole point is that **no path to production skips the gate**.
+
+A bypass actor was tried here and **removed**. The reasoning that produced it
+was sound — GitHub forbids a pull-request author from approving their own PR,
+this repository has one collaborator, and that collaborator is the author, so
+`required_approving_review_count: 1` deadlocks every PR. But the fix that
+follows from that reasoning is not "add a bypass", it is "the approval count
+is 0" (§2b).
+
+A bypass with `bypass_mode: always` does not merely excuse the missing
+review: it excuses **every rule in the ruleset**, and the API says so —
+`current_user_can_bypass: always`. Measured, with the same-sha no-op probe
+from §3b (it asks the server whether a direct update of `main` is permitted,
+and cannot change the ref either way):
+
+| Bypass list | direct update of `main` by the admin |
+|---|---|
+| admin, `bypass_mode: always` | **allowed** (200) |
+| empty | **refused** — `422 Repository rule violations found — Changes must be made through a pull request` |
+
+So the bypass re-opens exactly the hole this ruleset exists to close: a
+direct push to `main` reaching production with no smoke suite. A
+`bypass_mode: pull_request` actor is narrower — it still cannot push
+directly — but it still excuses the required status check for that actor, so
+the owner could merge a red PR. There is no way to bypass *only* the
+approval.
+
+The review requirement therefore stays satisfied by setting the count to
+**0**, not by adding an escape hatch. If a second collaborator is ever added,
+the count goes to 1 and the bypass list stays empty.
 
 ---
 
@@ -106,10 +169,11 @@ For an admin who would rather script it:
       "parameters": {
         "dismiss_stale_reviews_on_push": true,
         "require_code_owner_review": false,
-        "require_last_push_approval": true,
-        "required_approving_review_count": 1,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0,
         "required_review_thread_resolution": true,
-        "allowed_merge_methods": ["merge", "squash"]
+        "require_extra_approval_for_unattributed_changes": true,
+        "allowed_merge_methods": ["squash", "rebase"]
       }
     },
     {
@@ -119,12 +183,23 @@ For an admin who would rather script it:
         "required_status_checks": [
           { "context": "check + verify + build-size" }
         ],
-        "strict_required_status_checks": true
+        "strict_required_status_checks_policy": true
       }
     }
   ]
 }
 ```
+
+> **The parameter is `strict_required_status_checks_policy`.** The shorter
+> `strict_required_status_checks` is **rejected** by the API with
+> `422 — Invalid property /rules/2: data matches no possible input`. The
+> payload above is the one that is applied to this repository (ruleset
+> `26608109`) as of 2026-11-05.
+>
+> **`required_approving_review_count` is 0, not 1, on purpose.** See §2b: this
+> repository has one collaborator, GitHub refuses a self-approval, and a
+> required approval would leave `main` permanently unmergeable. The status
+> check is the gate.
 
 ```bash
 gh api --method POST repos/kajica2/sainted-word-records/rulesets \
@@ -146,7 +221,91 @@ reading, and it is what the UI step in §2 produces.
 
 ---
 
-## 4. How to verify it worked
+## 3b. What was applied on 2026-11-05
+
+### The bypass actor that was tried, and why it was removed
+
+The deadlock that follows from GitHub's self-approval rule (§2b) has two
+possible fixes: set `required_approving_review_count: 0`, or give the owner
+a **bypass actor**. The bypass was applied first — `bypass_actors` holding
+the repository admin (`kajica2`, user id `12122680`), `bypass_mode: always`
+— and it was **removed** once it was measured.
+
+The reasoning behind it was sound, and it is worth keeping on the record
+because the conclusion is not the obvious one. GitHub refuses an approving
+review from the pull request's author (`422 — Review Can not approve your
+own pull request`) and this repository has exactly one collaborator — the
+author. With the count at 1, every PR is permanently unmergeable. A bypass
+looks like the way out.
+
+**But `bypass_mode: always` excuses every rule in the ruleset, not just the
+approval.** The API reports it plainly: `current_user_can_bypass: always`.
+Measured with the same-sha no-op probe (it asks the server whether a direct
+update of `main` is permitted, and cannot change the ref either way):
+
+| Bypass list | direct update of `main` by the admin |
+|---|---|
+| admin, `bypass_mode: always` | **allowed** (200) |
+| empty | **refused** — `422 Repository rule violations found — Changes must be made through a pull request` |
+
+That is the original P0 gap reopened: *a direct push to `main` reaches
+production with no smoke suite ever running against it*. `pull_request`
+mode is narrower — the actor still cannot push directly — but it still
+excuses the required status check for that actor, so the owner could merge a
+red PR. GitHub offers no way to bypass *only* the approval rule.
+
+So the bypass was removed and the count set to **0**. The ruleset that
+survives is the one where **nobody** — including the owner — can reach
+`main` without a pull request whose `check + verify + build-size` is green.
+
+**The real fix, if the review rule is wanted to mean something, is a second
+GitHub account on the repository.** With two collaborators the count can go
+back to 1, the bypass list stays empty, and the approval becomes a genuine
+second pair of eyes rather than a deadlock. That is a decision about the
+project, not about the configuration.
+
+The ruleset in §3 was **applied to this repository on 2026-11-05** (ruleset
+`26608109`, enforcement `active`, target `main`, bypass list empty). The API
+answered `current_user_can_bypass: never` — **nobody, including the repository
+owner, can push around it**; the only way through is the audited "break" the
+ruleset action in the UI.
+
+### The first application wedged `main`, and why
+
+Applying it needed one correction to the payload above (§3): the API rejects
+`strict_required_status_checks` and requires
+`strict_required_status_checks_policy`. The ruleset was created without the
+status-check rule, then updated with it — the update is a full replacement of
+the `rules` array, so all three rules must be in it.
+
+**The payload as first written also wedged `main`, and that was not obvious.**
+It asked for **1 approving review** with `require_last_push_approval: true`.
+This repository has one collaborator, and GitHub refuses a self-approval, so
+the review could never be satisfied: every PR sat at
+`mergeStateStatus=BLOCKED` with `reviewDecision=REVIEW_REQUIRED` while its
+required check sat **green**. The ruleset was not "waiting for a review" — it
+was waiting for a person who does not exist.
+
+The fix is in §2b: `required_approving_review_count: 0` and
+`require_last_push_approval: false`. The ruleset was edited in place (the
+`rules` array is replaced wholesale, so the PUT carried all three rules). The
+status check remains the gate.
+
+### What was verified, and what was not
+
+| Check | Result |
+|---|---|
+| §4.1 the ruleset is live and active | **verified** — `GET /rulesets/26608109` → `enforcement: active`, `bypass_actors: []`, `current_user_can_bypass: never`; `GET /rules/branches/main` returns all three rules as applying to `main` |
+| §4.2 a direct push is refused | **verified, without touching `main`** — `PATCH /git/refs/heads/main` with the branch's **current** sha (a no-op update, so the ref could not change) → **`422 Repository rule violations found — Changes must be made through a pull request`** |
+| §4.3 the required context is the check that runs | **verified** — `gh pr checks` reports the context as `check + verify + build-size`, exactly as configured (not `CI / check + verify + build-size`) |
+| §4.4 a red or missing check blocks the merge | **verified** — PR #276 has a **green** required check and was still `mergeStateStatus=BLOCKED` while the approval count was 1: the review gate held it. After the count went to 0 the PR merged on its green check, which is the intended behaviour for a one-collaborator repository |
+| §4.5 the workflow runs where it should | **verified** — the CI run on the merge commit `60cb1722` is green, and `main` pushes now trigger the workflow |
+
+**§4.2 was deliberately probed with a no-op rather than a real commit.** A
+real `git push origin HEAD:main` would have moved `main` — and Vercel deploys
+`main` — if the ruleset had been misconfigured. The same-sha `PATCH` asks the
+server exactly the same question ("may this ref be updated?") and cannot change
+the ref either way.
 
 ### 4.1 The ruleset is live and active
 
@@ -159,8 +318,15 @@ gh api repos/kajica2/sainted-word-records/branches/main/protection \
 ```
 
 Expect: `enforcement: active`, a `pull_request` rule with
-`required_approving_review_count: 1`, and a `required_status_checks` entry whose
-`context` is exactly `check + verify + build-size`.
+`required_approving_review_count: 0` and `require_last_push_approval: false`
+(see §2b), and a `required_status_checks` entry whose `context` is exactly
+`check + verify + build-size`.
+
+> The `branches/main/protection` endpoint reports the **legacy** branch
+> protection API, which a ruleset does not populate — it will show
+> `enabled: false` and empty `required_status_checks` even though the
+> ruleset is live and active. That is not a failure; read the ruleset
+> endpoint instead.
 
 ### 4.2 A direct push is refused
 
@@ -185,9 +351,13 @@ context to the job name.
 ### 4.4 A red check blocks the merge
 
 Open a PR whose CI fails and try to merge. GitHub must refuse with
-*"At least 1 approving review is required"* or *"Required status check
-`check + verify + build-size` is expected"*. A merge button that is merely
-greyed out for the wrong reason is not a verification — read the message.
+*"Required status check `check + verify + build-size` is expected"*. A merge
+button that is merely greyed out for the wrong reason is not a verification —
+read the message.
+
+> With `required_approving_review_count: 0` the **only** refusal message you
+> should see is the status-check one. If the message says *"At least 1
+> approving review is required"*, the approval count is still 1 — see §2b.
 
 ### 4.5 The workflow still runs where it should
 
@@ -224,6 +394,11 @@ trigger to `push.branches: [main]`.
   reconciliation needs a cross-version test matrix first.
 - It does not replace the `check:full` gate itself. It makes the gate
   **mandatory** instead of advisory.
+- **It does not give a solo repository a second pair of eyes.** With
+  `required_approving_review_count: 0` the guarantee is *"every change to
+  `main` passed the full suite on a pull request"* — not *"a human read it
+  first"*. That second property needs a second collaborator (§2b); it cannot
+  be configured into existence.
 
 ---
 
