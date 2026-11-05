@@ -57,10 +57,15 @@ check('scenes-keyboard uses capture-phase 1..4', () => {
   return true;
 });
 
-check('SWR_SCENES snapshot reads sensitivity + beat-gate (engine.html)', () => {
+// The scene snapshot used to live in an inline copy in engine.html. It is
+// in the shared module now, so that is where the behaviour is asserted.
+check('SWR_SCENES snapshot reads sensitivity + beat-gate (shared module)', () => {
+  const scenes = readFileSync(new URL('../client/scenes.client.js', import.meta.url), 'utf8');
+  if (!/_sliderVal\('sensitivity', 'sens'\)/.test(scenes)) return 'missing sensitivity snapshot';
+  if (!/set\('beat-gate', gate\)/.test(scenes)) return 'missing beat-gate apply';
+  // The engine must load that module, or the behaviour never runs there.
   const eng = readFileSync(new URL('../engine.html', import.meta.url), 'utf8');
-  if (!/_sliderVal\('sensitivity', 'sens'\)/.test(eng)) return 'engine missing sensitivity snapshot';
-  if (!/set\('beat-gate', gate\)/.test(eng)) return 'engine missing beat-gate apply';
+  if (!/client\/scenes\.client\.js/.test(eng)) return 'engine does not load the scenes module';
   return true;
 });
 

@@ -51,20 +51,30 @@
       try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(arr)); return true; } catch (_) { return false; }
     },
 
+    // The engine's sliders are named differently from the variant pages'
+    // (`#sensitivity` / `#beat-gate` against `#sens` / `#gate`), so a
+    // slider is read by its engine name first and its variant name second.
+    // The snapshot carries both spellings, so a scene saved on one surface
+    // restores correctly on the other.
+    _sliderVal(primary, alias) {
+      var el = document.getElementById(primary) || (alias ? document.getElementById(alias) : null);
+      return el ? parseFloat(el.value) : null;
+    },
+
     _currentSnapshot() {
-      var get = function (id) {
-        var el = document.getElementById(id);
-        return el ? parseFloat(el.value) : null;
-      };
       var presetOverride = (typeof window.__swrCurrentPreset === 'string' && window.__swrCurrentPreset)
         ? window.__swrCurrentPreset
         : 'neon';
+      var sensitivity = this._sliderVal('sensitivity', 'sens');
+      var beatGate = this._sliderVal('beat-gate', 'gate');
       return {
-        depth: get('depth'),
-        gate: get('gate'),
-        decay: get('decay'),
-        sens: get('sens'),
-        neighbourCount: get('neighbour-count'),
+        depth: this._sliderVal('depth'),
+        sensitivity: sensitivity,
+        beatGate: beatGate,
+        decay: this._sliderVal('decay'),
+        gate: beatGate,
+        sens: sensitivity,
+        neighbourCount: this._sliderVal('neighbour-count'),
         presetOverride: presetOverride,
         automixOn: !!(document.getElementById('automix-toggle') && /ON/i.test(document.getElementById('automix-toggle').textContent || '')),
       };
@@ -78,9 +88,13 @@
         el.dispatchEvent(new Event('input', { bubbles: true }));
       };
       set('depth', s.depth);
-      set('gate', s.gate);
+      var sens = s.sensitivity != null ? s.sensitivity : s.sens;
+      var gate = s.beatGate != null ? s.beatGate : s.gate;
+      set('sensitivity', sens);
+      set('sens', sens);
+      set('beat-gate', gate);
+      set('gate', gate);
       set('decay', s.decay);
-      set('sens', s.sens);
       set('neighbour-count', s.neighbourCount);
       if (s.presetOverride && window.VersionsPresets && typeof window.VersionsPresets.setPresetOverride === 'function') {
         if (window.VersionsPresets.setPresetOverride(s.presetOverride) !== false) {

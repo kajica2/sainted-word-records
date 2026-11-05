@@ -166,6 +166,46 @@ function paramGlob(destination) {
       broken.get(url).add(page.replace(/^dist\//, ''));
     }
   }
+
+  // 2b. the scripts a page loads, wherever they point.
+  //
+  // The check above only matched root-relative URLs, so `<script
+  // src="../engine-3d.client.js">` was never verified — and that file was
+  // never copied into dist, so the "+ 3D" button on the deployed site
+  // answered "engine-3d.client.js not loaded" while every local run was
+  // green. A script that does not ship is worse than a dead link: the page
+  // loads, and a feature quietly stops existing.
+  //
+  // Only scripts are checked here. A relative *image* reference is a
+  // different thing — the `_candidates` tree is deliberately not shipped,
+  // and those names are rendered by the browser at runtime.
+  const SCRIPT_RE = /<script\b[^>]*\bsrc\s*=\s*["']([^"'#?\s]+)["']/gi;
+  const missingScripts = new Map();
+  for (const page of pages) {
+    const src = fs.readFileSync(page, 'utf8');
+    const pageDir = path.posix.dirname(page.replace(/^dist[\\/]/, '').replace(/\\/g, '/'));
+    let m;
+    SCRIPT_RE.lastIndex = 0;
+    while ((m = SCRIPT_RE.exec(src))) {
+      const raw = m[1];
+      if (!raw) continue;
+      if (/^(https?:|data:|blob:|javascript:|\/\/)/i.test(raw)) continue;
+      const url = raw.startsWith('/')
+        ? raw
+        : '/' + path.posix.normalize(path.posix.join(pageDir, raw)).replace(/^\/+/, '');
+      if (servedInDist(url)) continue;
+      if (!missingScripts.has(url)) missingScripts.set(url, new Set());
+      missingScripts.get(url).add(page.replace(/^dist\//, ''));
+    }
+  }
+  if (missingScripts.size) {
+    fail('every script a page loads ships in dist', `${missingScripts.size} script(s)`);
+    for (const [url, from] of missingScripts) {
+      console.log(`    ${url}  ← ${[...from].slice(0, 3).join(', ')}${from.size > 3 ? ` (+${from.size - 3})` : ''}`);
+    }
+  } else {
+    pass('every script a page loads ships in dist', `${pages.length} pages`);
+  }
   if (broken.size) {
     fail('every internal link resolves in dist', `${broken.size} target(s)`);
     for (const [url, from] of broken) {
