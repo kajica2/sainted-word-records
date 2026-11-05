@@ -81,6 +81,15 @@ number that was wrong. The reservation now takes the **worst** tier a model has
 times low on CJK text) and the settlement takes the tier the **actual** usage
 landed in; the difference goes back to the day.
 
+**The trade, stated plainly.** Reserving at the worst tier means a chain whose
+members have a long-context tier spends its daily budget faster than the tier it
+actually lands in — a Grok 4.7 turn reserves at $4/$12 and settles at $2/$6 for a
+short prompt, so roughly half of the day's $2 is held back at any moment. That is
+the price of a hard ceiling: the cap is a limit on SPEND, and an under-spend is
+within it while an over-spend is not. Remove `pricing.long_context` from a model
+and its budget doubles — at the cost of the cap being applied to an estimate that
+can be several times low.
+
 ---
 
 ## 3. The depth knobs, and they are not interchangeable
