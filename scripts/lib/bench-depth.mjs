@@ -68,3 +68,42 @@ export function depthOk(samples, fps, runMs) {
   // is a broken host, whatever its frame rate.
   return { ok: min >= 1 && median >= floor, floor, min, median };
 }
+
+/**
+ * The minimum number of FRAME samples a report must carry, given the
+ * host's measured frame rate.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * The bench gate asserted `report.samples >= 5` — a flat floor. That asks
+ * a slow machine for frames it cannot draw. On the CI runner measured on
+ * 2026-11-05 (run 42118548118) the bench page rendered at 1.30 fps, so a
+ * 3.5 s run held 4 frame samples, and the gate failed a report whose
+ * measurement was sound.
+ *
+ * The floor is the number of frames the host can actually draw in the
+ * run, with one frame of phase slack (a run's first frame can land just
+ * after recording starts):
+ *
+ *   expectedFrames = round(fps * runMs / 1000) - 1
+ *   floor          = min(cap, max(1, expectedFrames))
+ *
+ * The cap keeps the original requirement for every host fast enough to
+ * deliver it: at 60 fps the floor is still `cap`, so a fast host that
+ * reports only two samples still fails. The floor only moves when the
+ * host's own measured frame rate says it cannot deliver the flat number.
+ *
+ * @param {number} fps    the host's measured average frame rate
+ * @param {number} runMs  the length of the run, in milliseconds
+ * @param {number} cap    the flat requirement for a fast host (default 5)
+ * @returns {number} >= 1
+ */
+export function frameSampleFloorFor(fps, runMs, cap = 5) {
+  const f = Number(fps);
+  const ms = Number(runMs);
+  const c = Number(cap);
+  if (!Number.isFinite(f) || !Number.isFinite(ms) || f <= 0 || ms <= 0) return 1;
+  if (!Number.isFinite(c) || c < 1) return 1;
+  const framesPerRun = Math.round((f * ms) / 1000) - 1;
+  return Math.min(c, Math.max(1, framesPerRun));
+}

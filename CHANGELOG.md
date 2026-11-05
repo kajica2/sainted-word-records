@@ -178,6 +178,14 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **The bench gate demanded five frame samples from a host that could not
+  draw five frames.** `check:bench-smoke` asserted `report.samples >= 5` — a
+  flat floor. On the CI runner of run 42118548118 the bench page rendered at
+  1.30 fps, so a 3.5 s run held 4 frame samples, and the gate failed a report
+  whose measurement was sound. The count is now derived from the host's own
+  measured frame rate, with one frame of phase slack, and it is capped at the
+  flat requirement — so a fast host still has to carry all five. Same shape as
+  the A/V depth floor beside it.
 - **Five more gates had the same orphan-server bug.** `test:asset-curator`,
   `check:variant-switcher-smoke`, `check:photo-slideshow`,
   `check:default-library` and `verify:site-nav` spawn a
