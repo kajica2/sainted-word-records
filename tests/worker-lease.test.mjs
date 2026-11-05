@@ -323,6 +323,25 @@ section('a leaked temp file is pruned');
 }
 
 // ---------------------------------------------------------------------------
+section('the pruner never mistakes a live lease for litter');
+{
+  const dir = tmpDir();
+  // A worker id may legally contain ".tmp-" or ".stale-". The pruner
+  // matches a PATTERN, so it must not delete this live lease — deleting
+  // it would hand the slot to somebody else while the agent is running.
+  const m = createLeaseManager({ dir, maxWorkers: 2 });
+  const claim = m.claim({ workerId: 'SWR-Ops.tmp-x-1234' });
+  assert(claim.ok === true, 'the claim succeeds');
+  const file = path.join(dir, 'SWR-Ops.tmp-x-1234.lease.json');
+  assert(fs.existsSync(file), 'the lease file is there');
+  const old = new Date(Date.now() - 5 * 60 * 1000);
+  fs.utimesSync(file, old, old);
+  const status = m.status();
+  assert(status.active === 1, 'the pool still counts the worker');
+  assert(fs.existsSync(file), 'the live lease file was NOT deleted as litter');
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 console.log('');

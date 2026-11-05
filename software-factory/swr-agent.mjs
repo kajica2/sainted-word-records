@@ -40,6 +40,7 @@
 //   2  usage or configuration error
 
 import { readFileSync, existsSync, appendFileSync, writeFileSync, statSync } from 'node:fs';
+import os from 'node:os';
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface as readline } from 'node:readline';
@@ -600,7 +601,12 @@ function estimateTurnInput({ system, messages, tools }) {
  * does any work — the refusal is the whole point of the pool.
  */
 function claimWorkerSlot(guard, agentName, taskName) {
-  const workerId = `${agentName}-${process.pid}`;
+  // The worker id is the pool's identity key. A pid is not an identity:
+  // two machines (or two containers) can share a lease directory and run
+  // the same pid, and the second agent would be refused as a collision —
+  // or worse, counted as the first one. The hostname makes it unique
+  // where it can be.
+  const workerId = `${agentName}-${os.hostname()}-${process.pid}`;
   const claim = guard.claimWorker({
     workerId,
     mission: taskName ? `${agentName}/${taskName}` : agentName,
@@ -630,7 +636,15 @@ function claimWorkerSlot(guard, agentName, taskName) {
  * reports the refusal afterwards.
  */
 function ensureWorkerSlot(guard, workerId, mission) {
-  const slot = guard.ensureWorkerSlot(workerId, { mission });
+  let slot;
+  try {
+    slot = guard.ensureWorkerSlot(workerId, { mission });
+  } catch (err) {
+    // A lock timeout says nothing about whether the lease is still there,
+    // but it must not escape as an unhandled exception: the run stops
+    // with the reason, and the slot is released on the normal path.
+    return { ok: false, reason: `renew-failed: ${(err && err.message) || String(err)}` };
+  }
   if (slot.ok) return slot;
   return { ok: false, reason: slot.reason || 'lease-lost' };
 }
@@ -686,7 +700,16 @@ async function guardedTurn(guard, { config, chain, ctx, reservationId, inputToke
     modelRef: result.modelRef,
     usage: result.usage,
   });
-  return { ok: true, result, attempts, reservation, settlement, leaseLost: heartbeat?.lost || null };
+
+  // A renewal that THREW leaves the slot's status unknown — not healthy.
+  // The run re-verifies it before it continues; if the lease is really
+  // gone, the run stops instead of working outside the pool.
+  let leaseLost = heartbeat?.lost || null;
+  if (!leaseLost && heartbeat?.lastError && workerId) {
+    const recheck = ensureWorkerSlot(guard, workerId, null);
+    if (!recheck.ok) leaseLost = `renew-failed: ${heartbeat.lastError}`;
+  }
+  return { ok: true, result, attempts, reservation, settlement, leaseLost };
 }
 
 /**
@@ -962,13 +985,10 @@ async function cmdChat(args) {
 
         history.push({ role: 'user', content: [{ type: 'text', text: trimmed }] });
         for (let turn = 0; turn < 3; turn++) {
-          // The conversation-wide heartbeat is the thing that kept this
-          // chat's slot alive while it was idle. If it says the slot is
-          // gone, the chat does not continue outside the pool.
-          if (chatHeartbeat.lost) {
-            refusal = { message: `the worker slot was lost before the turn (${chatHeartbeat.lost}) — the chat stopped rather than continue without a slot.` };
-            break;
-          }
+          // The slot comes FIRST: it renews, and it re-claims a lease that
+          // merely expired (the pool still enforces the cap). Only a
+          // failure here stops the chat — a heartbeat that merely
+          // recorded an error is not a lost slot.
           const slot = ensureWorkerSlot(guard, workerId, route.task ? `${args.agent}/${route.task}` : args.agent);
           if (!slot.ok) {
             refusal = { message: `the worker slot was lost before the turn (${slot.reason}) — the chat stopped rather than continue without a slot.` };

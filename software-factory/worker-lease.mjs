@@ -150,12 +150,42 @@ export class WorkerLeaseManager {
       try {
         return fn();
       } finally {
-        // Release only if the lock is still OURS.
+        // Release ATOMICALLY: move whatever is at the lock path aside,
+        // then look at the file we moved. A check-then-unlink has a window
+        // in which a breaker can replace the lock and the holder then
+        // deletes the BREAKER's lock — two processes inside the critical
+        // section, and two slots past the cap.
+        //
+        // NOTHING in here returns: a `return` in a finally block would
+        // discard the value the try block produced.
+        const releaseTmp = `${lockPath}.release-${process.pid}-${Math.random().toString(36).slice(2)}`;
+        let moved = false;
         try {
-          const current = fs.readFileSync(lockPath, 'utf8');
-          if (current.trim() === token) fs.unlinkSync(lockPath);
+          fs.renameSync(lockPath, releaseTmp);
+          moved = true;
         } catch {
-          /* gone, or somebody else's now */
+          moved = false; // somebody else already moved it
+        }
+        if (moved) {
+          let mine = false;
+          try {
+            mine = fs.readFileSync(releaseTmp, 'utf8').trim() === token;
+          } catch {
+            mine = false;
+          }
+          try {
+            if (mine) {
+              fs.unlinkSync(releaseTmp);
+            } else if (!fs.existsSync(lockPath)) {
+              // It was not ours: put it back — unless somebody has taken
+              // the path in the meantime, in which case it is debris.
+              fs.renameSync(releaseTmp, lockPath);
+            } else {
+              fs.unlinkSync(releaseTmp);
+            }
+          } catch {
+            /* best effort */
+          }
         }
       }
     }
@@ -185,6 +215,9 @@ export class WorkerLeaseManager {
       throw err;
     }
     this._pruneTempFiles();
+    // The holder is making progress: refresh the lock so a slow but
+    // alive critical section is not mistaken for a crashed one.
+    this._touchLock();
     for (const name of names) {
       if (!name.endsWith('.lease.json')) continue;
       const file = path.join(this.dir, name);
@@ -220,6 +253,24 @@ export class WorkerLeaseManager {
     return out;
   }
 
+  /**
+   * Refresh the lock's mtime.
+   *
+   * "Stale" must mean "the holder has made no progress for a while", not
+   * "the holder took the lock a while ago". Without this touch, a holder
+   * that is still working inside the critical section can have its lock
+   * broken out from under it — and a second process then enters the
+   * critical section with it.
+   */
+  _touchLock() {
+    try {
+      const now = new Date();
+      fs.utimesSync(this.lockPath, now, now);
+    } catch {
+      /* the lock is gone or not ours — the caller's own checks decide */
+    }
+  }
+
   /** How old a file is, in milliseconds, or null if it is gone. */
   _fileAgeMs(file) {
     try {
@@ -235,6 +286,10 @@ export class WorkerLeaseManager {
    * A crash between the create and the rename leaves a `.tmp-` fragment.
    * It says nothing about any slot, and nothing else would ever remove
    * it — so the directory would grow litter forever.
+   *
+   * The matcher is a PATTERN, not a substring: a worker id may legally
+   * contain `.tmp-` or `.stale-`, and a live lease file must never be
+   * mistaken for litter.
    */
   _pruneTempFiles(maxAgeMs = 60_000) {
     let names = [];
@@ -245,7 +300,9 @@ export class WorkerLeaseManager {
     }
     let removed = 0;
     for (const name of names) {
-      if (!name.includes('.tmp-') && !name.includes('.stale-')) continue;
+      if (name.endsWith('.lease.json')) continue; // never a lease file
+      const isFragment = /\.tmp-\d+-[a-z0-9]+$/.test(name) || /\.stale-\d+-[a-z0-9]+$/.test(name) || /\.release-\d+-[a-z0-9]+$/.test(name);
+      if (!isFragment) continue;
       const file = path.join(this.dir, name);
       const age = this._fileAgeMs(file);
       if (age === null || age < maxAgeMs) continue;
