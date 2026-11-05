@@ -284,12 +284,22 @@ once it hits 1.0.
   the neighbouring assertions still pin the run-based behaviour.
   Falsifiability is unchanged and re-proved by mutation: disabling
   interpolation fails **three** assertions (the clean sweep, the
-  ideal-label check and the lagged sweep). A second fix in the same gate:
-  the buffer-fill wait watched `pushes` while the assertion watched the
-  ring's length, and the suite clears the buffer at the start of a run, so
-  a wait that ended on the 10th push could meet a ring holding exactly 10
-  — and `10 > 10` is false. The wait now watches the same quantity the
-  assertion does.
+  ideal-label check and the lagged sweep). Two further fixes in the same
+  gate: the buffer-fill wait watched `pushes` while the assertion watched
+  the ring's length, and the suite clears the buffer at the start of a run,
+  so a wait that ended on the 10th push could meet a ring holding exactly
+  10 — and `10 > 10` is false. The wait now watches the same quantity the
+  assertion does. And **"every run measured the clock"** required **two**
+  A/V samples from *every* run, but a CI runner's bench page renders at
+  well under 1 fps, so a 3.5s run yields about **two** samples there — and
+  the *cold* first run (render loop not yet settled) yielded **one**,
+  failing the gate on a run that measured perfectly well. The suite now
+  does a **discarded warm-up run** so every measured run starts from the
+  same warm state, and the floor is one sample per run with the depth
+  requirement in the median — so one unlucky frame in one run no longer
+  fails the gate, while a host that measures nothing (or only once per
+  run) still does. Re-proved by mutation: a suite that never records an
+  A/V sample fails **seven** assertions.
 - `check:live-input` **sampled for the Live control instead of waiting for
   it**, so it reported a missing control whenever the media panel had not
   mounted yet. The panel is built by a deferred module which loads three
