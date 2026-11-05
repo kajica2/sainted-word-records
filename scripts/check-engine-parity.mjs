@@ -327,6 +327,38 @@ const ACCEPTED = [
       'the engine ships no generative-ops UI and has its own seeded RNG. ' +
       'The three modules that read it tolerate its absence.',
   },
+  // The next three are capability probes, not contracts: engine-keys asks
+  // whether the page HAS a JPG surface, an image lane or a host-rotate
+  // binding, and acts accordingly. The pages that do not have those
+  // features deliberately do not load their modules.
+  {
+    page: 'engine.html',
+    dep: 'SWR_JPG',
+    reason:
+      'the engine ships no JPG surface. The module probes for it as a ' +
+      'capability; the JPG surface lives on jpg.html and versions/play.html.',
+  },
+  {
+    page: 'versions/neon.html',
+    dep: 'SWR_JPG',
+    reason:
+      'neon ships no JPG surface. The module probes for it as a ' +
+      'capability; the JPG surface lives on jpg.html and versions/play.html.',
+  },
+  {
+    page: 'versions/neon.html',
+    dep: 'SWR_IMAGE_LANE',
+    reason:
+      'the image lane is the engine still-image lane. Neon has no lane UI, ' +
+      'and the module probes for it as a capability.',
+  },
+  {
+    page: 'versions/neon.html',
+    dep: 'SWR_KEYS_HOST_ROTATE',
+    reason:
+      'the engine publishes its own host-rotate binding so engine-keys can ' +
+      'bind "R". Neon has no host to rotate.',
+  },
 ];
 
 const acceptedKey = (page, dep) => `${page}|${dep}`;
