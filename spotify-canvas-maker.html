@@ -22,249 +22,25 @@
   <meta name="author" content="Kai Djuric" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230e0c0a'/%3E%3Crect x='10' y='5' width='12' height='22' rx='3' fill='none' stroke='%231db954' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%231db954'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/lib/design-tokens.css" />
+  <link rel="stylesheet" href="/lib/design-base.css" />
   <link rel="stylesheet" href="/lib/components.css" />
-  <script src="/lib/site-keys.client.js" defer></script>
-  <script src="/lib/nav.client.js" defer></script>
-  <script src="/lib/footer.client.js" defer></script>
+  <link rel="stylesheet" href="/lib/seo-landing.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@400;500;600&display=swap" />
+  <script src="/fx-background.client.js" defer></script>
   <style>
-    :root {
-      --scm-accent: #1db954;
-      --scm-accent-2: #1ed760;
-      --scm-ink: var(--ink);
-      --scm-muted: var(--muted);
-      --scm-line: var(--line);
-      --scm-card: var(--bg-2);
-      --scm-raise: var(--bg-3);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--scm-ink);
-      font-family: var(--font-body);
-      -webkit-font-smoothing: antialiased;
-      line-height: 1.55;
-    }
-    .scm-wrap {
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: var(--space-6) var(--space-4) var(--space-8);
-    }
-    .scm-eyebrow {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: var(--scm-muted);
-    }
-    h1 {
-      font-family: var(--font-display);
-      font-size: clamp(28px, 5vw, 44px);
-      line-height: 1.06;
-      margin: var(--space-2) 0 var(--space-3);
-      max-width: 18ch;
-    }
-    h2 {
-      font-family: var(--font-display);
-      font-size: clamp(22px, 3.5vw, 28px);
-      margin: var(--space-7) 0 var(--space-3);
-    }
-    h3 {
-      font-size: 17px;
-      margin: 0 0 var(--space-2);
-    }
-    .scm-lead {
-      color: var(--scm-muted);
-      max-width: 62ch;
-      margin: 0 0 var(--space-4);
-      font-size: 17px;
-    }
-    .scm-answer {
-      background: var(--scm-card);
-      border: 1px solid var(--scm-line);
-      border-left: 4px solid var(--scm-accent);
-      border-radius: var(--radius);
-      padding: var(--space-4) var(--space-5);
-      margin: var(--space-5) 0 var(--space-6);
-    }
-    .scm-answer p {
-      margin: 0;
-      font-size: 16px;
-      color: var(--scm-ink);
-    }
-    .scm-hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: var(--space-6);
-      align-items: start;
-    }
-    @media (max-width: 860px) {
-      .scm-hero { grid-template-columns: 1fr; }
-      .scm-phone { max-width: 260px; margin: 0 auto; }
-    }
-    .scm-trust {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3) var(--space-5);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--scm-muted);
-      margin-bottom: var(--space-4);
-    }
-    .scm-trust b { color: var(--scm-ink); font-weight: 600; }
-    .scm-cta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      margin: var(--space-4) 0 var(--space-2);
-    }
-    .scm-phone {
-      background: var(--scm-card);
-      border: 1px solid var(--scm-line);
-      border-radius: 24px;
-      padding: 12px;
-      box-shadow: var(--shadow-2, 0 16px 48px rgba(0,0,0,.12));
-    }
-    .scm-phone__screen {
-      aspect-ratio: 9 / 16;
-      border-radius: 16px;
-      overflow: hidden;
-      background: #050505;
-      position: relative;
-    }
-    .scm-phone__screen::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(circle at 50% 62%, rgba(29,185,84,.22), transparent 55%),
-        radial-gradient(circle at 72% 28%, rgba(103,232,249,.18), transparent 45%);
-    }
-    .scm-phone__bars {
-      position: absolute;
-      left: 8%;
-      right: 8%;
-      bottom: 10%;
-      height: 14%;
-      display: flex;
-      align-items: flex-end;
-      gap: 3px;
-    }
-    .scm-phone__bars i {
-      flex: 1;
-      background: linear-gradient(to top, var(--scm-accent), rgba(29,185,84,.35));
-      border-radius: 2px 2px 0 0;
-      animation: scm-pulse 1.2s ease-in-out infinite;
-    }
-    .scm-phone__bars i:nth-child(2) { animation-delay: .1s; height: 55%; }
-    .scm-phone__bars i:nth-child(3) { animation-delay: .2s; height: 80%; }
-    .scm-phone__bars i:nth-child(4) { animation-delay: .15s; height: 45%; }
-    .scm-phone__bars i:nth-child(5) { animation-delay: .25s; height: 70%; }
-    .scm-phone__bars i:nth-child(1) { height: 60%; }
-    .scm-phone__caption {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: var(--scm-muted);
-      text-align: center;
-      margin-top: var(--space-3);
-    }
-    @keyframes scm-pulse {
-      0%, 100% { transform: scaleY(.85); opacity: .85; }
-      50% { transform: scaleY(1); opacity: 1; }
-    }
-    .scm-steps {
-      counter-reset: scmstep;
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-4);
-    }
-    .scm-steps li {
-      counter-increment: scmstep;
-      background: var(--scm-card);
-      border: 1px solid var(--scm-line);
-      border-radius: var(--radius);
-      padding: var(--space-4) var(--space-4) var(--space-4) 3.5rem;
-      position: relative;
-    }
-    .scm-steps li::before {
-      content: counter(scmstep);
-      position: absolute;
-      left: var(--space-4);
-      top: var(--space-4);
+    .seo-page.seo--spotify .seo-steps--numbered > li::before {
+      background: #1db954;
+      color: #041008;
+      border-radius: 999px;
       width: 28px;
       height: 28px;
-      border-radius: 999px;
-      background: var(--scm-accent);
-      color: #041008;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      font-weight: 700;
-      display: grid;
-      place-items: center;
+      line-height: 28px;
+      text-align: center;
     }
-    .scm-steps p { margin: 0; color: var(--scm-muted); font-size: 15px; }
-    .scm-steps a { font-weight: 600; }
-    .scm-spec {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-      margin: var(--space-3) 0;
-    }
-    .scm-spec th, .scm-spec td {
-      text-align: left;
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--scm-line);
-    }
-    .scm-spec th { color: var(--scm-muted); font-weight: 500; width: 38%; }
-    .scm-grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: var(--space-4);
-    }
-    @media (max-width: 720px) { .scm-grid-2 { grid-template-columns: 1fr; } }
-    .scm-card {
-      background: var(--scm-card);
-      border: 1px solid var(--scm-line);
-      border-radius: var(--radius);
-      padding: var(--space-4);
-    }
-    .scm-card p { margin: 0; color: var(--scm-muted); font-size: 14px; }
-    .scm-faq details {
-      background: var(--scm-card);
-      border: 1px solid var(--scm-line);
-      border-radius: var(--radius);
-      padding: var(--space-3) var(--space-4);
-      margin-bottom: var(--space-3);
-    }
-    .scm-faq summary {
-      cursor: pointer;
-      font-weight: 600;
-      list-style: none;
-    }
-    .scm-faq summary::-webkit-details-marker { display: none; }
-    .scm-faq p {
-      margin: var(--space-3) 0 0;
-      color: var(--scm-muted);
-      font-size: 15px;
-    }
-    .scm-disclaimer {
-      font-size: 13px;
-      color: var(--scm-muted);
-      margin-top: var(--space-6);
-      padding-top: var(--space-4);
-      border-top: 1px solid var(--scm-line);
-    }
-    .scm-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3) var(--space-5);
-      margin: var(--space-4) 0;
-      font-size: 14px;
+    .seo-page.seo--spotify .seo-steps--numbered > li {
+      padding-left: 3.5rem;
     }
   </style>
   <script type="application/ld+json">
@@ -324,40 +100,41 @@
   }
   </script>
 </head>
-<body>
+<body class="seo-page seo--spotify">
   <swr-nav></swr-nav>
 
-  <main class="scm-wrap" id="main">
-    <div class="scm-hero">
-      <div>
-        <p class="scm-eyebrow">For musicians releasing on Spotify</p>
-        <h1>Spotify Canvas maker from your track</h1>
-        <p class="scm-lead">
-          Turn your song into a beat-synced vertical loop for Canvas: load audio, stack clips or textures,
-          react layers to bass and drums, export a short 9:16 file, upload in Spotify for Artists.
-          Not affiliated with Spotify.
-        </p>
-        <div class="scm-trust">
-          <span><b>9:16</b> · 1080×1920 export</span>
-          <span><b>8s</b> Canvas preset in the engine</span>
-          <span><b>Local</b> · files stay on your device</span>
-        </div>
-        <div class="scm-cta-row">
-          <a class="btn primary" href="/engine/?canvas=1">Open engine · Canvas preset</a>
-          <a class="btn ghost" href="/make-video">Full music video maker</a>
-        </div>
-      </div>
-      <aside class="scm-phone" aria-hidden="true">
-        <div class="scm-phone__screen">
-          <div class="scm-phone__bars" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i>
+  <main id="main">
+    <header class="seo-hero-band">
+      <div class="seo-hero-band__inner">
+        <div>
+          <p class="seo-eyebrow">For musicians releasing on Spotify</p>
+          <h1>Spotify Canvas maker from your track</h1>
+          <p class="seo-lede">
+            Turn your song into a beat-synced vertical loop for Canvas: load audio, stack clips or textures,
+            react layers to bass and drums, export a short 9:16 file, upload in Spotify for Artists.
+            Not affiliated with Spotify.
+          </p>
+          <ul class="seo-pills">
+            <li><b>9:16</b> · 1080×1920 export</li>
+            <li><b>8s</b> Canvas preset in the engine</li>
+            <li><b>Local</b> · files stay on your device</li>
+          </ul>
+          <div class="seo-cta-row">
+            <a class="btn btn--primary" href="/engine/?canvas=1">Open engine · Canvas preset</a>
+            <a class="btn btn--ghost" href="/make-video">Full music video maker</a>
           </div>
         </div>
-        <p class="scm-phone__caption">Portrait loop · audio-reactive</p>
-      </aside>
-    </div>
+        <aside class="seo-phone" aria-label="Example vertical Canvas frame">
+          <div class="seo-phone__screen">
+            <img src="/keyart/neon.png" alt="Audio-reactive neon look in 9:16 portrait frame" width="256" height="455" loading="lazy" />
+          </div>
+          <p class="seo-phone__caption">Portrait loop · audio-reactive</p>
+        </aside>
+      </div>
+    </header>
 
-    <section class="scm-answer" aria-labelledby="scm-quick">
+    <div class="seo-main">
+    <section class="seo-answer" aria-labelledby="scm-quick">
       <h2 id="scm-quick" class="sr-only">Quick answer</h2>
       <p>
         <strong>How do I make a Spotify Canvas from my track?</strong>
@@ -369,9 +146,9 @@
       </p>
     </section>
 
-    <section aria-labelledby="scm-steps-h">
+    <section class="seo-section" aria-labelledby="scm-steps-h">
       <h2 id="scm-steps-h">Steps: Canvas from your song</h2>
-      <ol class="scm-steps">
+      <ol class="seo-steps seo-steps--numbered">
         <li>
           <h3>Open the engine with the Canvas preset</h3>
           <p>
@@ -414,13 +191,13 @@
       </ol>
     </section>
 
-    <section aria-labelledby="scm-spec-h">
+    <section class="seo-section" aria-labelledby="scm-spec-h">
       <h2 id="scm-spec-h">Canvas specs (check Spotify for the latest)</h2>
-      <p class="scm-lead" style="font-size: 15px; margin-bottom: var(--space-2);">
+      <p class="seo-section-note">
         Spotify publishes Canvas guidelines for artists. The table below matches what SWR exports today and what Spotify has described publicly;
         if anything conflicts, follow Spotify for Artists.
       </p>
-      <table class="scm-spec">
+      <table class="seo-table">
         <tbody>
           <tr>
             <th>Aspect ratio</th>
@@ -446,17 +223,17 @@
       </table>
     </section>
 
-    <section aria-labelledby="scm-why-h">
+    <section class="seo-section" aria-labelledby="scm-why-h">
       <h2 id="scm-why-h">Why use an audio-reactive loop?</h2>
-      <div class="scm-grid-2">
-        <div class="scm-card">
+      <div class="seo-card-grid">
+        <div class="seo-card">
           <h3>More than a zooming cover</h3>
           <p>
             Many Canvas tools only animate artwork. SWR routes your mix through the same engine as
             <a href="/make-video">music video projects</a>: layers cut and pulse on beats, not on a generic preset.
           </p>
         </div>
-        <div class="scm-card">
+        <div class="seo-card">
           <h3>Vertical-first export</h3>
           <p>
             The reel preset matches TikTok and Reels sizing as well.
@@ -467,7 +244,7 @@
       </div>
     </section>
 
-    <section class="scm-links" aria-label="Related tools">
+    <section class="seo-section seo-links-row" aria-label="Related tools">
       <a href="/engine/">Engine</a>
       <a href="/versions/">Visual languages</a>
       <a href="/marketplace">Template marketplace</a>
@@ -475,7 +252,7 @@
       <a href="/tiktok">TikTok Studio</a>
     </section>
 
-    <section class="scm-faq" aria-labelledby="scm-faq-h">
+    <section class="seo-section seo-faq" aria-labelledby="scm-faq-h">
       <h2 id="scm-faq-h">FAQ</h2>
 
       <details>
@@ -530,12 +307,23 @@
       </details>
     </section>
 
-    <p class="scm-disclaimer">
+    <p class="seo-disclaimer">
       Sainted Word Records is not affiliated with Spotify AB. Canvas is a feature of the Spotify platform;
       trademarks belong to their owners. Feature names on this page are for search clarity only.
     </p>
+    <section class="seo-closing">
+      <h2>Make your Canvas loop</h2>
+      <p>Open the engine with the Canvas preset, record eight seconds at 9:16, then upload in Spotify for Artists.</p>
+      <a class="btn btn--primary" href="/engine/?canvas=1">Open Canvas preset →</a>
+    </section>
+    </div>
   </main>
 
   <swr-footer></swr-footer>
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
 </body>
 </html>

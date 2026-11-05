@@ -4,8 +4,9 @@
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
   <link rel="stylesheet" href="/lib/design-tokens.css">
-  <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-base.css">
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/seo-landing.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BeatStars Visualizer &amp; Beat Preview Video Maker · Sainted Word Records</title>
@@ -132,100 +133,56 @@
   }
   </script>
 
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: var(--font-body, 'Geist', system-ui, sans-serif);
-      font-size: 16px;
-      line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
-    }
-    main { max-width: 720px; margin: 0 auto; padding: 48px 24px 96px; }
-    h1, h2, h3 { font-family: 'Fraunces', var(--font-display, serif); font-weight: 300; letter-spacing: -0.02em; margin: 0; }
-    h1 { font-size: clamp(2rem, 5vw, 2.75rem); line-height: 1.08; max-width: 20ch; }
-    h1 em { font-style: italic; color: var(--accent); }
-    h2 { font-size: 1.45rem; margin-top: 2.75rem; margin-bottom: 0.75rem; }
-    p { margin: 0 0 1rem; color: var(--ink-2, var(--muted)); }
-    p.lede { font-size: 1.125rem; color: var(--ink); line-height: 1.55; }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    ul, ol { margin: 0 0 1.25rem; padding-left: 1.25rem; color: var(--ink-2, var(--muted)); }
-    li { margin: 0.35rem 0; }
-    .kicker {
-      display: block; margin-bottom: 1rem;
-      font-family: 'Geist Mono', var(--font-mono, monospace);
-      font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--muted);
-    }
-    .direct-answer {
-      margin: 1.5rem 0 2rem;
-      padding: 1.25rem 1.35rem;
-      background: var(--bg-2);
-      border: 1px solid var(--line);
-      border-radius: var(--radius, 12px);
-      border-left: 3px solid var(--accent);
-    }
-    .direct-answer p { margin: 0; color: var(--ink); font-size: 1.05rem; }
-    .direct-answer strong { font-weight: 600; color: var(--ink); }
-    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 1.75rem 0 2rem; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 11px 20px; border-radius: 999px;
-      font: 600 0.9rem/1.2 inherit; text-decoration: none;
-      border: 1px solid transparent;
-    }
-    .btn--primary { background: var(--ink); color: var(--bg); }
-    .btn--primary:hover { background: var(--accent); color: #fff; text-decoration: none; }
-    .btn--ghost { border-color: var(--line-2, var(--line)); color: var(--ink); background: transparent; }
-    .btn--ghost:hover { border-color: var(--ink); text-decoration: none; }
-    .styles-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 10px; list-style: none; padding: 0; margin: 1rem 0 1.5rem;
-    }
-    .styles-grid a {
-      display: block; padding: 12px 14px;
-      border: 1px solid var(--line); border-radius: var(--radius-sm, 8px);
-      font-size: 0.9rem; font-weight: 500; color: var(--ink);
-      background: var(--bg-3, var(--bg));
-    }
-    .styles-grid a:hover { border-color: var(--accent); text-decoration: none; }
-    .note {
-      font-size: 0.88rem; padding: 1rem 1.1rem;
-      background: var(--bg-2); border-radius: var(--radius-sm, 8px);
-      border: 1px solid var(--line);
-    }
-    .faq-item { border-top: 1px solid var(--line); padding: 1.25rem 0; }
-    .faq-item:first-of-type { border-top: none; padding-top: 0; }
-    .faq-item h3 { font-size: 1.05rem; font-weight: 500; margin-bottom: 0.5rem; color: var(--ink); font-family: inherit; }
-    .faq-item p { margin: 0; font-size: 0.95rem; }
-    code {
-      font-family: 'Geist Mono', monospace; font-size: 0.85em;
-      padding: 0.1em 0.35em; background: var(--bg-2); border-radius: 4px;
-    }
-  </style>
   <script src="/fx-background.client.js" defer></script>
 </head>
-<body>
+<body class="seo-page">
   <swr-nav></swr-nav>
   <main id="main">
-    <span class="kicker">BeatStars · Airbit · type beats</span>
-    <h1>BeatStars visualizer for <em>15-second</em> previews</h1>
-    <p class="lede">A browser beat visualizer and type beat video maker: load your instrumental, pick a reactive look, export a short MP4, then put that file on your listing or on YouTube.</p>
+    <header class="seo-hero-band">
+      <div class="seo-hero-band__inner">
+        <div>
+          <span class="seo-kicker">BeatStars · Airbit · type beats</span>
+          <h1>BeatStars visualizer for <em>15-second</em> previews</h1>
+          <p class="seo-lede">A browser beat visualizer and type beat video maker: load your instrumental, pick a reactive look, export a short MP4, then put that file on your listing or on YouTube.</p>
+          <div class="seo-answer" id="answer">
+            <p><strong>How do I make a video preview for my beats on BeatStars?</strong> Open the <a href="/engine">SWR engine</a>, load your beat, choose a visual style, set the recorder to <strong>15 seconds</strong>, export the video, then upload the file in your BeatStars or Airbit dashboard—or publish on YouTube and paste the link on the beat. There is no store integration; you move the file yourself.</p>
+          </div>
+          <div class="seo-cta-row">
+            <a class="btn btn--primary" href="/engine">Open the engine</a>
+            <a class="btn btn--ghost" href="/interactive-howto">Interactive how-to</a>
+          </div>
+          <ul class="seo-pills">
+            <li><b>15s</b> preview preset</li>
+            <li>16:9 · 9:16 · 1:1</li>
+            <li>Local-first</li>
+          </ul>
+        </div>
+        <div class="seo-collage" aria-hidden="true">
+          <div class="seo-collage__cell seo-collage__cell--a">
+            <img src="/keyart/grid.png" alt="" width="400" height="300" loading="lazy" />
+            <span class="seo-collage__badge">Grid</span>
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--b">
+            <img src="/keyart/neon.png" alt="" width="280" height="140" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--c">
+            <img src="/keyart/chrome.png" alt="" width="180" height="140" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--d">
+            <img src="/keyart/glitch.png" alt="" width="120" height="200" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--e">
+            <img src="/press/screenshot-engine.png" alt="" width="200" height="220" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--f">
+            <img src="/keyart/smoke.png" alt="" width="360" height="220" loading="lazy" />
+          </div>
+        </div>
+      </div>
+    </header>
 
-    <div class="direct-answer" id="answer">
-      <p><strong>How do I make a video preview for my beats on BeatStars?</strong> Open the <a href="/engine">SWR engine</a>, load your beat, choose a visual style, set the recorder to <strong>15 seconds</strong>, export the video, then upload the file in your BeatStars or Airbit dashboard—or publish on YouTube and paste the link on the beat. There is no store integration; you move the file yourself.</p>
-    </div>
-
-    <div class="cta-row">
-      <a class="btn btn--primary" href="/engine">Open the engine</a>
-      <a class="btn btn--ghost" href="/interactive-howto">Interactive how-to</a>
-    </div>
-
+    <div class="seo-main">
+    <section class="seo-section">
     <h2>What the engine actually does</h2>
     <p>Sainted Word Records is an audio-reactive video engine in the browser. It analyses your track (beats, bands, onsets) and drives layered visuals—your clips, GIFs, and images, or generative looks—while you preview in real time. When you are happy with the frame, you record a file from the same canvas.</p>
     <ul>
@@ -235,7 +192,9 @@
       <li><strong>Privacy:</strong> your beat is not uploaded to SWR for rendering—the graph runs locally in the tab.</li>
       <li><strong>Watermark:</strong> exports include a small SWR mark by default (invite unlock can turn it off).</li>
     </ul>
+    </section>
 
+    <section class="seo-section">
     <h2>Step-by-step: BeatStars preview workflow</h2>
     <ol>
       <li><strong>Open the engine.</strong> Go to <a href="/engine">/engine</a> and load your type beat (MP3, WAV, M4A, FLAC, and other formats the browser can decode).</li>
@@ -245,50 +204,68 @@
       <li><strong>Record.</strong> Start playback, press <strong>REC</strong> or <strong>Export video</strong>, and wait for the download. Scrub to the hook first if you want the drop in frame one.</li>
       <li><strong>Publish off-site.</strong> In BeatStars or Airbit, use that platform’s upload or “video URL” field for the beat. On YouTube, upload the same file as an unlisted or public preview and link it on the listing. Menus and limits change over time—use whatever video slot your dashboard offers.</li>
     </ol>
+    </section>
 
+    <section class="seo-section">
     <h2>Visual styles to try</h2>
     <p>These pages share the same engine contract—each ships a distinct <code>drawFx</code> look you can also reach from the engine’s Looks menu:</p>
-    <ul class="styles-grid">
-      <li><a href="/versions/neon">Neon</a></li>
-      <li><a href="/versions/grid">Grid</a></li>
-      <li><a href="/versions/film">Film</a></li>
-      <li><a href="/versions/smoke">Smoke</a></li>
-      <li><a href="/versions/hallucination">Hallucination</a></li>
-      <li><a href="/versions/aurora">Aurora</a></li>
-      <li><a href="/visual-languages">All visual languages</a></li>
+    <ul class="seo-looks">
+      <li><a href="/versions/neon"><img src="/keyart/neon.png" alt="Neon visual language preview" width="280" height="175" loading="lazy" /><span>Neon</span></a></li>
+      <li><a href="/versions/grid"><img src="/keyart/grid.png" alt="Grid visual language preview" width="280" height="175" loading="lazy" /><span>Grid</span></a></li>
+      <li><a href="/versions/film"><img src="/keyart/film.png" alt="Film visual language preview" width="280" height="175" loading="lazy" /><span>Film</span></a></li>
+      <li><a href="/versions/smoke"><img src="/keyart/smoke.png" alt="Smoke visual language preview" width="280" height="175" loading="lazy" /><span>Smoke</span></a></li>
+      <li><a href="/versions/hallucination"><img src="/keyart/hallucination.png" alt="Hallucination visual language preview" width="280" height="175" loading="lazy" /><span>Hallucination</span></a></li>
+      <li><a href="/versions/aurora"><img src="/keyart/aurora.png" alt="Aurora visual language preview" width="280" height="175" loading="lazy" /><span>Aurora</span></a></li>
+      <li><a href="/visual-languages"><img src="/keyart/gallery.png" alt="All visual languages" width="280" height="175" loading="lazy" /><span>All visual languages</span></a></li>
     </ul>
     <p>Want a longer walkthrough? See the <a href="/tutorial-30s">30-second tutorial</a> or <a href="/make-video">music video maker</a> surface for a clip-library-first flow.</p>
+    </section>
 
+    <section class="seo-section">
     <h2>BeatStars vs Airbit (honest scope)</h2>
-    <p class="note">SWR is not a BeatStars plugin and not an Airbit partner tool. It does not log into your account, sync beats, or push previews automatically. You render once in the engine, keep the MP4 on your machine, and use each marketplace’s normal media upload or external link field. If a platform only accepts a YouTube URL, upload there first, then paste the link on the beat.</p>
+    <p class="seo-note">SWR is not a BeatStars plugin and not an Airbit partner tool. It does not log into your account, sync beats, or push previews automatically. You render once in the engine, keep the MP4 on your machine, and use each marketplace’s normal media upload or external link field. If a platform only accepts a YouTube URL, upload there first, then paste the link on the beat.</p>
+    </section>
 
+    <section class="seo-section" id="faq">
     <h2>FAQ</h2>
-    <div class="faq-item">
+    <ul class="seo-faq-list">
+      <li>
       <h3>Is this a free beat visualizer online?</h3>
       <p>You can use the engine in the browser without paying for a render service. Exported files carry the default SWR watermark unless you have unlocked exports. There is no per-export fee in the app itself.</p>
-    </div>
-    <div class="faq-item">
+      </li>
+      <li>
       <h3>Can I make a vertical type beat video for Reels or TikTok?</h3>
       <p>Yes. Choose the Reel / TikTok 9:16 preset (1080×1920) before recording. The stage refits to that aspect ratio for the export.</p>
-    </div>
-    <div class="faq-item">
+      </li>
+      <li>
       <h3>What if I need exactly 15 seconds every time?</h3>
       <p>Select <strong>15s</strong> in the duration dropdown beside REC. Start the beat from the same point (for example the intro or the drop) so each preview feels consistent across your catalog.</p>
-    </div>
-    <div class="faq-item">
+      </li>
+      <li>
       <h3>Do you store my beats on your servers?</h3>
       <p>Rendering does not require uploading your instrumental to SWR. Optional cloud project features are separate; this preview workflow is local-first.</p>
-    </div>
-    <div class="faq-item">
+      </li>
+      <li>
       <h3>Where do I learn more about export settings?</h3>
       <p>The <a href="/interactive-howto">interactive how-to</a> covers song + library + record flow. Parameter details for URL flags live on the control centre if you need developer-level toggles.</p>
-    </div>
+      </li>
+    </ul>
+    </section>
 
-    <p style="margin-top: 2.5rem; font-size: 0.9rem;">Related: <a href="/personas">personas</a> (including beatmakers), <a href="/engine">engine</a>, <a href="/changelog">changelog</a>.</p>
+    <section class="seo-closing">
+      <h2>Render your next type beat preview</h2>
+      <p>Load the instrumental, pick a look, set 15 seconds, and export — all in one browser tab.</p>
+      <a class="btn btn--primary" href="/engine">Open the engine →</a>
+    </section>
+
+    <p class="seo-related">Related: <a href="/personas">personas</a> (including beatmakers), <a href="/engine">engine</a>, <a href="/changelog">changelog</a>.</p>
+    </div>
   </main>
-  <script src="/lib/nav.client.js" defer></script>
   <swr-footer></swr-footer>
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
 </body>
 </html>
