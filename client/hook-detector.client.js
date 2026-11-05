@@ -143,8 +143,13 @@
       try {
         rec = window.SWR_RECORDER.start({
           canvas: stage,
-          audioSource: window.A.el,
-          audioSampleRate: 44100,
+          // The analyser, not the media element: the recorder needs an
+          // AudioNode, and the analyser carries whatever the preview is
+          // hearing (the video's own track, an external file, silence).
+          // The media element only carries its own track, so recording it
+          // directly loses the external source.
+          audioSource: (window.A && window.A.analyser) || null,
+          audioSampleRate: (window.A && window.A.ctx && window.A.ctx.sampleRate) || 44100,
           audioNumberOfChannels: 2,
           width: stage.width,
           height: stage.height,

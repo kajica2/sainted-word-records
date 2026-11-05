@@ -243,6 +243,7 @@ const GROUPS = {
     // shared styles, a unique title, a description and a <main> landmark
     // (app surfaces must carry an exit link instead).
     'npm run check:site-chrome',
+    'npm run check:engine-parity',
     // Static: the five iPhone-first surfaces declare viewport-fit=cover (without
     // it every env(safe-area-inset-*) resolves to 0px), apply the insets where
     // they collide with the notch / home indicator, and set
