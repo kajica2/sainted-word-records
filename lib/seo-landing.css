@@ -9,13 +9,117 @@
 .seo-page {
   --seo-max: 980px;
   --seo-narrow: 720px;
-  --seo-hero-accent: var(--accent);
-  --seo-hero-glow: color-mix(in srgb, var(--accent) 18%, transparent);
+  /* Text-safe accents (WCAG AA on --bg / --bg-3); bright --accent kept for fills only */
+  --seo-accent-em: #8f1d42;
+  --seo-accent-marker: #7a2e0f;
+  --seo-accent-link: #7a2e0f;
+  --seo-step-bg: #7a2e0f;
+  --seo-step-fg: #ffffff;
+  --seo-btn-accent-bg: #9a3412;
+  --seo-btn-accent-fg: #ffffff;
+  --seo-hero-accent: var(--seo-accent-em);
+  --seo-hero-glow: color-mix(in srgb, var(--seo-accent-marker) 14%, transparent);
+  --seo-hero-scrim: color-mix(in srgb, var(--bg) 94%, transparent);
+}
+
+[data-theme="dark"] .seo-page {
+  --seo-accent-em: #ffb3d4;
+  --seo-accent-marker: #ffaa3a;
+  --seo-accent-link: #ffd0a8;
+  --seo-step-bg: #ffaa3a;
+  --seo-step-fg: #1a1612;
+  --seo-btn-accent-bg: #c2410c;
+  --seo-btn-accent-fg: #ffffff;
+  --seo-hero-scrim: color-mix(in srgb, var(--bg) 88%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .seo-page {
+    --seo-accent-em: #ffb3d4;
+    --seo-accent-marker: #ffaa3a;
+    --seo-accent-link: #ffd0a8;
+    --seo-step-bg: #ffaa3a;
+    --seo-step-fg: #1a1612;
+    --seo-btn-accent-bg: #c2410c;
+    --seo-btn-accent-fg: #ffffff;
+    --seo-hero-scrim: color-mix(in srgb, var(--bg) 88%, transparent);
+  }
 }
 
 .seo-page.seo--spotify {
-  --seo-hero-accent: #1db954;
-  --seo-hero-glow: color-mix(in srgb, #1db954 22%, transparent);
+  --seo-accent-em: #0f6b35;
+  --seo-accent-marker: #0f6b35;
+  --seo-accent-link: #0f6b35;
+  --seo-step-bg: #0f6b35;
+  --seo-step-fg: #ffffff;
+  --seo-btn-accent-bg: #0f6b35;
+  --seo-btn-accent-fg: #ffffff;
+  --seo-hero-accent: var(--seo-accent-em);
+  --seo-hero-glow: color-mix(in srgb, #1db954 16%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .seo-page.seo--spotify {
+    --seo-accent-em: #6ee7a0;
+    --seo-accent-marker: #34d399;
+    --seo-accent-link: #a7f3d0;
+    --seo-step-bg: #34d399;
+    --seo-step-fg: #041008;
+    --seo-btn-accent-bg: #15803d;
+    --seo-btn-accent-fg: #ffffff;
+  }
+}
+
+[data-theme="dark"] .seo-page.seo--spotify {
+  --seo-accent-em: #6ee7a0;
+  --seo-accent-marker: #34d399;
+  --seo-accent-link: #a7f3d0;
+  --seo-step-bg: #34d399;
+  --seo-step-fg: #041008;
+  --seo-btn-accent-bg: #15803d;
+  --seo-btn-accent-fg: #ffffff;
+}
+
+/* Links: ink + rust marker (not bright orange/magenta on cream) */
+.seo-page main a:not(.btn) {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--seo-accent-marker) 72%, var(--line));
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.seo-page main a:not(.btn):hover {
+  color: var(--seo-accent-link);
+  text-decoration-color: var(--seo-accent-marker);
+}
+
+.seo-page .seo-looks a,
+.seo-page .seo-looks a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.seo-page ::selection {
+  background: var(--seo-step-bg);
+  color: var(--seo-step-fg);
+}
+
+.seo-page .btn--primary {
+  background: var(--seo-btn-accent-bg);
+  color: var(--seo-btn-accent-fg);
+  border-color: var(--seo-btn-accent-bg);
+}
+
+.seo-page .btn--primary:hover {
+  background: color-mix(in srgb, var(--seo-btn-accent-bg) 88%, #000);
+  color: var(--seo-btn-accent-fg);
+  border-color: color-mix(in srgb, var(--seo-btn-accent-bg) 88%, #000);
+}
+
+.seo-page .btn--ghost:hover {
+  border-color: var(--seo-accent-marker);
+  color: var(--ink);
 }
 
 .seo-page img { max-width: 100%; height: auto; }
@@ -49,6 +153,18 @@
   align-items: center;
 }
 
+/* Keep hero copy readable over animated FX / collage glare */
+.seo-hero-band__inner > div:first-child {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-5, 22px);
+  border-radius: var(--radius, 14px);
+  background: var(--seo-hero-scrim);
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  box-shadow: var(--shadow-1);
+  backdrop-filter: blur(8px);
+}
+
 @media (max-width: 860px) {
   .seo-hero-band__inner {
     grid-template-columns: 1fr;
@@ -63,7 +179,7 @@
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-2, var(--muted));
   margin: 0 0 var(--space-3, 14px);
 }
 
@@ -294,8 +410,15 @@
   top: var(--space-4, 18px);
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--seo-hero-accent);
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  text-align: center;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  background: var(--seo-step-bg);
+  color: var(--seo-step-fg);
 }
 
 .seo-steps h3 {
@@ -534,10 +657,22 @@
 
 .seo-related {
   font-size: 14px;
-  color: var(--muted);
+  color: var(--ink-2, var(--muted));
   margin-top: var(--space-6, 40px);
   padding-top: var(--space-5, 24px);
   border-top: 1px solid var(--line);
+}
+
+.seo-related a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--seo-accent-marker) 72%, var(--line));
+  text-underline-offset: 3px;
+}
+
+.seo-related a:hover {
+  color: var(--seo-accent-link);
+  text-decoration-color: var(--seo-accent-marker);
 }
 
 .sr-only {
