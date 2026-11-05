@@ -487,6 +487,10 @@ function copyStatic() {
     'self-assembling-timeline.js',
     'engine-lfo-panel.client.js',
     'engine-panel-visibility.client.js',
+    // WebGL primitive renderer (window.SWR_3D) — the "+ 3D" button on the
+    // engine and the variant pages both read it, and without this the
+    // script 404s and the button answers "engine-3d.client.js not loaded".
+    'engine-3d.client.js',
     'engine-automap.client.js',
     'engine-settings.client.js',
     // Dual-mode engine: Basic (default for first-timers) and Advanced.

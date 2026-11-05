@@ -178,6 +178,29 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **A gate that failed early left its test server running, and the next run
+  on the same fixed port failed for the wrong reason.** `check:command-center`,
+  `check:chain-view` and `check:targeting-smoke` spawn a
+  `python3 -m http.server` and killed it only on the success path — so any
+  early `process.exit(1)` orphaned it. The orphan kept the port, the next
+  run's own server could not bind, and the gate polled the STALE server
+  until it reported `server timeout`: a failure that had nothing to do with
+  the code under test. One such orphan was found squatting on port 54041
+  for 36 hours, serving 404s from a worktree that no longer existed. Each
+  of the three now kills its server from a `process.on('exit')` handler, so
+  the server dies on every exit path. Verified by forcing an early failure:
+  with the fix the port is free afterwards (0 listeners), without it the
+  server leaks (1 listener).
+- **The swarm agent's chat crashed on Node 24+ when stdin reached EOF during
+  a turn.** `software-factory/swr-agent.mjs` called `rl.prompt()` on a
+  readline interface that stdin had already closed. Node 22 made that a
+  silent no-op; Node 24 and later throw `ERR_USE_AFTER_CLOSE`, so the CLI
+  exited 1 instead of 0 on a perfectly normal `/exit`. The prompts are now
+  guarded by `rl.closed` — which is `undefined` while open and `true` once
+  closed on both runtimes — so the agent works on Node 22 and Node 26
+  alike. The swarm-guard wiring suite fails 49/1 on Node 26 without the
+  guard and passes 50/50 with it; it passes 50/50 on Node 22, Node 24 and
+  Node 26.
 - **The bench smoke's A/V depth floor was a flat 2, so it failed on a slow
   CI runner that could only ever produce 1.** The gate asserts "every run
   measured the clock" — every run records at least one A/V sample, and the
@@ -533,6 +556,16 @@ once it hits 1.0.
   to the current frame if the clip cannot be seeked.
 
 ### Changed
+- The **engine and the neon variant now run one contract** instead of two
+  implementations of it. Neon loads the engine's audio core rather than its own
+  inline copy, the engine loads the shared binding layer instead of wiring the
+  stats, hooks, mood and scene buttons a second time, and four inline copies on
+  the engine that were overwritten before anything could read them are gone.
+  A new gate, `npm run check:engine-parity`, fails when a page loads a module
+  whose dependency the page does not publish — the failure that shows up as a
+  feature that quietly does nothing. It found two: the engine's "+ 3D" button
+  led to an error because the module it needed was never loaded, and the mood
+  overlay never restored its saved position.
 - **The sign-in page now says what an account is for.** The headline is
   "Save it here. Open it on any device." and the one-sentence value prop is
   a four-line list: your song stays in your browser, your Drive files stay

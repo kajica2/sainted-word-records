@@ -3,8 +3,10 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
-  <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/design-base.css">
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/seo-landing.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>How to Make a Music Video With No Budget · Sainted Word Records</title>
@@ -24,8 +26,6 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
-
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -100,152 +100,57 @@
   }
   </script>
 
-  <style>
-    :root {
-      --bg: #faf7f2;
-      --bg-2: #f1ebe1;
-      --bg-3: #ffffff;
-      --ink: #1a1612;
-      --ink-2: #4a4035;
-      --muted: #8a7a66;
-      --line: #ddd3c2;
-      --line-2: #c9beaa;
-      --accent: #e6306b;
-      --accent-2: #ff8a3a;
-      --accent-3: #1c8c64;
-      --font-display: 'Fraunces', ui-serif, Georgia, serif;
-      --font-body: ui-sans-serif, system-ui, -apple-system, "Inter", "Geist", sans-serif;
-      --font-mono: ui-monospace, SFMono-Regular, "Geist Mono", Menlo, monospace;
-      --radius: 12px;
-      --radius-sm: 6px;
-      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
-    }
-    [data-theme="dark"] {
-      --bg: #0e0c0a;
-      --bg-2: #161310;
-      --bg-3: #1d1815;
-      --ink: #f5ead8;
-      --ink-2: #d4c7b3;
-      --muted: #8a7a66;
-      --line: #2c2419;
-      --line-2: #3a3022;
-      --accent: #ff2d8a;
-      --accent-2: #ffaa3a;
-      --accent-3: #00ffa3;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; }
-    body {
-      background: var(--bg);
-      color: var(--ink);
-      font: 16px/1.65 var(--font-body);
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
-    a:hover { border-bottom-color: var(--accent); }
-    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
-    code { font-family: var(--font-mono); font-size: 0.92em; background: var(--bg-2); padding: 0.1em 0.4em; border-radius: 4px; }
-
-    main { max-width: 720px; margin: 0 auto; padding: 0 24px 64px; }
-    .eyebrow {
-      display: inline-block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--accent); font-weight: 600; margin: 32px 0 12px;
-    }
-    h1 {
-      font-family: var(--font-display); font-weight: 400; font-style: italic;
-      font-size: clamp(32px, 5vw, 48px); line-height: 1.08; letter-spacing: -0.02em;
-      margin: 0 0 20px; max-width: 18ch;
-    }
-    .direct-answer {
-      font-size: 18px; line-height: 1.55; color: var(--ink-2);
-      margin: 0 0 28px; padding: 20px 22px;
-      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
-      border-left: 3px solid var(--accent);
-    }
-    h2 {
-      font-family: var(--font-display); font-weight: 400; font-style: italic;
-      font-size: clamp(22px, 3vw, 28px); line-height: 1.2;
-      margin: 48px 0 12px; letter-spacing: -0.01em;
-    }
-    h3 { font: 600 16px/1.35 var(--font-body); margin: 24px 0 8px; color: var(--ink); }
-    p { margin: 0 0 16px; color: var(--ink-2); }
-    ul, ol { margin: 0 0 16px; padding-left: 1.25rem; color: var(--ink-2); }
-    li { margin: 6px 0; }
-    li b { color: var(--ink); }
-
-    .format-table {
-      width: 100%; border-collapse: collapse; font-size: 14px; margin: 16px 0 24px;
-    }
-    .format-table th, .format-table td {
-      text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line);
-    }
-    .format-table th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .format-table td:first-child { font-family: var(--font-mono); font-size: 13px; color: var(--ink); }
-
-    .steps-list {
-      counter-reset: step;
-      list-style: none; padding: 0; margin: 20px 0 32px;
-    }
-    .steps-list li {
-      counter-increment: step;
-      position: relative; padding: 18px 18px 18px 56px;
-      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
-      margin-bottom: 12px;
-    }
-    .steps-list li::before {
-      content: counter(step);
-      position: absolute; left: 18px; top: 18px;
-      width: 28px; height: 28px; border-radius: 50%;
-      background: var(--accent); color: #fff;
-      font: 600 13px/28px var(--font-mono); text-align: center;
-    }
-
-    .faq { margin-top: 8px; }
-    .faq details {
-      border: 1px solid var(--line); border-radius: var(--radius-sm);
-      background: var(--bg-3); margin-bottom: 10px; padding: 0;
-    }
-    .faq summary {
-      cursor: pointer; padding: 14px 16px; font-weight: 600; color: var(--ink);
-      list-style: none;
-    }
-    .faq summary::-webkit-details-marker { display: none; }
-    .faq details[open] summary { border-bottom: 1px solid var(--line); }
-    .faq .faq-body { padding: 14px 16px 16px; font-size: 15px; color: var(--ink-2); }
-
-    .cta-box {
-      margin: 48px 0 24px; padding: 28px 24px; text-align: center;
-      background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
-    }
-    .cta-box h2 { margin-top: 0; font-style: normal; font-weight: 500; max-width: none; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 22px; border-radius: var(--radius-sm);
-      font: 600 14px/1 var(--font-body);
-      background: var(--accent); color: #fff; border: 1px solid var(--accent);
-      margin-top: 8px;
-    }
-    .btn:hover { filter: brightness(1.05); border-bottom-color: transparent; color: #fff; }
-
-    .related { font-size: 14px; color: var(--muted); margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
-    .related a { margin-right: 12px; }
-  </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@400;500;600&display=swap" />
   <script src="/fx-background.client.js" defer></script>
 </head>
-<body>
+<body class="seo-page" data-fx="rose">
   <swr-nav></swr-nav>
 
-  <main>
-    <span class="eyebrow">Guide · DIY music video</span>
-    <h1>How to make a music video with no budget</h1>
+  <main id="main">
+    <header class="seo-hero-band">
+      <div class="seo-hero-band__inner">
+        <div>
+          <span class="seo-eyebrow">Guide · DIY music video</span>
+          <h1>How to make a music video with no budget</h1>
+          <div class="seo-answer" id="answer">
+            <p>
+              You can make a credible music video without hiring a crew by planning one strong section of the song,
+              cutting together footage you already own (plus carefully licensed free clips), and exporting the right
+              aspect ratio for each platform. When you want motion that follows the track automatically, load the same
+              clips into a browser audio-reactive engine and record an MP4 locally.
+            </p>
+          </div>
+          <div class="seo-cta-row">
+            <a class="btn btn--primary" href="/engine">Open the engine</a>
+            <a class="btn btn--ghost" href="/make-video">Make Video</a>
+          </div>
+        </div>
+        <div class="seo-collage" aria-hidden="true">
+          <div class="seo-collage__cell seo-collage__cell--a">
+            <img src="/keyart/film.png" alt="" width="400" height="300" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--b">
+            <img src="/keyart/watercolor.png" alt="" width="280" height="140" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--c">
+            <img src="/keyart/mosaic.png" alt="" width="180" height="140" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--d">
+            <img src="/keyart/pulse.png" alt="" width="120" height="200" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--e">
+            <img src="/press/screenshot-engine.png" alt="" width="200" height="220" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--f">
+            <img src="/keyart/smoke.png" alt="" width="360" height="220" loading="lazy" />
+          </div>
+        </div>
+      </div>
+    </header>
 
-    <p class="direct-answer" id="answer">
-      You can make a credible music video without hiring a crew by planning one strong section of the song,
-      cutting together footage you already own (plus carefully licensed free clips), and exporting the right
-      aspect ratio for each platform. When you want motion that follows the track automatically, load the same
-      clips into a browser audio-reactive engine and record an MP4 locally.
-    </p>
+    <div class="seo-main seo-main--narrow">
 
+    <section class="seo-section">
     <p>
       This guide is written for indie musicians who need a <strong>low-budget music video</strong> or
       <strong>DIY music video</strong> for a single release—not a cinema-grade shoot. The steps below stay
@@ -253,6 +158,9 @@
       <a href="/engine">Sainted Word Records</a> handles beat-synced layering in the browser.
     </p>
 
+    </section>
+
+    <section class="seo-section">
     <h2>Start with a one-page plan</h2>
     <p>
       A <strong>cheap music video</strong> still needs a clear hook. Before you open any editor, decide:
@@ -268,6 +176,9 @@
       one good chorus video beats a vague full-length montage.
     </p>
 
+    </section>
+
+    <section class="seo-section">
     <h2>Footage you already have (no new shoot)</h2>
     <p>
       A <strong>music video without a videographer</strong> usually mixes sources you control:
@@ -283,6 +194,9 @@
       so you are not scrolling through ten-minute files later.
     </p>
 
+    </section>
+
+    <section class="seo-section">
     <h2>Free and public-domain clip libraries (names only)</h2>
     <p>
       When you need cutaways you did not shoot, use established libraries and save the license page for each download:
@@ -301,11 +215,14 @@
       The site also ships curated <a href="/packs">media packs</a> you can load in the engine library drawer when you want ready-made textures.
     </p>
 
+    </section>
+
+    <section class="seo-section">
     <h2>Formats for each platform</h2>
     <p>
       Export once per destination. The engine's record surface documents these three orientations at 1080p:
     </p>
-    <table class="format-table">
+    <table class="seo-table format-table">
       <thead>
         <tr><th>Ratio</th><th>Pixels</th><th>Typical use</th></tr>
       </thead>
@@ -321,15 +238,21 @@
       <a href="/record">Record</a> for orientation controls in the app.
     </p>
 
+    </section>
+
+    <section class="seo-section">
     <h2>Numbered workflow (tool-agnostic)</h2>
-    <ol class="steps-list">
-      <li><b>Pick the hook.</b> Mark the chorus timestamps in your DAW or player. Everything else serves those seconds.</li>
-      <li><b>Build a clip bin.</b> Gather owned footage plus licensed stock; rename files so the best takes sort to the top.</li>
-      <li><b>Rough cut to the grid.</b> In any editor, align hard cuts to snare hits or downbeats—even before color grading.</li>
-      <li><b>Add one grade.</b> Match contrast and saturation across sources so phone footage and stock do not clash.</li>
-      <li><b>Export per platform.</b> Deliver 16:9, 9:16, and optionally 1:1 from the same timeline or separate sequences.</li>
+    <ol class="seo-steps seo-steps--numbered">
+      <li><h3>Pick the hook</h3><p>Mark the chorus timestamps in your DAW or player. Everything else serves those seconds.</p></li>
+      <li><h3>Build a clip bin</h3><p>Gather owned footage plus licensed stock; rename files so the best takes sort to the top.</p></li>
+      <li><h3>Rough cut to the grid</h3><p>In any editor, align hard cuts to snare hits or downbeats—even before color grading.</p></li>
+      <li><h3>Add one grade</h3><p>Match contrast and saturation across sources so phone footage and stock do not clash.</p></li>
+      <li><h3>Export per platform</h3><p>Deliver 16:9, 9:16, and optionally 1:1 from the same timeline or separate sequences.</p></li>
     </ol>
 
+    </section>
+
+    <section class="seo-section">
     <h2>Finish in the engine (optional, a few steps)</h2>
     <p>
       If you want layers that <em>react</em> to bass, beats, and chroma instead of hand-keyframing every flash,
@@ -351,14 +274,22 @@
       A shorter interactive walkthrough lives at <a href="/tutorial-30s">30s tutorial</a>.
     </p>
 
-    <div class="cta-box">
+    <ul class="seo-looks" aria-label="Example visual languages">
+      <li><a href="/versions/neon"><img src="/keyart/neon.png" alt="Neon visual language preview" width="280" height="175" loading="lazy" /><span>Neon</span></a></li>
+      <li><a href="/versions/film"><img src="/keyart/film.png" alt="Film visual language preview" width="280" height="175" loading="lazy" /><span>Film</span></a></li>
+      <li><a href="/versions/smoke"><img src="/keyart/smoke.png" alt="Smoke visual language preview" width="280" height="175" loading="lazy" /><span>Smoke</span></a></li>
+    </ul>
+    </section>
+
+    <section class="seo-closing">
       <h2>Ready to try it on your track?</h2>
       <p>Open the engine, drop your song and clips, and record an MP4 in one tab.</p>
-      <a class="btn" href="/engine">Open the engine →</a>
-    </div>
+      <a class="btn btn--primary" href="/engine">Open the engine →</a>
+    </section>
 
+    <section class="seo-section">
     <h2>Frequently asked questions</h2>
-    <div class="faq">
+    <div class="seo-faq">
       <details>
         <summary>Can I make a music video with zero dollars?</summary>
         <div class="faq-body">
@@ -404,7 +335,9 @@
       </details>
     </div>
 
-    <p class="related">
+    </section>
+
+    <p class="seo-related">
       More on this site:
       <a href="/intro">Intro</a>
       <a href="/interactive-howto">Interactive how-to</a>
@@ -412,6 +345,7 @@
       <a href="/visual-languages">Visual languages</a>
       <a href="/gallery">Galleries</a>
     </p>
+    </div>
   </main>
 
   <swr-footer></swr-footer>

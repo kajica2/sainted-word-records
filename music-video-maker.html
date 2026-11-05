@@ -3,8 +3,10 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
-  <link rel="stylesheet" href="/lib/components.css">
   <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/design-base.css">
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/seo-landing.css">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Free Music Video Maker Online · Turn a Song Into a Video in Your Browser</title>
@@ -30,7 +32,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=Geist:wght@400;500;600&display=swap" />
 
   <script type="application/ld+json">
   {
@@ -115,215 +117,116 @@
   }
   </script>
 
-  <style>
-    :root {
-      --bg: #faf7f2;
-      --bg-2: #f1ebe1;
-      --bg-3: #ffffff;
-      --ink: #1a1612;
-      --ink-2: #4a4035;
-      --muted: #8a7a66;
-      --line: #ddd3c2;
-      --line-2: #c9beaa;
-      --accent: #e6306b;
-      --accent-2: #ff8a3a;
-      --accent-3: #1c8c64;
-      --font-display: 'Fraunces', ui-serif, Georgia, serif;
-      --font-body: ui-sans-serif, system-ui, -apple-system, "Inter", "Geist", sans-serif;
-      --font-mono: ui-monospace, SFMono-Regular, "Geist Mono", Menlo, monospace;
-      --radius: 12px;
-      --radius-sm: 6px;
-      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
-    }
-    [data-theme="dark"] {
-      --bg: #0e0c0a;
-      --bg-2: #161310;
-      --bg-3: #1d1815;
-      --ink: #f5ead8;
-      --ink-2: #d4c7b3;
-      --muted: #8a7a66;
-      --line: #2c2419;
-      --line-2: #3a3022;
-      --accent: #ff2d8a;
-      --accent-2: #ffaa3a;
-      --accent-3: #00ffa3;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; }
-    body {
-      background: var(--bg);
-      color: var(--ink);
-      font: 16px/1.65 var(--font-body);
-      -webkit-font-smoothing: antialiased;
-    }
-    a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.18s; }
-    a:hover { border-bottom-color: var(--accent); }
-    code { font-family: var(--font-mono); font-size: 0.92em; background: var(--bg-2); padding: 0.1em 0.4em; border-radius: 4px; }
-
-    .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
-    .wrap-wide { max-width: 960px; margin: 0 auto; padding: 0 24px; }
-
-    .hero { padding: 32px 0 40px; }
-    .eyebrow {
-      display: inline-block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: var(--accent); font-weight: 600; margin-bottom: 14px;
-    }
-    h1 {
-      font-family: var(--font-display); font-weight: 400; font-style: italic;
-      font-size: clamp(32px, 5vw, 52px); line-height: 1.06; letter-spacing: -0.02em;
-      margin: 0 0 16px; max-width: 18ch;
-    }
-    .direct-answer {
-      font-size: clamp(17px, 2.2vw, 20px); line-height: 1.55; color: var(--ink-2);
-      max-width: 62ch; margin: 0 0 28px;
-      padding: 16px 18px; background: var(--bg-3); border: 1px solid var(--line);
-      border-radius: var(--radius); border-left: 3px solid var(--accent);
-    }
-    .direct-answer strong { color: var(--ink); font-weight: 600; }
-    .cta-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 22px; border-radius: 999px;
-      font: 600 14px/1 var(--font-body); border: 1px solid transparent;
-    }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-primary:hover { background: var(--ink); color: var(--bg); border-bottom-color: transparent; }
-    .btn-secondary { background: transparent; color: var(--ink); border-color: var(--line-2); }
-    .btn-secondary:hover { background: var(--bg-2); border-bottom-color: transparent; }
-    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted); }
-    .pill {
-      padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line);
-      background: var(--bg-3); letter-spacing: 0.04em;
-    }
-
-    section { padding: 48px 0; border-top: 1px solid var(--line); }
-    h2 {
-      font-family: var(--font-display); font-weight: 400; font-style: italic;
-      font-size: clamp(24px, 3.2vw, 34px); line-height: 1.12; margin: 0 0 12px;
-    }
-    .section-lede { color: var(--ink-2); margin: 0 0 24px; max-width: 58ch; }
-    .steps {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; list-style: none; padding: 0; margin: 0;
-    }
-    .steps li {
-      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
-      padding: 18px 16px;
-    }
-    .steps .num { font-family: var(--font-mono); font-size: 11px; color: var(--accent); letter-spacing: 0.1em; display: block; margin-bottom: 8px; }
-    .steps h3 { font-size: 15px; margin: 0 0 8px; font-weight: 600; }
-    .steps p { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.5; }
-
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .card {
-      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
-      padding: 18px;
-    }
-    .card h3 { font-size: 15px; margin: 0 0 8px; }
-    .card p { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.5; }
-
-    .faq { margin: 0; padding: 0; list-style: none; }
-    .faq li { border-bottom: 1px solid var(--line); padding: 18px 0; }
-    .faq li:first-child { border-top: 1px solid var(--line); }
-    .faq h3 { font-size: 16px; margin: 0 0 8px; font-weight: 600; }
-    .faq p { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.55; }
-
-    .links-inline { font-size: 14px; color: var(--ink-2); line-height: 1.7; }
-    .links-inline a { white-space: nowrap; }
-
-    .closing {
-      text-align: center; padding: 48px 0 56px;
-      background: var(--bg-2); border-top: 1px solid var(--line);
-    }
-    .closing h2 { font-style: normal; font-weight: 500; }
-    .closing p { color: var(--ink-2); margin: 0 0 20px; }
-
-    @media (max-width: 720px) {
-      .steps { grid-template-columns: 1fr; }
-      .grid-2 { grid-template-columns: 1fr; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { transition: none !important; animation: none !important; }
-    }
-  </style>
   <script src="/fx-background.client.js" defer></script>
 </head>
-<body>
+<body class="seo-page" data-fx="rose">
   <swr-nav></swr-nav>
 
-  <main>
-    <header class="hero wrap">
-      <span class="eyebrow">Free · browser-native · local-first</span>
-      <h1>Music video maker for indie artists</h1>
-      <p class="direct-answer">
-        <strong>The easiest free way to turn your song into a music video in the browser</strong> is to open
-        <a href="/make-video">Make Video</a>, load your track and clips from your device (nothing uploads to our servers),
-        preview the timeline with an optional beat-reactive overlay, then record an MP4 or WebM to download.
-      </p>
-      <div class="cta-row">
-        <a class="btn btn-primary" href="/make-video">Open Make Video →</a>
-        <a class="btn btn-secondary" href="/engine">Full engine</a>
-      </div>
-      <div class="pill-row">
-        <span class="pill">No upload</span>
-        <span class="pill">MP4 / WebM export</span>
-        <span class="pill">16:9 · 9:16 · 1:1 · cinema</span>
-        <span class="pill">No account required</span>
+  <main id="main">
+    <header class="seo-hero-band">
+      <div class="seo-hero-band__inner">
+        <div>
+          <span class="seo-eyebrow">Free · browser-native · local-first</span>
+          <h1>Music video maker for indie artists</h1>
+          <div class="seo-answer">
+            <p>
+              <strong>The easiest free way to turn your song into a music video in the browser</strong> is to open
+              <a href="/make-video">Make Video</a>, load your track and clips from your device (nothing uploads to our servers),
+              preview the timeline with an optional beat-reactive overlay, then record an MP4 or WebM to download.
+            </p>
+          </div>
+          <div class="seo-cta-row">
+            <a class="btn btn--primary" href="/make-video">Open Make Video →</a>
+            <a class="btn btn--ghost" href="/engine">Full engine</a>
+          </div>
+          <ul class="seo-pills" aria-label="Highlights">
+            <li>No upload</li>
+            <li>MP4 / WebM export</li>
+            <li>16:9 · 9:16 · 1:1 · cinema</li>
+            <li>No account required</li>
+          </ul>
+        </div>
+        <div class="seo-collage" aria-hidden="true">
+          <div class="seo-collage__cell seo-collage__cell--a">
+            <img src="/keyart/film.png" alt="" width="400" height="300" loading="lazy" />
+            <span class="seo-collage__badge">Film</span>
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--b">
+            <img src="/keyart/neon.png" alt="" width="280" height="140" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--c">
+            <img src="/keyart/smoke.png" alt="" width="180" height="140" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--d">
+            <img src="/keyart/aurora.png" alt="" width="120" height="200" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--e">
+            <img src="/press/screenshot-engine.png" alt="" width="200" height="220" loading="lazy" />
+          </div>
+          <div class="seo-collage__cell seo-collage__cell--f">
+            <img src="/keyart/hallucination.png" alt="" width="360" height="220" loading="lazy" />
+            <span class="seo-collage__badge">Reactive layers</span>
+          </div>
+        </div>
       </div>
     </header>
 
-    <section class="wrap" id="how">
+    <div class="seo-main">
+    <section class="seo-section" id="how">
       <h2>How it works</h2>
-      <p class="section-lede">Make Video is the quick path from a song file and a folder of clips to a downloadable video — all in one tab.</p>
-      <ol class="steps">
+      <p class="seo-section-lede">Make Video is the quick path from a song file and a folder of clips to a downloadable video — all in one tab.</p>
+      <ol class="seo-steps seo-steps--numbered">
         <li>
-          <span class="num">01</span>
           <h3>Pick your song</h3>
           <p>Choose an audio file from your device. It stays in your browser storage for this session — not on our servers.</p>
         </li>
         <li>
-          <span class="num">02</span>
           <h3>Add clips</h3>
           <p>Import videos and stills into the clip library, then place them on the timeline in the order you want.</p>
         </li>
         <li>
-          <span class="num">03</span>
           <h3>Preview &amp; react</h3>
           <p>Play the timeline on the canvas. Toggle the built-in visualizer for spectrum bars, waveform, and beat pulse over your edit.</p>
         </li>
         <li>
-          <span class="num">04</span>
           <h3>Record &amp; download</h3>
           <p>Pick an aspect ratio, press record, and save MP4 (or WebM if your browser requires it). No watermark is added in this tool.</p>
         </li>
       </ol>
     </section>
 
-    <section class="wrap-wide" id="features">
+    <section class="seo-section" id="features">
       <h2>What you get (and what to use next)</h2>
-      <p class="section-lede">Make Video focuses on local clip editing and export. When you want layered, style-driven visuals that follow every frequency band, use the engine.</p>
-      <div class="grid-2">
-        <div class="card">
+      <p class="seo-section-lede">Make Video focuses on local clip editing and export. When you want layered, style-driven visuals that follow every frequency band, use the engine.</p>
+      <div class="seo-card-grid">
+        <div class="seo-card">
           <h3>Make Video</h3>
           <p>Timeline of your clips, transport controls, optional audio-reactive overlay, and MediaRecorder export in four aspect ratios. Best when you already have footage and just need a beat-aware pass and a file out.</p>
         </div>
-        <div class="card">
+        <div class="seo-card">
           <h3>Auto-pick style → engine</h3>
           <p>From Make Video, <strong>Auto-pick style</strong> analyses your song and opens a matching visual language (Neon, Film, Smoke, and others) with the track preserved. That path is the full audio-reactive compositor — see <a href="/versions">visual languages</a>.</p>
         </div>
-        <div class="card">
+        <div class="seo-card">
           <h3>Formats &amp; lengths</h3>
           <p>Record manually or auto-stop at 5s, 10s, 30s, 60s, or the full song length. Output presets map to YouTube (16:9), Reels/TikTok (9:16), Instagram square (1:1), and widescreen cinema (2.39:1).</p>
         </div>
-        <div class="card">
+        <div class="seo-card">
           <h3>Privacy</h3>
           <p>Your library and exports stay on your machine unless you sign in to save a project or use optional cloud features. Details in our <a href="/legal/privacy.html">privacy policy</a>.</p>
         </div>
       </div>
+      <ul class="seo-looks" aria-label="Visual language previews">
+        <li><a href="/versions/neon"><img src="/keyart/neon.png" alt="Neon visual language preview" width="280" height="175" loading="lazy" /><span>Neon</span></a></li>
+        <li><a href="/versions/film"><img src="/keyart/film.png" alt="Film visual language preview" width="280" height="175" loading="lazy" /><span>Film</span></a></li>
+        <li><a href="/versions/smoke"><img src="/keyart/smoke.png" alt="Smoke visual language preview" width="280" height="175" loading="lazy" /><span>Smoke</span></a></li>
+        <li><a href="/visual-languages"><img src="/keyart/gallery.png" alt="All visual languages" width="280" height="175" loading="lazy" /><span>All looks</span></a></li>
+      </ul>
     </section>
 
-    <section class="wrap" id="faq">
+    <section class="seo-section" id="faq">
       <h2>FAQ</h2>
-      <ul class="faq">
+      <ul class="seo-faq-list">
         <li>
           <h3>Does it upload my song or clips?</h3>
           <p>No. Make Video stores media in your browser (IndexedDB) and plays it locally. We do not receive your audio or video files for editing.</p>
@@ -351,26 +254,27 @@
       </ul>
     </section>
 
-    <section class="wrap">
+    <section class="seo-section">
       <h2>More on the site</h2>
-      <p class="links-inline">
-        <a href="/make-video">Make Video app</a> ·
-        <a href="/engine">Main engine (PWA)</a> ·
-        <a href="/interactive-howto">Interactive how-to</a> ·
-        <a href="/tutorial-30s">30-second tutorial</a> ·
-        <a href="/versions/neon">Neon visual language</a> ·
-        <a href="/versions/film">Film</a> ·
-        <a href="/packs">Free clip packs</a> ·
-        <a href="/tiktok">TikTok studio</a> ·
+      <div class="seo-links-row">
+        <a href="/make-video">Make Video app</a>
+        <a href="/engine">Main engine (PWA)</a>
+        <a href="/interactive-howto">Interactive how-to</a>
+        <a href="/tutorial-30s">30-second tutorial</a>
+        <a href="/versions/neon">Neon visual language</a>
+        <a href="/versions/film">Film</a>
+        <a href="/packs">Free clip packs</a>
+        <a href="/tiktok">TikTok studio</a>
         <a href="/intro">Intro tour</a>
-      </p>
+      </div>
     </section>
 
-    <section class="closing wrap">
+    <section class="seo-closing">
       <h2>Ready when your track is</h2>
       <p>Open Make Video, drop in a song and a clip library, and record — no install, no upload.</p>
-      <a class="btn btn-primary" href="/make-video">Start making a music video →</a>
+      <a class="btn btn--primary" href="/make-video">Start making a music video →</a>
     </section>
+    </div>
   </main>
 
   <swr-footer></swr-footer>

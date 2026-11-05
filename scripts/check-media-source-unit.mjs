@@ -436,12 +436,20 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 
 {
   const engine = fs.readFileSync(ENGINE, 'utf8');
-  const starts = engine.match(/SWR_RECORDER\.start\(/g) || [];
+  // Three export paths: the WebCodecs recorder, the REC button, and the
+  // hook export. The third one used to be an inline copy inside the
+  // engine's SWR_HOOK_DETECTOR; it now lives in the shared module, so
+  // the count is taken across both.
+  const hookDetector = fs.readFileSync(
+    path.join(ROOT, 'client', 'hook-detector.client.js'), 'utf8');
+  const starts = (engine.match(/SWR_RECORDER\.start\(/g) || []).length
+    + (hookDetector.match(/SWR_RECORDER\.start\(/g) || []).length;
   const taps = engine.match(/audioSource:\s*\(?window\.A\s*&&\s*window\.A\.analyser\)?|audioSource:\s*Audio\.analyser/g) || [];
-  assert(starts.length >= 3, 'the engine has three export paths', `starts=${starts.length}`);
-  assert(taps.length === starts.length,
+  const moduleTaps = hookDetector.match(/audioSource:\s*\(?window\.A\s*&&\s*window\.A\.analyser\)?|audioSource:\s*Audio\.analyser/g) || [];
+  assert(starts >= 3, 'the engine has three export paths', `starts=${starts}`);
+  assert(taps.length + moduleTaps.length === starts,
     'every export path records the analyser (so it carries the current source)',
-    `taps=${taps.length}/${starts.length}`);
+    `taps=${taps.length + moduleTaps.length}/${starts}`);
   assert(/Audio\.analyser\.connect\(dest\)/.test(engine),
     'the MediaRecorder export path taps the analyser too');
   assert(!/export-sync|export-audio-source|rec-audio-source/.test(engine),

@@ -585,6 +585,41 @@ node scripts/run-steps.mjs full       # adds the Puppeteer smokes (needs Chrome)
 
 It is not the real build: no bundling, no minification, and the per-variant automix config is not inlined.
 
+## The engine ↔ neon contract
+
+The engine (`engine.html`) and the neon variant (`versions/neon.html`) share one module
+layer. The modules in that layer are written against **page globals** — `window.Audio`,
+`window.Layers`, `window.setStatus`, `window.SWR_3D` and so on — and a module that
+finds its dependency missing does not throw; it degrades. That is the failure mode this
+contract exists to prevent: a feature that quietly does nothing.
+
+Three rules, and what they are worth:
+
+- **One definition.** A global is defined by one module. The engine used to carry
+  inline copies of `SWR_HOOK_DETECTOR`, `SWR_STATS`, `SWR_MOOD` and `SWR_SCENES` that
+  the deferred modules overwrote before anything could read them — 548 lines of code
+  that could not run. They are gone.
+- **One audio core.** Neon loads `lib/audio.client.js`, the engine's core, rather than
+  its own inline implementation. The core answers to `A.audioEl` and `A.el` (both
+  spellings are in use by shared modules) and carries `A.params` — `{ sens, gate,
+  decay }`.
+- **One binding layer.** `lib/variant-curator-wiring.client.js` is the only thing that
+  binds `#stats-btn`, `#hook-btn`, `#mood-btn` and `#scenes-btn`. The engine used to
+  carry its own copy of that wiring.
+
+**`npm run check:engine-parity`** is the gate. It builds the graph — every global the
+repo publishes, every module every page loads, every global each module reads — and
+fails when a page loads a module whose dependency the page does not publish. It fails
+on the two contract surfaces (`engine.html`, `versions/neon.html`) and reports the
+other 33 variant pages, which are missing the contract too; making those pages carry it
+is a separate job. Three dependencies are accepted on purpose, each with a reason in
+the script: `window.SWR_RENDER` (the engine has its own renderer), `window.SWR_GRADE`
+(the engine grades through its own WebGL context) and `window.SWR_GENOPS` (the engine
+ships no generative-ops UI).
+
+The measurement behind all of it, and the two real defects the gate found, are in
+`PR-engine-neon-parity.md`.
+
 ## Fullscreen without UI
 
 **F** on the engine page means *fullscreen with no UI*: the stage covers the screen, every panel, bar, header and footer is hidden, and the browser's own fullscreen comes with it — so it is a real fullscreen, not a full-bleed viewport. **Escape** leaves it, and so does F again.

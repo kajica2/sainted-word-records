@@ -63,15 +63,15 @@ A branch ruleset closes both.
 | Setting | Value | Why |
 |---|---|---|
 | Required approvals | **0** | **this repository has ONE collaborator**, and GitHub refuses a self-approval outright (*"Review Can not approve your own pull request"*) — so a required approval could never be satisfied and the ruleset would wedge `main` permanently. See §2b. |
-| Dismiss stale approvals when a new commit is pushed | **on** | an approval must be for the code that merges |
+| Dismiss stale approvals when a new commit is pushed | **off** | with **0** required approvals there is no approval to go stale, so the setting has nothing to act on |
 | Require approval from the most recent pusher | **off** | moot at 0 approvals, and it is the setting that makes the wedge worst — it bars the only person who could approve |
-| Require conversation resolution | **on** | no unresolved threads at merge time |
-| Allowed merge methods | **Squash** and **Rebase** | `required_linear_history` forbids a merge commit, so "Merge" is unreachable however the list reads. The history contains merge commits (`Merge branch 'cursor/…'`) and squash merges (`feat(neon): … (#266)`); the linear-history rule means new merges must be squash or rebase. |
+| Require conversation resolution | **off** | the merge gate is the required status check, not a human review |
+| Allowed merge methods | **Merge** and **Squash** | the linear-history rule is **not** set, so a merge commit is a real option. The history contains both (`Merge branch 'cursor/…'` and `feat(neon): … (#266)`); **Squash** keeps one line per change, and **Merge** keeps the branch history. **Rebase** is not offered — it rewrites the commits of a PR that has already been reviewed. |
+| Require linear history | **off** | not part of the applied payload (§3), so merge commits are allowed |
 
-> **Two of these values contradict each other in the UI.** "Require linear
-> history" disables the *Create a merge commit* button outright, so leaving
-> "Merge" in the allowed list does not make merge commits available — it
-> only makes the list look inconsistent. Pick **Squash and Rebase**.
+> **Merge and Squash are both real here.** "Require linear history" is
+> **off**, so the *Create a merge commit* button is live and a merge commit
+> is a genuine option rather than a list that only looks inconsistent.
 
 ### 2b. The one-collaborator problem (read this before setting approvals)
 
@@ -163,17 +163,16 @@ For an admin who would rather script it:
     "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
   },
   "rules": [
-    { "type": "required_linear_history" },
     {
       "type": "pull_request",
       "parameters": {
-        "dismiss_stale_reviews_on_push": true,
+        "dismiss_stale_reviews_on_push": false,
         "require_code_owner_review": false,
         "require_last_push_approval": false,
         "required_approving_review_count": 0,
-        "required_review_thread_resolution": true,
+        "required_review_thread_resolution": false,
         "require_extra_approval_for_unattributed_changes": true,
-        "allowed_merge_methods": ["squash", "rebase"]
+        "allowed_merge_methods": ["merge", "squash"]
       }
     },
     {
@@ -185,7 +184,9 @@ For an admin who would rather script it:
         ],
         "strict_required_status_checks_policy": true
       }
-    }
+    },
+    { "type": "deletion" },
+    { "type": "non_fast_forward" }
   ]
 }
 ```
@@ -276,7 +277,7 @@ Applying it needed one correction to the payload above (§3): the API rejects
 `strict_required_status_checks` and requires
 `strict_required_status_checks_policy`. The ruleset was created without the
 status-check rule, then updated with it — the update is a full replacement of
-the `rules` array, so all three rules must be in it.
+the `rules` array, so all four rules must be in it.
 
 **The payload as first written also wedged `main`, and that was not obvious.**
 It asked for **1 approving review** with `require_last_push_approval: true`.
@@ -288,14 +289,14 @@ was waiting for a person who does not exist.
 
 The fix is in §2b: `required_approving_review_count: 0` and
 `require_last_push_approval: false`. The ruleset was edited in place (the
-`rules` array is replaced wholesale, so the PUT carried all three rules). The
+`rules` array is replaced wholesale, so the PUT carried all four rules). The
 status check remains the gate.
 
 ### What was verified, and what was not
 
 | Check | Result |
 |---|---|
-| §4.1 the ruleset is live and active | **verified** — `GET /rulesets/26608109` → `enforcement: active`, `bypass_actors: []`, `current_user_can_bypass: never`; `GET /rules/branches/main` returns all three rules as applying to `main` |
+| §4.1 the ruleset is live and active | **verified** — `GET /rulesets/26608109` → `enforcement: active`, `bypass_actors: []`, `current_user_can_bypass: never`; `GET /rules/branches/main` returns all four rules as applying to `main` |
 | §4.2 a direct push is refused | **verified, without touching `main`** — `PATCH /git/refs/heads/main` with the branch's **current** sha (a no-op update, so the ref could not change) → **`422 Repository rule violations found — Changes must be made through a pull request`** |
 | §4.3 the required context is the check that runs | **verified** — `gh pr checks` reports the context as `check + verify + build-size`, exactly as configured (not `CI / check + verify + build-size`) |
 | §4.4 a red or missing check blocks the merge | **verified** — PR #276 has a **green** required check and was still `mergeStateStatus=BLOCKED` while the approval count was 1: the review gate held it. After the count went to 0 the PR merged on its green check, which is the intended behaviour for a one-collaborator repository |
