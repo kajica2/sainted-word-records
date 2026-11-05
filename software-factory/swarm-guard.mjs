@@ -87,7 +87,13 @@ export function resolveChainPlan({ config, chain, maxTokens, inputTokens = 0 } =
   const failures = [];
 
   for (const modelRef of chain || []) {
-    const pricing = resolvePricing(config, modelRef);
+    // `worstCase`: a model that bills a long-context tier is reserved AT
+    // that tier, whatever the estimate says. The estimate is the uncertain
+    // part — a characters-per-token guess can be several times low on
+    // CJK text — and the daily cap is a CEILING, not a target. The
+    // over-reservation is returned when the turn settles at the tier that
+    // actually applied.
+    const pricing = resolvePricing(config, modelRef, { inputTokens, worstCase: true });
     if (pricing.known !== true) {
       failures.push({ modelRef, reason: pricing.reason || 'unknown-pricing' });
       members.push({ modelRef, known: false, free: false, reason: pricing.reason, estUsd: null });
@@ -350,7 +356,10 @@ export class SwarmGuard {
     let usd = null;
     let priced = false;
     if (modelRef) {
-      const pricing = resolvePricing(this.config, modelRef);
+      // The settlement prices the tier that ACTUALLY applied — the real
+      // input size decides — so the day's total is what left the account,
+      // not what the base table says.
+      const pricing = resolvePricing(this.config, modelRef, { inputTokens: Number(usage?.input_tokens) || 0 });
       if (pricing.known === true) {
         priced = true;
         usd = pricing.free ? 0 : estimateUsd(pricing.rates, usage || {}).usd;
