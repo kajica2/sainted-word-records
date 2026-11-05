@@ -4,7 +4,7 @@
 > allowed to change branch protection, and did not try.**
 >
 > The KAI SWARM recovery programme ([Issue #269](https://github.com/kajica2/sainted-word-records/issues/269))
-> found a structural gap: `main` has **no CI baseline by construction**, and it is
+> found a structural gap: `main` had **no CI baseline by construction**, and it is
 > **not protected**. Vercel auto-deploys `main`, so an unreviewed direct push
 > reaches production without the browser smoke suite ever running.
 
@@ -14,7 +14,7 @@
 
 | Fact | Where it comes from |
 |---|---|
-| The CI workflow runs on **pull requests to `main`** and on **pushes to non-`main` branches** | `.github/workflows/ci.yml` — `on.push.branches-ignore: [main]` |
+| The CI workflow runs on **pull requests to `main`** and on **pushes to `main`** | `.github/workflows/ci.yml` — `on.push.branches: [main]` |
 | The CI job is named `check + verify + build-size` | `.github/workflows/ci.yml` — `jobs.ci.name` |
 | Vercel auto-deploys `main` to production | project `sainted-word-records` |
 | `main` reports `protected: false` | GitHub branch metadata, 2026-11-02 22:37 UTC |
@@ -25,8 +25,19 @@ is not this workflow.** The green `main` runs observed on 2026-11-02 were
 
 Two independent failures are therefore possible today:
 
-1. a direct push to `main` reaches production with no smoke suite at all;
-2. a PR is merged with a red or missing check, because nothing requires the check.
+1. a direct push to `main` reaches production with no smoke suite ever
+   running against it;
+2. a PR is merged with a red or missing check, because nothing requires the
+   check.
+
+> **Update, 2026-11-05 (#275).** `ci.yml` now triggers on `push.branches:
+> [main]` as well as `pull_request` — the duplicate-context bug that made
+> the required check ambiguous is fixed, and every commit gets exactly ONE
+> `check + verify + build-size` run. `main` therefore DOES get a CI run of
+> its own now, so failure (1) above is already half-closed: a direct push
+> still reaches production unreviewed, but it is no longer invisible. The
+> ruleset below is what closes it: it makes the check a gate rather than a
+> report.
 
 A branch ruleset closes both.
 
@@ -180,28 +191,29 @@ greyed out for the wrong reason is not a verification — read the message.
 
 ### 4.5 The workflow still runs where it should
 
-The ruleset does **not** change when the workflow runs. `ci.yml` deliberately
-excludes `main` pushes:
+The ruleset does **not** change when the workflow runs. `ci.yml` triggers on
+both events, and each commit gets exactly ONE run of the required job:
 
 - `pull_request` → `main`: the required check runs ✓
-- push → a non-`main` branch: the required check runs ✓
-- push → `main`: **no CI run** — and after the ruleset, no direct push is
-  possible anyway, so the merge is covered by the PR's check.
+- push → `main`: the required check runs ✓ (since #275 — see the update note
+  in §1). The ruleset makes that push impossible anyway, so it is a
+  post-merge REPORT rather than a gate; the gate is the PR's own run.
 
-If the project later wants a CI run on `main` itself (a post-merge
-verification, not a gate), that is a separate, additive workflow change:
+This is the shape that makes the ruleset safe to enforce: the check fires on
+the merge itself, so a broken `main` is caught within one run rather than
+being discovered by the next person to touch the repo.
 
-```yaml
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-```
+The earlier shape of this workflow — `push.branches-ignore: [main]` — was
+wrong in a way that only the ruleset could have masked, and it also
+published a DUPLICATE `check + verify + build-size` context for every
+branch commit that had an open PR (one from `push`, one from
+`pull_request`). GitHub matches a required check by context NAME, so the
+pair was ambiguous and a green commit reported UNSTABLE. #275 fixed the
+trigger to `push.branches: [main]`.
 
-**Do not add it as part of this change.** It doubles the CI minutes on every
-merge and, on a busy `main`, the post-merge run and the PR run can interleave.
-The ruleset is the gate; the extra workflow is a report.
+> **Note on CI minutes.** A push to `main` now costs one more run than it
+> used to. That is the deliberate trade: the run reports on the merged
+> result instead of leaving `main` unverified.
 
 ---
 
@@ -218,12 +230,10 @@ The ruleset is the gate; the extra workflow is a report.
 ## 6. Why now — and what must be true first
 
 The baseline run on clean `main` (`3e663405`, 2026-11-04) failed **9 of 33**
-`check:full` steps. A repair candidate exists ([PR #275](https://github.com/kajica2/sainted-word-records/pull/275),
-green on all 33 locally and green on its PR-event CI run) but has not been merged.
-**A ruleset on a red `main` would block every merge** — including the one that
-carries the repair.
+`check:full` steps. The repair was [PR #275](https://github.com/kajica2/sainted-word-records/pull/275),
+merged as `60cb1722` on 2026-11-05 with all 14 CI steps green.
 
-There is a second, less obvious precondition, found on the same day: **the gate
+There was a second, less obvious precondition, found on the same day: **the gate
 is not yet deterministic.** On the *same commit* `8aa49ada`, two CI runs started
 six seconds apart gave opposite verdicts:
 
@@ -232,28 +242,40 @@ six seconds apart gave opposite verdicts:
 | [41865245728](https://github.com/kajica2/sainted-word-records/actions/runs/41865245728) | push | **failure** — `full: 1/33 step(s) FAILED: npm run check:bench-smoke` |
 | [41865260224](https://github.com/kajica2/sainted-word-records/actions/runs/41865260224) | pull_request | **success** |
 
-The failing assertion is a timing threshold in `scripts/check-bench-smoke.mjs`
+The failing assertion was a timing threshold in `scripts/check-bench-smoke.mjs`
 (`offQ - onQ >= 4` — the non-interpolated sampling error must exceed the
 interpolated one by at least 4 ms). The failed run measured **0.0 vs 3.5 ms**;
 the passing run measured **0.0 vs 9.7 ms**. The measurement is against a
-real-time audio clock, so the margin depends on runner scheduling.
+real-time audio clock, so the margin depended on runner scheduling.
 
 **Why this matters for the ruleset specifically:** a required status check that
 is occasionally red turns every merge into a coin toss. The operator will learn
-to re-run the failed check, and the gate stops being a signal. `ci.yml` runs on
-both `push` (non-`main`) and `pull_request` to `main`, so every PR already runs
-the whole suite **twice, concurrently** — which is exactly the condition that
-produced the two opposite verdicts above.
+to re-run the failed check, and the gate stops being a signal. The old
+workflow ran on both `push` (non-`main`) and `pull_request` to `main`, so every
+PR ran the whole suite **twice, concurrently** — which is exactly the
+condition that produced the two opposite verdicts above.
 
-So the order is:
+Both preconditions are now met:
 
-1. **fix the `check:bench-smoke` timing flake** (the file is owned by PR #267 —
-   do not open a second PR against it);
-2. land the repair (PR #275 → CI green → merge by a human);
-3. **then** apply the ruleset;
-4. then re-run the baseline to confirm `main` is green.
+1. **the `check:bench-smoke` timing flake is fixed** — the assertion no longer
+   compares two RUNS (whose difference is only as large as the phase allows);
+   it sweeps the buffer and asks for a label deliberately *between* two
+   samples, where the non-interpolated answer is as far wrong as it can be.
+   The measured difference is half a period (8.3 ms at 16.7 ms), whatever the
+   runner's scheduling does. The cold first run is discarded and the A/V floor
+   moved into the median, so a slow runner no longer fails a run that measured
+   correctly. The fix is mutation-tested: disabling interpolation fails three
+   assertions.
+2. **the repair landed** — PR #275 merged as `60cb1722`, green locally on all
+   33 `check:full` steps and green on CI.
+3. **the duplicate run is gone** — `ci.yml` now triggers on `push.branches:
+   [main]` and `pull_request`, so each commit gets exactly ONE run of the
+   required job. The concurrent double-run that produced the coin toss is
+   gone.
+4. **next: apply the ruleset**, then re-run the baseline to confirm `main` is
+   green.
 
-Applying the ruleset first is not wrong — it is *safe* — but it will stop the
-repair from landing until the check is green, and it will turn any future flake
-into a blocked merge. That is a feature for a deterministic gate and a bug for
-a flaky one.
+Applying the ruleset before those fixes was not wrong — it would have been
+*safe* — but it would have blocked the repair from landing until the check
+was green, and it would have turned any future flake into a blocked merge.
+That is a feature for a deterministic gate and a bug for a flaky one.
