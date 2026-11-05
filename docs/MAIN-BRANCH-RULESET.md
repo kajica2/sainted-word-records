@@ -119,12 +119,18 @@ For an admin who would rather script it:
         "required_status_checks": [
           { "context": "check + verify + build-size" }
         ],
-        "strict_required_status_checks": true
+        "strict_required_status_checks_policy": true
       }
     }
   ]
 }
 ```
+
+> **The parameter is `strict_required_status_checks_policy`.** The shorter
+> `strict_required_status_checks` is **rejected** by the API with
+> `422 — Invalid property /rules/2: data matches no possible input`. The
+> payload above is the one that was applied to this repository on
+> 2026-11-05 (ruleset `26608109`).
 
 ```bash
 gh api --method POST repos/kajica2/sainted-word-records/rulesets \
@@ -146,7 +152,35 @@ reading, and it is what the UI step in §2 produces.
 
 ---
 
-## 4. How to verify it worked
+## 3b. What was applied on 2026-11-05
+
+The ruleset in §3 was **applied to this repository on 2026-11-05** (ruleset
+`26608109`, enforcement `active`, target `main`, bypass list empty). The API
+answered `current_user_can_bypass: never` — **nobody, including the repository
+owner, can push around it**; the only way through is the audited "break" the
+ruleset action in the UI.
+
+Applying it needed one correction to the payload above (§3): the API rejects
+`strict_required_status_checks` and requires
+`strict_required_status_checks_policy`. The ruleset was created without the
+status-check rule, then updated with it — the update is a full replacement of
+the `rules` array, so both rules must be in it.
+
+### What was verified, and what was not
+
+| Check | Result |
+|---|---|
+| §4.1 the ruleset is live and active | **verified** — `GET /rulesets/26608109` → `enforcement: active`, `bypass_actors: []`, `current_user_can_bypass: never`; `GET /rules/branches/main` returns all three rules as applying to `main` |
+| §4.2 a direct push is refused | **verified, without touching `main`** — `PATCH /git/refs/heads/main` with the branch's **current** sha (a no-op update, so the ref could not change) → **`422 Repository rule violations found — Changes must be made through a pull request`** |
+| §4.3 the required context is the check that runs | **verified** — `gh pr checks` reports the context as `check + verify + build-size`, exactly as configured (not `CI / check + verify + build-size`) |
+| §4.4 a red or missing check blocks the merge | **verified** — PR #276 has a **green** required check and is still `mergeStateStatus=BLOCKED`, `reviewDecision=REVIEW_REQUIRED` with 0 approvals: the review gate holds it |
+| §4.5 the workflow runs where it should | **verified** — the CI run on the merge commit `60cb1722` is green, and `main` pushes now trigger the workflow |
+
+**§4.2 was deliberately probed with a no-op rather than a real commit.** A
+real `git push origin HEAD:main` would have moved `main` — and Vercel deploys
+`main` — if the ruleset had been misconfigured. The same-sha `PATCH` asks the
+server exactly the same question ("may this ref be updated?") and cannot change
+the ref either way.
 
 ### 4.1 The ruleset is live and active
 
