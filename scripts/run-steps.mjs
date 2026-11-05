@@ -75,6 +75,8 @@ const GROUPS = {
     'npm run check:last-mix-unit',
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
+    'npm run check:neon-demo-panel-unit',
+    'npm run check:neon-demo-panel-verify',
     'npm run check:preset-pick-unit',
     'npm run check:webgl-uniform-guard',
     'npm run check:webgl-no-invalid-op',
@@ -104,6 +106,7 @@ const GROUPS = {
     // at the host. The unit pins the base normalisation, the manifest
     // rewrite, the copy plan and the publish plan.
     'npm run check:media-offsite-unit',
+    'npm run check:media-budget',
     'npm run check:with-dist-unit',
     // The digit-row contract (docs/PLANS/number-key-assignment.md): bare
     // 1..9 apply a look filter and never touch a layer's rotation state.
@@ -113,6 +116,13 @@ const GROUPS = {
     'npm run check:engine-keys-digit-filter-unit',
     'npm run check:engine-keys-digit-rotation-guard-unit',
     'npm run check:engine-keys-keyspress-unit',
+    'npm run check:engine-keys-shortcuts-unit',
+    'npm run check:engine-keys-shortcuts-p2-unit',
+    // Image-only still engine (jpg.html + jpg-engine.client.js): ship wiring,
+    // classifyStill hue/luma, persona motion strip, blocked CSS filters.
+    'npm run check:jpg-engine-unit',
+    'npm run check:image-lane-unit',
+    'npm run check:automix-image-lane-unit',
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
@@ -146,10 +156,32 @@ const GROUPS = {
     'npm run test:asset-curator-unit',
     'npm run test:asset-curator',
     'npm run check:auth-unit',
+    'npm run check:security-gates-unit',
     // Google sign-in: the start endpoint, the signed state, the exchange,
     // the session cookie and the redirect_uri callback. Google's two
     // endpoints are stubbed; everything else is the real handler.
     'npm run check:auth-google-signin-unit',
+    // Firebase Anonymous Auth: the route over a real HTTP server, with the
+    // Firebase Auth emulator simulated by a node:http stub (no JVM here, so
+    // the real emulator cannot run). Pins the public-config branch, the
+    // error codes and the session cookie.
+    'npm run check:auth-firebase-anon-unit',
+    // The client half of the same feature: the shipped lib/firebase-anon.client.js
+    // in a node:vm sandbox, with the Firebase Web SDK's two dynamic imports stubbed.
+    'npm run check:firebase-anon-client-unit',
+    // The Firestore auth store's own behaviour (users, links, sessions,
+    // verification tokens, the connect blob) over an in-memory Firestore.
+    'npm run check:auth-firestore-unit',
+    // That db.js really delegates to the Firestore store when
+    // SWR_AUTH_STORE=firestore, and really does not when it is off.
+    'npm run check:auth-store-dispatch-unit',
+    // The client-IP gate (api/_lib/http.js clientIp). Seven handlers read
+    // `x-forwarded-for` directly, so off Vercel - where the header is a
+    // string the client chose - every per-IP rate limit was rotatable and
+    // the dev-mode admin allowlist was a header away. The unit pins the walk
+    // direction, the peer gate, the normalization and the fail-closed default,
+    // and asserts that no call site parses the header itself any more.
+    'npm run check:trusted-proxies-unit',
     'npm run check:bpm-unit',
     'npm run check:life-unit',
     'npm run check:midi-feat-unit',
@@ -172,6 +204,12 @@ const GROUPS = {
     // is worse than no gate.
     'npm run check:doc-truth',
     'npm run check:looks-menu-unit',
+    // The versions dropdown, the engine's variant switcher and the files
+    // in versions/ describe the same set and drifted apart twice: a
+    // version page shipped and its own dropdown did not list it. This
+    // re-derives the truth from the tree — a shipped version page that
+    // is not in the dropdown fails the gate.
+    'npm run check:versions-dropdown',
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
     'npm run check:invite-api-smoke',
@@ -189,6 +227,7 @@ const GROUPS = {
     // dropped every x / y reactor. This gate pins the unit table, the clamp
     // table, the malformed-input cases AND the sixteen call sites.
     'npm run check:apply-reactor-unit',
+    'npm run check:no-rotate-zoom',
     // P2.2: set + clear session cookies both carry Secure. The plan
     // (docs/PLANS/architecture-audit-2026-10.md) called out that the
     // delete cookie was missing the flag; this is the gate that
@@ -267,6 +306,35 @@ const GROUPS = {
     // archives are readable zips that credit what they claim, and the route
     // is wired (site-map → vercel → sitemap).
     'npm run check:generations',
+    // Static: the NEON variant's own regression guards. check:neon-v2-phase1
+    // pins the viewport/startup/reduced-motion contract; check:neon-audio-v3
+    // pins the five-band envelope and the transient/tempo bounds. Both read
+    // versions/neon.html as source — no browser, no build.
+    'npm run check:neon-v2-phase1',
+    'npm run check:neon-audio-v3',
+    // The bench gate's A/V sampling-depth floor: derived from the host's
+    // OWN measured frame rate, so a slow machine is not asked for what it
+    // cannot deliver — while a host that renders at speed but samples once
+    // per run is still caught. Zero-dependency.
+    'npm run check:bench-depth-unit',
+    // The swarm's money guard: a durable per-UTC-day ledger that refuses a
+    // reservation once the daily cap would be exceeded, refuses a model with
+    // unknown pricing (fail closed), and settles the actual cost against the
+    // reservation once the turn is done. Zero-dependency.
+    'npm run test:budget-ledger',
+    // The swarm's concurrency guard: at most 2 active agents globally, with
+    // idempotent re-claims by the same worker and TTL-based recovery of a
+    // lease left behind by a crashed agent. Zero-dependency.
+    'npm run test:worker-lease',
+    // The swarm's guard itself: the money and concurrency rails composed
+    // into one object — worst-case chain pricing, fail-closed on unknown
+    // pricing, settle-the-difference, lease cap at two, TTL recovery.
+    // Zero-dependency.
+    'npm run test:swarm-guard',
+    // The guard as the BRIDGE actually uses it: the real CLI as a child
+    // process, with every provider key blanked, so the wiring is proven
+    // without a provider ever being contacted. Zero-dependency.
+    'npm run test:swarm-guard-wiring',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.
@@ -276,6 +344,16 @@ const GROUPS = {
     'node scripts/check-storyboard-transitions.mjs',
     'node scripts/check-storyboard-shots.mjs',
     'node scripts/check-storyboard-e2e.mjs',
+  ],
+
+  // The Software Factory's own gates. Deliberately NOT inside `check` or
+  // `full`: these two run against the router config and the README's FX
+  // claim, and the factory workflow calls them on its own schedule. Adding
+  // them to the pre-PR chain would mean a typo in routing.config.json
+  // blocks a PR that has nothing to do with the factory.
+  factory: [
+    'npm run check:factory-routing',
+    'npm run check:fx-doc-drift',
   ],
 
   // The pre-PR gate.
@@ -320,6 +398,11 @@ const GROUPS = {
     // marketplace paint the posts, and the footer's "New — …" link reaches
     // every page that mounts <swr-footer>. Needs a built dist/.
     'npm run check:announcements-smoke',
+    // The "Continue as guest" sign-in on the login page: the button ships
+    // hidden and is revealed only when the server serves a Firebase web
+    // config, the click signs in with the Web SDK and exchanges the ID
+    // token, and a refused exchange leaves the visitor a way forward.
+    'npm run check:firebase-anon-guest-smoke',
     // The store in a real browser: the marketplace paints the download
     // catalogue from site-map.json, the shop renders the shop products
     // with a disabled Buy button while the Payment Links are missing, and
@@ -380,6 +463,16 @@ const GROUPS = {
     // in `dist/lib/app-version.js`.
     { cmd: 'npm run check:build-idempotent', timeoutMs: 240000, retries: 0 },
     'npm run check:dist-links',
+    // The /alternate "Chain" view: the Ozone-style mastering surface over
+    // the same engine. Asserts the WIRING, not the markup — powering a
+    // module off removes exactly its reactor targets, the default chain
+    // leaves all eight active, and without ?chain=1 it never mounts.
+    { cmd: 'npm run check:chain-view', timeoutMs: 120000, retries: 1 },
+    // The Studio Command Center: the control surface injected into every
+    // engine variant. Asserts it is bound to REAL engine state (the
+    // panels read the variant's own API), that its canvases actually
+    // painted, and that it stacks above the host surface's own overlays.
+    { cmd: 'npm run check:command-center', timeoutMs: 120000, retries: 1 },
     // Crawls every nav URL from site-map.json: shared CSS/JS load, archived
     // pages 404, landing.html raises no JS errors. Was reachable from no gate.
     'npm run verify:site-nav',

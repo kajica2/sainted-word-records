@@ -73,6 +73,61 @@ check('SessionRes accepts { ok: false } (signed out)', SessionRes.safeParse({ ok
 check('VerifyReq accepts valid token', VerifyReq.safeParse({ token: 'abcdef0123456789' }).success);
 check('VerifyReq rejects empty token', !VerifyReq.safeParse({ token: '' }).success);
 
+// Firebase Anonymous Auth contracts (POST /api/auth/firebase-anon)
+const { FirebaseAnonReq, FirebaseAnonRes, FirebaseConfigRes } =
+  await import('../api/_lib/contract/auth.mjs');
+
+check('FirebaseAnonReq accepts a token', FirebaseAnonReq.safeParse({ idToken: 'abc.def.ghi' }).success);
+check('FirebaseAnonReq rejects an empty token', !FirebaseAnonReq.safeParse({ idToken: '' }).success);
+check('FirebaseAnonReq rejects a missing token', !FirebaseAnonReq.safeParse({}).success);
+check('FirebaseAnonReq rejects an absurdly long token',
+  !FirebaseAnonReq.safeParse({ idToken: 'x'.repeat(5000) }).success);
+check('FirebaseAnonRes accepts the anonymous success shape',
+  FirebaseAnonRes.safeParse({
+    ok: true,
+    user: {
+      id: '11111111-2222-3333-4444-555555555555',
+      name: 'Guest',
+      email: 'anon-abc@guest.swr.local',
+      anonymous: true,
+    },
+  }).success);
+check('FirebaseAnonRes rejects a success shape without anonymous: true',
+  !FirebaseAnonRes.safeParse({
+    ok: true,
+    user: { id: '11111111-2222-3333-4444-555555555555', name: 'Guest', email: null },
+  }).success);
+check('FirebaseAnonRes rejects a non-uuid user id',
+  !FirebaseAnonRes.safeParse({
+    ok: true,
+    user: { id: 'not-a-uuid', name: 'Guest', email: null, anonymous: true },
+  }).success);
+check('FirebaseAnonRes accepts the invalid_id_token envelope',
+  FirebaseAnonRes.safeParse({ error: 'invalid_id_token' }).success);
+check('FirebaseAnonRes accepts the not_anonymous envelope',
+  FirebaseAnonRes.safeParse({ error: 'not_anonymous' }).success);
+check('FirebaseAnonRes accepts the firebase_not_configured envelope',
+  FirebaseAnonRes.safeParse({ error: 'firebase_not_configured' }).success);
+check('FirebaseAnonRes rejects an unknown error code',
+  !FirebaseAnonRes.safeParse({ error: 'teapot' }).success);
+check('FirebaseConfigRes accepts a full web config',
+  FirebaseConfigRes.safeParse({
+    ok: true,
+    config: {
+      apiKey: 'AIza-test',
+      authDomain: 'swr.firebaseapp.com',
+      projectId: 'swr',
+      appId: '1:2:web:abc',
+    },
+  }).success);
+check('FirebaseConfigRes rejects a config without an apiKey',
+  !FirebaseConfigRes.safeParse({
+    ok: true,
+    config: { authDomain: 'swr.firebaseapp.com', projectId: 'swr' },
+  }).success);
+check('FirebaseConfigRes accepts the not_configured envelope',
+  FirebaseConfigRes.safeParse({ error: 'firebase_not_configured' }).success);
+
 // Projects contracts
 const { ProjectReq, ProjectPatchReq, Project, ProjectListRes, ShareRes } =
   await import('../api/_lib/contract/projects.mjs');

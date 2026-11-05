@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/lib/components.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mobile · Sainted Word Records</title>
+<meta name="description" content="Touch-first entrance for the audio-reactive engine.">
+<link rel="canonical" href="https://sainted-word-records.vercel.app/entrance-mobile" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+<link rel="stylesheet" href="/lib/design-tokens.css">
+<style>
+:root { --bg:#0d0918; --ink:#f5e9ff; --accent:#ff3d92; --safe: env(safe-area-inset-bottom, 0px); }
+* { box-sizing:border-box; }
+html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,sans-serif; }
+.wrap { padding: max(1.5rem, env(safe-area-inset-top)) 1.25rem calc(1.5rem + var(--safe)); max-width:480px; margin:0 auto; }
+h1 { font-size:2.4rem; font-weight:600; letter-spacing:-0.03em; margin:0 0 0.5rem; line-height:1.1; }
+p { opacity:0.8; line-height:1.5; margin:0 0 1.5rem; }
+.big {
+  display:block; width:100%; padding:1.1rem; background:var(--accent); color:#fff; text-align:center;
+  text-decoration:none; border-radius:14px; font-weight:700; font-size:1.1rem; margin-bottom:0.75rem;
+}
+.ghost {
+  display:block; width:100%; padding:1rem; border:1.5px solid rgba(255,255,255,0.3); color:#fff; text-align:center;
+  text-decoration:none; border-radius:14px; font-weight:600;
+}
+.hint { text-align:center; font-size:0.8rem; opacity:0.5; margin-top:2rem; }
+</style>
+</head>
+<body>
+  <swr-nav></swr-nav>
+<main class="wrap">
+  <h1>Make the video on your phone.</h1>
+  <p>Drop a song, add clips, hit record. The engine runs entirely in the browser — no app store, no account.</p>
+  <a class="big" href="/engine">Open studio</a>
+  <a class="ghost" href="/versions">Browse looks</a>
+  <div class="hint">Optimized for one-handed use · PWA-installable</div>
+</main>
+  <script src="/lib/nav.client.js" defer></script>
+  <swr-footer></swr-footer>
+  <script src="/lib/footer.client.js" defer></script>
+</body>
+</html>

@@ -2,11 +2,13 @@
 // version-looks dropdown on engine + version pages.
 //
 // The module (client/looks-menu.client.js) exposes window.SWR_LOOKS
-// with .list(), .apply(id), .current(), .groups(), .refresh(). On
-// engine.html, the variant group populates from SWR_VARIANTS.list()
-// and apply() activates the variant in-place. On a versions/*.html
-// page, SWR_VARIANTS is undefined and the variant group falls back
-// to a hardcoded nav list — apply() navigates to /versions/<id>.html.
+// with .list(), .apply(id), .current(), .groups(), .refresh(). The
+// "Variant looks" group is the catalogue of shipped version pages
+// (VARIANT_CATALOG), on the engine and on version pages alike.
+// On engine.html, an id the variant switcher can run in place
+// (SWR_VARIANTS) is activated without a page load; everything else
+// navigates to /versions/<id>.html. On a versions/*.html page
+// SWR_VARIANTS is undefined and every pick navigates.
 //
 // These tests stub window.SWR_VARIANTS, document, fetch, location,
 // and the on-page controls to drive the IIFE through the engine and
@@ -123,8 +125,12 @@ function makeSandbox({ onEngine, pathname, variants, hasPresets, hasPresetSelect
   return { sandbox, win, doc, appended };
 }
 
-// ---- 1. Engine: SWR_VARIANTS available → "Variant looks" has items --
-check('engine page: variant group populates from SWR_VARIANTS.list()', () => {
+// ---- 1. Engine: the catalogue drives the variant group, not the switcher --
+// The engine used to populate this group from SWR_VARIANTS.list(), so the
+// dropdown showed a different set on the engine than on a version page.
+// The catalogue is now the single source; the switcher only decides whether
+// a pick activates in place or navigates.
+check('engine page: variant group lists the catalogue, not the switcher subset', () => {
   const { sandbox, win } = makeSandbox({
     onEngine: true,
     pathname: '/engine.html',
@@ -139,8 +145,12 @@ check('engine page: variant group populates from SWR_VARIANTS.list()', () => {
   const groups = win.SWR_LOOKS.groups();
   const variantGroup = groups.find((g) => g.id === 'variant');
   if (!variantGroup) return 'no variant group';
-  if (variantGroup.items.length !== 3) return `expected 3 items, got ${variantGroup.items.length}`;
+  const ids = variantGroup.items.map((i) => i.id);
+  if (!ids.includes('neon')) return 'neon missing from the variant group';
   if (variantGroup.items[0].id !== 'neon') return `first item is ${variantGroup.items[0].id}, expected neon`;
+  // A version the switcher does not drive is still offered.
+  if (!ids.includes('clean')) return 'clean missing — the group is switcher-driven, not catalogue-driven';
+  if (ids.length !== 28) return `expected the 28-entry catalogue, got ${ids.length}`;
   return true;
 });
 
@@ -179,8 +189,8 @@ check('engine page: apply("variant:neon") → SWR_VARIANTS.activate() called, no
   return true;
 });
 
-// ---- 4. Version page: SWR_VARIANTS undefined → falls back to nav list --
-check('version page: variant group uses hardcoded nav fallback when SWR_VARIANTS is undefined', () => {
+// ---- 4. Version page: the catalogue is the source on every surface ----
+check('version page: variant group lists the shipped-version catalogue', () => {
   const { sandbox, win } = makeSandbox({
     onEngine: false,
     pathname: '/versions/film.html',
@@ -194,6 +204,54 @@ check('version page: variant group uses hardcoded nav fallback when SWR_VARIANTS
   // Should NOT include Grade or Motion (no FX, no #preset).
   if (groups.find((g) => g.id === 'grade')) return 'grade group should not show on version page';
   if (groups.find((g) => g.id === 'motion')) return 'motion group should not show on version page';
+  return true;
+});
+
+// ---- 4b. Every version page that ships is in the dropdown ----
+check('version page: the pages that shipped without being listed are now in the dropdown', () => {
+  const { sandbox, win } = makeSandbox({
+    onEngine: false,
+    pathname: '/versions/film.html',
+  });
+  vm.createContext(sandbox);
+  vm.runInContext(SRC, sandbox);
+  const ids = win.SWR_LOOKS.groups().find((g) => g.id === 'variant').items.map((i) => i.id);
+  // clean, simple and console shipped and were in no dropdown at all.
+  // The eight decorative visual languages shipped and were only in the
+  // engine's switcher, never in the dropdown.
+  const expected = [
+    'clean', 'simple', 'console',
+    'collage', 'echo-manifold', 'kraft', 'mosaic', 'phosphor', 'spectrum', 'tape', 'typography',
+  ];
+  const missing = expected.filter((id) => !ids.includes(id));
+  return missing.length ? `missing from the dropdown: ${missing.join(', ')}` : true;
+});
+
+// ---- 4c. Engine and version page show the same list ----
+check('engine and version page offer the same set of variant looks', () => {
+  const onEngine = makeSandbox({
+    onEngine: true,
+    pathname: '/engine.html',
+    variants: [
+      { id: 'neon', name: 'Neon' },
+      { id: 'film', name: 'Film' },
+    ],
+  });
+  vm.createContext(onEngine.sandbox);
+  vm.runInContext(SRC, onEngine.sandbox);
+  const onPage = makeSandbox({
+    onEngine: false,
+    pathname: '/versions/film.html',
+  });
+  vm.createContext(onPage.sandbox);
+  vm.runInContext(SRC, onPage.sandbox);
+  const a = onEngine.win.SWR_LOOKS.groups().find((g) => g.id === 'variant').items.map((i) => i.id);
+  const b = onPage.win.SWR_LOOKS.groups().find((g) => g.id === 'variant').items.map((i) => i.id);
+  const onlyEngine = a.filter((id) => !b.includes(id));
+  const onlyPage = b.filter((id) => !a.includes(id));
+  if (onlyEngine.length || onlyPage.length) {
+    return `engine-only: [${onlyEngine.join(', ')}] page-only: [${onlyPage.join(', ')}]`;
+  }
   return true;
 });
 
@@ -256,6 +314,57 @@ check('list() returns flat list with group/id/name for every entry', () => {
     if (!it.id) return `item missing id: ${JSON.stringify(it)}`;
     if (!it.name) return `item missing name: ${JSON.stringify(it)}`;
   }
+  return true;
+});
+
+// ---- 9. Engine: an id the switcher cannot run in place navigates ----
+check('engine page: apply("variant:grid") → navigates, does not activate', () => {
+  const { sandbox, win } = makeSandbox({
+    onEngine: true,
+    pathname: '/engine.html',
+    // The switcher only knows how to run these two in place. grid is a
+    // navigation-only entry — its identity is DOM overlays, not a canvas
+    // pass — so picking it must leave the engine.
+    variants: [{ id: 'neon', name: 'Neon' }, { id: 'film', name: 'Film' }],
+  });
+  vm.createContext(sandbox);
+  vm.runInContext(SRC, sandbox);
+  const ok = win.SWR_LOOKS.apply('variant:grid');
+  if (!ok) return 'apply returned false';
+  if (win._activated) return `unexpectedly activated ${win._activated}`;
+  if (win._assigned !== '/versions/grid.html') return `expected /versions/grid.html, got ${win._assigned}`;
+  return true;
+});
+
+// ---- 10. Engine: a page-only version navigates from the engine too ----
+check('engine page: apply("variant:clean") → navigates to the Clean page', () => {
+  const { sandbox, win } = makeSandbox({
+    onEngine: true,
+    pathname: '/engine.html',
+    variants: [{ id: 'neon', name: 'Neon' }],
+  });
+  vm.createContext(sandbox);
+  vm.runInContext(SRC, sandbox);
+  const ok = win.SWR_LOOKS.apply('variant:clean');
+  if (!ok) return 'apply returned false';
+  if (win._activated) return `unexpectedly activated ${win._activated}`;
+  if (win._assigned !== '/versions/clean.html') return `expected /versions/clean.html, got ${win._assigned}`;
+  return true;
+});
+
+// ---- 11. Engine: an id the switcher CAN run in place still activates ----
+check('engine page: apply("variant:film") → still activates in place', () => {
+  const { sandbox, win } = makeSandbox({
+    onEngine: true,
+    pathname: '/engine.html',
+    variants: [{ id: 'neon', name: 'Neon' }, { id: 'film', name: 'Film' }],
+  });
+  vm.createContext(sandbox);
+  vm.runInContext(SRC, sandbox);
+  const ok = win.SWR_LOOKS.apply('variant:film');
+  if (!ok) return 'apply returned false';
+  if (win._activated !== 'film') return `expected activated=film, got ${win._activated}`;
+  if (win._assigned) return `unexpected navigation to ${win._assigned}`;
   return true;
 });
 

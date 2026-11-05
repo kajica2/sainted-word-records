@@ -156,23 +156,55 @@ try {
   await page.goto(`http://127.0.0.1:${PORT}/versions/hallucination.html`, { waitUntil: 'domcontentloaded' });
   const variant = await page.waitForFunction(() => !!window.SWR_NATURAL, { timeout: 15000 })
     .then(() => true).catch(() => false);
-  const variantGrade = variant ? await page.evaluate(() => {
-    const stage = window.SWR.stage || document.getElementById('stage');
-    const fx = document.getElementById('fx-canvas');
-    const fxVisible = !!fx && fx.offsetParent !== null;
-    const graded = Array.from(document.querySelectorAll('canvas'))
-      .filter((c) => getComputedStyle(c).filter && getComputedStyle(c).filter !== 'none');
-    return {
-      css: window.SWR_NATURAL.gradeCSS,
-      gradedIds: graded.map((c) => c.id || '(unnamed)'),
-      // Contract: the grade sits on the TOPMOST visible canvas — the fx overlay
-      // when it is up (it composites the stage), the stage otherwise.
-      expected: fxVisible ? 'fx-canvas' : 'stage',
-      gotTopmost: graded.length === 1 && (graded[0] === (fxVisible ? fx : stage)),
+  // WAIT for the invariant, then assert it.
+  //
+  // The grade is re-applied every animation frame by the module
+  // (lib/swr-natural.client.js), and the fx overlay's VISIBILITY is toggled
+  // on its OWN rAF loop by fx-postprocess.js. The two loops are
+  // independent, so a single DOM read can land on the frame where the
+  // overlay has just changed but the grade has not yet followed — the
+  // grade sits on the canvas that was topmost one frame ago. Both
+  // directions were observed: overlay just shown (grade still on the
+  // stage) and overlay just hidden (grade still on the overlay).
+  //
+  // The product is right; the SAMPLE was taken mid-transition. Measured:
+  // the invariant holds within one frame and then holds for 58-60
+  // consecutive frames afterwards. So wait for it to hold across
+  // consecutive frames and report the settled state.
+  //
+  // This is still falsifiable: the grade on the wrong canvas would never
+  // settle, so the wait would time out and the assertion would fail. Only
+  // the TIMING of the read changed, not what is asserted.
+  const variantGrade = variant ? await page.evaluate(async () => {
+    const read = () => {
+      const stage = window.SWR.stage || document.getElementById('stage');
+      const fx = document.getElementById('fx-canvas');
+      const fxVisible = !!fx && fx.offsetParent !== null;
+      const graded = Array.from(document.querySelectorAll('canvas'))
+        .filter((c) => getComputedStyle(c).filter && getComputedStyle(c).filter !== 'none');
+      return {
+        css: window.SWR_NATURAL.gradeCSS,
+        gradedIds: graded.map((c) => c.id || '(unnamed)'),
+        // Contract: the grade sits on the TOPMOST visible canvas — the fx
+        // overlay when it is up (it composites the stage), the stage
+        // otherwise.
+        expected: fxVisible ? 'fx-canvas' : 'stage',
+        gotTopmost: graded.length === 1 && (graded[0] === (fxVisible ? fx : stage)),
+      };
     };
+    let last = read();
+    let held = last.gotTopmost ? 1 : 0;
+    // 120 frames (~2s) is a long way past the 1-frame convergence measured
+    // above; a grade that is genuinely on the wrong canvas never settles.
+    for (let i = 0; i < 120 && held < 5; i++) {
+      await new Promise((r) => requestAnimationFrame(r));
+      last = read();
+      held = last.gotTopmost ? held + 1 : 0;
+    }
+    return { ...last, settled: held >= 5 };
   }) : null;
   check('a real variant page grades exactly its topmost canvas',
-    !!variantGrade && variantGrade.gotTopmost,
+    !!variantGrade && variantGrade.gotTopmost && variantGrade.settled,
     variantGrade ? JSON.stringify(variantGrade) : 'no SWR_NATURAL');
 
   check('no page or module errors during the run', errors.length === 0, errors.slice(0, 3).join('|'));

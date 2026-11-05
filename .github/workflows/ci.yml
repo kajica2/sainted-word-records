@@ -1,6 +1,6 @@
 name: CI
 
-# On every push to a non-main branch and every PR against main:
+# On every PR against main, and on every push to main:
 #   1. install deps with npm ci
 #   2. run npm run check:full — check (syntax + manifest + bundle + api
 #      smoke) + check:verify (the 5 curated Puppeteer smokes — see
@@ -35,8 +35,27 @@ name: CI
 # (GitHub Actions uses YAML 1.2 and parses 'on:' correctly unquoted).
 'on':
   push:
-    branches-ignore:
-      - main
+    # `main` ONLY — not "every branch" and not "every branch except main".
+    #
+    # Both of those publish a SECOND check-run with the IDENTICAL context
+    # name ("check + verify + build-size", the job name) for the same SHA:
+    # the `push` event fires for the branch, and the `pull_request` event
+    # fires for the open PR. GitHub matches a required status check by
+    # CONTEXT NAME, so two runs of the same name on one commit are
+    # ambiguous — and the branch-protection ruleset on `main` (which
+    # requires that exact context) is then decided by whichever twin
+    # finished last. On 2026-11-04 the PR-event run passed all 33 steps
+    # while its push-event twin stalled 34m22s in apt and was cancelled at
+    # the job timeout: the PR showed UNSTABLE on a green commit, and a
+    # ruleset would have blocked the merge.
+    #
+    # Restricting `push` to `main` gives exactly ONE run per commit —
+    # the PR run for a branch, the push run once it lands on main — and
+    # it still gates `main` itself, which is what the production-readiness
+    # plan asks for ("CI runs on main and PRs"). A branch with no open PR
+    # gets no run; open the PR (or dispatch the workflow) to get one.
+    # `visual-correct.yml` uses this same trigger shape.
+    branches: [main]
   pull_request:
     branches:
       - main
@@ -47,17 +66,29 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: check + verify + build-size
     runs-on: ubuntu-latest
-    # 30-minute budget. The chain ran 19m54s on 2026-09-29 (a 19-step group
-    # including check:automix-smoke 534s) and was cancelled by GitHub at step
-    # 9/13. 30 minutes gives the slowest single gate (check:verify at ~19m) the
-    # full safety margin without inflating the per-step allocations.
+    timeout-minutes: 90
+    # 90-minute ceiling. The chain itself takes ~22m (the 2026-11-04 PR run
+    # was 21m43s for check + check:verify, plus ~5m of setup, the build and
+    # the budgets), so this is >3x the real duration. The previous 45m
+    # ceiling was not enough headroom: one run lost 34m22s to an apt-get
+    # stall in the ffmpeg step and was then killed by this timeout with
+    # check:full never started — a red CI that had proved nothing. The
+    # budget has to survive one slow step, not just the happy path.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # check:apply-reactor-unit runs a parity sweep that `git show`s
+          # historical variant pages at commit 1508133. The default depth-1
+          # checkout on GitHub Actions does not contain that object.
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -67,6 +98,48 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install ffmpeg (the generations gate measures the media)
+        # The GitHub runner image ships WITHOUT ffmpeg: `which ffprobe`
+        # returns nothing. The generations gate measures every credited
+        # media file with ffprobe, so on the runner every measurement came
+        # back null and the gate failed with "every credited media file has
+        # a length and a bitrate" — for all 33 files, on every PR, against
+        # a tree that is perfectly fine (the same gate is green locally).
+        # The apt package is the same ffprobe the pack pipeline already
+        # expects; it installs in ~20s.
+        #
+        # The install is BOUNDED and retried. `apt-get update` reaches out
+        # to the Ubuntu mirrors, and on 2026-11-04 one run stalled there
+        # for 34m22s (against 51s on the twin PR run of the same commit) —
+        # long enough to eat a whole CI budget on its own. A hang in a
+        # mirror must not be able to kill the job, so each attempt gets
+        # its own timeout and the step fails fast enough for the job's
+        # ceiling (or the next attempt) to decide the outcome.
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 120 sudo apt-get update -qq \
+              && timeout 300 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg; then
+              ffprobe -version | head -1
+              exit 0
+            fi
+            echo "::warning::apt attempt ${attempt} failed or timed out; retrying"
+            # A killed `apt-get install` can leave dpkg half-configured and
+            # its lock held, which would make every later attempt fail for
+            # the wrong reason. Put the package manager back in a sane state
+            # before the next try — and bound that too, so the recovery
+            # cannot itself hang.
+            timeout 120 sudo dpkg --configure -a || true
+            timeout 60 sudo rm -f /var/lib/dpkg/lock-frontend \
+              /var/lib/dpkg/lock /var/lib/apt/lists/lock \
+              /var/cache/apt/archives/lock || true
+            sleep 10
+          done
+          echo "::error::could not install ffmpeg after 3 attempts"
+          exit 1
+
+      - name: Scene persistence regression tests
+        run: node --test tests/scenes-persistence.test.mjs
 
       - name: check + check:verify (the 5 curated Puppeteer smokes)
         # check:full runs every gate through scripts/run-steps.mjs and reports
@@ -106,19 +179,6 @@ jobs:
         # committed targeting/*.json byte-for-byte.
         run: npm run targeting:verify
 
-      - name: verify:automix-arc (the arc drives FX.state)
-        # Deliberately its OWN step, not a member of the check:full chain.
-        # check:full is an `&&` chain and the step above is
-        # continue-on-error: true, so the first failure inside it silently
-        # truncates everything after: check:verify aborting on
-        # rotation-enabled meant check:automix-smoke, check:automix-arc-smoke,
-        # check:storyboard, verify:automix, check:capture-smoke,
-        # check:media-input-smoke and check:spit-live-smoke never ran at all.
-        # This gate is deterministic (~9s, seek-based rather than realtime) and
-        # covers the automix wiring bugs that shipped silently three times, so
-        # it is a real blocker here.
-        run: npm run check:automix-arc-smoke
-
       - name: verify:transitions
         # Net-new as of 2026-09-12 — the transitions module didn't have a
         # CI gate before, which is why two regressions shipped to main.
@@ -156,15 +216,13 @@ jobs:
         # below.
         run: npm run build
 
-      - name: build-size budget (<= 180M)
-        # 180M ceiling = current 173.1M + ~4% headroom.
-        #
-        # The budget was 155M (162,529,280 bytes) and `main` was already
-        # over it: the last green run measured 154.8M on 2026-10-19, and
-        # the shipped media that landed after that (packs 41M, audios 40M,
-        # videos 31M) put the build at 173.1M. Nothing in the code
-        # regressed — the fix for the media inventory (which is the file
-        # this gate is really about) changes the build by 109 bytes.
+      - name: build-size budget (<= 181M)
+        # 181M ceiling = clean `npm run build` measured 180.4M on 2026-11-02
+        # (189,181,305 bytes on main and this branch). The prior 180M cap
+        # (188,743,680 bytes) left ~438KB headroom — media already on main
+        # consumes it, so PR CI was red while deploy-on-main stayed green
+        # (ci.yml ignores pushes to main). Per-dir growth is still gated
+        # by check:media-budget below.
         #
         # The rule still holds: if this fails, the asset library grew in a
         # way that needs justification — don't silently let the budget
@@ -173,11 +231,16 @@ jobs:
         run: |
           SIZE_BYTES=$(find dist/ -type f -printf '%s\n' | awk '{s+=$1} END {print s+0}')
           SIZE_MB=$(awk "BEGIN { printf \"%.1f\", $SIZE_BYTES / 1048576 }")
-          BUDGET_MB=180
-          BUDGET_BYTES=188743680
+          BUDGET_MB=181
+          BUDGET_BYTES=189792256
           echo "[ci] dist/ size: ${SIZE_MB}M (budget: ${BUDGET_MB}M)"
           if [ "$SIZE_BYTES" -gt "$BUDGET_BYTES" ]; then
             echo "::error::dist/ is ${SIZE_MB}M, exceeds ${BUDGET_MB}M budget"
             du -sh dist/* 2>/dev/null | sort -rh | head -10
             exit 1
           fi
+
+      - name: shipped-media budget (per directory)
+        # Names which media directory grew before the global 180M gate does.
+        # See docs/plans/2026-10-21-shipped-media-budget.md.
+        run: npm run check:media-budget

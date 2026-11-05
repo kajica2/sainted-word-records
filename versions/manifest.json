@@ -1,6 +1,6 @@
 {
   "schema": "swr-codemod-manifest/v1",
-  "generated_at": "2026-10-21T00:22:44.855Z",
+  "generated_at": "2026-10-25T06:01:46.698Z",
   "generated_by": "node versions/verify-codemods.mjs --update",
   "pending_max_age_days": 30,
   "ENGINES": [
@@ -78,6 +78,7 @@
         "music_video.html",
         "music_video_mtv.html",
         "neon.html",
+        "play.html",
         "pulse.html",
         "simple.html",
         "smoke.html",
@@ -105,8 +106,10 @@
         "clean.html",
         "collage.html",
         "console.html",
+        "credits-storyline.html",
         "echo-manifold.html",
         "eclipse.html",
+        "envelope.html",
         "film.html",
         "fractal.html",
         "gallery.html",
@@ -121,6 +124,7 @@
         "music_video_mtv.html",
         "neon.html",
         "phosphor.html",
+        "play.html",
         "pulse.html",
         "simple.html",
         "smoke.html",
@@ -307,6 +311,7 @@
         "grid.html",
         "hallucination.html",
         "neon.html",
+        "play.html",
         "pulse.html",
         "smoke.html",
         "void.html",
@@ -466,6 +471,7 @@
         "music_video.html",
         "music_video_mtv.html",
         "neon.html",
+        "play.html",
         "pulse.html",
         "smoke.html",
         "void.html",
@@ -739,157 +745,157 @@
       "pending": [
         {
           "file": "aurora.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "auth/login.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "auth/verify.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "bachdrop.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "baroque.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "chrome.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "collage.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "echo-manifold.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "eclipse.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "film.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "fractal.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "glitch.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "grid.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "hallucination.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "kraft.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "mosaic.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "music_video.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "music_video_mtv.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "neon.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "phosphor.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "pulse.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "simple.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "smoke.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "spectrum.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "tape.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "tools/hf-publish.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "tools/manifest-editor.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "tools/mobile/index.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "typography.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "void.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         },
         {
           "file": "watercolor.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "AGENTS.md claims this codemod gave 24 full-viewport renderers a site exit link; on disk the marker is on ZERO of its 26 declared pages. The 31 files listed in pending are the honest state - the codemod has never been applied, or its output was reverted wholesale. Run it (or confirm the design changed) rather than letting this age out."
         }
       ],
@@ -945,17 +951,17 @@
       "pending": [
         {
           "file": "collage.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
         },
         {
           "file": "spectrum.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
         },
         {
           "file": "typography.html",
-          "since": "2026-10-21T00:22:44.855Z",
+          "since": "2026-10-25T06:01:46.698Z",
           "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
         }
       ],
@@ -979,8 +985,10 @@
         "clean.html",
         "collage.html",
         "console.html",
+        "credits-storyline.html",
         "echo-manifold.html",
         "eclipse.html",
+        "envelope.html",
         "film.html",
         "fractal.html",
         "gallery.html",
@@ -995,6 +1003,7 @@
         "music_video_mtv.html",
         "neon.html",
         "phosphor.html",
+        "play.html",
         "pulse.html",
         "simple.html",
         "smoke.html",
@@ -1008,6 +1017,48 @@
       "pending": [],
       "dry_run_flag": true,
       "partial": []
+    },
+    "_command-center-inject": {
+      "script": "versions/_command-center-inject.js",
+      "markers": [
+        "command-center-launcher.client.js"
+      ],
+      "marker_mode": "all",
+      "scope": "engines",
+      "engines": [
+        "aurora",
+        "chrome",
+        "eclipse",
+        "film",
+        "fractal",
+        "glitch",
+        "grid",
+        "hallucination",
+        "neon",
+        "pulse",
+        "smoke",
+        "void",
+        "watercolor"
+      ],
+      "notes": "Adds the shared Studio Command Center to the 13 full engine surfaces — the ones with a Layers stack, a Library and a live output canvas. The six stub pages (baroque, gallery, kraft, mosaic, phosphor, tape) have none of those, so the Command Center would open onto empty panels there. This is the same allowlist _genops-inject.js uses. What it injects is the LAUNCHER (lib/command-center-launcher.client.js, ~2 KB), not the implementation: the implementation and its stylesheet load on demand the first time the button is used, so a variant visitor who never opens the Command Center does not download its 67 KB. Renders nothing until opened: a launcher button in the corner, or ?cc=1.",
+      "variants_processed": [
+        "aurora.html",
+        "chrome.html",
+        "eclipse.html",
+        "film.html",
+        "fractal.html",
+        "glitch.html",
+        "grid.html",
+        "hallucination.html",
+        "neon.html",
+        "pulse.html",
+        "smoke.html",
+        "void.html",
+        "watercolor.html"
+      ],
+      "pending": [],
+      "partial": [],
+      "dry_run_flag": true
     }
   },
   "variants": {
@@ -1018,6 +1069,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1033,7 +1085,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "bachdrop.html": {
       "codemods_applied": [
@@ -1042,7 +1094,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "baroque.html": {
       "codemods_applied": [
@@ -1052,7 +1104,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "chrome.html": {
       "codemods_applied": [
@@ -1061,6 +1113,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1076,7 +1129,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "clean.html": {
       "codemods_applied": [
@@ -1084,7 +1137,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "collage.html": {
       "codemods_applied": [
@@ -1096,7 +1149,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "console.html": {
       "codemods_applied": [
@@ -1104,7 +1157,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "echo-manifold.html": {
       "codemods_applied": [
@@ -1112,7 +1165,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "eclipse.html": {
       "codemods_applied": [
@@ -1120,6 +1173,7 @@
         "_audio-damp-inject",
         "_audio-overlay-inject",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1134,7 +1188,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "film.html": {
       "codemods_applied": [
@@ -1143,6 +1197,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1158,7 +1213,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "fractal.html": {
       "codemods_applied": [
@@ -1167,6 +1222,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1182,7 +1238,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "gallery.html": {
       "codemods_applied": [
@@ -1190,7 +1246,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "glitch.html": {
       "codemods_applied": [
@@ -1199,6 +1255,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1214,7 +1271,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "grid.html": {
       "codemods_applied": [
@@ -1223,6 +1280,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1237,7 +1295,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "hallucination.html": {
       "codemods_applied": [
@@ -1246,6 +1304,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_genops-inject",
         "_image-evolve-inject",
@@ -1260,7 +1319,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "index.html": {
       "codemods_applied": [
@@ -1268,7 +1327,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "kraft.html": {
       "codemods_applied": [
@@ -1278,7 +1337,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "mosaic.html": {
       "codemods_applied": [
@@ -1288,7 +1347,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "music_video.html": {
       "codemods_applied": [
@@ -1310,7 +1369,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "music_video_mtv.html": {
       "codemods_applied": [
@@ -1332,7 +1391,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "neon.html": {
       "codemods_applied": [
@@ -1341,6 +1400,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1356,7 +1416,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "phosphor.html": {
       "codemods_applied": [
@@ -1366,7 +1426,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "pulse.html": {
       "codemods_applied": [
@@ -1375,6 +1435,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1390,7 +1451,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "simple.html": {
       "codemods_applied": [
@@ -1400,7 +1461,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "smoke.html": {
       "codemods_applied": [
@@ -1409,6 +1470,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_genops-inject",
         "_image-load-inject",
@@ -1423,7 +1485,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "spectrum.html": {
       "codemods_applied": [
@@ -1433,7 +1495,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "tape.html": {
       "codemods_applied": [
@@ -1443,7 +1505,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "temple-of-control.html": {
       "codemods_applied": [
@@ -1451,7 +1513,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "typography.html": {
       "codemods_applied": [
@@ -1461,7 +1523,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "void.html": {
       "codemods_applied": [
@@ -1470,6 +1532,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1485,7 +1548,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "watercolor.html": {
       "codemods_applied": [
@@ -1494,6 +1557,7 @@
         "_audio-overlay-inject",
         "_blend-shuffle",
         "_canvas-hints-inject",
+        "_command-center-inject",
         "_drive-inject",
         "_fx-grade-inject",
         "_genops-inject",
@@ -1508,7 +1572,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "music-video-gallery.html": {
       "codemods_applied": [
@@ -1516,34 +1580,61 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
+    },
+    "credits-storyline.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-25T06:01:46.698Z"
+    },
+    "envelope.html": {
+      "codemods_applied": [
+        "_audio-damp-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-25T06:01:46.698Z"
+    },
+    "play.html": {
+      "codemods_applied": [
+        "_30s-inject",
+        "_audio-damp-inject",
+        "_drive-inject",
+        "_image-load-inject",
+        "_watermark-inject"
+      ],
+      "skipped": [],
+      "last_verified": "2026-10-25T06:01:46.698Z"
     }
   },
   "extra_pages": {
     "tools/hf-publish.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "tools/manifest-editor.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "tools/mobile/index.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "auth/login.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     },
     "auth/verify.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-10-21T00:22:44.855Z"
+      "last_verified": "2026-10-25T06:01:46.698Z"
     }
   }
 }

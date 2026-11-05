@@ -73,11 +73,7 @@ function copyDirRecursive(src, dst) {
     // Skip _archive/ directory — gitignored experimental pages (see
     // scripts/archive-pages.mjs).
     if (f === '_archive') continue;
-    // Skip the invite-code store. data/ ships wholesale because
-    // data/preset-transitions.json and friends are runtime assets, but
-    // data/invite-store/ is runtime STATE (gitignored — the CSV is the
-    // source of truth) and its email index can hold real addresses.
-    // Only reachable from a local build; a git-push deploy never has it.
+    // Legacy: copyDirRecursive is not used for data/ anymore (allowlist copy).
     if (f === 'invite-store') continue;
     const sp = join(src, f);
     const dp = join(dst, f);
@@ -87,6 +83,23 @@ function copyDirRecursive(src, dst) {
     } else if (st.isFile()) {
       copyFileSync(sp, dp);
     }
+  }
+}
+
+// Runtime assets under data/ that the browser fetches (see lib/preset-transitions.client.js).
+// Everything else in data/ — invite CSV, PRDs, invite-store state — must never ship in dist/.
+const DATA_DEPLOY_ALLOWLIST = [
+  'preset-transitions.json',
+];
+
+function copyDataDeployAllowlist(outDir, log) {
+  const dstDir = resolve(outDir, 'data');
+  mkdirSync(dstDir, { recursive: true });
+  for (const name of DATA_DEPLOY_ALLOWLIST) {
+    const src = resolve('data', name);
+    if (!existsSync(src)) continue;
+    copyFileSync(src, join(dstDir, name));
+    if (log) log('copied data/' + name);
   }
 }
 
@@ -468,6 +481,10 @@ function copyStatic() {
     // Auto-advance demo-reel player (window.SWR_REEL) — loaded by engine.html
     // next to swr-sets.js; consumes SWR_SETS.importSet/applySet.
     'engine-reel.client.js',
+    // Self-assembling director (engine.html script tags at repo root).
+    'self-assembling-director.js',
+    'self-assembling-wire.js',
+    'self-assembling-timeline.js',
     'engine-lfo-panel.client.js',
     'engine-panel-visibility.client.js',
     'engine-automap.client.js',
@@ -482,6 +499,7 @@ function copyStatic() {
     'gallery-audio.client.js',
     'dropzone.client.js',
     'engine-keys.client.js',
+    'jpg-engine.client.js',
     'engine-layout.client.js',
     'project.client.js',
     'timeline.client.js',
@@ -524,6 +542,15 @@ function copyStatic() {
     'project.js',
     'share.client.js',
     'timeline.client.js',
+    // The self-assembling director: engine.html loads all three as plain
+    // deferred root scripts and nothing else references them, so this list
+    // is the only thing that puts them in dist/. The dev server serves the
+    // repository root, which is why the omission was invisible locally and
+    // reached the deploy surface as three 404s (check-dist-links caught it
+    // after the merge).
+    'self-assembling-director.js',
+    'self-assembling-wire.js',
+    'self-assembling-timeline.js',
     // Landing-page variants for each persona (linked from
     // /personas registry cards). v1..v6 ship from the project root;
     // they're not auto-discovered by the SITE_MAP_ROOT_FILES derivation
@@ -702,7 +729,6 @@ function copyStatic() {
 
   const dirs = [
     { src: 'versions', dst: 'versions' },
-    { src: 'data', dst: 'data' },
     // Placeholder MP4s for the music-video-gallery and the landing page's
     // inline video tiles (landing.html:882-896, versions/music-video-gallery.html).
     { src: 'videos', dst: 'videos' },
@@ -808,6 +834,7 @@ function copyStatic() {
     // Unset, the whole directory ships exactly as before, so the local
     // build, the CI build and the dev server are unchanged.
     const packsBase = normalizeBase(process.env.PACKS_BASE || '');
+    copyDataDeployAllowlist(outDir, log);
     for (const d of dirs) {
       const src = resolve(d.src);
       const dst = resolve(outDir, d.dst);
@@ -909,6 +936,16 @@ export default defineConfig(({ command, mode }) => {
   const outDir = mode === 'development' ? 'dist-dev' : 'dist';
   return {
     plugins: [
+      // drop-noop-entry — removes the chunk Rollup emits for
+      // scripts/vite-noop-entry.js. See the rollupOptions.input comment.
+      {
+        name: 'drop-noop-entry',
+        generateBundle(_options, bundle) {
+          for (const file of Object.keys(bundle)) {
+            if (file.includes('vite-noop-entry')) delete bundle[file];
+          }
+        },
+      },
       copyStatic(),
       // M1: route /api/* through the same handlers that run on Vercel.
       // This is a Vite plugin (NOT a server.configureServer — that doesn't
@@ -1038,7 +1075,19 @@ export default defineConfig(({ command, mode }) => {
       // it; the plugin wipes dist/ itself before its buildStart run.
       emptyOutDir: false,
       rollupOptions: {
-        input: 'engine.html',
+        // engine.html used to be the only Rollup input so that Vite's HTML
+        // transform would run on it. It does not need to be: copy-static
+        // ships dist/engine.html as a plain file copy, so Vite's output for
+        // it was overwritten anyway, and the extracted
+        // dist/assets/engine-*.js + engine-*.css were referenced by NOTHING
+        // (145 KB of dead weight in every build). The three
+        // transformIndexHtml plugins that still matter all key off
+        // engine-genops.client.js, which only the VARIANT pages carry —
+        // and the variants are copies, not inputs, so those plugins have
+        // always been applied to them on disk instead.
+        //
+        // A throwaway entry keeps Rollup happy without producing a page.
+        input: resolve(__dirname, 'scripts/vite-noop-entry.js'),
         // The engine's index.html should never pull api/ code in. Treat
         // everything under api/ as external so Rollup leaves it alone.
         external: [/^api\//],

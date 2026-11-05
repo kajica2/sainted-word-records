@@ -32,6 +32,7 @@
        Must not carry type="module": vite's strip-absolute-module-scripts
        plugin rewrites a module tag on an absolute path into a plain defer
        classic script, which would load it too late. -->
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <script src="/lib/apply-reactors.js"></script>
   <script src="/lib/adaptive-guard.js" defer></script>
 <!-- SWR-WATERMARK-MARKER -->
@@ -46,6 +47,13 @@
   <link rel="stylesheet" href="/lib/presets-dropdown.css" />
   <link rel="stylesheet" href="/brandkit.css" />
   <link rel="stylesheet" href="/lib/drive-modal.css" />
+  <!-- Chain view (Ozone-style mastering surface over the same engine).
+       Inert unless the URL carries ?chain=1 — see lib/chain-ui.client.js.
+       The script is cheap and always loaded; the stylesheet is fetched on
+       demand by that script, so a normal engine visit never downloads it.
+       A copied engine.html for the variant would not fit the dist budget,
+       so the view is the same engine.html with a query parameter. -->
+  <script src="/lib/chain-ui.client.js" defer></script>
   <style>
     :root {
       /* === ENGINE PALETTE === */
@@ -174,6 +182,17 @@
       aside#layers      { max-height: 30vh; overflow-y: auto; border-left: none;
                           border-right: none; border-top: 1px solid var(--line); }
       section#stage    { min-height: 320px; }
+      /* #timeline-host is NOT one of the named areas above, and it carries
+         an INLINE `grid-column: 2 / 3` (it sits under the layers column on
+         the desktop template). In the narrow single-column layout that
+         inline placement creates an implicit 389px column, which squeezes
+         the 1fr column holding #stage down to 0px — the canvas vanished
+         on every narrow window reached by RESIZING. (At the desktop
+         template the same placement lands in an existing column, which is
+         harmless, which is why only the narrow layout broke.)
+         !important because the placement is an inline style and no
+         stylesheet rule can outrank it otherwise. */
+      #timeline-host   { grid-column: 1 !important; }
     }
 
     /* 480px and below — even tighter, plus icons-only transport pass.
@@ -420,6 +439,7 @@
     }
     @keyframes navPulse { 0% { transform: scale(1); } 50% { transform: scale(1.18); background: var(--accent); color: #fff; border-color: var(--accent); } 100% { transform: scale(1); } }
     .tbtn.ghost { background: transparent; border-color: var(--line); }
+    #scenes-list .swr-scene-capturing { box-shadow: 0 0 0 2px var(--accent); background: rgba(255, 61, 146, 0.12); }
     .tbtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .spacer { flex: 1; }
@@ -2891,10 +2911,12 @@
         <option value="landscape" selected>YouTube · 1920×1080</option>
         <option value="square">Square · 1080×1080</option>
         <option value="portrait">Instagram · 1080×1350</option>
-        <option value="reel">Reel / TikTok · 1080×1920</option>
+        <option value="reel">Reel / TikTok / Canvas · 1080×1920</option>
       </select>
       <select id="rec-dur" class="tbtn ghost" style="font-size:9px; padding:4px 6px;" title="Auto-stop recording after N seconds">
         <option value="0">manual</option>
+        <option value="5">5s</option>
+        <option value="8">8s</option>
         <option value="10">10s</option>
         <option value="15">15s</option>
         <option value="30" selected>30s</option>
@@ -3197,25 +3219,18 @@
           if (e.key === 'Escape' && !root.hidden) close();
         });
 
-        // ---- Wire the existing ? button ----
-        if (helpBtn) {
-          helpBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            toggle();
-          });
-        }
+        // ? button + ? key → unified keyboard help (SWR_KEYS); welcome panel
+        // stays available via SWR_ONBOARD.open() / first-visit auto-open only.
 
-        // ---- "?" key opens the panel ----
-        // The engine itself listens to keydown for shortcuts; ours is
-        // an OR — any keydown whose shift state matches the ? key
-        // gets caught. We don't preventDefault because the engine uses
-        // other keys; if the user wants to type "?" in an input the
-        // engine already filters those out via its own target check.
+        // ---- "?" key → SWR_KEYS help (onboarding defers) ----
         document.addEventListener('keydown', function (e) {
           if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
           if (e.key === '?' || (e.shiftKey && e.code === 'Slash')) {
-            e.preventDefault();
-            toggle();
+            if (window.SWR_KEYS && typeof window.SWR_KEYS.showHelp === 'function') {
+              e.preventDefault();
+              if (window.SWR_KEYS.isEnabled && !window.SWR_KEYS.isEnabled()) return;
+              window.SWR_KEYS.showHelp();
+            }
           }
         });
 
@@ -3561,11 +3576,47 @@
           <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
         </div>
       </div>
-      <div id="3d-picker" class="hidden" style="position:absolute; top: 38px; right: 8px; background: var(--bg-elevated, #1a1208); border: 1px solid var(--line, #3a2a22); border-radius: 6px; padding: 4px; display: flex; gap: 4px; z-index: 50;">
+      <!-- iPhone safe-area: position:absolute with NO positioned ancestor - the
+           #layers aside it sits in is a plain grid item - so the containing
+           block is the viewport and #app's padding cannot reach it.
+           position:relative on #app would not help either: the containing block
+           an absolutely positioned element gets is the PADDING box of its
+           positioned ancestor, which is exactly where the padding lives, so
+           padding on #app insets #app's grid TRACKS and nothing else. 38px is an
+           offset from the top of the layers aside (the transport header's
+           height), so it is composed with --safe-top rather than floored by it:
+           max(38px, var(--safe-top)) would park it inside the header on a
+           notched phone. Desktop is unchanged, --safe-* is 0px without a notch. -->
+      <div id="3d-picker" class="hidden" style="position:absolute; top: calc(var(--safe-top) + 38px); right: calc(var(--safe-right) + 8px); background: var(--bg-elevated, #1a1208); border: 1px solid var(--line, #3a2a22); border-radius: 6px; padding: 4px; display: flex; gap: 4px; z-index: 50;">
         <button class="tbtn ghost" data-3d="sphere"      style="padding:3px 8px; font-size:9px;">Sphere</button>
         <button class="tbtn ghost" data-3d="cube"        style="padding:3px 8px; font-size:9px;">Cube</button>
         <button class="tbtn ghost" data-3d="torus"       style="padding:3px 8px; font-size:9px;">Torus</button>
         <button class="tbtn ghost" data-3d="icosahedron" style="padding:3px 8px; font-size:9px;">Icosa</button>
+      </div>
+      <div id="image-lane-panel" style="border-bottom:1px solid var(--line);padding:6px 8px;background:var(--panel-2);">
+        <div class="ph" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;">Stills lane</span>
+          <button type="button" class="tbtn ghost" id="image-lane-visible" style="padding:2px 6px;font-size:9px;">Hide</button>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:9px;margin-bottom:4px;">
+          <label>Order
+            <select id="image-lane-order" style="font-size:9px;margin-left:2px;">
+              <option value="above">Above video</option>
+              <option value="below">Below video</option>
+            </select>
+          </label>
+          <label>Blend
+            <select id="image-lane-blend" style="font-size:9px;margin-left:2px;">
+              <option value="source-over">Normal</option>
+              <option value="screen">Screen</option>
+              <option value="lighter">Lighter</option>
+              <option value="overlay">Overlay</option>
+              <option value="soft-light">Soft light</option>
+            </select>
+          </label>
+          <label>Opacity <input type="range" id="image-lane-opacity" min="0" max="1" step="0.05" value="1" style="width:56px;vertical-align:middle;" /> <b id="image-lane-opacity-v">1.00</b></label>
+        </div>
+        <div id="image-lane-list"></div>
       </div>
       <div id="layer-list"></div>
     </aside>
@@ -3824,11 +3875,11 @@
       <span class="separator"></span>
       <button class="tbtn" id="scenes-btn" style="padding:4px 10px; font-size:9px;" title="Scene pads (4): click=recall, hold 1s=save">Scenes</button>
       <span class="separator"></span>
-      <button class="tbtn" id="automix-toggle" style="padding:4px 10px; font-size:9px; cursor:pointer;" title="Toggle Automix (A)">Automix <b id="automix-state" style="color:var(--m);">OFF</b></button>
-      <button class="tbtn" id="automix-freeze" style="padding:4px 10px; font-size:9px;" title="Freeze: stop ticking but keep the current blend (F)">Freeze</button>
-      <button class="tbtn" id="automix-save" style="padding:4px 10px; font-size:9px;" title="Save the current blend as a manual preset (B)">Save</button>
-      <button class="tbtn" id="automix-lock" style="padding:4px 10px; font-size:9px;" title="Lock to the single nearest anchor (K)">Lock</button>
-      <button class="tbtn" id="automix-debug" style="padding:4px 10px; font-size:9px;" title="Toggle the automix debug panel (D)">Debug</button>
+      <button class="tbtn" id="automix-toggle" style="padding:4px 10px; font-size:9px; cursor:pointer;" title="Toggle Automix (Shift+A)">Automix <b id="automix-state" style="color:var(--m);">OFF</b></button>
+      <button class="tbtn" id="automix-freeze" style="padding:4px 10px; font-size:9px;" title="Freeze: stop ticking but keep the current blend (Shift+F)">Freeze</button>
+      <button class="tbtn" id="automix-save" style="padding:4px 10px; font-size:9px;" title="Save the current blend as a manual preset (Shift+B)">Save</button>
+      <button class="tbtn" id="automix-lock" style="padding:4px 10px; font-size:9px;" title="Lock to the single nearest anchor (Shift+K)">Lock</button>
+      <button class="tbtn" id="automix-debug" style="padding:4px 10px; font-size:9px;" title="Toggle the automix debug panel (Shift+D)">Debug</button>
       <span class="separator"></span>
       <button class="tbtn" id="swr-tx-toggle" style="padding:4px 10px; font-size:9px;" title="Open the transitions panel (29 music-video transitions; 1-9 to fire from dropdown)">TRANSITIONS<span id="swr-tx-flash" class="swr-tx-flash" aria-hidden="true"></span></button>
       <span class="spacer" style="flex:1"></span>
@@ -3975,6 +4026,8 @@
   <script src="/lib/swr-life.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
+  <script src="/lib/image-lane.client.js" defer></script>
+  <script src="/client/image-lane-panel.client.js" defer></script>
   <!-- A video loaded as the song becomes a layer, sharing the song's own
        <video> element so the picture and the sound cannot drift apart
        (see lib/song-video-layer.client.js). -->
@@ -5015,7 +5068,10 @@
         // shared ones, so `scale` is now clamped to [0.05, 4] here too - it
         // was the one thing every surface in the repo left unclamped.
         // See lib/apply-reactors.js for the full contract.
-        const enabled = layer.rotationEnabled === true;  // rotation is ON by default (Layers.add sets rotationEnabled: true, and the rot-master defaults to enabled); when false, both manual rotOffset and any rot-target reactors are silenced
+        const mk = window.SWR_MOTION_KILL;
+        const enabled = mk && typeof mk.isRotationAllowed === 'function'
+          ? mk.isRotationAllowed(layer)
+          : layer.rotationEnabled === true;
         const RX = window.SWR_REACTORS;
         const out = {
           scale: layer.baseScale,
@@ -5060,7 +5116,9 @@
             scale: 0, dx: 0, dy: 0, dBrightness: 0, dHue: 0, opacityMul: 0
           };
           window.SWR_LAYER_AUDIO_ALGOS.apply(layer.algo, feat, layer.algoIntensity, o);
-          out.scale    += o.scale;
+          if (!window.SWR_MOTION_KILL || window.SWR_MOTION_KILL.isZoomGloballyEnabled()) {
+            out.scale += o.scale;
+          }
           out.x        += o.dx;
           out.y        += o.dy;
           out.hue      += o.dHue;
@@ -5072,6 +5130,14 @@
       },
       drawLayer(layer, cx, w, h) {
         const TIMING = window.SWR_TIMING;
+        // The offscreen processing canvas is sized from the stage, and the
+        // stage is display:none in Basic mode — so `this.proc` can
+        // legitimately be 0x0. Compositing FROM a 0x0 canvas is illegal:
+        // drawImage() throws "the image argument is a canvas element with a
+        // width or height of 0", and because the throw escapes drawLayer
+        // into the render loop, it killed the whole frame. There is
+        // nothing to composite into a 0x0 surface anyway, so skip.
+        if (!this.proc || !this.proc.width || !this.proc.height) return;
         // Crossfade state. Lazily initialised at the layer's own opacity so
         // adding a layer behaves exactly as before (no surprise fade-in);
         // only SWR_TIMING.crossfade() sets _targetOpacity=0 to drive a
@@ -5232,7 +5298,7 @@
           // and the hue branch (further down) draws `drawSrc = src` through `r`.
           // To keep behavior symmetric across both branches, we cache a CSS-style
           // pre-rotated Image once per asset per rotation change.
-          if (!a._rotated || a._rotated.deg !== a.rotation) {
+          if ((!a._rotated || a._rotated.deg !== a.rotation) && drawW > 0 && drawH > 0) {
             const sw = drawW, sh = drawH;
             const r = document.createElement('canvas');
             r.width = sw; r.height = sh;
@@ -5246,7 +5312,15 @@
             rc.drawImage(src, -ow / 2, -oh / 2);
             a._rotated = { deg: a.rotation, canvas: r };
           }
-          drawSrc = a._rotated.canvas;
+          // Fall back to the un-rotated source when the asset has no
+          // intrinsic size yet — an image that is still decoding, or one
+          // that failed to load (an off-origin demo clip behind a blocked
+          // or dead CDN). A canvas sized 0x0 is not a legal drawImage
+          // source and throws "the image argument is a canvas element with
+          // a width or height of 0", which killed the whole render frame.
+          // A 0x0 <img> source draws as nothing instead, which is the
+          // correct "nothing to show yet" behaviour.
+          drawSrc = (a._rotated && a._rotated.canvas) ? a._rotated.canvas : src;
         }
           let r = this.applyReactors(layer);
           // Advance the crossfade and let the eased opacity drive globalAlpha.
@@ -5288,7 +5362,8 @@
             }
             const kbPh = a._kbSeed;
             const kbTt = a._kbT || 0;
-            const kbZ = 1 + 0.045 * (0.5 + 0.5 * Math.sin(kbTt * 0.10 + kbPh));
+            const zoomOk = !(window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isZoomGloballyEnabled());
+            const kbZ = zoomOk ? (1 + 0.045 * (0.5 + 0.5 * Math.sin(kbTt * 0.10 + kbPh))) : 1;
             const kbX = 0.020 * Math.sin(kbTt * 0.061 + kbPh * 1.7);
             const kbY = 0.014 * Math.cos(kbTt * 0.083 + kbPh * 2.3);
             r = Object.assign({}, r, {
@@ -5675,12 +5750,17 @@
         // and reports boundaries as peaks of a Foote novelty curve, so a
         // loudness ramp inside one section does not cut it (which is what the
         // energy-threshold segmenter this replaced did). One call per frame is
-        // enough; the detector dedupes on the timestamp, so the automix
-        // runtime's own tickSection() call with the same live feat object
-        // cannot double-count. It publishes window.SWR_SECTIONS and fires
-        // `swr-section-change`, which client/section-scheduler.client.js
-        // listens for. Wrapped: a section detector fault must not take the
-        // render loop with it.
+        // enough: the PRODUCER stamps the frame's identity. lib/audio.client.js
+        // writes feat.tMs (the media clock, in milliseconds) onto the shared
+        // feature object in sample(), so this loop and the automix runtime's
+        // own tickSection() call — which passes the same live feat object —
+        // carry the SAME timestamp for the same frame, and the detector's
+        // dedupe on that timestamp makes the second call a no-op. (Without the
+        // stamp the detector fell back to a wall clock, which differs between
+        // the two callers, and every frame was ingested twice.) It publishes
+        // window.SWR_SECTIONS and fires `swr-section-change`, which
+        // client/section-scheduler.client.js listens for. Wrapped: a section
+        // detector fault must not take the render loop with it.
         if (window.SWR_SECTION) {
           try { window.SWR_SECTION.detect(a); } catch (_) {}
         }
@@ -5783,12 +5863,20 @@
         // Hidden layers (a hidden group writes `hidden` on its members)
         // do not draw at all — and they do not consume the top-N budget
         // either, so hiding a group frees a slot for the next layer down.
+        const _lane = window.SWR_IMAGE_LANE;
+        const _drawLaneBelow = _lane && _lane.stackOrder === 'below';
+        const _drawImageLane = () => {
+          if (!_lane) return;
+          _lane.drawStack(cx, (layer, c, w, h) => this.drawLayer(layer, c, w, h), cx.canvas.width, cx.canvas.height);
+        };
         const sorted = (Layers && Layers.visibleList() || []).sort((a, b) => a.z - b.z);
         const _activeCap = (Layers && Layers.activeCount) || 0;
         const _drawFrom = _activeCap > 0 ? Math.max(0, sorted.length - _activeCap) : 0;
+        if (_drawLaneBelow) _drawImageLane();
         for (let i = _drawFrom; i < sorted.length; i++) {
           this.drawLayer(sorted[i], cx, cx.canvas.width, cx.canvas.height);
         }
+        if (!_drawLaneBelow) _drawImageLane();
         // Selection outline (in manual mode, when a layer is being dragged)
         if (this.dragMode === 'manual' && this.selectedLayer) {
           this.drawSelection(cx, this.selectedLayer);
@@ -5899,6 +5987,7 @@
     window.SIZE_PRESETS.youtube = window.SIZE_PRESETS.landscape;
     window.SIZE_PRESETS.instagram = window.SIZE_PRESETS.portrait;
     window.SIZE_PRESETS.tiktok = window.SIZE_PRESETS.reel;
+    window.SIZE_PRESETS.canvas = window.SIZE_PRESETS.reel;
 
     // ======================================================================
     // RECORDER
@@ -6350,6 +6439,27 @@
         $('rec').addEventListener('click', withInviteGate(() => {
           if (Recorder.recording) Recorder.stop(); else Recorder.start();
         }));
+      // Deep-link record presets (?canvas=1 or ?rec-size=reel&rec-dur=8).
+      (function applyRecordQueryPresets() {
+        let params;
+        try { params = new URLSearchParams(window.location.search); } catch (_) { return; }
+        const sizeEl = $('rec-size');
+        const durEl = $('rec-dur');
+        if (!sizeEl || !durEl) return;
+        const canvasMode = params.get('canvas') === '1' || params.get('spotify-canvas') === '1';
+        if (canvasMode) {
+          sizeEl.value = 'reel';
+          if (durEl.querySelector('option[value="8"]')) durEl.value = '8';
+        }
+        const sizeKey = params.get('rec-size');
+        if (sizeKey && window.SIZE_PRESETS && window.SIZE_PRESETS[sizeKey]) {
+          sizeEl.value = sizeKey;
+        }
+        const durKey = params.get('rec-dur');
+        if (durKey && durEl.querySelector('option[value="' + durKey + '"]')) {
+          durEl.value = durKey;
+        }
+      })();
       // === Export video (one-click 30s WebM) ===
       $('export-video').addEventListener('click', withInviteGate(() => {
         if (Recorder.recording) { Recorder.stop(); return; }
@@ -7111,6 +7221,7 @@
         // to it. Key and button therefore share one implementation instead of
         // each carrying their own copy plus a listener.
         function rotateSelectedOrRemap(delta) {
+          if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isRotationGloballyEnabled()) return false;
           const sel = (window.Layers && window.Layers.selected) || null;
           if (!sel) {
             // Nothing selected → the key means RE-MAP, matching the engine's
@@ -7326,6 +7437,13 @@
         this.toggleEl = $('css-fx-toggle');
         if (!this.stageEl || !this.gridEl) return;
 
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.filterCssFxCatalog === 'function') {
+          this.catalog = window.SWR_MOTION_KILL.filterCssFxCatalog(this.catalog);
+        }
+        if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.stripActiveCssFxFromStage === 'function') {
+          window.SWR_MOTION_KILL.stripActiveCssFxFromStage(this.stageEl);
+        }
+
         // Render chips
         const frag = document.createDocumentFragment();
         for (const fx of this.catalog) {
@@ -7382,6 +7500,7 @@
           const saved = JSON.parse(localStorage.getItem('swr-cssfx-active') || '[]');
           if (Array.isArray(saved)) {
             for (const name of saved) {
+              if (window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isCssFxAllowed(name)) continue;
               if (this.catalog.find((f) => f.name === name)) this._apply(name, true);
             }
           }
@@ -7408,6 +7527,7 @@
       },
 
       _apply(name, on) {
+        if (on && window.SWR_MOTION_KILL && !window.SWR_MOTION_KILL.isCssFxAllowed(name)) return;
         if (on) {
           this.active.add(name);
           this.stageEl.classList.add(name);
@@ -8124,8 +8244,13 @@
             }
           });
           pad.addEventListener('mouseleave', () => window.SWR_SCENES.cancelCapture());
+          pad.setAttribute('data-scene-index', String(i));
+          pad.setAttribute('tabindex', '0');
           listEl.appendChild(pad);
         }
+        try {
+          window.dispatchEvent(new CustomEvent('swr-scenes-panel-refresh'));
+        } catch (_) {}
       }
 
       // Wire all 8 footer buttons after the DOM is ready.
@@ -8200,10 +8325,12 @@
   <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
   <script src="/client/automix-session-store.client.js" defer></script>
   <script src="/client/automix-runtime.client.js" defer></script>
+  <script src="/client/scenes-keyboard.client.js" defer></script>
   <!-- Act-driven clip cutting (L3 composition coupling). The 22 variant
        pages have shipped this since the port; engine.html was missed in the
        same rollout that omitted automix-arc (see above). -->
   <script src="/client/automix-composition.client.js" defer></script>
+  <script src="/client/automix-image-mode.client.js" defer></script>
   <!-- Periodic frame capture runtime + UI (Phase 1) -->
   <script src="/client/capture-runtime.client.js" defer></script>
 
@@ -8460,6 +8587,10 @@
   <script type="module" src="/engine-transitions.client.js"></script>
   <script type="module" src="/wizard.js"></script>
   <script type="module" src="/personas.js"></script>
+  <!-- Self-Assembling Director: studies the song, picks best personas per section -->
+  <script src="/self-assembling-director.js" defer></script>
+  <script src="/self-assembling-wire.js" defer></script>
+  <script src="/self-assembling-timeline.js" defer></script>
   <script type="module" src="/project.js"></script>
   <script type="module" src="/mic-input.client.js"></script>
   <script type="module" src="/camera.client.js"></script>

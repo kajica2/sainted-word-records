@@ -90,15 +90,26 @@ for (const gen of authored.generations) {
 assert(missingArtifacts.length === 0, 'every artifact exists', missingArtifacts.join(', '));
 assert(missingMedia.length === 0, 'every media file exists', missingMedia.join(', '));
 
-for (const gen of data.generations) {
-  for (const m of gen.media) {
-    if (!m.tracked) continue;
-    if (!Number.isFinite(m.duration) || !Number.isFinite(m.bitrate)) {
-      unmeasured.push(`${gen.id}: ${m.path}`);
+// The credits are MEASURED with ffprobe, which is an external tool. If it is
+// not on PATH there is nothing to measure with, so the gate says so out
+// loud and passes — the repo's env-skip convention (see AGENTS.md,
+// "Env-skip pattern"). The marker is literal so a real failure still
+// surfaces: when ffprobe IS present, a file that cannot be measured is a
+// failure, not a skip.
+const ffprobePresent = !(data.meta && data.meta.ffprobeAvailable === false);
+if (!ffprobePresent) {
+  console.log('(env skip: ffprobe is not installed — the media credits cannot be measured)');
+} else {
+  for (const gen of data.generations) {
+    for (const m of gen.media) {
+      if (!m.tracked) continue;
+      if (!Number.isFinite(m.duration) || !Number.isFinite(m.bitrate)) {
+        unmeasured.push(`${gen.id}: ${m.path}`);
+      }
     }
   }
+  assert(unmeasured.length === 0, 'every credited media file has a length and a bitrate', unmeasured.join(', '));
 }
-assert(unmeasured.length === 0, 'every credited media file has a length and a bitrate', unmeasured.join(', '));
 
 // ── 3. the archives ─────────────────────────────────────────────────────────
 console.log('\n=== the archives ===');

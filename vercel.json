@@ -140,6 +140,14 @@
       "destination": "/atlas.html"
     },
     {
+      "source": "/versions/play",
+      "destination": "/versions/play.html"
+    },
+    {
+      "source": "/versions/play/",
+      "destination": "/versions/play.html"
+    },
+    {
       "source": "/versions/music-video",
       "destination": "/versions/music_video.html"
     },
@@ -472,6 +480,14 @@
       "destination": "/versions/credits-storyline.html"
     },
     {
+      "source": "/versions/credits-storyline/",
+      "destination": "/versions/credits-storyline.html"
+    },
+    {
+      "source": "/versions/envelope",
+      "destination": "/versions/envelope.html"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },
@@ -548,12 +564,28 @@
       "destination": "/intro.html"
     },
     {
+      "source": "/music-video-maker",
+      "destination": "/music-video-maker.html"
+    },
+    {
+      "source": "/music-video-maker/",
+      "destination": "/music-video-maker.html"
+    },
+    {
       "source": "/tutorial-30s",
       "destination": "/tutorial-30s.html"
     },
     {
       "source": "/tutorial-30s/",
       "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/guides/music-video-no-budget",
+      "destination": "/guides/music-video-no-budget.html"
+    },
+    {
+      "source": "/guides/music-video-no-budget/",
+      "destination": "/guides/music-video-no-budget.html"
     },
     {
       "source": "/interactive-howto",
@@ -780,6 +812,14 @@
       "destination": "/tiktok.html"
     },
     {
+      "source": "/spotify-canvas-maker",
+      "destination": "/spotify-canvas-maker.html"
+    },
+    {
+      "source": "/spotify-canvas-maker/",
+      "destination": "/spotify-canvas-maker.html"
+    },
+    {
       "source": "/spit",
       "destination": "/spit.html"
     },
@@ -844,6 +884,14 @@
       "destination": "/make-video.html"
     },
     {
+      "source": "/muzicki-spot-beograd",
+      "destination": "/muzicki-spot-beograd.html"
+    },
+    {
+      "source": "/muzicki-spot-beograd/",
+      "destination": "/muzicki-spot-beograd.html"
+    },
+    {
       "source": "/photo",
       "destination": "/photo.html"
     },
@@ -852,12 +900,28 @@
       "destination": "/photo.html"
     },
     {
+      "source": "/jpg",
+      "destination": "/jpg.html"
+    },
+    {
+      "source": "/jpg/",
+      "destination": "/jpg.html"
+    },
+    {
       "source": "/enhance",
       "destination": "/enhance.html"
     },
     {
       "source": "/enhance/",
       "destination": "/enhance.html"
+    },
+    {
+      "source": "/beatstars-visualizer",
+      "destination": "/beatstars-visualizer.html"
+    },
+    {
+      "source": "/beatstars-visualizer/",
+      "destination": "/beatstars-visualizer.html"
     },
     {
       "source": "/gallery",
@@ -1060,6 +1124,14 @@
       "destination": "/font-vault.html"
     },
     {
+      "source": "/booking",
+      "destination": "/booking.html"
+    },
+    {
+      "source": "/booking/",
+      "destination": "/booking.html"
+    },
+    {
       "source": "/bookings",
       "destination": "/bookings.html"
     },
@@ -1082,6 +1154,78 @@
     {
       "source": "/super-admin/",
       "destination": "/super-admin.html"
+    },
+    {
+      "source": "/entrance-personas",
+      "destination": "/entrance-personas.html"
+    },
+    {
+      "source": "/entrance-personas/",
+      "destination": "/entrance-personas.html"
+    },
+    {
+      "source": "/entrance-minimal",
+      "destination": "/entrance-minimal.html"
+    },
+    {
+      "source": "/entrance-minimal/",
+      "destination": "/entrance-minimal.html"
+    },
+    {
+      "source": "/entrance-cinematic",
+      "destination": "/entrance-cinematic.html"
+    },
+    {
+      "source": "/entrance-cinematic/",
+      "destination": "/entrance-cinematic.html"
+    },
+    {
+      "source": "/entrance-mobile",
+      "destination": "/entrance-mobile.html"
+    },
+    {
+      "source": "/entrance-mobile/",
+      "destination": "/entrance-mobile.html"
+    },
+    {
+      "source": "/entrance-wizard",
+      "destination": "/entrance-wizard.html"
+    },
+    {
+      "source": "/entrance-wizard/",
+      "destination": "/entrance-wizard.html"
+    },
+    {
+      "source": "/entrance-step1",
+      "destination": "/entrance-step1.html"
+    },
+    {
+      "source": "/entrance-step1/",
+      "destination": "/entrance-step1.html"
+    },
+    {
+      "source": "/entrance-step2",
+      "destination": "/entrance-step2.html"
+    },
+    {
+      "source": "/entrance-step2/",
+      "destination": "/entrance-step2.html"
+    },
+    {
+      "source": "/entrance-step3",
+      "destination": "/entrance-step3.html"
+    },
+    {
+      "source": "/entrance-step3/",
+      "destination": "/entrance-step3.html"
+    },
+    {
+      "source": "/entrance-stats",
+      "destination": "/entrance-stats.html"
+    },
+    {
+      "source": "/entrance-stats/",
+      "destination": "/entrance-stats.html"
     },
     {
       "source": "/atlas-200-steps",
@@ -1384,10 +1528,6 @@
       "destination": "/terms.html"
     },
     {
-      "source": "/versions/envelope",
-      "destination": "/versions/envelope.html"
-    },
-    {
       "source": "/login",
       "destination": "/login.html"
     },
@@ -1426,6 +1566,22 @@
     {
       "source": "/enhance/",
       "destination": "/enhance.html"
+    },
+    {
+      "source": "/play",
+      "destination": "/versions/play.html"
+    },
+    {
+      "source": "/play/",
+      "destination": "/versions/play.html"
+    },
+    {
+      "source": "/alternate",
+      "destination": "/engine.html?chain=1"
+    },
+    {
+      "source": "/alternate/",
+      "destination": "/engine.html?chain=1"
     },
     {
       "source": "/atlas/200-steps",

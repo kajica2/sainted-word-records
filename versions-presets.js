@@ -1227,7 +1227,11 @@ const PRESETS = {
       if (!(_k >= 0 && _k <= 1)) _k = 1;
       _uf(u.temp,      _temp * _k);
       _uf(u.mut,       _mut * _k);
-      _uf(u.mutAlgo,   preset.mutAlgo);
+      var _mutAlgo = preset.mutAlgo;
+      if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.coerceMutAlgo === 'function') {
+        _mutAlgo = window.SWR_MOTION_KILL.coerceMutAlgo(_mutAlgo != null ? _mutAlgo : 0);
+      }
+      _uf(u.mutAlgo,   _mutAlgo);
       _uf(u.posterize, _posterize * _k);
       _uf(u.vignette,  preset.vignette * _k);
       _uf(u.chroma,    _chroma * _k);

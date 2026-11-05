@@ -3,6 +3,7 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script src="/lib/motion-kill-switch.client.js"></script>
   <meta charset="utf-8" />
   <title>KRAFT · SWR version · Cardboard paper</title>
   <meta name="description" content="Stub preset — brown-paper texture tone (page-target only)" />
@@ -21,7 +22,7 @@
   <meta name="twitter:title" content="KRAFT · SWR engine" />
   <meta name="twitter:description" content="Stub preset — brown-paper texture tone (page-target only)" />
   <meta name="twitter:image" content="/keyart/kraft.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@400;500;600&family=Archivo+Black&display=swap" />
@@ -30,12 +31,39 @@
       --kraft: #c4a578; --kraft-dark: #8a6a48; --kraft-darker: #5a4028;
       --ink: #3a2818; --ink-soft: #5a4028; --muted: #8a6a48;
       --stamp: #a8202a; --accent: #1c5a3a;
+      /* iPhone safe-area insets, read through custom properties so
+         each fixed overlay can use max(n, var(--safe-bottom)) instead of
+         repeating env(). The 0px fallback keeps every non-notched
+         browser pixel-identical to before. */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none;
       background: var(--kraft-dark); color: var(--ink);
       font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
     #app { display: grid; grid-template-rows: 50px 1fr 44px; height: 100vh; }
+    /* iPhone safe-area (P2.3): the transport header clears the
+       Dynamic Island and the footer bar clears the home indicator;
+       left/right cover landscape, where the notch side insets 59px
+       and the rounded corners eat the other.
+       The padding lands on #app, not body, for the reason
+       engine.html gives: #app is this page's own 100vh grid, so
+       under the global box-sizing: border-box the padding insets its
+       grid tracks in place. Padding body would stack on top of
+       #app's 100vh box and push the footer off-screen with no way
+       back (html/body are overflow:hidden).
+       position:fixed resolves against the viewport, so no padding on
+       an in-flow element reaches the overlays below - each folds its
+       own inset in with max(n, var(--safe-*)). Full-bleed inset:0
+       overlays (#swr-start, .drop-zone, .swr-load) are meant to cover
+       the notch and correctly stay untouched. */
+    #app { padding-top:    var(--safe-top);
+           padding-bottom: var(--safe-bottom);
+           padding-left:   var(--safe-left);
+           padding-right:  var(--safe-right); }
     header { display: flex; align-items: center; gap: 14px; padding: 0 18px;
       background: var(--kraft); border-bottom: 2px dashed var(--kraft-darker);
       position: relative; }
@@ -185,7 +213,7 @@
         const r = 80 + i * 60 + Math.sin(t * 1.3 + i) * 20;
         ctx.save();
         ctx.translate(cx + Math.cos(t * 0.4 + i) * 30, cy + Math.sin(t * 0.5 + i) * 20);
-        ctx.rotate(rot + i);
+        SWR_MOTION_KILL.gateRotate(ctx, rot + i);
         ctx.strokeStyle = `rgba(58, 40, 24, ${0.4 - i * 0.06})`;
         ctx.lineWidth = 3 - i * 0.3;
         ctx.setLineDash([8, 6]);
@@ -207,7 +235,7 @@
       // Hand-stamped typography
       ctx.save();
       ctx.translate(cx, cy);
-      ctx.rotate(-0.05);
+      SWR_MOTION_KILL.gateRotate(ctx, -0.05);
       ctx.font = 'bold 88px "Archivo Black", sans-serif';
       ctx.fillStyle = 'rgba(58, 40, 24, 0.85)';
       ctx.textAlign = 'center';
@@ -334,7 +362,7 @@
         const r = (80 + i * 60 + Math.sin(t * 1.3 + i) * 20) * k * (0.8 + bass * 0.45);
         ctx.save();
         ctx.translate(cx + Math.cos(t * 0.4 + i) * 30 * k, cy + Math.sin(t * 0.5 + i) * 20 * k);
-        ctx.rotate(rot + i);
+        SWR_MOTION_KILL.gateRotate(ctx, rot + i);
         const inkA = clamp((0.34 - i * 0.05) * (0.65 + bass * 0.5), 0, 0.55);
         ctx.strokeStyle = 'rgba(' + INK + ',' + inkA.toFixed(3) + ')';
         ctx.lineWidth = Math.max(1, (3 - i * 0.3) * k);
@@ -357,7 +385,7 @@
       const sr = 40 * k;
       ctx.save();
       ctx.translate(W - 26 * k - sr, H - 26 * k - sr);
-      ctx.rotate(-8 * Math.PI / 180);
+      SWR_MOTION_KILL.gateRotate(ctx, -8 * Math.PI / 180);
       const stampA = clamp(0.45 + beat * 0.4 + onset * 0.25, 0, 0.95);
       ctx.strokeStyle = 'rgba(' + STAMP + ',' + stampA.toFixed(3) + ')';
       ctx.lineWidth = Math.max(1, 3 * k);
@@ -713,7 +741,7 @@
 <script src="/versions/temp-slider.js"></script>
   <script src="../engine-transitions.client.js" defer></script>
 <!-- Automix debug panel (?automix-debug=1 or the Debug button) -->
-<div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+<div id="automix-debug-panel" hidden style="position:fixed; bottom:max(80px, var(--safe-bottom)); right:max(14px, var(--safe-right)); z-index:9999; background:rgba(10,10,16,0.92); color:#eee; padding:14px 18px; border:1px solid #333; border-radius:8px; font-family:ui-monospace,monospace; font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
     <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
     <button id="automix-debug-close" title="Close" style="background:none; border:none; color:#888; cursor:pointer; font-size:16px; line-height:1;">×</button>

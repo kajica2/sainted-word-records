@@ -5,7 +5,7 @@
 
 import { rateLimit } from '../_lib/db.js';
 import { listLiveCatalog } from '../_lib/catalogue.js';
-import { sendJson, setCors } from '../_lib/http.js';
+import { sendJson, setCors, clientIp } from '../_lib/http.js';
 
 export default async function handler(req, res) {
   setCors(res, req.headers.origin);
@@ -18,7 +18,9 @@ export default async function handler(req, res) {
     return sendJson(res, 405, { error: 'method_not_allowed' });
   }
 
-  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').toString().split(',')[0].trim();
+  // The bucket key comes from clientIp(): `x-forwarded-for` only counts when a
+  // trusted proxy wrote it, so this is a per-IP limit and not a per-header one.
+  const ip = clientIp(req);
   const rl = rateLimit({ key: `catalogue-public:${ip}`, windowMs: 60_000, max: 120 });
   if (!rl.ok) {
     res.setHeader('Retry-After', String(Math.ceil(rl.retryAfterMs / 1000)));

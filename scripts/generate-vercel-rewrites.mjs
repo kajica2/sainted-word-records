@@ -204,6 +204,31 @@ function generateRewrites(map) {
   rules.push({ source: '/versions/clean', destination: '/versions/clean.html' });
   rules.push({ source: '/versions/clean/', destination: '/versions/clean.html' });
 
+  // Engine VARIANTS that are not plain HTML files.
+  //
+  // /play serves versions/play.html — a real file, but it is NOT reachable
+  // through the auto-generated rules: site-map.json lists the route, and
+  // addPath() only emits a rule when the target file exists at the path the
+  // route implies (/play.html). It does not, so the auto pass emitted
+  // NOTHING for /play and the two hand-written rules below were the only
+  // thing keeping the route alive. Running this generator therefore DELETED
+  // them (measured: 406 committed rules -> 404 generated, the two /play
+  // rules lost and nothing gained) and would have 404'd /play in production
+  // on the next run. They live here so the generator stays the single
+  // source of truth.
+  rules.push({ source: '/play', destination: '/versions/play.html' });
+  rules.push({ source: '/play/', destination: '/versions/play.html' });
+  rules.push({ source: '/versions/play', destination: '/versions/play.html' });
+  rules.push({ source: '/versions/play/', destination: '/versions/play.html' });
+
+  // /alternate is the "Chain" view: an Ozone-style mastering surface over
+  // the SAME engine. It is deliberately NOT a copy of engine.html — a second
+  // 470 KB copy does not fit the dist/ size budget — so the route rewrites
+  // to engine.html with ?chain=1 and lib/chain-ui.client.js mounts the
+  // chain UI when it sees that parameter. The engine stays one file.
+  rules.push({ source: '/alternate', destination: '/engine.html?chain=1' });
+  rules.push({ source: '/alternate/', destination: '/engine.html?chain=1' });
+
   // Atlas section pages. atlas.html's TOC links to /atlas/<slug> while the
   // section files are hyphenated at the repo root (atlas-<slug>.html). Only
   // /atlas itself was routed, so all nine TOC links 404'd in production

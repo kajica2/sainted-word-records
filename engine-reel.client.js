@@ -270,6 +270,9 @@
     if (typeof ld.contrast === 'number') layer.contrast = ld.contrast;
     if (ld.pos) layer.pos = ld.pos;
     if (typeof ld.rotOffset === 'number') layer.rotOffset = ld.rotOffset;
+    if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.sanitizeLayer === 'function') {
+      window.SWR_MOTION_KILL.sanitizeLayer(layer);
+    }
     if (Array.isArray(ld.reactors)) layer.reactors = ld.reactors;
     if (Array.isArray(ld.modulators)) layer.modulators = ld.modulators;
   }

@@ -8,7 +8,7 @@ import {
   createVerificationToken,
   rateLimit,
 } from '../_lib/db.js';
-import { readJsonBody, sendJson, setCors } from '../_lib/http.js';
+import { readJsonBody, sendJson, setCors, clientIp } from '../_lib/http.js';
 import { sendMagicLink } from '../_lib/email.js';
 
 export default async function handler(req, res) {
@@ -22,8 +22,10 @@ export default async function handler(req, res) {
     return sendJson(res, 405, { error: 'method_not_allowed' });
   }
 
-  // Per-IP rate limit on auth endpoints
-  const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').toString().split(',')[0].trim();
+  // Per-IP rate limit on auth endpoints. The bucket key comes from
+  // clientIp(), which only reads `x-forwarded-for` when a trusted proxy wrote
+  // it - otherwise this line is a free unlimited email spray.
+  const ip = clientIp(req);
   const rl = rateLimit({ key: `magic:${ip}`, windowMs: 60_000, max: 10 });
   if (!rl.ok) {
     res.setHeader('Retry-After', String(Math.ceil(rl.retryAfterMs / 1000)));

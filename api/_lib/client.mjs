@@ -35,6 +35,7 @@ import {
   MagicReq, MagicRes,
   VerifyReq as AuthVerifyReq, VerifyRes as AuthVerifyRes,
   SessionRes, GoogleRes,
+  FirebaseAnonReq, FirebaseAnonRes, FirebaseConfigRes,
 } from './contract/auth.mjs';
 import {
   EarlyAccessReq, EarlyAccessRes, ManifestRes,
@@ -249,6 +250,24 @@ export function createClient(opts = {}) {
           path: '/api/auth/google',
           body: input,
           resSchema: GoogleRes,
+        });
+      },
+      // Firebase Anonymous Auth: exchange an ID token for a session.
+      firebaseAnon(input) {
+        return request({
+          method: 'POST',
+          path: '/api/auth/firebase-anon',
+          body: input,
+          reqSchema: FirebaseAnonReq, resSchema: FirebaseAnonRes,
+        });
+      },
+      // The public Firebase web config, so the browser can boot the SDK.
+      firebaseConfig() {
+        return request({
+          method: 'GET',
+          path: '/api/auth/firebase-anon',
+          query: { action: 'config' },
+          resSchema: FirebaseConfigRes,
         });
       },
     },

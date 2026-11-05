@@ -173,6 +173,10 @@ async function main() {
   const ctx = buildContext();
   vm.createContext(ctx);
 
+  const killSrc = fs.readFileSync(path.join(ROOT, 'lib/motion-kill-switch.client.js'), 'utf8');
+  vm.runInContext(killSrc, ctx);
+  if (ctx.window.SWR_MOTION_KILL) ctx.SWR_MOTION_KILL = ctx.window.SWR_MOTION_KILL;
+
   const src = fs.readFileSync(SRC_PATH, 'utf8');
   vm.runInContext(src, ctx);
 

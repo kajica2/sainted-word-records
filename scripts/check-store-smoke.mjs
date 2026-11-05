@@ -88,7 +88,12 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 
 async function nav(pathname) {
-  await page.goto('http://127.0.0.1:' + PORT + pathname, { waitUntil: 'networkidle0' });
+  // Navigate on domcontentloaded and give the page a bounded chance to
+  // reach 'complete'. networkidle0 never settles here — the page keeps a
+  // connection open — and on a CI runner the step then died with a 30s
+  // navigation timeout that says nothing about the store.
+  await page.goto('http://127.0.0.1:' + PORT + pathname, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForFunction(() => document.readyState === 'complete', { timeout: 15000 }).catch(() => {});
   await page.waitForFunction(() => !!window.SWR_STORE, { timeout: 5000 }).catch(() => {});
 }
 

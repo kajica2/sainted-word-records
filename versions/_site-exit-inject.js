@@ -19,6 +19,17 @@
 // Inline styles only: these pages carry their own stylesheets and must not
 // depend on lib/components.css.
 //
+// DELIBERATELY UNPOSITIONED (P2.3). The link is injected as the header's next
+// sibling and carries no `position`, so it stays in flow inside the transport
+// <header>. On the 26 `#app`-grid renderer variants the header is a grid track
+// of #app, and #app carries the iPhone safe-area padding (`padding-top:
+// var(--safe-top)` and friends, fed by `--safe-*` tokens defined in the page's
+// own `:root`), so the link clears the Dynamic Island with no work of its own.
+// Giving it `position: fixed` would undo exactly that: fixed resolves against
+// the viewport, where no in-flow padding box reaches, and it would then need a
+// `max(n, var(--safe-top))` offset of its own.
+// scripts/check-safe-area-inset.mjs gates the result on all 27 variants.
+//
 // The dev tools under tools/ and the auth flow under auth/ get the same link
 // for the same reason: linked from the site, no way back to it.
 //

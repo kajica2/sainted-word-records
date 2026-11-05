@@ -52,3 +52,58 @@ export const GoogleRes = z.union([
   z.object({ ok: z.literal(true) }),  // redirected with Set-Cookie
   ErrorBody.extend({ error: z.enum(['oauth_failed', 'rate_limited']) }),
 ]);
+
+// Firebase Anonymous Auth (POST /api/auth/firebase-anon).
+//
+// The request carries a Firebase ID token; the route verifies it with
+// the Admin SDK, makes sure it was issued by the ANONYMOUS provider,
+// and exchanges it for a regular swrc_session cookie. The session model
+// is unchanged — the Firebase token is an identity assertion at exchange
+// time, not a second session.
+//
+// The GET ?action=config branch serves the PUBLIC Firebase web config
+// so the browser can boot the SDK without a hard-coded key. It is a
+// separate shape because it is a different verb on the same route.
+export const FirebaseAnonReq = z.object({
+  idToken: z.string().min(1).max(4096),
+});
+export const FirebaseAnonRes = z.union([
+  z.object({
+    ok: z.literal(true),
+    user: z.object({
+      id: Uuid,
+      name: z.string().nullable(),
+      email: Email.nullable(),
+      anonymous: z.literal(true),
+    }),
+  }),
+  ErrorBody.extend({
+    error: z.enum([
+      'method_not_allowed',
+      'missing_id_token',
+      'invalid_id_token',
+      'not_anonymous',
+      'firebase_not_configured',
+      'invalid_service_account',
+    ]),
+  }),
+]);
+
+// The public web config. `apiKey` is a publishable identifier, not a
+// secret — Firebase web apps ship it to every visitor.
+export const FirebaseConfigRes = z.union([
+  z.object({
+    ok: z.literal(true),
+    config: z.object({
+      apiKey: z.string().min(1),
+      authDomain: z.string().min(1),
+      projectId: z.string().min(1),
+      appId: z.string().optional(),
+      storageBucket: z.string().optional(),
+      messagingSenderId: z.string().optional(),
+    }),
+  }),
+  ErrorBody.extend({
+    error: z.enum(['firebase_not_configured', 'method_not_allowed']),
+  }),
+]);

@@ -155,32 +155,24 @@
    ============================================================ */
 /* ---------- utils ---------- */
 const $  = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
-const variance = arr => {
-  if (arr.length < 2) return 0;
-  const m = arr.reduce((s, x) => s + x, 0) / arr.length;
-  return arr.reduce((s, x) => s + (x - m) ** 2, 0) / arr.length;
-};
-const pct = (sorted, p) => {
-  if (!sorted.length) return 0;
-  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
-};
-const computeStats = arr => {
-  if (!arr.length) return null;
-  const sorted = [...arr].sort((a, b) => a - b);
-  const mean = arr.reduce((s, x) => s + x, 0) / arr.length;
-  const sd = Math.sqrt(variance(arr));
-  return { mean, sd, p50: pct(sorted, 0.5), p95: pct(sorted, 0.95), p99: pct(sorted, 0.99) };
-};
-const uid = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* The host knows its own numbers: the suite's "reduce density" chip says
+   "-40 %", which is only true for the particles — the grid is cut by a
+   different factor. The toast is the host's, so the host says the truth. */
+function cutLabel(factor) {
+  return '-' + Math.round((1 - factor) * 100) + ' %';
 }
 function toast(msg) {
+  let text = String(msg);
+  if (/reduce-count/.test(text)) {
+    // the host's own density state — the suite's chip says "-40 %", which
+    // is only true for the particles, and only on the first application.
+    text += ' · particles ' + cutLabel(labOverrides.density.particles) +
+            ', grid ' + cutLabel(labOverrides.density.grid);
+  }
   const t = $('#toast');
-  t.textContent = msg; t.classList.add('on');
+  t.textContent = text; t.classList.add('on');
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 1700);
 }
 
@@ -391,20 +383,15 @@ function defaultLayers(preset) {
 /* The config is built FROM the layer preset. (The supplied source set
  * `layers: defaultLayers('reactive')` and then merged the test's override
  * on top, so the "baseline" test ran the three reactive layers and the
- * baseline it claimed to measure never happened.) */
-function defaultCfg(layerPreset = 'reactive', overrides) {
-  const cfg = {
-    layerPreset,
-    layers: defaultLayers(layerPreset),
-    reactivity: 1.5,
-    interpolate: true,
-    injectAudioDrift: 0,
-    dpr: 0,          // 0 = auto
-    smoothing: 0.7,
-    trails: 0.4,
-  };
-  return Object.assign(cfg, overrides || {});
-}
+ * baseline it claimed to measure never happened.)
+ *
+ * The knobs fall into two families, and they are kept apart on purpose:
+ *   - the RUN owns: the layer preset, the reactivity, the interpolation
+ *     and the injected audio lag (a test asks for these);
+ *   - the HOST owns: the dpr cap, the trails and the smoothing (the
+ *     lab's own live state — a test must never reset them).
+ * A test's config therefore carries ONLY the run's knobs; the host's own
+ * state survives every run. */
 
 
 /* ============================================================
@@ -429,13 +416,19 @@ function resize() {
 }
 new ResizeObserver(resize).observe($('#stageWrap'));
 
+/* The editor's trail fade. It is a function of the trails value only, so
+   it lives here — the report quotes the very number the renderer used. */
+function trailRetention(trails) {
+  return clamp(0.52 - (trails || 0) * 0.38, 0.30, 0.62);
+}
+
 function render(f, tSec, cfg) {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
   ctx.shadowBlur = 0;
   // the editor's trail fade and its per-frame trail normalisation
-  const retention = clamp(0.52 - cfg.trails * 0.38, 0.30, 0.62);
+  const retention = trailRetention(cfg.trails);
   ctx.fillStyle = `rgba(5,7,12,${retention})`;
   ctx.fillRect(0, 0, W, H);
   const trailNorm = 1 - retention;
@@ -474,15 +467,124 @@ function render(f, tSec, cfg) {
 }
 
 
-/* ---------- the host adapter ---------- */
+/* ============================================================
+   THE HOST ADAPTER
+   ============================================================ */
 var suite = null;
 var labCfg = { layerPreset: 'reactive', layers: [], reactivity: 1.5, interpolate: true, injectAudioDrift: 0, dpr: 0, smoothing: 0.7, trails: 0.4 };
 
+/* The density factors the lab really applies: the PARTICLES are cut by
+   40 %, the GRID by 25 %. The suite's own chip says "-40 %" — the host is
+   the only party that knows both numbers, so the host states them. */
+var DENSITY_FACTORS = { particles: 0.6, grid: 0.75 };
+
+/* The applied-override map.
+   The advisor's changes must survive into the run that follows them, and
+   `onTestStart` rebuilds the layer set from the preset name — that rebuild
+   is the source of truth for the LAYER SET. So every applied change is
+   recorded here and re-applied on top of the rebuild: the density entries
+   are multipliers on the rebuilt layers (they compose, so applying twice
+   really does cut twice), the rest are the host's own live values. */
+var labOverrides = {
+  density: { particles: 1, grid: 1 },
+  dpr: null,
+  trails: null,
+  smoothing: null
+};
+var labRunCount = 0;
+
+/* The suite's own config defaults (its state.cfg starts with exactly
+   these). A merged run config always carries them, so a value that EQUALS
+   one of them is not an explicit request — it is the suite's stale
+   default. Only a value that differs is honoured, so a run can never
+   reset the host's own live settings. */
+var SUITE_DEFAULTS = { dpr: 0, trails: 0.4, smoothing: 0.7 };
+
+/* Scale the heavy layers of a layer set. Returns true when something
+   actually moved — an apply that changes nothing must not claim success. */
+function scaleLayerDensity(layers, factors) {
+  var changed = false;
+  (layers || []).forEach(function (L) {
+    var P = L.params || (L.params = {});
+    if (L.type === 'particles' && P.count) {
+      var np = Math.max(4, Math.round(P.count * factors.particles));
+      if (np !== P.count) { P.count = np; changed = true; }
+    }
+    if (L.type === 'grid') {
+      if (P.cols) {
+        var nc = Math.max(3, Math.round(P.cols * factors.grid));
+        if (nc !== P.cols) { P.cols = nc; changed = true; }
+      }
+      if (P.rows) {
+        var nr = Math.max(3, Math.round(P.rows * factors.grid));
+        if (nr !== P.rows) { P.rows = nr; changed = true; }
+      }
+    }
+  });
+  return changed;
+}
+
+/* ---------- the audio clock ----------
+   The reading is EXACT and DETERMINISTIC: the audio clock is the wall
+   clock minus the run's injected lag. A 12 ms lag therefore reads as
+   12 ms on every frame — independent of the buffer's phase and of the
+   interpolation. The per-sample uncertainty lives in the CONTENT (see
+   demoFeatures), never in the reading. */
+function audioClock(tSec) {
+  return tSec - (labCfg.injectAudioDrift || 0);
+}
+
+/* ---------- the feature pipeline: jitter + smoothing ----------
+   The lab's own signal path, in this order:
+     1. JITTER — the audio clock's per-sample uncertainty (±2 ms) is the
+        CONTENT's, not the clock reading's: the demo signal is read at a
+        slightly uncertain time. That is what keeps the measured A/V
+        offset independent of where the buffer happens to be.
+     2. SMOOTHING — a one-pole filter over the feature vector. The
+        coefficient is the lab's `smoothing` knob: the higher it is, the
+        more slowly the features move. It is a filter, so it is stateful
+        across frames, and it is reset at the start of every run so two
+        runs are comparable. */
+var JITTER_SEC = 0.004;          // ±2 ms
+var smoothState = null;
+
+function resetSmoothing() { smoothState = null; }
+
+/* the one-pole coefficient: smoothing 0 = no filter, smoothing 1 = frozen */
+function smoothingAlpha() {
+  return clamp(1 - clamp(labCfg.smoothing || 0, 0, 0.98), 0.02, 1);
+}
+
+function smoothFeatures(raw) {
+  var alpha = smoothingAlpha();
+  if (!smoothState) {
+    smoothState = Object.assign({}, raw);
+    return Object.assign({}, raw);
+  }
+  var out = {};
+  for (var k in raw) {
+    var x = raw[k];
+    if (typeof x !== 'number') { out[k] = x; continue; }
+    var prev = typeof smoothState[k] === 'number' ? smoothState[k] : x;
+    out[k] = prev + alpha * (x - prev);
+  }
+  smoothState = out;
+  return out;
+}
+
+/* A test's configuration carries ONLY the knobs the run owns (the layer
+   preset, the reactivity, the interpolation, the injected lag). The dpr
+   cap, the trails and the smoothing belong to the host and are NOT part
+   of a test — a frozen test config must not reset the lab's own state. */
 function cfgFor(preset, over) {
-  var cfg = Object.assign({}, labCfg, over || {});
-  cfg.layerPreset = preset;
-  cfg.layers = defaultLayers(preset);
-  return cfg;
+  var cfg = {
+    layerPreset: preset,
+    layers: defaultLayers(preset),
+    reactivity: 1.5,
+    interpolate: true,
+    injectAudioDrift: 0
+  };
+  return Object.assign(cfg, over || {});
 }
 
 var TESTS = [
@@ -493,60 +595,226 @@ var TESTS = [
   { name: 'sync-stress',   desc: 'reactive + 12ms audio lag — tests buffer recov', cfg: cfgFor('reactive', { reactivity: 1.5, interpolate: true, injectAudioDrift: 0.012 }) }
 ];
 
+/* The audio side: the features, and the time they represent. The label is
+   EXACTLY the audio clock's reading — the suite compares the two. */
 function demoFeatures(tSec) {
-  var lag = labCfg.injectAudioDrift || 0;
-  var jitter = (Math.random() - 0.5) * 0.004;
-  return { features: demoSynth(tSec - lag), audioTime: tSec - lag + jitter };
+  var jitter = (Math.random() - 0.5) * JITTER_SEC;
+  var raw = demoSynth(audioClock(tSec) + jitter);
+  return { features: smoothFeatures(raw), audioTime: audioClock(tSec) };
+}
+
+/* The version label for a new report: the header field, or a run counter
+   when the field is empty. */
+function hostVersionTag() {
+  var el = $('#versionInput');
+  var v = el && el.value ? el.value.trim() : '';
+  return v || ('run-' + labRunCount);
+}
+
+/* The header's version field and the panel's tag field are the same field:
+   whichever the suite reads, it reads the same label. */
+function syncVersionTag() {
+  var vEl = $('#versionInput');
+  var tEl = document.getElementById('benchTagInput');
+  var v = vEl && vEl.value ? vEl.value.trim() : '';
+  if (!tEl) return;
+  if (v) tEl.value = v;
+  else if (!tEl.value.trim() || /^run-\d+$/.test(tEl.value.trim())) tEl.value = 'run-' + labRunCount;
+}
+
+function densityLabel() {
+  var d = labOverrides.density;
+  if (d.particles === 1 && d.grid === 1) return '';
+  return ' · p×' + d.particles.toFixed(2) + ' g×' + d.grid.toFixed(2);
 }
 
 var HOST = {
   tests: function () { return TESTS; },
   sample: demoFeatures,
+  audioClock: audioClock,
   reportConfig: function () {
+    var st = suite && suite.state ? suite.state.cfg : {};
+    var layers = labCfg.layers || [];
+    var particles = 0, cols = 0, rows = 0;
+    layers.forEach(function (L) {
+      var P = L.params || {};
+      if (L.type === 'particles') particles = P.count || 0;
+      if (L.type === 'grid') { cols = P.cols || 0; rows = P.rows || 0; }
+    });
     return {
       layerPreset: labCfg.layerPreset,
-      layerCount: labCfg.layers.length,
+      layerCount: layers.length,
+      layerTypes: layers.map(function (L) { return L.type; }),
       reactivity: labCfg.reactivity,
-      interpolate: labCfg.interpolate,
-      injectAudioDrift: labCfg.injectAudioDrift,
+      interpolate: typeof st.interpolate === 'boolean' ? st.interpolate : labCfg.interpolate,
+      injectAudioDrift: typeof st.injectAudioDrift === 'number' ? st.injectAudioDrift : labCfg.injectAudioDrift,
       smoothing: labCfg.smoothing,
+      smoothingAlpha: smoothingAlpha(),
       trails: labCfg.trails,
+      trailRetention: trailRetention(labCfg.trails),
       dpr: DPR,
+      dprCap: labCfg.dpr,
+      particleCount: particles,
+      gridCols: cols,
+      gridRows: rows,
+      density: { particles: labOverrides.density.particles, grid: labOverrides.density.grid },
       bufferCapacity: suite ? suite.buffer.capacity : 128
     };
   },
   supports: function (id) {
-    return ['reduce-count', 'cap-dpr', 'increase-trails', 'increase-smoothing'].indexOf(id) >= 0;
+    /* The lab's own four, PLUS the suite's own two (the interpolation and
+       the buffer capacity): the suite applies those itself, and the lab
+       must not filter them out of the advisor — the lab's "reactive-noint"
+       test is exactly what the suite's interpolation fix corrects. */
+    if (['reduce-count', 'cap-dpr', 'increase-trails', 'increase-smoothing',
+         'enable-interp', 'increase-buffer'].indexOf(id) < 0) return false;
+    /* Capping the DPR only helps when there IS a DPR to cap: on a
+       1× display the cap equals the current ratio, so the "optimization"
+       changes nothing and the advisor would be reporting a fix for a
+       problem this machine does not have. */
+    if (id === 'cap-dpr' && (window.devicePixelRatio || 1) <= 1.25) return false;
+    return true;
+  },
+  /* The current value of the thing a suggestion changes. The suite reads
+     it before and after an apply and reports a failed apply when the two
+     are the same — so this must be the value the apply really moves. */
+  verify: function (id) {
+    if (id === 'reduce-count') {
+      var n = 0;
+      (labCfg.layers || []).forEach(function (L) {
+        var P = L.params || {};
+        if (L.type === 'particles') n += P.count || 0;
+        if (L.type === 'grid') n += (P.cols || 0) * (P.rows || 0);
+      });
+      return n;
+    }
+    if (id === 'cap-dpr') return DPR;
+    if (id === 'increase-trails') return labCfg.trails;
+    if (id === 'increase-smoothing') return labCfg.smoothing;
+    return null;   // the suite's own knobs have no host-side value
   },
   apply: function (id) {
     if (id === 'reduce-count') {
-      labCfg.layers.forEach(function (L) {
-        if (L.type === 'particles' && L.params.count) L.params.count = Math.round(L.params.count * 0.6);
-        if (L.type === 'grid') {
-          if (L.params.cols) L.params.cols = Math.round(L.params.cols * 0.75);
-          if (L.params.rows) L.params.rows = Math.round(L.params.rows * 0.75);
-        }
-      });
+      if (!scaleLayerDensity(labCfg.layers, DENSITY_FACTORS)) return false;
+      labOverrides.density.particles = Math.max(0.05, labOverrides.density.particles * DENSITY_FACTORS.particles);
+      labOverrides.density.grid = Math.max(0.05, labOverrides.density.grid * DENSITY_FACTORS.grid);
       return true;
     }
-    if (id === 'cap-dpr') { labCfg.dpr = 1.25; return true; }
-    if (id === 'increase-trails') { labCfg.trails = Math.min(0.9, (labCfg.trails || 0.4) + 0.15); return true; }
-    if (id === 'increase-smoothing') { labCfg.smoothing = Math.min(0.95, (labCfg.smoothing || 0.7) + 0.1); return true; }
+    if (id === 'cap-dpr') {
+      var cap = Math.min(1.25, window.devicePixelRatio || 1);
+      var before = DPR;
+      labCfg.dpr = cap;
+      labOverrides.dpr = cap;
+      resize();
+      return DPR !== before;   // it only "took" if the render really changed
+    }
+    if (id === 'increase-trails') {
+      var trails = Math.min(0.9, (labCfg.trails || 0.4) + 0.15);
+      if (trails === labCfg.trails) return false;
+      labCfg.trails = trails;
+      labOverrides.trails = trails;
+      return true;
+    }
+    if (id === 'increase-smoothing') {
+      var smoothing = Math.min(0.95, (labCfg.smoothing || 0.7) + 0.1);
+      if (smoothing === labCfg.smoothing) return false;
+      labCfg.smoothing = smoothing;
+      labOverrides.smoothing = smoothing;
+      resetSmoothing();          // the filter restarts at the new coefficient
+      return true;
+    }
+    if (id === 'enable-interp') { labCfg.interpolate = true; return true; }
+    /* 'increase-buffer' is the suite's own (the buffer capacity) — the lab
+       supports the suggestion, the suite applies it. */
     return false;
   },
   onTestStart: function (cfg) {
-    // the HOST owns its layers: the suite carries the measurement, the
-    // host applies the configuration to whatever it draws
-    Object.assign(labCfg, cfg);
+    cfg = cfg || {};
+    // the knobs the RUN owns
+    if (typeof cfg.layerPreset === 'string') labCfg.layerPreset = cfg.layerPreset;
+    if (typeof cfg.reactivity === 'number') labCfg.reactivity = cfg.reactivity;
+    if (typeof cfg.interpolate === 'boolean') labCfg.interpolate = cfg.interpolate;
+    if (typeof cfg.injectAudioDrift === 'number') labCfg.injectAudioDrift = cfg.injectAudioDrift;
+    // the knobs the HOST owns: a run config may carry them (the suite's
+    // optimized config does), but only a value that differs from the
+    // suite's own default is an explicit request — and the APPLIED
+    // overrides win over both, so an applied change survives the re-run.
+    if (typeof cfg.dpr === 'number' && cfg.dpr !== SUITE_DEFAULTS.dpr) labCfg.dpr = cfg.dpr;
+    if (typeof cfg.trails === 'number' && cfg.trails !== SUITE_DEFAULTS.trails) labCfg.trails = cfg.trails;
+    if (typeof cfg.smoothing === 'number' && cfg.smoothing !== SUITE_DEFAULTS.smoothing) labCfg.smoothing = cfg.smoothing;
+    if (labOverrides.dpr !== null) labCfg.dpr = labOverrides.dpr;
+    if (labOverrides.trails !== null) labCfg.trails = labOverrides.trails;
+    if (labOverrides.smoothing !== null) labCfg.smoothing = labOverrides.smoothing;
+
+    // the layer set is rebuilt from the preset name — the source of truth
+    // for the LAYERS — and the applied density is re-applied on top of it.
     labCfg.layers = defaultLayers(labCfg.layerPreset);
-    $('#liveCfg').textContent = 'cfg ' + labCfg.layerPreset;
+    scaleLayerDensity(labCfg.layers, labOverrides.density);
+
+    // every run starts from the same filter state, so two runs compare
+    resetSmoothing();
+
+    labRunCount += 1;
+    syncVersionTag();
+
+    $('#liveCfg').textContent = 'cfg ' + labCfg.layerPreset + densityLabel();
     resize();
   },
-  optimizedConfig: function () { return Object.assign({}, labCfg); },
+  optimizedConfig: function () {
+    var st = suite && suite.state ? suite.state.cfg : {};
+    return Object.assign({}, labCfg, {
+      // the suite owns the interpolation: its live value wins, so the
+      // suite's own "enable interpolation" fix survives the re-run.
+      interpolate: typeof st.interpolate === 'boolean' ? st.interpolate : labCfg.interpolate,
+      injectAudioDrift: typeof st.injectAudioDrift === 'number' ? st.injectAudioDrift : labCfg.injectAudioDrift,
+      layerPreset: labCfg.layerPreset,
+      layers: labCfg.layers
+    });
+  },
   toast: function (m) { toast(m); }
 };
 
 /* ---------- the lab's own render loop ---------- */
+
+/* The suite's run state, read from its public state — the lab does not
+   keep a second copy of "is a run in flight". */
+function suiteRunDurationMs() {
+  var st = suite && suite.state;
+  if (st && typeof st.durationMs === 'number') return st.durationMs;
+  var mode = document.getElementById('benchRunMode');
+  return mode && mode.value === 'quick' ? 1500 : 3000;
+}
+
+/* The stage header's run indicator — it is driven by the suite's own
+   state, so it shows the run that is really happening (the suite's panel
+   indicator lives in the panel and is the suite's business). */
+function updateRunIndicator(now) {
+  var ind = $('#runIndicator');
+  if (!ind) return;
+  var st = suite && suite.state;
+  var running = !!(st && (st.recording || st.activeTest));
+  ind.classList.toggle('on', running);
+  if (!running) return;
+  var label = $('#runLabel');
+  if (label) label.textContent = st.activeTest ? ('running · ' + st.activeTest) : 'running…';
+  var bar = $('#runBar');
+  if (bar) {
+    var dur = suiteRunDurationMs();
+    var p = (dur > 0 && st.startAt) ? clamp((now - st.startAt) / dur, 0, 1) : 0;
+    bar.style.width = (p * 100).toFixed(0) + '%';
+  }
+}
+
+/* The drift readout is the SUITE's number — the lab does not compute its
+   own A/V offset (the suite owns the clock and the buffer). */
+function driftText() {
+  if (!suite) return 'drift –';
+  var parts = [];
+  if (typeof suite.driftAvg === 'number') parts.push('drift ' + suite.driftAvg.toFixed(1) + ' ms');
+  if (typeof suite.quantAvg === 'number') parts.push('quant ' + suite.quantAvg.toFixed(1) + ' ms');
+  return parts.join(' · ') || 'drift –';
+}
+
 function frame(now) {
   var dt = now - (state_lastNow || now);
   state_lastNow = now;
@@ -565,12 +833,12 @@ function frame(now) {
   if (!f) f = demoSynth(tSec);
 
   render(f, tSec, labCfg);
+  updateRunIndicator(now);
 
   var instFps = dt > 0 ? 1000 / dt : 60;
   if (Math.random() < 0.05) {
     $('#liveFpsBadge').textContent = Math.round(instFps) + ' fps';
-    var drift = suite ? suite.driftAvg : 0;
-    $('#liveDriftBadge').textContent = 'drift ' + drift.toFixed(1) + ' ms';
+    $('#liveDriftBadge').textContent = driftText();
     for (var k of ['bass', 'mid', 'treble', 'rms']) {
       var el = document.querySelector('[data-meter="' + k + '"]');
       if (el) el.style.height = Math.round(clamp(f[k] / 1.6, 0, 1) * 100) + '%';
@@ -580,7 +848,6 @@ function frame(now) {
 }
 
 var state_lastNow = 0;
-var labStartAt = performance.now();
 
 /* ---------- boot ----------
    The suite is a deferred script, so the inline boot waits for the DOM to
@@ -593,16 +860,31 @@ function boot() {
   render(demoSynth(0), 0, labCfg);
   requestAnimationFrame(frame);
 
+  /* The header's version field and the panel's tag field are ONE field:
+     whichever the suite reads, it reads the same label. */
+  var vEl = $('#versionInput');
+  var tEl = document.getElementById('benchTagInput');
+  if (vEl) vEl.addEventListener('input', function () {
+    if (tEl) tEl.value = vEl.value.trim();
+  });
+  if (tEl) tEl.addEventListener('input', function () {
+    if (vEl) vEl.value = tEl.value.trim();
+  });
+
   /* the public API — a host (or a gate) drives the lab through this */
   window.SWRBench = {
     get reports() { return suite.reports; },
     get buffer() { return suite.buffer; },
     get config() { return labCfg; },
     get suite() { return suite; },
+    get host() { return HOST; },
     tests: function () { return TESTS; },
     runTest: suite.runTest,
     runAll: suite.runAll,
     analyze: suite.analyze,
+    applySuggestions: suite.applySuggestions,
+    versionTag: hostVersionTag,
+    audioClock: audioClock,
     clear: function () { suite.buffer.clear(); }
   };
 }

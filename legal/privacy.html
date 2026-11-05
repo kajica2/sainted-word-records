@@ -44,10 +44,10 @@
   <swr-nav></swr-nav>
   <main>
     <h1>Privacy</h1>
-    <p class="lede">Plain-English summary of what the engine does and doesn't do with your data. Last updated 2026-08-17.</p>
+    <p class="lede">Plain-English summary of what the engine does and doesn't do with your data. Last updated 2026-10-22.</p>
 
     <h2>The one-line version</h2>
-    <p>Your song, your library, your IndexedDB. We don't see them. The engine runs entirely in your browser.</p>
+    <p>Your song, your library, your IndexedDB. We don't see them. The engine runs entirely in your browser — and your Google Drive files stay in your Drive.</p>
 
     <h2>What stays on your device</h2>
     <ul>
@@ -62,11 +62,14 @@
     <ul>
       <li><b>Daily preset manifest fetch.</b> The engine fetches <code>/presets/manifest.json</code> on load so it can show you today's new personalities. This is a static file served from the same Vercel deployment as the engine — no logging, no third-party CDN, no analytics.</li>
       <li><b>Service worker registration.</b> The PWA registers <code>/sw.js</code> to cache the engine shell for offline use. Standard browser API, no data leaves the device.</li>
+      <li><b>Your account, and the projects you save to it.</b> Signing in stores your email address and a session. When you save a project, its state (persona, FX, motion, palette, layer assignments) is stored on our server so you can open it on another device. A share link for a composition works the same way.</li>
+      <li><b>Google Drive.</b> Connecting Drive is read-only. We store the access token on your account so we can list your files, but <b>your music and videos stay in your Google Drive</b> — we do not copy your library to our server. The one exception: if you import a specific Drive file into a project, that single file is copied to our storage so the engine can use it.</li>
+      <li><b>Publishing a project to the marketplace.</b> If you publish, we build a <code>.zip</code> of the files you name in it and store that archive, because the whole point is that other people can buy and use them. Nothing else of yours is included.</li>
     </ul>
 
     <h2>What we don't see</h2>
     <ul>
-      <li>Your songs or library (we can't — they're never uploaded).</li>
+      <li>The songs, clips and images in your library, unless you import one from Drive or publish it to the marketplace.</li>
       <li>What you make (exports happen locally; the WebM file goes straight to your Downloads folder).</li>
       <li>Which personas you use or which presets you apply (stored in <code>localStorage</code> only).</li>
       <li>Your IP address, browser, or any device fingerprint beyond what Vercel's standard edge logs record (request path + status code + bytes — same as any static site).</li>

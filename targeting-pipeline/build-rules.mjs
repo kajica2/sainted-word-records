@@ -151,26 +151,38 @@ const SURFACE_HINT = {
 // persona id → banner copy shown when that persona is classified. Must pass
 // voice lint (verify.mjs lints every note against voice-lint.json) and must
 // carry a CTA line ("Free, no signup.") per PRD FR-19.
+//
+// SHAPE (autoresearch 2026-10-22): every note keeps its persona-specific
+// feature line and gains the same benefit clause. A same-round panel shootout
+// scored this shape 79.6 against 73.3 for a generic benefit-only note and
+// 67.3 for the previous live copy, so the personalisation is kept and the
+// sign-in benefit is appended rather than replacing the feature line.
+// The clause also scopes the promise: "free, no signup" describes using the
+// engine, "sign in to keep it" describes what an account adds.
 const PERSONA_NOTES = {
-  'fx-surgeon': 'Your existing folder suddenly feels alive. Free, no signup.',
-  'live-vj': 'Build the set list. Free, no signup.',
-  'bedroom-producer': 'Reacts to your actual song, not templates. Free, no signup.',
-  'tag-janitor': 'Tag-only mode is on. Free, no signup.',
-  'ar-loop-poster': 'Post it straight from your phone. Free, no signup.',
-  'transition-choreo': 'Every transition waits for your hand. Free, no signup.',
-  'audio-theorist': 'BPM, key and chromagram, right on the panel. Free, no signup.',
-  'version-hopper': 'Twenty-nine looks, one song. Free, no signup.',
-  'storyboard-editor': 'Scenes on a timeline, not a spreadsheet. Free, no signup.',
-  'recorder-renderer': 'Ten-second WebMs, straight to disk. Free, no signup.',
-  'gallery-curator': 'Everything stays on your machine. Free, no signup.',
+  'fx-surgeon': 'Your existing folder suddenly feels alive. Free, no signup — sign in to keep it.',
+  'live-vj': 'Build the set list. Free, no signup — sign in to keep it.',
+  'bedroom-producer': 'Reacts to your actual song, not templates. Free, no signup — sign in to keep it.',
+  'tag-janitor': 'Tag-only mode is on. Free, no signup — sign in to keep it.',
+  'ar-loop-poster': 'Post it straight from your phone. Free, no signup — sign in to keep it.',
+  'transition-choreo': 'Every transition waits for your hand. Free, no signup — sign in to keep it.',
+  'audio-theorist': 'BPM, key and chromagram, right on the panel. Free, no signup — sign in to keep it.',
+  // "Twenty-nine" was stale (the taxonomy has drifted twice). "Dozens" is
+  // true of all 24 variant pages and cannot drift again.
+  'version-hopper': 'Dozens of looks, one song. Free, no signup — sign in to keep it.',
+  'storyboard-editor': 'Scenes on a timeline, not a spreadsheet. Free, no signup — sign in to keep it.',
+  'recorder-renderer': 'Ten-second WebMs, straight to disk. Free, no signup — sign in to keep it.',
+  // Was "Everything stays on your machine." — an unscoped absolute the panel
+  // distrusts. Scoped to the clips, which really do stay local.
+  'gallery-curator': 'Your clips stay on your machine. Free, no signup — sign in to keep it.',
 };
 
 // segment id → fallback banner copy when the persona has no PERSONA_NOTES entry.
 const SEGMENT_NOTES = {
-  'music-creators': 'Drop in your song and watch it move. Free, no signup.',
-  'video-creators': 'Drop in your clips and watch them move. Free, no signup.',
-  'educators': 'Your lecture finally has a pulse. Free, no signup.',
-  'casual-creators': 'Make something cool in a minute. Free, no signup.',
+  'music-creators': 'Drop in your song and watch it move. Free, no signup — sign in to keep it.',
+  'video-creators': 'Drop in your clips and watch them move. Free, no signup — sign in to keep it.',
+  'educators': 'Your lecture finally has a pulse. Free, no signup — sign in to keep it.',
+  'casual-creators': 'Make something cool in a minute. Free, no signup — sign in to keep it.',
 };
 
 // persona file surface word → runtime surface code. The persona files write

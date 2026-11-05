@@ -8,6 +8,58 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- Repository guide with task-based entry points, module responsibilities, and product voice guidance; README introduction distinguishes browser rendering from optional cloud services.
+- **Guest sign-in with Firebase Anonymous Auth** — a "Continue as guest"
+  button on the login page: no consent screen, no test-user list. The
+  browser signs in anonymously with the Firebase Web SDK, and the ID
+  token is exchanged at `POST /api/auth/firebase-anon` for an ordinary
+  `swrc_session` cookie — the session model does not change, the token is
+  only an identity assertion at exchange time. The public Firebase web
+  config is **served by the server** (`GET /api/auth/firebase-anon?action=config`),
+  so one build works across projects and the key is rotated by changing
+  an env var; the client never hard-codes one. The button only appears
+  when the server says the feature is configured.
+- **Firestore as the auth store (opt-in)** — `SWR_AUTH_STORE=firestore`
+  moves the users, the provider links, the sessions, the verification
+  tokens and the per-user connect blob into Firestore. `api/_lib/db.js`
+  keeps every export name, so no route changes; the switch is read per
+  call and is **off by default**. The trade-off against the project's
+  "Local-first" rule is stated plainly in
+  `docs/plans/firestore-auth-store.md`.
+- `zod` is now a declared **runtime** dependency. The contract layer
+  already imported it at runtime from two routes while it was undeclared,
+  which was a latent production-deploy failure.
+- The **Studio Command Center** — one extended frontend for every engine
+  surface. It loads ON DEMAND: a 2 KB launcher draws the ◈ button and pulls
+  the implementation the first time it is used, so a variant visitor who
+  never opens the Command Center does not download its 67 KB. The 13 full variants (the ones with a Layers stack, a Library
+  and a live output canvas) each grew their own chrome, and the depth an
+  operator wants — live spectrum, the FX stack, the hook detector, the
+  render-cost ledger — was duplicated per variant or missing. The Command
+  Center is a single control surface bound to the API the variants
+  already publish: `SWR.Audio/Library/Layers`, `Audio.feat`, `FX.state`,
+  `SWR_STATS`, `SWR_HOOK_DETECTOR`, `SWR_LOOKS`. Nothing in it is
+  mocked — the filters drive the surface's own `FX.set*`, the cost ledger
+  reads `SWR_STATS.summary()`, and the personas are the surface's own
+  looks. It opens with a `◈` launcher or `?cc=1`, and Escape closes it.
+  Injected by the codemod system, so `versions/manifest.json` records it
+  and `versions/verify-codemods.mjs` re-runs it in a sandbox.
+- The **`/alternate` "Chain" view** — an Ozone-style mastering surface
+  over the same engine. Five module cards, a three-position mode knob,
+  threshold / ceiling / character, four output faders with live Peak and
+  LUFS, and a live response curve. The Ozone controls are not decorative:
+  the eight reactor targets in `lib/apply-reactors.js` are partitioned
+  across the modules, so powering one off removes exactly its own
+  contribution, and the mode knob swaps the engine's own ease curve. It
+  wraps `applyReactor` rather than forking the engine, and the default
+  state leaves every target active — mounting the chain must not change
+  what the engine does until the user asks it to. Reachable at
+  `/alternate`, `/engine.html?chain=1` and `/engine.html#chain`.
+- The **`/play` deep-link variant** — the engine with three URL toggles
+  (`?video`, `?loop`, `?photo_slide`). The URL is the source of truth
+  and the toolbar pills mirror it. It reuses the engine rather than
+  copying it, so it inherits upstream engine fixes instead of needing a
+  re-port after every upstream move.
 - The **Media Source** panel — where the audio comes from, next to the
   loaded video instead of buried in a global settings page. The source is
   the video's own track, a separate audio file, or nothing; the panel also
@@ -95,8 +147,276 @@ once it hits 1.0.
   library-store, tour-client, debug-overlay, look-filter cycler,
   engine-keys digit filter, engine-keys keypress dispatch, layer
   lifecycle, layer retire, kit-zip.
+- The **one shared reactor contract** — `lib/apply-reactors.js` publishes
+  `window.SWR_REACTORS`: one `UNIT` table, one `CLAMP` table, one
+  `TARGETS` allowlist and one dispatch loop, and all 15 variant pages
+  plus `engine.html` call it — 16 surfaces. Every surface used to
+  hand-type its own reactor chain with its own unit table: `x` was 250 on
+  film, 300 on smoke and 180 on eclipse, `scale` was unclamped on all of
+  them, `opacity` clamped to 1.0 on fourteen surfaces and 1.5 on two
+  (engine.html and hallucination), and `versions/grid.html`
+  dropped `x` and `y` silently, so a preset that said `{target:'x'}` did
+  nothing at all and nothing warned. The historical tables are still
+  there — one line each — as the named compatibility `UNITS` tables, and
+  the gate `scripts/check-apply-reactor-unit.mjs` asserts the shared table
+  and its clamps, so the next page cannot reintroduce a private
+  multiplier.
+- The **section cue** — `client/automix-arc.client.js` now consumes the
+  section the detector finds. The arc is built offline from a decoded
+  buffer while `client/section-detector.client.js` detects boundaries
+  live from the engine's own audio features, so a detected section
+  reached the chapter scheduler but never the arc. A boundary now only
+  BIASES which transition the next act boundary picks, and the cue is
+  additive — a cue's opinion overrides the act plan's, and with no cue
+  armed the original warmth/intensity rule is untouched — and one-shot:
+  the next act transition consumes it, so four boundaries in one section
+  cannot stack four votes into a single pick.
+  `client/section-detector.client.js` also fires `swr-section-reset`, a
+  separate event from `swr-section-change`, carrying
+  `detail: { reason, dropped }`, whenever it restarts its stream: an
+  emptied map is never dressed up as a boundary, and a cue from the
+  previous song cannot bias the new song's first act.
 
 ### Fixed
+- **The bench smoke's A/V depth floor was a flat 2, so it failed on a slow
+  CI runner that could only ever produce 1.** The gate asserts "every run
+  measured the clock" — every run records at least one A/V sample, and the
+  typical run records at least two. The second half was a constant, which
+  is right for a HOST that samples once per run but wrong for a slow
+  MACHINE: on a CI runner measured on 2026-11-05 (run `42024230323`)
+  **every** run produced exactly one sample — `[1,1,1,1,1,1,1,1,1,1]` —
+  because the bench page renders at ~0.29 fps there and a 3.5 s run can
+  only contain one frame. The gate failed a measurement that was perfect:
+  the injected lag read 12.0 ms, the clean run read 0.0 ms, the
+  differential was exact, and both interpolation assertions passed. The only
+  red line was the depth floor. The earlier warm-up fix had addressed the
+  COLD first run; it could not address a runner where every run yields 1.
+  The floor is now **derived from the host's own measured frame rate**
+  (`scripts/lib/bench-depth.mjs`): a run can only hold as many samples as
+  the host can draw frames, with one frame of phase slack. Where the host
+  is fast enough for two, the floor is still 2 — so a host that renders at
+  speed but samples once per run is still caught. Pinned by a new unit gate
+  (`check:bench-depth-unit`) that fails if the rule is reverted to a flat 2.
+- **A reader could keep a crashed worker's lease lock alive, wedging the
+  agent pool.** `software-factory/worker-lease.mjs` refreshed the lock file
+  from `_readLeases()`, and `_readLeases()` is called by READERS (a
+  `status()` call, any process watching the pool) as well as by the lock
+  HOLDER. So merely LOOKING at the pool refreshed the lock of a holder
+  that had already crashed. The lock's age is the only signal the
+  staleness check has, so a dead lock kept looking alive: it never aged
+  past `staleLockMs`, `claim()` waited the full `lockWaitMs` and threw
+  *"could not acquire the lease lock"*, and the pool stayed wedged for as
+  long as anything read the status. Reproduced with two processes — with
+  no reader the crashed lock was broken in 8 ms; with an external monitor
+  polling `status()` every 200 ms the claim threw after the full wait.
+  (The single-process case hides it: the claim's own busy-wait starves
+  the reader's timer, so the lock ages out during the wait anyway.) Only
+  the HOLDER may refresh a lock now: `_touchLock()` moved from
+  `_readLeases()` into `_withLock()`. The regression test fails on the
+  old behaviour and passes on the fix.
+- **Twelve CI gates were red on `main` and one branch fixes all of them.**
+  The failures shared eight root causes, each of which had taken out a
+  gate that had nothing to do with the change that caused it:
+  - `check:no-rotate-zoom` shelled out to `rg`, which the CI runner does
+    not have; the swallowed `catch {}` left it with an empty file list
+    and a green-looking pass. It now walks the tree with Node's own
+    `fs` and has no external dependency at all.
+  - `check:site-chrome` failed on `artists/index.html`'s canonical URL
+    (`/artists` against a route that serves `/artists/`).
+  - `check:command-center` read a stale `aria-pressed`: the Command
+    Center set it, then the companion wire script bound the same
+    attribute and wrote the OLD value back. The Command Center now
+    publishes the toggles it owns (`ownedToggles`) and the wire script
+    skips them. The watermark handler also read a `wm.enabled` property
+    the module does not expose — it has `isEnabled()` — so the watermark
+    could never be switched off.
+  - `check:chain-view` asserted a scale the engine deliberately silences
+    when the global zoom kill-switch is off. The kill-switch stays; the
+    assertion now knows about it.
+  - `check:default-library`, `verify:rotation-enabled`, `check:automix-smoke`
+    and `check:layer-groups-smoke` failed because `SWR_IMAGE_LANE` diverts
+    image assets away from `Layers.list`. The gates now read the lanes
+    the engine actually uses.
+  - `check:bench-smoke` bound a hardcoded port (5187); one collision made
+    every one of its 42 assertions fail identically. It binds an
+    OS-assigned ephemeral port now.
+  - `verify:genops` expected keymap bindings that were replaced, and
+    `verify-story-graph` set `opacity` on an undefined value.
+- **The NEON regression guards ran nowhere.** `check:neon-v2-phase1` and
+  `check:neon-audio-v3` shipped with their branches but were in neither
+  `package.json` nor the check group nor CI. A guard nobody runs is a
+  comment; both are registered now.
+- **Two presets generated by the daily pipeline never reached `main`** —
+  "Dune Plasma Lateral" and "Vapor Curl Counter" (2026-08-23) existed
+  only on a dead branch. Their files are restored and the manifest is
+  synced, so `preset-pipeline/verify.mjs` reports 74/74.
+- **`check:grade-smoke` sampled the DOM mid-transition and made the whole
+  `check` group red.** The gate asserts that the house grade sits on the
+  **topmost visible** canvas — the fx overlay when it is up, the stage
+  otherwise — and it read the DOM **once**, immediately after `SWR_NATURAL`
+  appeared. It failed intermittently (3/3 locally on `origin/main`) because
+  the grade is re-applied every animation frame by
+  `lib/swr-natural.client.js` while the fx overlay's **visibility** is
+  toggled on its own rAF loop by `fx-postprocess.js`. A read landing
+  between those two loops sees the grade still on the canvas that was
+  topmost one frame ago — both directions occur (overlay just shown, grade
+  still on the stage; overlay just hidden, grade still on the overlay).
+  Measured with a per-frame probe: the invariant holds within **one** frame
+  and then holds for 58-60 consecutive frames. The check now waits for it
+  to hold across 5 consecutive frames and asserts the settled state — still
+  falsifiable, since a grade on the wrong canvas never settles (the
+  mutation test inverting `gradeTopmost` fails it with
+  `gotTopmost:false, settled:false`).
+- **The CI workflow published the SAME check-run context twice for one
+  commit, and its job timeout was too tight to survive a slow step.** Three
+  defects in `.github/workflows/ci.yml`:
+  1. The `push` trigger and the `pull_request` trigger both fire for a
+     branch that has an open PR, and both publish a check-run with the
+     **identical context name** (`check + verify + build-size`) for the same
+     SHA. GitHub matches a required status check by **context name**, so the
+     pair is ambiguous: the branch-protection ruleset on `main` (which
+     requires exactly that context) is decided by whichever twin finished
+     last. This predates the consolidation — `origin/main`'s
+     `push.branches-ignore: [main]` fires the push event for a non-`main`
+     branch too, and the 2026-11-03 SHA showed the same shape (push
+     **failure** alongside pull_request **success**). Measured on
+     2026-11-04: the PR-event run passed all 33 steps while its push-event
+     twin was cancelled — a green commit showing `UNSTABLE`, and a ruleset
+     would have blocked the merge. The trigger is now `push.branches:
+     [main]`, so there is exactly ONE run per commit (the PR run for a
+     branch, the push run once it lands on `main`), matching
+     `visual-correct.yml`. This also keeps the `main`-push gate the
+     production-readiness plan asks for ("CI runs on main and PRs"), which
+     dropping the trigger filter had been threatening to cost.
+  2. `timeout-minutes` was **45** (added by the consolidation), against a
+     chain that takes ~22m — not enough headroom for one slow step.
+  3. The ffmpeg install was **unbounded**. One run stalled **34m22s** in
+     `apt-get update` (against 51s on the twin PR run of the same commit)
+     and was then killed by the timeout with `check:full` never started — a
+     red CI that had proved nothing. The install is now bounded
+     (`timeout 120` on the update, `timeout 300` on the install), retried
+     three times, and repairs dpkg's lock between attempts so a killed
+     install cannot make every later attempt fail for the wrong reason. The
+     job ceiling is now **90 minutes**.
+- **The bench smoke's sampling-error margin was a fixed 4 ms, and the
+  measurement it guards is phase-dependent.** Without interpolation the run
+  presents the NEWEST sample, so its sampling error is the age of that
+  sample — the time since the last fill. How old that is depends on where
+  the render loop lands relative to the fill timer. When the render rate
+  matches the fill rate the phase locks and every frame sees the SAME age:
+  measured **3.5 ms** on one CI runner, **9.7 ms** on another, and as little
+  as **1.4 ms** when the render lands just after a fill — with the fill
+  rate identical (60 Hz) in every case. The interpolated run read **0.0 ms**
+  throughout, so the difference was only ever as large as the phase
+  allowed, and **no fixed margin can work**: a 4 ms margin failed at 3.5 ms,
+  and scaling it to 10% of the period (1.7 ms) still failed at 1.4 ms.
+  The assertion now rests on a **deterministic sweep** of the buffer:
+  asked for a label deliberately *between* two buffered samples, the
+  non-interpolated path is off by that distance and the interpolated path
+  lands exactly on target — so the measured difference is half a period
+  (8.3 ms at 16.7 ms) whatever the render loop is doing. The sweep runs
+  again on the buffer the *lagged* runs leave behind, so the lagged pair is
+  measured on its own buffer. The run-based figures are still reported and
+  the neighbouring assertions still pin the run-based behaviour.
+  Falsifiability is unchanged and re-proved by mutation: disabling
+  interpolation fails **three** assertions (the clean sweep, the
+  ideal-label check and the lagged sweep). Two further fixes in the same
+  gate: the buffer-fill wait watched `pushes` while the assertion watched
+  the ring's length, and the suite clears the buffer at the start of a run,
+  so a wait that ended on the 10th push could meet a ring holding exactly
+  10 — and `10 > 10` is false. The wait now watches the same quantity the
+  assertion does. And **"every run measured the clock"** required **two**
+  A/V samples from *every* run, but a CI runner's bench page renders at
+  well under 1 fps, so a 3.5s run yields about **two** samples there — and
+  the *cold* first run (render loop not yet settled) yielded **one**,
+  failing the gate on a run that measured perfectly well. The suite now
+  does a **discarded warm-up run** so every measured run starts from the
+  same warm state, and the floor is one sample per run with the depth
+  requirement in the median — so one unlucky frame in one run no longer
+  fails the gate, while a host that measures nothing (or only once per
+  run) still does. Re-proved by mutation: a suite that never records an
+  A/V sample fails **seven** assertions.
+- `check:live-input` **sampled for the Live control instead of waiting for
+  it**, so it reported a missing control whenever the media panel had not
+  mounted yet. The panel is built by a deferred module which loads three
+  more in order; sampling once as soon as the document is ready measures
+  the machine's load, not the feature, and the step duly failed inside a
+  full 33-step run while passing on its own. It now polls for the control
+  (15 s) — the assertion still requires it, and a mutated selector fails
+  it exactly as before.
+- **The preset editor's ramps ran on the wrong clock**, so a rule or a
+  scene transition started from the rulebook could be stamped in the
+  future and never arrive. `frame(now)` now keeps `runtime.renderNow`, and
+  `startRamp()` stamps a ramp's `t0` from that clock instead of the
+  caller's `now` — `tickRamps(now)` interpolates against the render clock,
+  so those two numbers have to be on the same timebase. A host driving
+  `R.logic.tick()` with its own clock (the gate does, deliberately) used
+  to leave `global.bloom` stuck part-way through a 400 ms ramp forever,
+  and the scene ramp in `setScene()` shared the bug, so "the scene eases
+  in" was equally unreachable. The rulebook's `ctx.now` is still the
+  *evaluation* clock (sustain, cooldown, `elapsed`, `sequencePosition`);
+  only the animation moved.
+- **`jumpToSection()` did not survive the next frame.** The playhead is
+  derived: `tickSequence()` recomputes the bar position from
+  `(now - runtime.seq.startedMs)` on every frame, re-derives the section
+  from it, and re-anchors the origin to `now` whenever the sequence is not
+  running. A jump set only `startedMs` and `section`, so the first frame
+  after the click re-anchored the origin and the playhead snapped back to
+  bar 0 (loop mode also rewrites the origin, which can erase a jump a
+  second way). The jump now marks the sequence running, moves the bar, and
+  anchors the origin on `runtime.renderNow` — the same timebase the next
+  frame's `now` is in — so the derived position is at least the section's
+  first bar and the section scan agrees with the click instead of landing
+  on the previous section by a fractional bar.
+- `check:preset-editor-smoke` **could pass without testing anything, and
+  was failing for the wrong reason.** Its timeline assertion read
+  `#tlSections button` straight after assigning `preset.sequence`, but the
+  timeline is painted only by `renderTimeline()` — which runs from UI
+  handlers, never from the frame loop — so the node list was empty and the
+  `if (jump) jump.click()` guard made the assertion vacuous; it also
+  asserted `afterJump.section === 0` after clicking the *first* button,
+  which is indistinguishable from "the jump did nothing". The test now
+  switches the sequence on through `#seqEnabled` (the user's own path),
+  asserts the timeline rendered a button per section, clicks the **second**
+  section, and asserts the playhead moved to it **and stayed** there and
+  that the section brought its scene and the render with it. The rule test
+  now drives the rulebook synchronously and owns `preset.logic.rules` only
+  for that drive, so the live loop cannot evaluate the same rule against
+  the demo signal between two ticks and fire a spurious falling edge that
+  replaces the ramp under test; the hold test asserts the rule *was
+  refused* (its own log entry) and never fired, rather than that some
+  `held` entry exists — the manual edit logs one itself.
+- Every audio frame was ingested **twice** by the section detector, so the
+  song's structure was computed over a self-similarity matrix with every
+  row duplicated — the boundaries it found were weaker and noisier than the
+  music deserved. The detector dedupes on the frame's timestamp, but the
+  live feature object carried no timestamp, so it fell back to a wall clock,
+  and the wall clock differs between the engine's render loop and the
+  automix runtime's own tick: two callers, one frame, two "different"
+  frames. The producer now stamps `feat.tMs` — the **media** clock, in
+  milliseconds — on every frame, so both callers carry the same timestamp
+  for the same frame and the second call is a no-op. The media clock (not a
+  wall clock) also means a paused song **freezes** the analysis instead of
+  feeding the detector the same frozen frame over and over.
+- The **canvas vanished on every narrow window reached by resizing**.
+  `#timeline-host` carries an inline `grid-column: 2 / 3` (it sits under
+  the layers column on the desktop template); in the narrow single-column
+  template that inline placement creates an implicit ~389px column,
+  which squeezes the `1fr` column holding `#stage` to 0px. Loading *at*
+  390px was fine, which is why `check:engine-mobile` never caught it —
+  it loaded each viewport fresh instead of resizing. The gate now
+  resizes as well.
+- `drawLayer` composited **from a 0x0 canvas**. It draws from
+  `this.proc`, the offscreen processing canvas, which is 0x0 while the
+  stage is `display:none` in Basic mode. `drawImage()` with a 0x0 canvas
+  source is illegal, and the throw escaped into the render loop and
+  killed the whole frame.
+- The **rotation pre-pass built a 0x0 canvas** when the source asset had
+  no intrinsic size — an image still decoding, or one that failed to
+  load. Same illegal `drawImage`, same killed frame.
+- `versions/play.html` carried **two `<link rel="canonical">` tags**,
+  which failed the site-chrome gate. It now carries one, pointing at
+  `/versions/play`.
 - The export hung on browsers without an H.264 encoder (Firefox, and the
   Chromium builds that ship without the proprietary codecs): the WebCodecs
   worker reported the unusable codec **asynchronously**, so the promise
@@ -223,6 +543,42 @@ once it hits 1.0.
   feature that quietly does nothing. It found two: the engine's "+ 3D" button
   led to an error because the module it needed was never loaded, and the mood
   overlay never restored its saved position.
+- **The sign-in page now says what an account is for.** The headline is
+  "Save it here. Open it on any device." and the one-sentence value prop is
+  a four-line list: your song stays in your browser, your Drive files stay
+  in your Drive, no password, your projects open on any device, one link to
+  share. The old line claimed "Your audio never leaves your browser" — an
+  absolute the platform could not keep.
+- **The Drive browser now states where the files are**: "We read from your
+  Drive. Your files stay there." Importing one file still copies that file.
+- **The in-engine sign-in banner no longer argues against signing up.** The
+  notes keep their persona line and gain a benefit clause — "Free, no signup
+  — sign in to keep it." — and the CTA reads "Save this" instead of naming
+  the magic-link mechanic. The stale "Twenty-nine looks" in the
+  version-hopper note is now "Dozens of looks" (24 variant pages, 22 in the
+  engine's dropdown), and the gallery-curator note's "Everything stays on
+  your machine" is scoped to "Your clips".
+- **`legal/privacy.html` now matches the product.** It says what leaves your
+  device: the account and the projects you save to it, the read-only Drive
+  connection, and the `.zip` we build when you publish a project to the
+  marketplace. "We can't see your library" is now scoped to the two cases
+  where we do hold a file.
+- The build no longer ships **138 KB of orphaned assets**. Vite built
+  `engine.html` as its only Rollup input so that `transformIndexHtml`
+  would fire on it, but `copy-static` ships `dist/engine.html` as a plain
+  file copy — so Vite's output for that page was overwritten anyway, and
+  the extracted `dist/assets/engine-*.js` and `engine-*.css` were
+  referenced by nothing. Vite still needs one input, so
+  `scripts/vite-noop-entry.js` is an empty module and a plugin removes
+  the chunk it emits. Headroom against the 180 MB build budget went from
+  20 KB to 158 KB.
+- `scripts/generate-vercel-rewrites.mjs` **no longer deletes the `/play`
+  rules**. The generator emitted nothing for `/play` (it only emits a
+  rule when the target file exists at the path the route implies, and
+  `/play.html` does not), so the two hand-written rules were the only
+  thing keeping the route alive — and the next run would have 404'd
+  `/play` in production. Both variants' rules now live in the generator,
+  which is the single source of truth.
 - The **parameter bench** moved into the **control centre** at
   `/super-admin`. The bench is unchanged in substance — the same fourteen
   URL parameters, the same URL builder, the same reference table — but it

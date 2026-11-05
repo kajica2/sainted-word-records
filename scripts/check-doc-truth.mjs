@@ -178,12 +178,6 @@ const WEB_APIS = new Set([
 // fixed it": the reason has to keep making sense.
 const ACCEPTED_DRIFT = [
   {
-    // `doc` omitted means "this claim, in any scanned doc".
-    doc: null,
-    claim: 'TRUSTED_PROXIES',
-    reason: 'documented-but-unimplemented env var; the audit files the mechanism as P3 (docs/PLANS/architecture-audit-2026-10.md)',
-  },
-  {
     doc: null,
     claim: '_archive',
     reason: 'gitignored by design — it holds local experimental pages, so it never exists in a checkout. The doc can name it; the tree cannot show it.',

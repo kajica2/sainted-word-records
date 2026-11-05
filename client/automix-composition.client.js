@@ -137,6 +137,11 @@
     var sched = window.SWR_LAYER_SCHEDULER;
     if (!sched || typeof sched.setConfig !== 'function') return false;
 
+    var mkEntry = window.SWR_MOTION_KILL;
+    if (mkEntry && typeof mkEntry.sanitizeAllLayerStacks === 'function') {
+      try { mkEntry.sanitizeAllLayerStacks(); } catch (_) {}
+    }
+
     // Auto-populate the stage: variants don't auto-add library items as
     // layers (that's engine-only behaviour), so a user with clips in the
     // library but nothing on stage had NOTHING for the scheduler to
@@ -156,6 +161,11 @@
       // Add up to 3 layers, respecting grouping
       for (var li = 0; li < Math.min(3, pool.length); li++) {
         try { Layers.add(pool[li]); } catch (_) {}
+        var mk = window.SWR_MOTION_KILL;
+        var added = Layers.list && Layers.list[Layers.list.length - 1];
+        if (mk && typeof mk.sanitizeLayer === 'function' && added) {
+          mk.sanitizeLayer(added);
+        }
       }
     }
 
@@ -215,6 +225,16 @@
   // Tick events only carry the no-arc fallback: act boundaries are tracked
   // on the 1s glide clock (tighter than the 8-20s tick cadence — cuts land
   // on the section change, not whenever the next tick happens to fire).
+  (function loadAutomixImageMode() {
+    if (window.SWR_AUTOMIX_IMAGE) return;
+    try {
+      var s = document.createElement('script');
+      s.src = '/client/automix-image-mode.client.js';
+      s.defer = true;
+      document.head.appendChild(s);
+    } catch (_) {}
+  })();
+
   window.addEventListener('swr-automix-tick', function (ev) {
     var arc = ((ev.detail || {}).mixed || {}).arc;
     if (!arc && lastActIndex !== 'no-arc') {

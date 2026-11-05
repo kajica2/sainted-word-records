@@ -4,7 +4,7 @@
 **Status:** implemented; the operator step (publish + set `PACKS_BASE`) is
 awaiting a host credential.
 **Why now:** the build is mostly media. `packs/` is 582 files and 39.6 MB
-— a quarter of a build that sits close to the 180 MiB CI ceiling, and the
+— 22% of a build that sits close to the 180 MiB CI ceiling, and the
 packs are opt-in content that most visitors never open.
 
 ## The seam

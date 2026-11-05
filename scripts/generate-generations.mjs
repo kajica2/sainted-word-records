@@ -65,15 +65,43 @@ function lineCount(file) {
 // ffprobe gives the numbers a credit needs: how long the file runs and how
 // many bits per second it spends getting there.
 const probeCache = new Map();
+
+// Is ffprobe on PATH? It is an external tool, so it may simply be absent on
+// a machine that is not the dev box. The credits are MEASURED, not written
+// by hand, so without ffprobe there is nothing to measure with — the
+// generator records that it could not, and the gate says so out loud
+// (the repo's env-skip convention) rather than failing on a missing tool.
+let FFPROBE_OK = null;
+function ffprobeAvailable() {
+  if (FFPROBE_OK !== null) return FFPROBE_OK;
+  try {
+    const v = execFileSync('ffprobe', ['-version'], { encoding: 'utf8' });
+    FFPROBE_OK = true;
+    process.stdout.write(`[generate-generations] measuring the credits with ${v.split('\n')[0].trim()}\n`);
+  } catch (_) {
+    FFPROBE_OK = false;
+    process.stdout.write('[generate-generations] ffprobe is not installed — the credits cannot be measured\n');
+  }
+  return FFPROBE_OK;
+}
+
 function probeMedia(file, kind) {
   const key = `${kind}:${file}`;
   if (probeCache.has(key)) return probeCache.get(key);
   let result = null;
   try {
+    // ONE -show_entries, with the two sections separated by a colon.
+    //
+    // The previous form passed the flag TWICE. ffprobe's handling of a
+    // repeated -show_entries is version-dependent: some builds let the
+    // second occurrence REPLACE the first, which drops the `format` section
+    // entirely — and `format` is where duration and bit_rate live. Every
+    // credit then came out with a null duration and a null bitrate, and
+    // the gate failed on files that measure perfectly well. One flag
+    // asking for both sections is what every ffprobe honours.
     const raw = execFileSync('ffprobe', [
       '-v', 'error',
-      '-show_entries', 'format=duration,bit_rate,size,format_name',
-      '-show_entries', 'stream=codec_name,codec_type,sample_rate,channels,width,height',
+      '-show_entries', 'format=duration,bit_rate,size,format_name:stream=codec_name,codec_type,sample_rate,channels,width,height',
       '-of', 'json',
       file,
     ], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
@@ -282,6 +310,10 @@ const out = {
   meta: {
     ...authored.meta,
     generatedFrom: 'marketing/generations.json',
+    // Whether ffprobe was available to measure the credits. The gate reads
+    // this: without the tool there is nothing to measure, and the gate
+    // reports an env skip instead of failing on a missing binary.
+    ffprobeAvailable: ffprobeAvailable(),
   },
   generations,
 };

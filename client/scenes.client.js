@@ -48,7 +48,7 @@
     },
 
     _save(arr) {
-      try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(arr)); } catch (_) {}
+      try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(arr)); return true; } catch (_) { return false; }
     },
 
     _currentSnapshot() {
@@ -107,8 +107,9 @@
         snapshot: this._currentSnapshot(),
         createdAt: Date.now(),
       };
-      this._save(arr);
-      return true;
+      var saved = this._save(arr);
+      if (saved) window.dispatchEvent(new CustomEvent('swr-scenes-changed'));
+      return saved;
     },
 
     recall(index) {
@@ -125,9 +126,8 @@
       var self = this;
       this._captureTimer = setTimeout(function () {
         self._captureTimer = null;
-        self.save(index, 'Scene ' + (index + 1));
-        setStatus('saved scene ' + (index + 1), 'ok');
-        window.dispatchEvent(new CustomEvent('swr-scenes-changed'));
+        var saved = self.save(index, 'Scene ' + (index + 1));
+        setStatus(saved ? 'saved scene ' + (index + 1) : 'could not save scene ' + (index + 1), saved ? 'ok' : 'error');
       }, 1000);
     },
 

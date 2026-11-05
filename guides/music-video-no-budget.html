@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How to Make a Music Video With No Budget · Sainted Word Records</title>
+  <meta name="description" content="Step-by-step guide for indie musicians: plan a DIY music video with phone footage and free clip libraries, pick the right aspect ratio for each platform, and finish an audio-reactive export in the browser." />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="author" content="Kai Djuric" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/guides/music-video-no-budget" />
+  <meta property="og:title" content="How to Make a Music Video With No Budget · Sainted Word Records" />
+  <meta property="og:description" content="Plan, gather footage, choose formats for YouTube and Reels, and export an audio-reactive music video without hiring a crew." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/guides/music-video-no-budget" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        "headline": "How to Make a Music Video With No Budget",
+        "description": "A practical step-by-step guide for indie musicians: plan with footage you already have, use free clip libraries responsibly, export the right aspect ratios, and finish in a browser-based audio-reactive engine.",
+        "author": { "@type": "Organization", "name": "Sainted Word Records" },
+        "publisher": { "@type": "Organization", "name": "Sainted Word Records" },
+        "mainEntityOfPage": "https://sainted-word-records.vercel.app/guides/music-video-no-budget",
+        "inLanguage": "en"
+      },
+      {
+        "@type": "HowTo",
+        "name": "How to make a music video with no budget",
+        "description": "Plan your clip list, gather free or owned footage, export for each platform, then compose an audio-reactive video in the browser.",
+        "step": [
+          { "@type": "HowToStep", "position": 1, "name": "Pick the hook", "text": "Choose one 15–30 second section (usually the chorus) and write three visual ideas on paper." },
+          { "@type": "HowToStep", "position": 2, "name": "Inventory footage", "text": "Collect phone clips, live-show recordings, photos, and screen captures you already own." },
+          { "@type": "HowToStep", "position": 3, "name": "Fill gaps legally", "text": "Download only from libraries that grant commercial use (Pexels, Pixabay, Coverr, Internet Archive, Wikimedia Commons) and keep license notes." },
+          { "@type": "HowToStep", "position": 4, "name": "Match platform formats", "text": "Export 16:9 for YouTube, 9:16 for Reels and TikTok, and 1:1 for square feeds." },
+          { "@type": "HowToStep", "position": 5, "name": "Compose in the engine", "text": "Drop your song and clip library into the Sainted Word Records engine, pick a visual language, play, and record MP4." }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Can I make a music video with zero dollars?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. Use footage you already shot on your phone, free stock libraries with clear licenses, and a browser tool that does not require a paid editor or videographer. Your main costs are time and a clear plan for one strong section of the song."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What free clip libraries are safe for music videos?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Well-known sources include Pexels, Pixabay, and Coverr for modern stock video; the Internet Archive and Wikimedia Commons for public-domain and Creative Commons media. Read each file's license before you publish, especially for recognizable people or logos."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What aspect ratio should I use for YouTube vs TikTok?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "YouTube and most long-form players expect 16:9 (1920×1080). TikTok, Instagram Reels, and YouTube Shorts expect 9:16 (1080×1920). Square 1:1 (1080×1080) still works for Instagram feed posts and some ads."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need a videographer for a low-budget music video?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Many effective releases combine performance clips you filmed yourself, still photos with motion, and layered stock footage cut to the beat. A simple storyboard beats expensive gear if you only promote one chorus online."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does the Sainted Word Records engine fit in?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "After you gather clips, open the engine in your browser, load your song and library, press play so the audio drives reactive layers, then record MP4 at 1080p. Processing stays local-first on your device; no account is required."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --bg-2: #f1ebe1;
+      --bg-3: #ffffff;
+      --ink: #1a1612;
+      --ink-2: #4a4035;
+      --muted: #8a7a66;
+      --line: #ddd3c2;
+      --line-2: #c9beaa;
+      --accent: #e6306b;
+      --accent-2: #ff8a3a;
+      --accent-3: #1c8c64;
+      --font-display: 'Fraunces', ui-serif, Georgia, serif;
+      --font-body: ui-sans-serif, system-ui, -apple-system, "Inter", "Geist", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "Geist Mono", Menlo, monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-1: 0 1px 2px rgba(26, 22, 18, 0.04), 0 4px 12px rgba(26, 22, 18, 0.04);
+    }
+    [data-theme="dark"] {
+      --bg: #0e0c0a;
+      --bg-2: #161310;
+      --bg-3: #1d1815;
+      --ink: #f5ead8;
+      --ink-2: #d4c7b3;
+      --muted: #8a7a66;
+      --line: #2c2419;
+      --line-2: #3a3022;
+      --accent: #ff2d8a;
+      --accent-2: #ffaa3a;
+      --accent-3: #00ffa3;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.65 var(--font-body);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+    a:hover { border-bottom-color: var(--accent); }
+    a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+    code { font-family: var(--font-mono); font-size: 0.92em; background: var(--bg-2); padding: 0.1em 0.4em; border-radius: 4px; }
+
+    main { max-width: 720px; margin: 0 auto; padding: 0 24px 64px; }
+    .eyebrow {
+      display: inline-block; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); font-weight: 600; margin: 32px 0 12px;
+    }
+    h1 {
+      font-family: var(--font-display); font-weight: 400; font-style: italic;
+      font-size: clamp(32px, 5vw, 48px); line-height: 1.08; letter-spacing: -0.02em;
+      margin: 0 0 20px; max-width: 18ch;
+    }
+    .direct-answer {
+      font-size: 18px; line-height: 1.55; color: var(--ink-2);
+      margin: 0 0 28px; padding: 20px 22px;
+      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
+      border-left: 3px solid var(--accent);
+    }
+    h2 {
+      font-family: var(--font-display); font-weight: 400; font-style: italic;
+      font-size: clamp(22px, 3vw, 28px); line-height: 1.2;
+      margin: 48px 0 12px; letter-spacing: -0.01em;
+    }
+    h3 { font: 600 16px/1.35 var(--font-body); margin: 24px 0 8px; color: var(--ink); }
+    p { margin: 0 0 16px; color: var(--ink-2); }
+    ul, ol { margin: 0 0 16px; padding-left: 1.25rem; color: var(--ink-2); }
+    li { margin: 6px 0; }
+    li b { color: var(--ink); }
+
+    .format-table {
+      width: 100%; border-collapse: collapse; font-size: 14px; margin: 16px 0 24px;
+    }
+    .format-table th, .format-table td {
+      text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line);
+    }
+    .format-table th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .format-table td:first-child { font-family: var(--font-mono); font-size: 13px; color: var(--ink); }
+
+    .steps-list {
+      counter-reset: step;
+      list-style: none; padding: 0; margin: 20px 0 32px;
+    }
+    .steps-list li {
+      counter-increment: step;
+      position: relative; padding: 18px 18px 18px 56px;
+      background: var(--bg-3); border: 1px solid var(--line); border-radius: var(--radius);
+      margin-bottom: 12px;
+    }
+    .steps-list li::before {
+      content: counter(step);
+      position: absolute; left: 18px; top: 18px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font: 600 13px/28px var(--font-mono); text-align: center;
+    }
+
+    .faq { margin-top: 8px; }
+    .faq details {
+      border: 1px solid var(--line); border-radius: var(--radius-sm);
+      background: var(--bg-3); margin-bottom: 10px; padding: 0;
+    }
+    .faq summary {
+      cursor: pointer; padding: 14px 16px; font-weight: 600; color: var(--ink);
+      list-style: none;
+    }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq details[open] summary { border-bottom: 1px solid var(--line); }
+    .faq .faq-body { padding: 14px 16px 16px; font-size: 15px; color: var(--ink-2); }
+
+    .cta-box {
+      margin: 48px 0 24px; padding: 28px 24px; text-align: center;
+      background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+    }
+    .cta-box h2 { margin-top: 0; font-style: normal; font-weight: 500; max-width: none; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 22px; border-radius: var(--radius-sm);
+      font: 600 14px/1 var(--font-body);
+      background: var(--accent); color: #fff; border: 1px solid var(--accent);
+      margin-top: 8px;
+    }
+    .btn:hover { filter: brightness(1.05); border-bottom-color: transparent; color: #fff; }
+
+    .related { font-size: 14px; color: var(--muted); margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .related a { margin-right: 12px; }
+  </style>
+  <script src="/fx-background.client.js" defer></script>
+</head>
+<body>
+  <swr-nav></swr-nav>
+
+  <main>
+    <span class="eyebrow">Guide · DIY music video</span>
+    <h1>How to make a music video with no budget</h1>
+
+    <p class="direct-answer" id="answer">
+      You can make a credible music video without hiring a crew by planning one strong section of the song,
+      cutting together footage you already own (plus carefully licensed free clips), and exporting the right
+      aspect ratio for each platform. When you want motion that follows the track automatically, load the same
+      clips into a browser audio-reactive engine and record an MP4 locally.
+    </p>
+
+    <p>
+      This guide is written for indie musicians who need a <strong>low-budget music video</strong> or
+      <strong>DIY music video</strong> for a single release—not a cinema-grade shoot. The steps below stay
+      tool-agnostic until the end, where we show how
+      <a href="/engine">Sainted Word Records</a> handles beat-synced layering in the browser.
+    </p>
+
+    <h2>Start with a one-page plan</h2>
+    <p>
+      A <strong>cheap music video</strong> still needs a clear hook. Before you open any editor, decide:
+    </p>
+    <ul>
+      <li><b>Which 15–30 seconds</b> you will promote (chorus or drop, not the whole album).</li>
+      <li><b>One visual metaphor</b>—city night, studio session, abstract color, live crowd.</li>
+      <li><b>Three must-have shots</b> you can capture this week with your phone.</li>
+      <li><b>Where it will live first</b>—YouTube (16:9), Reels/TikTok (9:16), or both.</li>
+    </ul>
+    <p>
+      Write this on paper or in notes. Reddit threads on r/WeAreTheMusicMakers repeat the same advice:
+      one good chorus video beats a vague full-length montage.
+    </p>
+
+    <h2>Footage you already have (no new shoot)</h2>
+    <p>
+      A <strong>music video without a videographer</strong> usually mixes sources you control:
+    </p>
+    <ul>
+      <li><b>Phone video</b>—rehearsals, walking shots, crowd from your last show, B-roll of gear.</li>
+      <li><b>Still photos</b>—press photos, cover art, flyers; pan and zoom in any editor for motion.</li>
+      <li><b>Screen recordings</b>—DAW session, lyrics, waveform, social teasers.</li>
+      <li><b>Looping textures</b>—projected light, water, traffic; hold the phone steady for 10 seconds.</li>
+    </ul>
+    <p>
+      Organize files in one folder named after the song. Trim each clip to the length you will actually use
+      so you are not scrolling through ten-minute files later.
+    </p>
+
+    <h2>Free and public-domain clip libraries (names only)</h2>
+    <p>
+      When you need cutaways you did not shoot, use established libraries and save the license page for each download:
+    </p>
+    <ul>
+      <li><b>Pexels</b> and <b>Pixabay</b>—modern stock video and photos with straightforward commercial terms.</li>
+      <li><b>Coverr</b>—short looping backgrounds often used for social edits.</li>
+      <li><b>Internet Archive</b>—historical and public-domain moving images (check each item's rights statement).</li>
+      <li><b>Wikimedia Commons</b>—Creative Commons and public-domain media; attribution rules vary by file.</li>
+    </ul>
+    <p>
+      Avoid random re-upload channels. If a clip shows a brand logo or a recognizable face you do not have
+      releases for, pick a different shot.
+    </p>
+    <p>
+      The site also ships curated <a href="/packs">media packs</a> you can load in the engine library drawer when you want ready-made textures.
+    </p>
+
+    <h2>Formats for each platform</h2>
+    <p>
+      Export once per destination. The engine's record surface documents these three orientations at 1080p:
+    </p>
+    <table class="format-table">
+      <thead>
+        <tr><th>Ratio</th><th>Pixels</th><th>Typical use</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>16 : 9</td><td>1920 × 1080</td><td>YouTube, embeds, website hero</td></tr>
+        <tr><td>9 : 16</td><td>1080 × 1920</td><td>TikTok, Instagram Reels, YouTube Shorts</td></tr>
+        <tr><td>1 : 1</td><td>1080 × 1080</td><td>Instagram feed, some ads</td></tr>
+      </tbody>
+    </table>
+    <p>
+      For a no-budget rollout, render <strong>9:16 first</strong> (where discovery happens), then reframe or
+      re-export <strong>16:9</strong> for the full upload. See also
+      <a href="/record">Record</a> for orientation controls in the app.
+    </p>
+
+    <h2>Numbered workflow (tool-agnostic)</h2>
+    <ol class="steps-list">
+      <li><b>Pick the hook.</b> Mark the chorus timestamps in your DAW or player. Everything else serves those seconds.</li>
+      <li><b>Build a clip bin.</b> Gather owned footage plus licensed stock; rename files so the best takes sort to the top.</li>
+      <li><b>Rough cut to the grid.</b> In any editor, align hard cuts to snare hits or downbeats—even before color grading.</li>
+      <li><b>Add one grade.</b> Match contrast and saturation across sources so phone footage and stock do not clash.</li>
+      <li><b>Export per platform.</b> Deliver 16:9, 9:16, and optionally 1:1 from the same timeline or separate sequences.</li>
+    </ol>
+
+    <h2>Finish in the engine (optional, a few steps)</h2>
+    <p>
+      If you want layers that <em>react</em> to bass, beats, and chroma instead of hand-keyframing every flash,
+      use the same song and clip folder in the browser engine (local-first, no upload required for the core workflow):
+    </p>
+    <ol>
+      <li>Open <a href="/engine">the engine</a> (or <a href="/make-video">Music Video Maker</a> for a guided layout).</li>
+      <li><b>Load</b>—drop your song (MP3, WAV, M4A) and drag MP4, WebM, GIF, PNG, or JPG clips into the library panel.</li>
+      <li><b>Play</b>—press play; the Web Audio analyser drives BPM, beats, and layer motion in real time.</li>
+      <li><b>Look</b>—try a visual language such as <a href="/versions/neon">Neon</a>,
+        <a href="/versions/film">Film</a>, <a href="/versions/smoke">Smoke</a>,
+        <a href="/versions/grid">Grid</a>, or <a href="/versions/hallucination">Hallucination</a>
+        (see the full set on <a href="/visual-languages">Visual languages</a>).</li>
+      <li><b>Record</b>—export MP4 at 1080p (10s, 30s, 60s, or full track, depending on what you need for the release).</li>
+    </ol>
+    <p>
+      For inspiration, browse the <a href="/gallery">style galleries</a> and the
+      <a href="/versions/music-video-gallery">music video gallery</a> of finished looks.
+      A shorter interactive walkthrough lives at <a href="/tutorial-30s">30s tutorial</a>.
+    </p>
+
+    <div class="cta-box">
+      <h2>Ready to try it on your track?</h2>
+      <p>Open the engine, drop your song and clips, and record an MP4 in one tab.</p>
+      <a class="btn" href="/engine">Open the engine →</a>
+    </div>
+
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <details>
+        <summary>Can I make a music video with zero dollars?</summary>
+        <div class="faq-body">
+          Yes. Combine phone footage, stills with motion, and free stock with clear licenses. Your investment is
+          planning time and a disciplined clip list—not rental gear or a production crew.
+        </div>
+      </details>
+      <details>
+        <summary>What are good low-budget music video ideas?</summary>
+        <div class="faq-body">
+          Performance in one location, lyric-style kinetic type over B-roll, looping abstract textures under a
+          tight chorus, or a photo montage with cuts on every snare. All work without a set build.
+        </div>
+      </details>
+      <details>
+        <summary>Which aspect ratio should I upload first?</summary>
+        <div class="faq-body">
+          If you only make one version, prioritize 9:16 for TikTok and Reels. Follow with 16:9 for YouTube and
+          1:1 if your Instagram feed is still square-first.
+        </div>
+      </details>
+      <details>
+        <summary>Do I need to hire a videographer?</summary>
+        <div class="faq-body">
+          Not for a promo clip. Hire when you need synchronized narrative, locations you cannot access, or
+          broadcast-grade color. For many indie singles, a DIY edit plus strong thumbnail is enough.
+        </div>
+      </details>
+      <details>
+        <summary>Does the engine upload my unreleased song?</summary>
+        <div class="faq-body">
+          The core engine workflow is local-first: your song and library stay on your device while you preview
+          and record. Check the current privacy page if you use optional cloud features such as account sign-in or Drive import.
+        </div>
+      </details>
+      <details>
+        <summary>Where can I see example visual styles?</summary>
+        <div class="faq-body">
+          Start with <a href="/visual-languages">Visual languages</a>, open individual looks like
+          <a href="/versions/neon">Neon</a> or <a href="/versions/film">Film</a>, and browse
+          <a href="/gallery">galleries</a> for art-direction references.
+        </div>
+      </details>
+    </div>
+
+    <p class="related">
+      More on this site:
+      <a href="/intro">Intro</a>
+      <a href="/interactive-howto">Interactive how-to</a>
+      <a href="/engine">Engine</a>
+      <a href="/visual-languages">Visual languages</a>
+      <a href="/gallery">Galleries</a>
+    </p>
+  </main>
+
+  <swr-footer></swr-footer>
+  <script src="/lib/site-keys.client.js" defer></script>
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+  <script src="/lib/home-link.client.js" defer></script>
+  <script src="/lib/version-badge.client.js" defer></script>
+</body>
+</html>

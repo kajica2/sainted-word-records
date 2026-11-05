@@ -25,13 +25,16 @@
 // Pass --target=… to point it at a server you are already running.
 //
 // No npm dependencies: headless Chrome over the DevTools Protocol, with
-// Node's built-in WebSocket doing the work.
+// Node's WebSocket doing the work — the global one where the runtime has
+// it (Node 22+), and a minimal client of our own where it does not
+// (Node 20, which is what CI pins).
 
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { serveDist } from './with-dist.mjs';
+import { pickWebSocket } from './lib/ws-client.mjs';
 
 const argv = process.argv.slice(2);
 // A target given on the command line is used as-is (against a server the
@@ -52,7 +55,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 class Cdp {
   constructor(url) { this.url = url; this.id = 0; this.pending = new Map(); this.ws = null; }
   async connect() {
-    this.ws = new WebSocket(this.url);
+    // Node 20 has no global WebSocket (it is behind
+    // --experimental-websocket there and stable from Node 22), and the CI
+    // runner pins Node 20 — so the gate died there with "WebSocket is not
+    // defined" before it asserted anything. pickWebSocket() returns the
+    // global when the runtime has one and a minimal client when it does not.
+    this.ws = new (pickWebSocket())(this.url);
     await new Promise((res, rej) => {
       this.ws.onopen = res;
       this.ws.onerror = () => rej(new Error('CDP websocket error'));
@@ -124,7 +132,16 @@ const SCRIPT = `
   });
   window.addEventListener('error', (e) => errs.push('error: ' + e.message));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const btn = document.querySelector('button[title="Camera and microphone input"]');
+  // The media panel is mounted by a deferred module (which loads three more
+  // in order), so the control appears a beat after the document does. Poll
+  // for it: a single sample measures the machine's load, not the feature —
+  // it reported a missing Live control while a 33-step gate was running.
+  let btn = null;
+  const deadline = performance.now() + 15000;
+  while (!btn && performance.now() < deadline) {
+    btn = document.querySelector('button[title="Camera and microphone input"]');
+    if (!btn) await sleep(100);
+  }
   R.push({ step: 'live-button', ok: !!btn });
   if (!btn) return R;
 

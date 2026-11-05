@@ -28,17 +28,45 @@
   <meta name="twitter:title" content="NEON · SWR engine" />
   <meta name="twitter:description" content="Electric magenta/cyan, heavy chromatic aberration, glow" />
   <meta name="twitter:image" content="/keyart/neon.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <style>
     :root {
       --bg: #05030a; --bg-2: #0a0612; --panel: #0e0818; --panel-2: #150b22;
       --ink: #f5e9ff; --muted: #8a7aa0; --line: #2a1d3e;
       --m: #ff2d8a; --c: #00f0ff; --y: #fff04a; --g: #00ffa3;
+      --r: var(--m); /* legacy startup overlay accent */
+      /* iPhone safe-area insets, read through custom properties so
+         each fixed overlay can use max(n, var(--safe-bottom)) instead of
+         repeating env(). The 0px fallback keeps every non-notched
+         browser pixel-identical to before. */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: #000; color: var(--ink);
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px 1fr 36px; height: 100vh; }
+    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px minmax(0, 1fr) 36px; height: 100vh; height: 100dvh; }
+    /* iPhone safe-area (P2.3): the transport header clears the
+       Dynamic Island and the footer bar clears the home indicator;
+       left/right cover landscape, where the notch side insets 59px
+       and the rounded corners eat the other.
+       The padding lands on #app, not body, for the reason
+       engine.html gives: #app is this page's own 100vh grid, so
+       under the global box-sizing: border-box the padding insets its
+       grid tracks in place. Padding body would stack on top of
+       #app's 100vh box and push the footer off-screen with no way
+       back (html/body are overflow:hidden).
+       position:fixed resolves against the viewport, so no padding on
+       an in-flow element reaches the overlays below - each folds its
+       own inset in with max(n, var(--safe-*)). Full-bleed inset:0
+       overlays (#swr-start, .drop-zone, .swr-load) are meant to cover
+       the notch and correctly stay untouched. */
+    #app { padding-top:    var(--safe-top);
+           padding-bottom: var(--safe-bottom);
+           padding-left:   var(--safe-left);
+           padding-right:  var(--safe-right); }
     header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 14px;
       background: var(--bg-2); border-bottom: 1px solid var(--line); }
     .v { font-weight: 700; letter-spacing: 0.16em; color: var(--m); text-shadow: 0 0 8px var(--m); }
@@ -116,14 +144,14 @@
     @media (max-width: 720px) {
       #app {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: auto auto 1fr auto auto;
+        grid-template-rows: auto minmax(220px, 1fr) minmax(0, auto) minmax(0, auto) auto;
       }
       header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
       .meter { width: min(8vw, 80px); }
       aside.lib, aside.layers { max-height: 30vh; }
       aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
       aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
-      section.stage { grid-row: 2; min-height: 320px; }
+      section.stage { grid-row: 2; min-height: 220px; }
     }
 
     /* ---------- Mobile icons-only header ----------
@@ -310,6 +338,12 @@
     #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
     #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--g); margin-top: 8px; }
     #swr-start.hide { opacity: 0; pointer-events: none; }
+    #swr-start:focus-visible { outline: 3px solid var(--c); outline-offset: -5px; }
+    @media (prefers-reduced-motion: reduce) {
+      #swr-start { transition: none; }
+      .swr-watermark { animation: none; }
+      .pill.live { animation: none; }
+    }
     .li .rm { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px;
       background: rgba(0,0,0,0.6); color: var(--muted); border: none; border-radius: 2px;
       font: 11px/1 ui-monospace, monospace; cursor: pointer; padding: 0;
@@ -395,7 +429,8 @@
   <script src="../client/library-loader.client.js" defer></script>
 <script src="../client/visualizer-controller.js"></script>
 <script src="/lib/ease.js"></script>
-<script src="/lib/apply-reactors.js"></script>
+<script src="/lib/motion-kill-switch.client.js"></script>
+  <script src="/lib/apply-reactors.js"></script>
   <script src="../engine-render.client.js"></script>
 
   <!-- Automix + asset-curator stack (Phase 2 port from music_video) -->
@@ -509,7 +544,7 @@
     </aside>
     <section class="stage">
       <canvas id="render"></canvas>
-      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:16px;right:16px;width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
+      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:max(16px, var(--safe-top));right:max(16px, var(--safe-right));width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
       <div id="flash"></div>
       <div class="swr-watermark">
         <img src="../watermark-monogram.png" alt="SWR" />
@@ -519,7 +554,20 @@
       <div class="head"><h2>Layers</h2><button class="tbtn" id="remap" style="padding:3px 8px;font-size:9px;">RE-MAP</button></div>
       <div class="body"><div id="layers"></div></div>
     </aside>
-    <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);position:absolute;bottom:48px;left:8px;right:8px;z-index:5;border-radius:4px;">
+    <!-- iPhone safe-area: this panel is position:absolute with NO positioned
+         ancestor, so its containing block is the viewport and #app's padding
+         cannot reach it. position:relative on #app would not help either: the
+         containing block an absolutely positioned element gets is the PADDING
+         box of its positioned ancestor, which is where the padding lives, so
+         padding on #app insets #app's grid TRACKS and nothing else. The panel's
+         three offsets are therefore composed with the insets here. calc(), not
+         max(): 48px is an offset from the footer track, and the footer track
+         moves down by exactly --safe-bottom, so the gap between them has to
+         stay 48px. max(48px, var(--safe-bottom)) would hold the panel clear of
+         the home indicator but leave it overlapping the footer on a notched
+         phone. Desktop is unchanged: --safe-* is 0px without a notch, and
+         calc(0px + 48px) is 48px. -->
+    <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);position:absolute;bottom:calc(var(--safe-bottom) + 48px);left:calc(var(--safe-left) + 8px);right:calc(var(--safe-right) + 8px);z-index:5;border-radius:4px;">
       <div class="ph" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
         <span style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;">Hook Export</span>
         <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
@@ -560,7 +608,7 @@
 
 
   
-  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+  <div id="swr-start" role="button" tabindex="0" aria-label="Start Sainted Word Records">
     <div class="box">
       <div class="arrow">▶</div>
       <div class="label">Drop a song</div>
@@ -571,6 +619,12 @@
   (function(){
     var DEFAULT_SONG = '../audios/endless-tomorrow.mp3';
     var overlay = document.getElementById('swr-start');
+    overlay.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        overlay.click();
+      }
+    });
     var sub = document.getElementById('swr-start-sub');
     var fired = false;
 
@@ -1245,6 +1299,7 @@
     // unit tables still exist, and for exactly what the unification changes.
     const RX = window.SWR_REACTORS;
     function applyR(l) {
+      const rotOn = l.rotationEnabled === true;
       const out = RX.baseTransform(l, { rot: l.hue * 0.05 });
       // The narrative drift bias below reads `sens` directly, so this page
       // keeps the local the old applyR used to declare.
@@ -1257,7 +1312,10 @@
       // survives the global mute).
       const _txOn = (l.reactorsEnabled !== false)
                  && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
-      if (!_txOn) return out;
+      if (!_txOn) {
+        if (!rotOn) out.rot = 0;
+        return out;
+      }
       RX.applyReactor(l, A, 0, {
         base: out,
         units: RX.UNITS.naturalHalfGrade,
@@ -1270,12 +1328,12 @@
         damp: (val, halfLife, key) => (window.SWR_AUDIO_DAMP && window.SWR_AUDIO_DAMP.damp
           ? window.SWR_AUDIO_DAMP.damp(window.SWR_AUDIO_DAMP.damp(val, halfLife, key), halfLife, key)
           : val),
-        // The rot-master toggle (swr-rot-master): when rotation is OFF for
-        // this layer, rot-target reactors are silenced so audio cannot
-        // compound the canvas into 180-degree flips. Rotation is ON by
-        // default (the rot-master defaults to enabled).
-        allowRotation: l.rotationEnabled === true
+        // The rot-master toggle (swr-rot-master): rotation is opt-in per
+        // layer (rotationEnabled === true). When OFF, rot-target reactors
+        // and the hue→rot base seed stay silent.
+        allowRotation: rotOn
       });
+      if (!rotOn) out.rot = 0;
 
       if (window.SWR_NARRATIVE) {
         const n = window.SWR_NARRATIVE;
@@ -1336,8 +1394,9 @@
       // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
       // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
       if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
-      if (Math.abs(r.rot) > 0.5) {
-        ctx.translate(W/2, H/2); ctx.rotate(r.rot * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+      const rotDeg = l.rotationEnabled === true ? r.rot : 0;
+      if (Math.abs(rotDeg) > 0.5) {
+        ctx.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(ctx, rotDeg * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
         ctx.drawImage(src, dx, dy, dw, dh);
       }
@@ -1820,6 +1879,7 @@
 <script src="/versions/temp-slider.js"></script>
 <script src="../fx-postprocess.js"></script>
 <script src="../engine-genops.client.js"></script>
+  <script src="../lib/command-center-launcher.client.js" defer></script>
 <!-- Live input: camera as a live layer, microphone as engine input.
      Loaded in order — the media input primitive first, then the preview
      and meter it feeds, then the control that ties them to the engine. -->
@@ -1835,7 +1895,7 @@
   <script src="../client/narrative-state.client.js" defer></script>
 
 <!-- Automix debug panel (Phase 2 port) -->
-<div id="automix-debug-panel" hidden style="position:fixed; bottom:80px; right:14px; z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+<div id="automix-debug-panel" hidden style="position:fixed; bottom:max(80px, var(--safe-bottom)); right:max(14px, var(--safe-right)); z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
     <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
     <button id="automix-debug-close" title="Close" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">×</button>
@@ -1920,6 +1980,8 @@
   <script src="/lib/home-link.client.js" defer></script>
     <script src="/lib/version-badge.client.js" defer></script>
   <script src="/client/looks-menu.client.js" defer></script>
+  <script src="/client/look-filter-cycler.client.js" defer></script>
+  <script src="/client/neon-demo-panel.client.js" defer></script>
 <script src="/lib/version-watcher.client.js" defer></script>
   <!-- Visual debugger. Nothing is fetched unless ?swrdebug=1 asks for it,
        so the page pays nothing for the tool being one click away. -->

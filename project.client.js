@@ -176,7 +176,8 @@
     // pushed below bypass the engine-keys Layers.add wrapper, so we
     // explicitly seed rotationEnabled from the master state (or from
     // any value the saved project already recorded).
-    const masterRotOn = !!(window.SWR_ROT_MASTER && window.SWR_ROT_MASTER.enabled);
+    const masterRotOn = !!(window.SWR_ROT_MASTER && window.SWR_ROT_MASTER.enabled)
+      && (!window.SWR_MOTION_KILL || window.SWR_MOTION_KILL.isRotationGloballyEnabled());
     let missing = 0;
     for (const lp of project.layers || []) {
       const asset = lp.assetId ? byId.get(lp.assetId) : null;

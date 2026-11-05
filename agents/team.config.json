@@ -1,29 +1,61 @@
 {
   "team": "Sainted Word Records",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "root": ".",
   "twin_root": "../digital_twin",
+  "provider": {
+    "name": "multi",
+    "providers": ["minimax", "opencode", "xai", "antigravity"],
+    "api_key_envs": ["MINIMAX_API_KEY", "OPENCODE_API_KEY", "XAI_API_KEY", "GEMINI_API_KEY"],
+    "note": "The factory is multi-provider. software-factory/routing.config.json is the source of truth for which model does which job and what happens when a provider is down; this file only records the local team's preferences. scripts/check-factory-routing.mjs fails the build if the two disagree."
+  },
   "agents": {
     "SWR-Ops": {
       "role": "orchestrator",
       "prompt": "agents/swr-ops.md",
       "description": "Project manager - decomposes work, owns TASKS.md, routes to teammates",
       "uses_gstack": ["autoplan", "ship", "review", "qa", "investigate"],
-      "writes": ["agents/TASKS.md"]
+      "writes": ["agents/TASKS.md"],
+      "model_default": "minimax/MiniMax-M3",
+      "models": {
+        "planning": "minimax/MiniMax-M3",
+        "coding": "minimax/MiniMax-M2.7",
+        "triage": "minimax/MiniMax-M3.1-Flash"
+      },
+      "fallbacks": {
+        "planning": ["xai/grok-4.7", "opencode/claude-sonnet-5"],
+        "coding": ["opencode/qwen3.7-plus", "xai/grok-4.6"],
+        "triage": ["opencode/deepseek-v4.1-flash", "xai/grok-4.7"]
+      }
     },
     "SWR-Twin": {
       "role": "digital-twin",
       "prompt": "agents/swr-twin.md",
       "description": "Your voice and taste - creative work, decisions",
       "reads": ["../digital_twin/voice/", "../digital_twin/cognitive-twin.html"],
-      "confidence_threshold": 0.85
+      "confidence_threshold": 0.85,
+      "model_default": "minimax/MiniMax-M2.7",
+      "models": {
+        "creative": "minimax/MiniMax-M2.7",
+        "planning": "minimax/MiniMax-M3"
+      },
+      "fallbacks": {
+        "creative": ["opencode/qwen3.7-plus", "antigravity/gemini-3.8-flash"]
+      }
     },
     "SWR-Check": {
       "role": "verifier",
       "prompt": "agents/swr-check.md",
       "description": "Read-only validation - blocks unconfirmed work",
       "uses_gstack": ["review", "qa", "health"],
-      "readonly": true
+      "readonly": true,
+      "model_default": "minimax/MiniMax-M3.1-Flash",
+      "models": {
+        "verification": "minimax/MiniMax-M3.1-Flash"
+      },
+      "fallbacks": {
+        "verification": ["opencode/deepseek-v4.1-flash", "xai/grok-4.7"]
+      }
     }
   },
   "gates": {

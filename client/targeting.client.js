@@ -65,7 +65,7 @@
   // only by convention.
   var ALLOWED_AUTH_HINTS = { 'magic-link': 1, magic: 1, verify: 1, code: 1, email: 1 };
 
-  var NEUTRAL_COPY = 'Free, in your browser, no signup.';
+  var NEUTRAL_COPY = 'Free, in your browser, no signup. Sign in to keep it.';
 
   // pathname → surface code (marketing/personas/full/README.md surface codes).
   var PATH_SURFACE = [
@@ -370,7 +370,7 @@
       var a = document.createElement('a');
       a.className = 'swr-targeting-banner__cta';
       a.href = el.cta.href || '/auth/login.html';
-      a.textContent = el.cta.label || 'Save this? Magic link.';
+      a.textContent = el.cta.label || 'Save this';
       host.appendChild(a);
     }
     var close = document.createElement('button');
@@ -450,7 +450,7 @@
     if (!note) return null;
     var surface = 'persona:' + r.personaId;
     if (state.dismissed[surface]) return null;
-    return showBanner({ surface: surface, copy: note, cta: { kind: 'magic-link', href: '/auth/login.html', label: 'Save this? Magic link.' } });
+    return showBanner({ surface: surface, copy: note, cta: { kind: 'magic-link', href: '/auth/login.html', label: 'Save this' } });
   }
 
   function record(sig) {

@@ -40,7 +40,6 @@
 import { promises as fs } from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, dirname, relative, sep } from 'node:path';
-import { randomUUID, randomBytes, createHash } from 'node:crypto';
 
 // On Vercel serverless (/var/task is read-only), fall back to /tmp so module
 // evaluation doesn't crash on the top-level ensureDir() below. This root is
@@ -317,14 +316,37 @@ export const DATA_ROOT = ROOT;
 export { readJson, writeJson, withLock, deleteJson };
 
 // ---- ID helpers ----
-export function uuid() {
-  return randomUUID();
-}
-export function shortToken(bytes = 24) {
-  return randomBytes(bytes).toString('base64url');
-}
-export function hashKey(s) {
-  return createHash('sha256').update(s).digest('hex').slice(0, 32);
+// The primitives live in api/_lib/ids.js so the Firestore auth store
+// (api/_lib/auth-firestore.js) can use them without importing this
+// module — db.js dispatches to that store when SWR_AUTH_STORE=firestore,
+// and a cycle would be a load-order hazard. They are re-exported here
+// unchanged, so every existing `import { uuid } from '../_lib/db.js'`
+// keeps working.
+import { uuid, shortToken, hashKey, MEMBERSHIP_TIERS } from './ids.js';
+export { uuid, shortToken, hashKey, MEMBERSHIP_TIERS };
+
+// ---- auth store dispatch ----
+//
+// The auth functions below (users, provider links, verification tokens,
+// sessions, the connect blob) have two implementations:
+//
+//   local    — the JSON/Postgres store in THIS module (the default)
+//   firestore — api/_lib/auth-firestore.js, selected by
+//               SWR_AUTH_STORE=firestore + a configured Firebase project
+//
+// The dispatch happens per call, in one place, so a caller never has to
+// know which backend is live: the export names below are unchanged and
+// every existing route keeps working.
+//
+// api/_lib/auth-firestore.js does NOT import this module — it is imported
+// here, one way, so there is no cycle. It is imported statically because
+// it pulls in no Firebase code at load time (the Admin SDK is imported
+// on demand by api/_lib/firebase-admin.js).
+import * as fsAuth from './auth-firestore.js';
+
+// The active auth store, or null when the local store is active.
+function authStore() {
+  return fsAuth.authFirestoreEnabled() ? fsAuth : null;
 }
 
 // =====================================================================
@@ -334,6 +356,8 @@ export function hashKey(s) {
 const USERS_PATH = join(ROOT, 'auth', 'users.json');
 
 export async function findUserByEmail(email) {
+  const store = authStore();
+  if (store) return store.findUserByEmail(email);
   if (!email) return null;
   const users = await readJson(USERS_PATH, []);
   const norm = email.toLowerCase().trim();
@@ -341,6 +365,8 @@ export async function findUserByEmail(email) {
 }
 
 export async function findUserByProvider(provider, providerAccountId) {
+  const store = authStore();
+  if (store) return store.findUserByProvider(provider, providerAccountId);
   if (!provider || !providerAccountId) return null;
   const accounts = await readJson(join(ROOT, 'auth', 'accounts.json'), []);
   const users = await readJson(USERS_PATH, []);
@@ -350,12 +376,16 @@ export async function findUserByProvider(provider, providerAccountId) {
 }
 
 export async function getUser(id) {
+  const store = authStore();
+  if (store) return store.getUser(id);
   if (!id) return null;
   const users = await readJson(USERS_PATH, []);
   return users.find((u) => u.id === id) || null;
 }
 
 export async function createUser({ email, name = null, image = null, provider = 'email' }) {
+  const store = authStore();
+  if (store) return store.createUser({ email, name, image, provider });
   if (!email) throw new Error('email required');
   const existing = await findUserByEmail(email);
   if (existing) {
@@ -404,6 +434,8 @@ export async function createUser({ email, name = null, image = null, provider = 
 }
 
 export async function updateUser(id, patch) {
+  const store = authStore();
+  if (store) return store.updateUser(id, patch);
   return withLock(async () => {
     const users = await readJson(USERS_PATH, []);
     const idx = users.findIndex((u) => u.id === id);
@@ -418,8 +450,11 @@ export async function updateUser(id, patch) {
 // against a small allow-list so callers can't set arbitrary strings.
 // Only the user themselves can change their tier — the call site is
 // expected to enforce that by passing userId from requireUser().
-export const MEMBERSHIP_TIERS = ['free', 'creator'];
+// MEMBERSHIP_TIERS itself lives in api/_lib/ids.js and is re-exported
+// above, so the Firestore auth store validates against the same list.
 export async function setMembershipTier(userId, tier) {
+  const store = authStore();
+  if (store) return store.setMembershipTier(userId, tier);
   if (!MEMBERSHIP_TIERS.includes(tier)) {
     throw new Error(`invalid tier: ${tier}`);
   }
@@ -442,12 +477,16 @@ export async function setMembershipTier(userId, tier) {
 // to route account.updated events back to the right seller.
 
 export async function getConnectAccount(userId) {
+  const store = authStore();
+  if (store) return store.getConnectAccount(userId);
   if (!userId) return null;
   const user = await getUser(userId);
   return (user && user.connect) || null;
 }
 
 export async function saveConnectAccount(userId, patch) {
+  const store = authStore();
+  if (store) return store.saveConnectAccount(userId, patch);
   const cur = (await getConnectAccount(userId)) || {};
   const next = { ...cur, ...patch, updatedAt: new Date().toISOString() };
   const user = await updateUser(userId, { connect: next });
@@ -455,6 +494,8 @@ export async function saveConnectAccount(userId, patch) {
 }
 
 export async function findUserByConnectAccount(accountId) {
+  const store = authStore();
+  if (store) return store.findUserByConnectAccount(accountId);
   if (!accountId) return null;
   const users = await readJson(USERS_PATH, []);
   return Array.isArray(users)
@@ -466,6 +507,8 @@ export async function findUserByConnectAccount(accountId) {
 // (SWR_CONNECT_PILOT_LIMIT) in /api/connect. Reads the whole user list —
 // fine at human scale; swap for a SQL COUNT on Postgres if this ever grows.
 export async function countConnectAccounts() {
+  const store = authStore();
+  if (store) return store.countConnectAccounts();
   const users = await readJson(USERS_PATH, []);
   if (!Array.isArray(users)) return 0;
   return users.filter(
@@ -521,6 +564,8 @@ export async function listConnectEvents({ limit = 200 } = {}) {
 const ACCOUNTS_PATH = join(ROOT, 'auth', 'accounts.json');
 
 export async function linkAccount({ userId, provider, providerAccountId }) {
+  const store = authStore();
+  if (store) return store.linkAccount({ userId, provider, providerAccountId });
   return withLock(async () => {
     const accounts = await readJson(ACCOUNTS_PATH, []);
     if (!accounts.find((a) => a.provider === provider && a.providerAccountId === providerAccountId)) {
@@ -537,6 +582,8 @@ export async function linkAccount({ userId, provider, providerAccountId }) {
 const VERIFS_PATH = join(ROOT, 'auth', 'verifications.json');
 
 export async function createVerificationToken({ identifier, ttlMs = 24 * 60 * 60 * 1000 }) {
+  const store = authStore();
+  if (store) return store.createVerificationToken({ identifier, ttlMs });
   return withLock(async () => {
     const all = await readJson(VERIFS_PATH, []);
     const token = shortToken(32);
@@ -552,6 +599,8 @@ export async function createVerificationToken({ identifier, ttlMs = 24 * 60 * 60
 }
 
 export async function consumeVerificationToken({ identifier, token }) {
+  const store = authStore();
+  if (store) return store.consumeVerificationToken({ identifier, token });
   return withLock(async () => {
     const all = await readJson(VERIFS_PATH, []);
     const idx = all.findIndex(
@@ -572,6 +621,8 @@ export async function consumeVerificationToken({ identifier, token }) {
 const SESSIONS_PATH = join(ROOT, 'auth', 'sessions.json');
 
 export async function createSession({ userId, ttlMs = 30 * 24 * 60 * 60 * 1000 }) {
+  const store = authStore();
+  if (store) return store.createSession({ userId, ttlMs });
   return withLock(async () => {
     const all = await readJson(SESSIONS_PATH, []);
     const session = {
@@ -587,6 +638,8 @@ export async function createSession({ userId, ttlMs = 30 * 24 * 60 * 60 * 1000 }
 }
 
 export async function getSession(token) {
+  const store = authStore();
+  if (store) return store.getSession(token);
   if (!token) return null;
   const all = await readJson(SESSIONS_PATH, []);
   const s = all.find((x) => x.token === token);
@@ -596,6 +649,8 @@ export async function getSession(token) {
 }
 
 export async function destroySession(token) {
+  const store = authStore();
+  if (store) return store.destroySession(token);
   return withLock(async () => {
     const all = await readJson(SESSIONS_PATH, []);
     const next = all.filter((x) => x.token !== token);
@@ -605,6 +660,8 @@ export async function destroySession(token) {
 }
 
 export async function purgeExpiredSessions() {
+  const store = authStore();
+  if (store) return store.purgeExpiredSessions();
   return withLock(async () => {
     const all = await readJson(SESSIONS_PATH, []);
     const now = Date.now();
@@ -1117,15 +1174,30 @@ export function rateLimit({ key, windowMs = 60_000, max = 60 }) {
 
 export async function health() {
   const ok = existsSync(ROOT);
-  const users = await readJson(USERS_PATH, []);
-  const sessionsRaw = await readJson(SESSIONS_PATH, []);
-  const sessions = Array.isArray(sessionsRaw) ? sessionsRaw.filter((x) => new Date(x.expiresAt) > new Date()) : [];
+  const store = authStore();
+  let users = 0;
+  let sessions = 0;
+  if (store) {
+    // The auth store is Firestore: the counts come from the store
+    // itself, not from the JSON files this module writes when the
+    // local backend is active.
+    const counts = await store.authCounts();
+    users = counts.users;
+    sessions = counts.sessions;
+  } else {
+    const usersRaw = await readJson(USERS_PATH, []);
+    const sessionsRaw = await readJson(SESSIONS_PATH, []);
+    users = Array.isArray(usersRaw) ? usersRaw.length : 0;
+    sessions = Array.isArray(sessionsRaw)
+      ? sessionsRaw.filter((x) => new Date(x.expiresAt) > new Date()).length
+      : 0;
+  }
   const projects = await readJson(PROJECTS_INDEX, []);
   return {
     ok,
     root: ROOT,
-    users: Array.isArray(users) ? users.length : 0,
-    sessions: sessions.length,
+    users,
+    sessions,
     projects: Array.isArray(projects) ? projects.length : 0,
     // Which auth/project backend resolved at module load. Lets you confirm
     // a DATABASE_URL took effect with a single GET:
@@ -1133,6 +1205,10 @@ export async function health() {
     // 'filesystem' means users/sessions/projects will NOT survive a cold
     // start on Vercel — the `users` count reported above reads 0 after one.
     store: USE_PG ? 'postgres' : 'filesystem',
+    // Which auth backend is actually serving users and sessions. This is
+    // the field to read when SWR_AUTH_STORE=firestore is in play: the
+    // counts above come from Firestore, not from this module's files.
+    authStore: store ? 'firestore' : USE_PG ? 'postgres' : 'filesystem',
     // Which storage backend resolved at module load. Lets you confirm a
     // Vercel Blob link took effect with a single GET:
     //   curl /api/manifest?action=health

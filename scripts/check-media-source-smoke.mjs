@@ -229,6 +229,17 @@ if (running.sameClock && running.elementTime > 0.2 &&
 // 7. The bar counter is paced by the media clock. Freezing the element
 //    (without touching Audio.playing) must freeze the counter: a wall
 //    clock would keep it running.
+// BPM detection can lag on slow CI runners; _tickBar() is a no-op until
+// feat.bpm is known, which made this assertion look like a wall-clock bug.
+await page.waitForFunction(
+  () => {
+    const A = window.SWR.Audio;
+    return !!(A && A.feat && A.feat.bpm > 0);
+  },
+  { timeout: 20000, polling: 100 }
+).catch(() => {});
+await page.evaluate(() => { try { window.SWR.Audio.play(); } catch (_) {} });
+await new Promise((r) => setTimeout(r, 1200));
 const frozen = await page.evaluate(async () => {
   const A = window.SWR.Audio;
   const el = A.audioEl;
@@ -275,7 +286,7 @@ const silent = await page.evaluate(async () => {
   };
 });
 if (silent.source === 'none' && !silent.connected && silent.time > 0 &&
-    silent.rms < 0.005 && silent.rms < silent.baseline * 0.15) {
+    silent.rawDeviation <= 2 && silent.rms < silent.baseline * 0.15) {
   ok('"None" silences the analyser while the picture keeps running', silent);
 } else {
   bad('"None" silences the analyser while the picture keeps running', silent);

@@ -1,4 +1,5 @@
-// auth/login.client.js — handle the magic-link form submit and post to /api/auth/magic.
+// auth/login.client.js — handle the magic-link form submit and post to /api/auth/magic,
+// and wire the "Continue as guest" button (Firebase anonymous auth).
 
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -9,6 +10,7 @@
   const devLinkEl = $('dev-link');
   const enterBtn = $('enter-btn');
   const googleBtn = $('google-btn');
+  const guestBtn = $('guest-btn');
 
   // "Continue with Google" starts the OAuth flow at the API, which redirects
   // to Google and comes back through /api/auth/google/callback. The return
@@ -34,6 +36,65 @@
   }
   if (googleBtn) {
     googleBtn.href = '/api/auth/google?intent=signin&redirect=' + encodeURIComponent(returnPath());
+  }
+
+  // ── Guest sign-in (Firebase anonymous auth) ────────────────────────────
+  // The button ships hidden. It is revealed only when the deployment
+  // actually has a Firebase web config, so a deployment without one never
+  // shows a dead button. The guest lands on the same place a magic-link
+  // sign-in lands: returnPath().
+  //
+  // /lib/firebase-anon.client.js is a deferred CLASSIC script in <head>,
+  // and this file is a deferred MODULE further down the document. Both go
+  // into the same "execute after parsing" list, in document order, so the
+  // Firebase client has already published window.SWR_FIREBASE_ANON by the
+  // time this runs.
+  if (guestBtn) {
+    // Nothing here may throw: a failure would take the magic-link form
+    // wiring above down with it.
+    const firebaseApi = () => {
+      const api = window.SWR_FIREBASE_ANON;
+      return api && typeof api.isConfigured === 'function' ? api : null;
+    };
+
+    const api = firebaseApi();
+    if (!api) {
+      guestBtn.hidden = true;
+    } else {
+      Promise.resolve()
+        .then(() => api.isConfigured())
+        .then((configured) => { guestBtn.hidden = !configured; })
+        .catch(() => { guestBtn.hidden = true; });
+    }
+
+    guestBtn.addEventListener('click', async () => {
+      errEl.textContent = '';
+      okEl.textContent = '';
+      guestBtn.disabled = true;
+      try {
+        const fb = firebaseApi();
+        if (!fb) throw new Error('firebase_not_configured');
+        await fb.signIn();
+        await fb.exchangeForSession();
+        window.location.assign(returnPath());
+      } catch (e) {
+        errEl.textContent = guestErrorMessage(e);
+        guestBtn.disabled = false;
+      }
+    });
+  }
+
+  // The server answers with an error CODE; the visitor gets a sentence.
+  function guestErrorMessage(e) {
+    const code = e && e.message ? String(e.message) : 'guest_signin_failed';
+    const messages = {
+      firebase_not_configured: 'Guest sign-in is not available on this deployment.',
+      invalid_id_token: 'Guest sign-in could not be verified. Try again.',
+      not_anonymous: 'Guest sign-in could not be verified. Try again.',
+      no_id_token: 'Guest sign-in could not be verified. Try again.',
+      exchange_failed: 'Guest sign-in failed. Try again.',
+    };
+    return messages[code] || 'Guest sign-in failed. Try again.';
   }
 
   // The callback sends the visitor back here with ?error=… when Google or

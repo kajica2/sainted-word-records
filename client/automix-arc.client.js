@@ -305,6 +305,10 @@
         baseline[key] = (archTarget === undefined) ? base : base * 0.5 + archTarget * 0.5;
       }
       baseline.mutAlgo = p.mutAlgo || 0;
+      if (typeof window !== 'undefined' && window.SWR_MOTION_KILL
+          && typeof window.SWR_MOTION_KILL.coerceMutAlgo === 'function') {
+        baseline.mutAlgo = window.SWR_MOTION_KILL.coerceMutAlgo(baseline.mutAlgo);
+      }
       acts.push({
         t0: bounds[b],
         t1: bounds[b + 1],
@@ -429,19 +433,27 @@
     } catch (_) { /* no event surface: the arc simply runs cue-less */ }
   }
 
+  function pickFromPool(pool) {
+    var mk = (typeof window !== 'undefined') && window.SWR_MOTION_KILL;
+    if (mk && typeof mk.pickAllowedTransition === 'function') {
+      return mk.pickAllowedTransition(pool);
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   function pickTransition(warmth, intensity, cue) {
     // The cue has an opinion and the act plan does not get a say. One vote,
     // consumed by the caller.
     if (cue && cue.cls === 'subtle') {
-      return SUBTLE[Math.floor(Math.random() * SUBTLE.length)];
+      return pickFromPool(SUBTLE);
     }
     if (cue && cue.cls === 'dynamic') {
-      return DYNAMIC[Math.floor(Math.random() * DYNAMIC.length)];
+      return pickFromPool(DYNAMIC);
     }
     if (warmth < 0.3 || intensity < 0.3) {
-      return SUBTLE[Math.floor(Math.random() * SUBTLE.length)];
+      return pickFromPool(SUBTLE);
     }
-    return DYNAMIC[Math.floor(Math.random() * DYNAMIC.length)];
+    return pickFromPool(DYNAMIC);
   }
 
   // The plan's picker names 'cross-dissolve'; the shipped vocabulary calls
