@@ -98,7 +98,19 @@ function fetchStatus(url) {
     });
 
     try {
-      // === FIRST-VISIT — basic mode ===
+      // === DEFAULT — walkthrough auto off ===
+      const offPage = await browser.newPage();
+      await offPage.evaluateOnNewDocument(() => {
+        try { localStorage.removeItem('swr.onboarded.v1'); } catch (_) {}
+      });
+      await offPage.goto(ENGINE_URL, { waitUntil: 'load', timeout: 30000 });
+      await new Promise((r) => setTimeout(r, 1500));
+      const tourAuto = await offPage.evaluate(() => !!document.getElementById('swr-onboard-tour'));
+      if (!tourAuto) pass('walkthrough off: HF tour does not auto-mount');
+      else fail('HF tour auto-mounted while SWR_WALKTHROUGH_AUTO is off');
+      await offPage.close();
+
+      // === FIRST-VISIT — basic mode (auto re-enabled for this block) ===
       const firstPage = await browser.newPage();
       const consoleErrors = [];
       firstPage.on('pageerror', (err) => consoleErrors.push('pageerror: ' + err.message));
@@ -108,9 +120,10 @@ function fetchStatus(url) {
         }
       });
 
-      // Wipe localStorage so we test the first-visit path.
+      // Wipe localStorage so we test the first-visit path (auto-show re-enabled).
       await firstPage.evaluateOnNewDocument(() => {
         try { localStorage.removeItem('swr.onboarded.v1'); } catch (_) {}
+        window.SWR_WALKTHROUGH_AUTO = true;
       });
 
       await firstPage.goto(ENGINE_URL, { waitUntil: 'load', timeout: 30000 });

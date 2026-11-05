@@ -83,6 +83,7 @@ const isHeadOnly = (file) => HEAD_ONLY_FILES.has(file) || HEAD_ONLY_DIRS.some((r
 // Full-viewport app surfaces: their own chrome, one exit link required.
 const APP_SURFACES = new Set([
   'engine.html',
+  'neon.html',      // synced from versions/neon.html — same renderer at /neon
   'dashboard.html',
   'versions.html',  // versions index - full viewport, has its own nav variant
 ]);

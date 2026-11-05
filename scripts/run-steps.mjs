@@ -77,6 +77,7 @@ const GROUPS = {
     'npm run check:preset-cycle-unit',
     'npm run check:neon-demo-panel-unit',
     'npm run check:neon-demo-panel-verify',
+    'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',
     'npm run check:webgl-uniform-guard',
     'npm run check:webgl-no-invalid-op',
@@ -100,6 +101,13 @@ const GROUPS = {
     // never render a dead checkout URL, and the publish script must write
     // the off-site URL back into the manifest without reformatting it.
     'npm run check:store-unit',
+    // The catalogue subscription ladder: the tier prices, what each tier
+    // grants, and the platform fee arithmetic behind the net economics.
+    // The unit pins the ladder invariants and the fee tables; the econ run
+    // prints the metric and measures whether the catalogue on disk can
+    // actually honour what the ladder promises.
+    'npm run check:subscription-tiers-unit',
+    'npm run check:subscription-econ',
     // The shipped media off-site: the curated packs (582 files, 39.6 MB)
     // can be served from an off-site host instead of the deploy. The
     // build then ships only packs/manifest.json, with its base pointing
@@ -282,6 +290,7 @@ const GROUPS = {
     // shared styles, a unique title, a description and a <main> landmark
     // (app surfaces must carry an exit link instead).
     'npm run check:site-chrome',
+    'npm run check:engine-parity',
     // Static: the five iPhone-first surfaces declare viewport-fit=cover (without
     // it every env(safe-area-inset-*) resolves to 0px), apply the insets where
     // they collide with the notch / home indicator, and set
@@ -311,6 +320,7 @@ const GROUPS = {
     // versions/neon.html as source — no browser, no build.
     'npm run check:neon-v2-phase1',
     'npm run check:neon-audio-v3',
+    'npm run check:root-neon-sync',
     // The bench gate's A/V sampling-depth floor: derived from the host's
     // OWN measured frame rate, so a slow machine is not asked for what it
     // cannot deliver — while a host that renders at speed but samples once
