@@ -153,8 +153,9 @@ bounds the ladder from above rather than setting it.
 
 ## The research log
 
-The loop ran seven experiments on the metric above. Full log in
-`results.tsv` (untracked, per the loop's own convention); the outcomes:
+The loop ran seven experiments on the metric above. The journal is
+committed next to this plan
+(`2026-11-05-catalogue-membership-results.tsv`); the readable version:
 
 | # | Experiment | Metric | Kept |
 | --- | --- | --- | --- |

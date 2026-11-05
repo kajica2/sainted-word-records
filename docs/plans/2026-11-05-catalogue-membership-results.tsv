@@ -1,0 +1,9 @@
+experiment	commit	metric	status	description
+0	4f683ac6	3625.80	baseline	three tiers (EUR 3 / 8 / 20), best eligible platform (Gumroad)
+1	reverted	1759.28	discard	one tier at EUR 3 with every grant in it (Gumroad; 1850.47 on Patreon)
+2	ab82fcb5	4072.22	keep	add a EUR 5 Collector tier between Listener and Studio (+12.3%)
+3	reverted	4096.34	discard	split the one-off sales onto Gumroad so the membership can sit on Patreon (+0.27%, two member databases)
+4	reverted	3586.38	discard	raise the entry tier to EUR 5 and drop the EUR 3 floor (-11.9%)
+5	3fba27a7	4489.45	keep	split the release tier out at EUR 12, five tiers in total (+10.3%)
+6	reverted	4406.75	discard	price the release tier at EUR 10 instead of EUR 12 (-1.8%)
+7	reverted	4224.29	discard	drop the EUR 20 tier (-5.9%, and the commercial licence with it)
