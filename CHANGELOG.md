@@ -195,11 +195,12 @@ once it hits 1.0.
   a turn.** `software-factory/swr-agent.mjs` called `rl.prompt()` on a
   readline interface that stdin had already closed. Node 22 made that a
   silent no-op; Node 24 and later throw `ERR_USE_AFTER_CLOSE`, so the CLI
-  exited 1 instead of 0 on a perfectly normal `/exit`. Every prompt is now
+  exited 1 instead of 0 on a perfectly normal `/exit`. The prompts are now
   guarded by `rl.closed` — which is `undefined` while open and `true` once
   closed on both runtimes — so the agent works on Node 22 and Node 26
   alike. The swarm-guard wiring suite fails 49/1 on Node 26 without the
-  guard and passes 50/50 with it.
+  guard and passes 50/50 with it; it passes 50/50 on Node 22, Node 24 and
+  Node 26.
 - **The bench smoke's A/V depth floor was a flat 2, so it failed on a slow
   CI runner that could only ever produce 1.** The gate asserts "every run
   measured the clock" — every run records at least one A/V sample, and the
