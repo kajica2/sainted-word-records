@@ -47,6 +47,12 @@ function startServer() {
     const proc = spawn('python3', ['-m', 'http.server', String(PORT)], {
       cwd: SERVE_ROOT, stdio: 'ignore',
     });
+    // The server must die with THIS process on EVERY exit path — a gate
+    // that failed early used to leave it running, and the next run on the
+    // same fixed port then polled the STALE server and reported
+    // "server timeout", a failure that had nothing to do with the code
+    // under test.
+    process.on('exit', () => { try { proc.kill(); } catch { /* already gone */ } });
     const start = Date.now();
     const tick = () => http.get(`${BASE}/engine.html`, (res) => {
       res.resume();
