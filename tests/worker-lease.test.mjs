@@ -310,6 +310,44 @@ section('the lock is owned, and a stale one is broken safely');
 }
 
 // ---------------------------------------------------------------------------
+section('a reader must not refresh a crashed holder’s lock');
+{
+  const dir = tmpDir();
+  const m = createLeaseManager({ dir, maxWorkers: 2, staleLockMs: 10, lockWaitMs: 2000 });
+  const lock = path.join(dir, 'leases.lock');
+  // A lock left behind by a holder that CRASHED.
+  fs.writeFileSync(lock, 'crashed-holder\n');
+  await new Promise((r) => setTimeout(r, 30));
+
+  // A READER looks at the pool. It holds no lock, so it must not make the
+  // dead lock look alive: only the HOLDER may refresh a lock.
+  //
+  // If a reader refreshes it, the lock never ages past `staleLockMs`, the
+  // crash-recovery path never fires, and a pool with a monitor attached
+  // wedges: `claim()` waits the full `lockWaitMs` and throws
+  // "could not acquire the lease lock", forever.
+  m.status();
+  const ageAfterRead = Date.now() - fs.statSync(lock).mtimeMs;
+  assert(ageAfterRead > 10, 'a reader does not refresh a crashed holder’s lock');
+
+  // And so the crash is still recoverable.
+  const claim = m.claim({ workerId: 'after-crash' });
+  assert(claim.ok === true, 'the crashed holder’s lock is still broken after a reader looked');
+}
+{
+  const dir = tmpDir();
+  const m = createLeaseManager({ dir, maxWorkers: 2, staleLockMs: 60_000 });
+  const lock = path.join(dir, 'leases.lock');
+  // The HOLDER refreshes its own lock — the other half of the rule. If
+  // `_touchLock` were simply deleted, a reader and a holder would be
+  // indistinguishable and this would regress.
+  m._withLock(() => {
+    const touched = Date.now() - fs.statSync(lock).mtimeMs;
+    assert(touched < 1000, 'the holder refreshes its own lock');
+  });
+}
+
+// ---------------------------------------------------------------------------
 section('a leaked temp file is pruned');
 {
   const dir = tmpDir();

@@ -148,6 +148,19 @@ export class WorkerLeaseManager {
         fs.closeSync(fd);
       }
       try {
+        // We are the HOLDER: mark our own lock as ours. The lock file was
+        // just created, so this is close to a no-op — but it keeps the
+        // intent explicit: ONLY the holder may refresh this lock, and
+        // `_readLeases()` (which readers also call) must not.
+        //
+        // The lock's mtime therefore marks the START of the critical
+        // section. That is the signal the staleness check wants: a lock
+        // older than `staleLockMs` belongs to a holder that stopped
+        // making progress. It is not a periodic heartbeat — a critical
+        // section here is a handful of file operations and finishes in
+        // well under a millisecond, so it cannot outlive its own
+        // staleness window while the holder is still inside it.
+        this._touchLock();
         return fn();
       } finally {
         // Release ATOMICALLY: move whatever is at the lock path aside,
@@ -215,9 +228,22 @@ export class WorkerLeaseManager {
       throw err;
     }
     this._pruneTempFiles();
-    // The holder is making progress: refresh the lock so a slow but
-    // alive critical section is not mistaken for a crashed one.
-    this._touchLock();
+    // NOTE: the lock is deliberately NOT refreshed here.
+    //
+    // `_readLeases()` is called both by the lock HOLDER (inside
+    // `_withLock`) and by READERS (`status()`, and any other process
+    // watching the pool). Only the holder may refresh the lock: a
+    // reader that refreshes someone else's lock keeps a CRASHED
+    // holder's lock looking alive.
+    //
+    // That defeats the recovery path this module promises. With the
+    // defaults (staleLockMs 15s, lockWaitMs 20s), one monitor process
+    // polling `status()` every few seconds keeps the lock's age under
+    // 15s forever, so `claim()` never sees it as stale, waits the full
+    // 20s, and throws "could not acquire the lease lock" — the pool is
+    // wedged for as long as anything reads the status.
+    //
+    // The holder refreshes its OWN lock in `_withLock`, below.
     for (const name of names) {
       if (!name.endsWith('.lease.json')) continue;
       const file = path.join(this.dir, name);
