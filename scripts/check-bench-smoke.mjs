@@ -42,6 +42,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import puppeteer from 'puppeteer';
 import { ensureDist } from './with-dist.mjs';
+import { depthOk } from './lib/bench-depth.mjs';
 
 const ROOT = path.resolve(dirname(fileURLToPath(import.meta.url)), '..');
 ensureDist();
@@ -416,7 +417,7 @@ try {
     // the SAME test with the lag injected and the interpolation off
     const lagOffCfg = Object.assign({}, noint.cfg, { injectAudioDrift: LAG });
     const RUN_MS = 3500;
-    const out = { on: [], off: [], lagOn: [], lagOff: [], av: [] };
+    const out = { on: [], off: [], lagOn: [], lagOff: [], av: [], fps: [], runMs: RUN_MS };
 
     // ---- the DETERMINISTIC sweep ------------------------------------------
     // The run-based sampling-error comparison below is phase-dependent (see
@@ -481,6 +482,7 @@ try {
       const on = await B.runTest(reactive.name, reactive.cfg, RUN_MS);
       const off = await B.runTest(noint.name, noint.cfg, RUN_MS);
       out.av.push(on.metrics.avSamples, off.metrics.avSamples);
+      out.fps.push(on.metrics.fpsAvg, off.metrics.fpsAvg);
       out.on.push({ q: on.metrics.quantAvg, d: on.metrics.driftAvg });
       out.off.push({ q: off.metrics.quantAvg, d: off.metrics.driftAvg });
     }
@@ -491,6 +493,7 @@ try {
       const lOn = await B.runTest(lagged.name, lagged.cfg, RUN_MS);
       const lOff = await B.runTest(noint.name, lagOffCfg, RUN_MS);
       out.av.push(lOn.metrics.avSamples, lOff.metrics.avSamples);
+      out.fps.push(lOn.metrics.fpsAvg, lOff.metrics.fpsAvg);
       out.lagOn.push({ q: lOn.metrics.quantAvg, d: lOn.metrics.driftAvg });
       out.lagOff.push({ q: lOff.metrics.quantAvg, d: lOff.metrics.driftAvg });
     }
@@ -522,21 +525,46 @@ try {
     const lagOffD = median(model.lagOff.map(x => x.d));
 
     // "every run measured the clock" — every run recorded AT LEAST one A/V
-    // sample, and the typical run recorded at least two.
+    // sample, and the DEPTH of the sampling matched what the host's own
+    // frame rate allows.
     //
-    // The floor is deliberately 1 per run, not 2: a CI runner's bench page
-    // renders at well under 1 fps, so a 3.5s run yields about TWO samples
-    // there, and a single slow frame would drop one run to 1 and fail a
-    // floor of 2 on a run that measured perfectly well. The DEPTH
-    // requirement lives in the median instead, so a host that measures
-    // nothing at all still fails, and a host that measures once per run
-    // fails too — but one unlucky frame in one run does not.
+    // The depth floor used to be a flat 2, on the reasoning that a run
+    // which yields one sample cannot measure anything. That is true of a
+    // HOST that samples once per run — but it is not true of a slow
+    // MACHINE, and the gate conflated the two.
+    //
+    // Measured on a CI runner (2026-11-05, run 42024230323): EVERY run
+    // produced exactly ONE A/V sample — [1,1,1,1,1,1,1,1,1,1] — because
+    // the bench page renders at ~0.29 fps there and a 3.5 s run can only
+    // contain one frame. The flat floor of 2 asked for what the runner
+    // cannot deliver, and it failed a gate whose MEASUREMENT was perfect:
+    // the injected lag read 12.0 ms, the clean run read 0.0 ms, the
+    // differential was exact, and both interpolation assertions passed.
+    // The only red line was the depth floor.
+    //
+    // The warm-up run above already fixed the COLD first run (which yielded
+    // 1 while the rest yielded 2). It cannot fix a runner where EVERY run
+    // yields 1.
+    //
+    // So the floor is derived from the host's OWN measured frame rate: a
+    // run of RUN_MS can only hold as many samples as the host can draw
+    // frames, and one frame's worth of phase slack is allowed, because a
+    // run's first frame can land just after recording starts.
+    //
+    //   framesPerRun = round(fps x RUN_MS) - 1     (phase-tolerant)
+    //   depthFloor   = min(2, max(1, framesPerRun))
+    //
+    // Where the host is fast enough for two samples the floor is STILL 2,
+    // so a host that renders at speed but samples only once per run still
+    // fails — the gate keeps its teeth exactly where it needs them.
     const minAv = model.av.length ? Math.min.apply(null, model.av) : 0;
     const medAv = model.av.length ? median(model.av) : 0;
-    if (minAv >= 1 && medAv >= 2) {
-      ok('every run measured the clock', 'every run ≥' + minAv + ' A/V samples, median ' + medAv);
+    const medFps = model.fps && model.fps.length ? median(model.fps) : 0;
+    const depth = depthOk(model.av, medFps, model.runMs || 3500);
+    if (depth.ok) {
+      ok('every run measured the clock', 'every run ≥' + depth.min + ' A/V samples, median ' + depth.median + ' (floor ' + depth.floor + ' at ' + f1(medFps) + ' fps)');
     } else {
-      bad('every run measured the clock', JSON.stringify(model.av));
+      bad('every run measured the clock', JSON.stringify(model.av) + ' — the host renders at ' + f1(medFps) + ' fps, so a ' + (model.runMs || 3500) + 'ms run can hold ' + depth.floor + ' sample(s)');
     }
 
     // A) the clock offset follows the injected lag

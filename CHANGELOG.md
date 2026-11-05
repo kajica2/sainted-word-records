@@ -178,6 +178,25 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **The bench smoke's A/V depth floor was a flat 2, so it failed on a slow
+  CI runner that could only ever produce 1.** The gate asserts "every run
+  measured the clock" — every run records at least one A/V sample, and the
+  typical run records at least two. The second half was a constant, which
+  is right for a HOST that samples once per run but wrong for a slow
+  MACHINE: on a CI runner measured on 2026-11-05 (run `42024230323`)
+  **every** run produced exactly one sample — `[1,1,1,1,1,1,1,1,1,1]` —
+  because the bench page renders at ~0.29 fps there and a 3.5 s run can
+  only contain one frame. The gate failed a measurement that was perfect:
+  the injected lag read 12.0 ms, the clean run read 0.0 ms, the
+  differential was exact, and both interpolation assertions passed. The only
+  red line was the depth floor. The earlier warm-up fix had addressed the
+  COLD first run; it could not address a runner where every run yields 1.
+  The floor is now **derived from the host's own measured frame rate**
+  (`scripts/lib/bench-depth.mjs`): a run can only hold as many samples as
+  the host can draw frames, with one frame of phase slack. Where the host
+  is fast enough for two, the floor is still 2 — so a host that renders at
+  speed but samples once per run is still caught. Pinned by a new unit gate
+  (`check:bench-depth-unit`) that fails if the rule is reverted to a flat 2.
 - **A reader could keep a crashed worker's lease lock alive, wedging the
   agent pool.** `software-factory/worker-lease.mjs` refreshed the lock file
   from `_readLeases()`, and `_readLeases()` is called by READERS (a
