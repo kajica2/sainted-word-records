@@ -33,6 +33,7 @@
        plugin rewrites a module tag on an absolute path into a plain defer
        classic script, which would load it too late. -->
   <script src="/lib/motion-kill-switch.client.js"></script>
+  <script src="/lib/walkthrough-auto.client.js"></script>
   <script src="/lib/apply-reactors.js"></script>
   <script src="/lib/adaptive-guard.js" defer></script>
 <!-- SWR-WATERMARK-MARKER -->
@@ -3238,7 +3239,7 @@
         // Skip if localStorage says dismissed. Delay so the engine's
         // own boot animations land first and the panel feels like
         // an intentional intro, not a popup.
-        if (!isDismissed()) {
+        if (window.SWR_WALKTHROUGH_AUTO === true && !isDismissed()) {
           setTimeout(open, AUTO_OPEN_DELAY_MS);
         }
 

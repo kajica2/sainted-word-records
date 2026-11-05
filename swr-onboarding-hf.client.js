@@ -37,6 +37,10 @@
   var STORAGE_KEY = 'swr.onboarded.v1';
   var AUTO_OPEN_DELAY_MS = 600;
 
+  function walkthroughAutoEnabled() {
+    return window.SWR_WALKTHROUGH_AUTO === true;
+  }
+
   // The 5 teaching beats. (Beat 0 = title card, beat 6 = shortcuts grid + dismiss.
   // 7 total — see the plan.)
   var BEATS = [
@@ -776,7 +780,7 @@
   };
 
   // ---- Auto-trigger on first visit only --------------------------------
-  if (!isDismissed()) {
+  if (walkthroughAutoEnabled() && !isDismissed()) {
     // Wait for the engine's own boot before showing, mirroring the existing
     // AUTO_OPEN_DELAY_MS pattern (600ms). Engine first paint is ~200ms.
     setTimeout(function () {

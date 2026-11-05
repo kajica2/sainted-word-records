@@ -35,8 +35,7 @@ page.on('console', m => {
   if (m.text().startsWith('[SWR')) console.log('[page]', m.text());
 });
 
-// ---- 1. Auto-opens on first visit ----
-// localStorage starts empty. Confirm the panel shows up after the delay.
+// ---- 1. Walkthrough auto is OFF by default — panel does not auto-open ----
 await page.setBypassServiceWorker(true); // don't let the SW serve stale code
 // Don't wipe swr.onboarded.v1 in evaluateOnNewDocument — that runs on
 // EVERY page load including reload, which would undo the dismiss the
@@ -81,11 +80,8 @@ const personaState = await page.evaluate(() => ({
 }));
 console.log('▶ persona state:', personaState);
 
-// Wait for the panel to be visible — it opens after a 600ms delay.
-await page.waitForFunction(() => {
-  const el = document.getElementById('swr-onboard');
-  return el && !el.hidden && el.classList.contains('is-open');
-}, { timeout: 5000 }).catch(() => null);
+// Past the old 600ms auto-open delay — panel should stay closed.
+await new Promise(r => setTimeout(r, 900));
 
 let state = await page.evaluate(() => {
   const el = document.getElementById('swr-onboard');
@@ -97,11 +93,19 @@ let state = await page.evaluate(() => {
   };
 });
 console.log('▶ after load:', JSON.stringify(state));
-if (!state.isOpen) {
-  console.error('FAIL: panel did not auto-open on first visit');
+if (state.isOpen) {
+  console.error('FAIL: panel auto-opened while SWR_WALKTHROUGH_AUTO is off');
   await browser.close();
   process.exit(1);
 }
+console.log('PASS: walkthrough auto disabled — no first-visit popup');
+
+// Open manually for the dismiss / persistence exercises.
+await page.evaluate(() => { if (window.SWR_ONBOARD && window.SWR_ONBOARD.open) window.SWR_ONBOARD.open(); });
+await page.waitForFunction(() => {
+  const el = document.getElementById('swr-onboard');
+  return el && !el.hidden && el.classList.contains('is-open');
+}, { timeout: 3000 }).catch(() => null);
 
 // ---- 2. Dismiss closes the panel + writes localStorage when checkbox checked ----
 await page.evaluate(() => {
@@ -178,12 +182,8 @@ if (!state.hidden || state.isOpen) {
   process.exit(1);
 }
 
-// ---- 4. Click the ? button → panel opens ----
-const helpBox = await page.$eval('#swr-keys-help-btn', (el) => {
-  const r = el.getBoundingClientRect();
-  return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
-});
-await page.mouse.click(helpBox.x, helpBox.y);
+// ---- 4. SWR_ONBOARD.open() still opens the welcome panel ----
+await page.evaluate(() => { if (window.SWR_ONBOARD && window.SWR_ONBOARD.open) window.SWR_ONBOARD.open(); });
 await page.waitForFunction(() => {
   const el = document.getElementById('swr-onboard');
   return el && !el.hidden && el.classList.contains('is-open');
@@ -192,9 +192,9 @@ state = await page.evaluate(() => {
   const el = document.getElementById('swr-onboard');
   return { hidden: el ? el.hidden : null, isOpen: el ? el.classList.contains('is-open') : null };
 });
-console.log('▶ after ? click:', JSON.stringify(state));
+console.log('▶ after SWR_ONBOARD.open():', JSON.stringify(state));
 if (!state.isOpen) {
-  console.error('FAIL: ? button did not open the panel');
+  console.error('FAIL: SWR_ONBOARD.open() did not open the panel');
   await browser.close();
   process.exit(1);
 }

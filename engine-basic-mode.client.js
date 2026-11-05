@@ -20,6 +20,10 @@
 
   var MODE_KEY = 'swr.engine.mode';
   var FIRST_RUN_KEY = 'swr.engine.firstRun';
+
+  function walkthroughAutoEnabled() {
+    return window.SWR_WALKTHROUGH_AUTO === true;
+  }
   var CURRENT_MODE = null;
 
   // ─────────────────────────────────────────────
@@ -94,7 +98,7 @@
   function updateWelcomeOverlay(mode) {
     var overlay = document.getElementById('welcome-overlay');
     if (!overlay) return;
-    if (!isFirstRun() || mode === 'advanced') {
+    if (!walkthroughAutoEnabled() || !isFirstRun() || mode === 'advanced') {
       overlay.classList.add('hidden');
     } else {
       overlay.classList.remove('hidden');
@@ -127,8 +131,8 @@
     if (advancedBtn) {
       advancedBtn.addEventListener('click', handleWelcomeAdvanced);
     }
-    // Show overlay on first run in basic mode
-    if (isFirstRun()) {
+    // Show overlay on first run in basic mode (when walkthrough auto is enabled)
+    if (walkthroughAutoEnabled() && isFirstRun()) {
       var overlay = document.getElementById('welcome-overlay');
       if (overlay) overlay.classList.remove('hidden');
     }
