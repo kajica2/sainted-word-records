@@ -486,6 +486,45 @@ console.log('\n14b. an expired slot is re-claimed; a full pool is not');
 }
 
 // ---------------------------------------------------------------------------
+console.log('\n14c. a long prompt is reserved at the long tier and settled at the tier that applied');
+// ---------------------------------------------------------------------------
+{
+  const guard = makeGuard({ maxDailyUsd: 5 });
+  // Grok 4.7 bills $4/$12 per Mtok above 200k input tokens. The estimate
+  // says 10k (the estimate is the uncertain part), so the reservation must
+  // still cover the long tier — the cap is a ceiling, not a target.
+  const reserved = guard.reserveTurn({
+    reservationId: 'tier-1',
+    chain: ['xai/grok-4.7'],
+    maxTokens: 1000,
+    inputTokens: 10000,
+  });
+  assert(reserved.ok === true, 'the reservation is taken');
+  const tierCost = estimateUsd(
+    { input: 4, output: 12, cacheRead: 1 },
+    { input_tokens: 10000, output_tokens: 1000 },
+  ).usd;
+  assert(Math.abs(reserved.reservation.usd - tierCost) < 1e-9, 'the reservation is sized at the LONG tier');
+
+  // The turn really was long: the settlement uses the tier that applied.
+  const settled = guard.settleTurn({
+    reservationId: 'tier-1',
+    modelRef: 'xai/grok-4.7',
+    usage: { input_tokens: 250000, output_tokens: 1000 },
+  });
+  assert(settled.ok === true, 'the turn settles');
+  const realCost = estimateUsd(
+    { input: 4, output: 12, cacheRead: 1 },
+    { input_tokens: 250000, output_tokens: 1000 },
+  ).usd;
+  assert(Math.abs(settled.settledUsd - realCost) < 1e-9, 'the settlement is priced at the tier that actually applied');
+  const status = guard.ledger.status();
+  assert(Math.abs(status.spentUsd - realCost) < 1e-9, "the day's total is what left the account");
+  assert(status.reservedUsd === 0, 'the reservation is fully settled');
+  cleanup(guard);
+}
+
+// ---------------------------------------------------------------------------
 console.log('\n15. an overage stops the NEXT reservation');
 // ---------------------------------------------------------------------------
 {
