@@ -249,9 +249,21 @@ const frozen = await page.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 1500));
   const after = A.bar;
   el.play();
-  await new Promise((r) => setTimeout(r, 600));
+  // Wait for the bar to advance again — but a bar is 60/bpm SECONDS, and
+  // the tempo is the detector's, not the test's. The fixed 600 ms this
+  // used to wait only ever saw a bar because the detector reported a
+  // nonsense tempo (~1100 bpm, one "beat" per frame); once it reports a
+  // real one, 600 ms is shorter than a single bar and the assertion
+  // failed for the right reason at the wrong moment. Scale the wait to
+  // the tempo, with a floor so a slow runner still gets a chance.
+  const bpm = (A.feat && A.feat.bpm) || 0;
+  const budgetMs = Math.max(2000, bpm > 0 ? (60 / bpm) * 1000 * 3 : 0);
+  const deadline = performance.now() + budgetMs;
+  while (A.bar <= after && performance.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
   const resumed = A.bar;
-  return { before, after, resumed, playing: A.playing, time: el.currentTime };
+  return { before, after, resumed, playing: A.playing, time: el.currentTime, bpm };
 });
 if (frozen.after === frozen.before && frozen.resumed > frozen.after) {
   ok('the bar counter is paced by the media clock, not by a wall clock', frozen);
