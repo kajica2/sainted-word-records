@@ -247,6 +247,38 @@ for (const tier of tiers) {
 }
 console.log('');
 
+// ---- the deliverable metric -----------------------------------------------
+//
+// The economic metric assumes every tier can be sold. The catalogue cannot
+// honour that yet, so the second metric counts only the revenue a tier can
+// actually deliver today. A tier with one blocked grant is not sellable:
+// the subscriber would be paying for something that does not exist.
+
+const sellableTiers = tiers.filter((tier) => tier.grants.every((g) => grantReady(g).ready));
+
+function deliverableNetEur(platformId) {
+  const values = WTP_SCENARIOS.map((s) => {
+    const run = ladderRevenueEur({ platformId, scenarioId: s.id, perFans: 1000 });
+    const byId = new Map(run.byTier.map((r) => [r.tierId, r]));
+    const revenue = sellableTiers.reduce((sum, t) => sum + (byId.get(t.id)?.revenueEur || 0), 0);
+    return revenue - run.fixedMonthlyEur;
+  });
+  return {
+    mean: values.reduce((a, b) => a + b, 0) / values.length,
+    min: Math.min(...values),
+    max: Math.max(...values),
+  };
+}
+
+const deliverable = best ? deliverableNetEur(best.id) : null;
+if (deliverable) {
+  const share = best.mean > 0 ? deliverable.mean / best.mean : 0;
+  console.log('  Sellable tiers today: ' + (sellableTiers.length ? sellableTiers.map((t) => t.name).join(', ') : 'none'));
+  console.log('  Deliverable share of the ladder: ' + (share * 100).toFixed(1) + '%');
+  console.log('METRIC-DELIVERABLE netEurPerThousandFans=' + deliverable.mean.toFixed(2) + ' platform=' + best.id);
+  console.log('');
+}
+
 console.log('METRIC netEurPerThousandFans=' + (best ? best.mean.toFixed(2) : '0.00') + ' platform=' + (best ? best.id : 'none'));
 console.log('');
 
