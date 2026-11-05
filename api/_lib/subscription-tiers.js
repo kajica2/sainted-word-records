@@ -114,12 +114,19 @@ export const SUBSCRIPTION_TIERS = {
     id: 'studio',
     name: 'Studio',
     priceMinor: 800,
-    grants: ['audio-library-mp3', 'early-access', 'media-packs', 'stills', 'artist-releases-mp3'],
-    blurb: 'The listener catalogue, plus the media packs, the stills and every label release.',
+    grants: ['audio-library-mp3', 'early-access', 'media-packs', 'stills'],
+    blurb: 'The listener catalogue, plus the media packs and the stills.',
   },
-  label: {
-    id: 'label',
-    name: 'Label',
+  insider: {
+    id: 'insider',
+    name: 'Insider',
+    priceMinor: 1200,
+    grants: ['audio-library-mp3', 'early-access', 'media-packs', 'stills', 'artist-releases-mp3'],
+    blurb: 'Everything above, plus every label release the day it lands.',
+  },
+  producer: {
+    id: 'producer',
+    name: 'Producer',
     priceMinor: 2000,
     grants: [
       'audio-library-mp3',
