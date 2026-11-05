@@ -452,6 +452,14 @@
   <!-- Extracted runtimes (Phase 1b) — hero-frames intentionally omitted per /steer skip hero -->
   <script src="/client/automix-arc.client.js"></script>
 <script src="/client/automix-session-store.client.js"></script>
+<!-- The shared floating-chrome dock. It publishes window.SWR_CHROME_DOCK,
+     which automix-runtime, engine-keys, home-link and the NEON demo panel
+     all read to collapse the other panel. It must come BEFORE them or the
+     reads are undefined and the feature silently does nothing — which is
+     what check:engine-parity is there to catch. These scripts are classic
+     (not deferred), so the dock has to be a classic script too, earlier in
+     the document. -->
+<script src="/lib/engine-chrome-dock.client.js"></script>
 <script src="/client/automix-runtime.client.js"></script>
 <script src="/client/automix-composition.client.js" defer></script>
   <!-- Periodic frame capture runtime + UI (Phase 1) -->
@@ -474,6 +482,7 @@
     <script src="/lib/recorder.client.js"></script>
 <link rel="stylesheet" href="/engine-genops.css" />
   <link rel="stylesheet" href="/lib/drive-modal.css" />
+  <link rel="stylesheet" href="/lib/engine-chrome-dock.css" />
 </head>
 <body data-page="neon">
   <div id="app">
