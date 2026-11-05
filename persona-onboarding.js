@@ -194,8 +194,13 @@
     PERSONAS,
   };
 
+  function walkthroughAutoEnabled() {
+    return window.SWR_WALKTHROUGH_AUTO === true;
+  }
+
   // Auto-show on first load (no choice yet)
   function init() {
+    if (!walkthroughAutoEnabled()) return;
     if (alreadyChosen()) return;
     show();
   }
