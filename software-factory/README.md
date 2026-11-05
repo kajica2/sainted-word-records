@@ -226,8 +226,19 @@ exists and from the committed defaults (`$2` a day, `2` agents) when it does not
 ten-minute timeout × three chain models) against a fifteen-minute lease. The
 bridge therefore renews the lease **while the request is in flight**, and it
 *checks* the renewal: a lease that was lost stops the run rather than letting it
-continue outside the pool. `agents/start-team.sh` reads the same cap and starts at
-most that many agents — and says which one it did not start.
+continue outside the pool. A renewal that fails because the lease merely
+**expired** is re-claimed through the pool — which still enforces the cap, so a
+re-claim that finds the pool full is refused. `agents/start-team.sh` reads the
+same cap from the same module, asks the pool how many slots are live, and starts
+only what is free — and says which one it did not start.
+
+**The pool's own machinery is as strict as its policy.** The lock carries a
+unique token and is released only if that token still matches, so a holder whose
+lock was broken cannot delete the breaker's lock; a stale lock is broken by an
+atomic move, so only one breaker can win; a lease id that already exists on disk
+is refused as a race (two worker ids can sanitise to the same file name); and a
+lease file is written atomically, so a reader never catches one mid-write and
+never mistakes it for debris.
 
 Four test suites gate this, all inside the `check` group so `check:full` runs them:
 
