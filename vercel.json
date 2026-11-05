@@ -884,6 +884,14 @@
       "destination": "/make-video.html"
     },
     {
+      "source": "/neon",
+      "destination": "/neon.html"
+    },
+    {
+      "source": "/neon/",
+      "destination": "/neon.html"
+    },
+    {
       "source": "/muzicki-spot-beograd",
       "destination": "/muzicki-spot-beograd.html"
     },

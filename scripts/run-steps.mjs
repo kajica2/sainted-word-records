@@ -320,6 +320,7 @@ const GROUPS = {
     // versions/neon.html as source — no browser, no build.
     'npm run check:neon-v2-phase1',
     'npm run check:neon-audio-v3',
+    'npm run check:root-neon-sync',
     // The bench gate's A/V sampling-depth floor: derived from the host's
     // OWN measured frame rate, so a slow machine is not asked for what it
     // cannot deliver — while a host that renders at speed but samples once
