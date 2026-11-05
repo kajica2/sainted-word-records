@@ -1,0 +1,37 @@
+/*
+ * Embed mode for make-video and engine when loaded inside SEO landing iframes
+ * (?embed=1). Loaded by those app shells when the query flag is present.
+ */
+
+html.swr-embed swr-nav,
+html.swr-embed swr-footer {
+  display: none !important;
+}
+
+html.swr-embed body {
+  overflow: auto !important;
+  min-height: 100%;
+}
+
+/* make-video grid fits iframe height */
+html.swr-embed body #app {
+  height: min(82vh, 680px);
+  min-height: 520px;
+  max-height: 720px;
+  width: 100%;
+}
+
+html.swr-embed body .mvm-head .brand small {
+  display: none;
+}
+
+/* engine: keep stage usable in iframe */
+html.swr-embed body.engine-page,
+html.swr-embed body {
+  padding-top: 0;
+}
+
+html.swr-embed body .swr-site-exit,
+html.swr-embed body .swr-exit-link {
+  display: none;
+}

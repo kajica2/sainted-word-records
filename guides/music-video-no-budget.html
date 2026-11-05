@@ -121,8 +121,8 @@
             </p>
           </div>
           <div class="seo-cta-row">
-            <a class="btn btn--primary" href="/engine">Open the engine</a>
-            <a class="btn btn--ghost" href="/make-video">Make Video</a>
+            <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Try the browser editor</a>
+            <a class="btn btn--ghost" href="/engine">Full engine</a>
           </div>
         </div>
         <div class="seo-collage" aria-hidden="true">
@@ -149,6 +149,14 @@
     </header>
 
     <div class="seo-main seo-main--narrow">
+
+    <section class="seo-section seo-studio" id="seo-studio" data-studio-base="/make-video" data-studio-format="9:16" data-studio-rec-dur="30" data-studio-eager="1" aria-labelledby="guide-studio-h">
+      <h2 id="guide-studio-h">Finish step 5 here</h2>
+      <p class="seo-studio__lede">Drop your song and clip library below, preview on the timeline, and record an MP4 (9:16 preset selected — switch format in the footer before REC).</p>
+      <div class="seo-studio__frame-wrap">
+        <iframe class="seo-studio__frame" title="Make Video — no-budget music video export" data-seo-studio-frame loading="lazy"></iframe>
+      </div>
+    </section>
 
     <section class="seo-section">
     <p>
@@ -284,7 +292,7 @@
     <section class="seo-closing">
       <h2>Ready to try it on your track?</h2>
       <p>Open the engine, drop your song and clips, and record an MP4 in one tab.</p>
-      <a class="btn btn--primary" href="/engine">Open the engine →</a>
+      <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Record your MP4 →</a>
     </section>
 
     <section class="seo-section">
@@ -354,5 +362,6 @@
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/lib/seo-landing-studio.client.js" defer></script>
 </body>
 </html>

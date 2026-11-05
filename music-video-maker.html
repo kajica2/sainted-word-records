@@ -136,7 +136,7 @@
             </p>
           </div>
           <div class="seo-cta-row">
-            <a class="btn btn--primary" href="/make-video">Open Make Video →</a>
+            <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Make a video here →</a>
             <a class="btn btn--ghost" href="/engine">Full engine</a>
           </div>
           <ul class="seo-pills" aria-label="Highlights">
@@ -172,6 +172,15 @@
     </header>
 
     <div class="seo-main">
+    <section class="seo-section seo-studio" id="seo-studio" data-studio-base="/make-video" data-studio-eager="1" aria-labelledby="seo-studio-h">
+      <h2 id="seo-studio-h">Try the music video maker</h2>
+      <p class="seo-studio__lede">Load your song and clips in the panel below (nothing uploads to our servers). Pick a format, press play, then <strong>REC</strong> to download MP4 or WebM.</p>
+      <div class="seo-studio__frame-wrap">
+        <iframe class="seo-studio__frame" title="Make Video — browser music video maker" data-seo-studio-frame loading="lazy"></iframe>
+      </div>
+      <p class="seo-studio__hint">Prefer the full-screen app? <a href="/make-video">Open Make Video in its own tab</a>.</p>
+    </section>
+
     <section class="seo-section" id="how">
       <h2>How it works</h2>
       <p class="seo-section-lede">Make Video is the quick path from a song file and a folder of clips to a downloadable video — all in one tab.</p>
@@ -272,7 +281,7 @@
     <section class="seo-closing">
       <h2>Ready when your track is</h2>
       <p>Open Make Video, drop in a song and a clip library, and record — no install, no upload.</p>
-      <a class="btn btn--primary" href="/make-video">Start making a music video →</a>
+      <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Start making a music video →</a>
     </section>
     </div>
   </main>
@@ -283,5 +292,6 @@
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/lib/seo-landing-studio.client.js" defer></script>
 </body>
 </html>

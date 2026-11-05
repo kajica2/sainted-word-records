@@ -102,12 +102,12 @@
           </p>
           <ul class="seo-pills">
             <li><b>9:16</b> · 1080×1920 export</li>
-            <li><b>8s</b> Canvas preset in the engine</li>
+            <li><b>5s</b> or <b>8s</b> Canvas preset</li>
             <li><b>Local</b> · files stay on your device</li>
           </ul>
           <div class="seo-cta-row">
-            <a class="btn btn--primary" href="/engine/?canvas=1">Open engine · Canvas preset</a>
-            <a class="btn btn--ghost" href="/make-video">Full music video maker</a>
+            <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Make a Canvas loop →</a>
+            <a class="btn btn--ghost" href="/engine/?canvas=1&amp;rec-dur=5">5-second Canvas preset</a>
           </div>
         </div>
         <aside class="seo-phone" aria-label="Example vertical Canvas frame">
@@ -120,6 +120,20 @@
     </header>
 
     <div class="seo-main">
+    <section class="seo-section seo-studio" id="seo-studio" data-studio-base="/engine/" data-studio-canvas="1" data-studio-rec-dur="8" data-studio-eager="1" aria-labelledby="scm-studio-h">
+      <h2 id="scm-studio-h">Canvas loop studio (9:16)</h2>
+      <p class="seo-studio__lede">
+        Loads the engine with <code>?canvas=1</code> (1080×1920, <strong>8s</strong> auto-stop by default).
+        Need <strong>5 seconds</strong>? Use
+        <a href="/engine/?embed=1&amp;canvas=1&amp;rec-dur=5">5s Canvas preset</a>
+        or change duration in the transport bar before you record.
+      </p>
+      <div class="seo-studio__frame-wrap">
+        <iframe class="seo-studio__frame seo-studio__frame--engine" title="SWR engine — Spotify Canvas export" data-seo-studio-frame loading="lazy"></iframe>
+      </div>
+      <p class="seo-studio__hint">After download, upload the file in Spotify for Artists. Canvas playback is usually silent — strip audio in an editor if your host rejects it.</p>
+    </section>
+
     <section class="seo-answer" aria-labelledby="scm-quick">
       <h2 id="scm-quick" class="sr-only">Quick answer</h2>
       <p>
@@ -300,7 +314,7 @@
     <section class="seo-closing">
       <h2>Make your Canvas loop</h2>
       <p>Open the engine with the Canvas preset, record eight seconds at 9:16, then upload in Spotify for Artists.</p>
-      <a class="btn btn--primary" href="/engine/?canvas=1">Open Canvas preset →</a>
+      <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Record your Canvas loop →</a>
     </section>
     </div>
   </main>
@@ -311,5 +325,6 @@
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/lib/seo-landing-studio.client.js" defer></script>
 </body>
 </html>

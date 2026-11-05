@@ -66,6 +66,7 @@
     "store:build": "node scripts/build-store-downloads.mjs",
     "store:publish": "node scripts/publish-store-downloads.mjs",
     "check:announcements-smoke": "node scripts/check-announcements-smoke.mjs",
+    "check:seo-landing-smoke": "node scripts/check-seo-landing-smoke.mjs",
     "check:store-smoke": "node scripts/check-store-smoke.mjs",
     "check:preset-editor-smoke": "node scripts/check-preset-editor-smoke.mjs",
     "check:bench-smoke": "node scripts/check-bench-smoke.mjs",
