@@ -305,6 +305,12 @@ const GROUPS = {
     // archives are readable zips that credit what they claim, and the route
     // is wired (site-map → vercel → sitemap).
     'npm run check:generations',
+    // Static: the NEON variant's own regression guards. check:neon-v2-phase1
+    // pins the viewport/startup/reduced-motion contract; check:neon-audio-v3
+    // pins the five-band envelope and the transient/tempo bounds. Both read
+    // versions/neon.html as source — no browser, no build.
+    'npm run check:neon-v2-phase1',
+    'npm run check:neon-audio-v3',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.

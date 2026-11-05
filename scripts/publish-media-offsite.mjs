@@ -4,7 +4,7 @@
 // Publish the curated media packs OFF-SITE so the deploy does not have
 // to carry them.
 //
-// Why: `packs/` is 582 files and ~40 MB — a quarter of the build. The
+// Why: `packs/` is 582 files and 39.6 MB — 22% of the build. The
 // packs are opt-in content: the library drawer and /packs.html fetch
 // /packs/manifest.json and then load the media listed in it. The seam
 // is exactly one file, the manifest, so the build can ship the manifest

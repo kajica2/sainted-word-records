@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-// scripts/visual-correct.mjs — visual check + auto-correct after deploys.
+// scripts/visual-correct.mjs — read-only Command Center assertions.
 //
-// Opens the live Command Center, verifies the expected top-bar and panel
-// elements are present, injects missing pieces (Settings/Profile, Save),
-// and can loop until the layout matches or a timeout is reached.
+// Checks the shipped DOM without injecting controls. Missing UI fails the run.
 //
 // Usage:
 //   node scripts/visual-correct.mjs                  # one pass against local
@@ -42,50 +40,24 @@ function startServer() {
 }
 
 async function checkAndCorrect(page) {
+  // Observe the shipped DOM; never repair the page under test.
   return page.evaluate(() => {
-    const fixes = [];
-    const top = document.querySelector('.swr-cc-top');
-    if (!top) return { ok: false, fixes: ['no top bar'], missing: ['top'] };
-
-    if (!top.querySelector('.swr-cc-top-actions')) {
-      const actions = document.createElement('div');
-      actions.className = 'swr-cc-top-actions';
-      actions.style.cssText = 'display:flex;gap:8px;margin-left:auto;align-items:center;padding-right:8px';
-      const settings = document.createElement('button');
-      settings.type = 'button';
-      settings.className = 'swr-cc-nav-btn';
-      settings.textContent = 'Settings';
-      settings.style.cssText = 'font-size:11px;padding:4px 10px';
-      const profile = document.createElement('button');
-      profile.type = 'button';
-      profile.className = 'swr-cc-nav-btn';
-      profile.textContent = 'Profile';
-      profile.style.cssText = 'font-size:11px;padding:4px 10px';
-      actions.appendChild(settings);
-      actions.appendChild(profile);
-      const close = top.querySelector('.swr-cc-close');
-      if (close) top.insertBefore(actions, close);
-      else top.appendChild(actions);
-      fixes.push('injected Settings + Profile');
-    }
-
-    const scenes = document.querySelector('[data-cc-scenes]');
-    if (scenes && !scenes.parentNode.querySelector('.swr-cc-btn--primary')) {
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:6px;margin:6px 0';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'swr-cc-btn swr-cc-btn--primary';
-      btn.textContent = 'Save';
-      row.appendChild(btn);
-      scenes.parentNode.insertBefore(row, scenes);
-      fixes.push('injected Save button');
-    }
-
     const missing = [];
-    if (!top.querySelector('.swr-cc-top-actions')) missing.push('top-actions');
+    const top = document.querySelector('.swr-cc-top');
+    if (!top) missing.push('top');
+    const actions = top?.querySelector('.swr-cc-top-actions');
+    if (!actions) missing.push('top-actions');
+    const labels = Array.from(actions?.querySelectorAll('button') || [])
+      .map(button => button.textContent.trim());
+    if (!labels.includes('Settings')) missing.push('settings');
+    if (!labels.includes('Profile')) missing.push('profile');
     if (!document.querySelector('.swr-cc-panel')) missing.push('panels');
-    return { ok: missing.length === 0, fixes, missing };
+    const scenes = document.querySelector('[data-cc-scenes]');
+    if (!scenes) missing.push('scenes');
+    const save = Array.from(scenes?.parentNode.querySelectorAll('button') || [])
+      .some(button => /^save$/i.test(button.textContent.trim()));
+    if (!save) missing.push('save');
+    return { ok: missing.length === 0, fixes: [], missing };
   });
 }
 
@@ -123,6 +95,7 @@ async function checkAndCorrect(page) {
     }
     if (!LOOP || Date.now() - start > MAX_MS) {
       console.log(LOOP ? 'timeout reached' : 'single pass done');
+      process.exitCode = 1;
       break;
     }
     console.log('waiting 15s before next pass…');

@@ -240,7 +240,7 @@
   };
   function getHost() {
     for (const k in hostFlags) {
-      if (!host[k]) host[k] = hostFlags[k]();
+      host[k] = hostFlags[k]();
     }
     return host;
   }

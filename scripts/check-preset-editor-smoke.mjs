@@ -821,13 +821,26 @@ const bench = await page.evaluate(async () => {
   await new Promise(r => setTimeout(r, 400));
   const s = window.SWRPresetEditor.bench;
   if (!s) return { mounted: false };
-  const r = await s.runTest('this preset', { interpolate: true, injectAudioDrift: 0 }, 1200);
-  const lagged = await s.runTest('this preset · +12ms audio lag', { interpolate: true, injectAudioDrift: 0.012 }, 1200);
+  // Under software-rendered CI the editor can run below 1fps. A 1.2s
+  // benchmark may then finish before any video frame samples the audio ring
+  // buffer. Retry ONLY a sample-less run with a longer window: never turn
+  // a missing measurement into a passing zero-offset assertion.
+  async function measuredRun(name, cfg) {
+    let report = await s.runTest(name, cfg, 1200);
+    if (report.metrics.avSamples === 0) {
+      report = await s.runTest(name + ' (slow-frame retry)', cfg, 6000);
+    }
+    return report;
+  }
+  const r = await measuredRun('this preset', { interpolate: true, injectAudioDrift: 0 });
+  const lagged = await measuredRun('this preset · +12ms audio lag', { interpolate: true, injectAudioDrift: 0.012 });
   return {
     mounted: true,
     fps: r.metrics.fpsAvg,
     drift: r.metrics.driftAvg,
     lagDrift: lagged.metrics.driftAvg,
+    cleanSamples: r.metrics.avSamples,
+    lagSamples: lagged.metrics.avSamples,
     grade: r.scores.grade,
     layers: r.config.layerCount,
   };
@@ -836,9 +849,9 @@ if (bench.mounted) ok('the Bench tab mounts the shared suite inside the editor')
 else bad('the Bench tab mounts the shared suite inside the editor', JSON.stringify(bench));
 if (bench.fps > 0 && bench.grade) ok('the editor measures its own render (' + bench.fps.toFixed(1) + ' fps, grade ' + bench.grade + ')');
 else bad('the editor measures its own render', JSON.stringify(bench));
-if (bench.drift < 20) ok('the editor\'s own A/V drift is measured (' + bench.drift.toFixed(1) + 'ms)');
+if (bench.cleanSamples > 0 && bench.drift < 20) ok('the editor\'s own A/V drift is measured (' + bench.drift.toFixed(1) + 'ms from ' + bench.cleanSamples + ' frames)');
 else bad('the editor\'s own A/V drift is measured', JSON.stringify(bench));
-if (bench.lagDrift > bench.drift + 4) ok('an injected lag shows up in the editor\'s sync number (' + bench.lagDrift.toFixed(1) + 'ms)');
+if (bench.lagSamples > 0 && bench.lagDrift > bench.drift + 4) ok('an injected lag shows up in the editor\'s sync number (' + bench.lagDrift.toFixed(1) + 'ms from ' + bench.lagSamples + ' frames)');
 else bad('an injected lag shows up in the editor\'s sync number', JSON.stringify(bench));
 
 const applied = await page.evaluate(async () => {
