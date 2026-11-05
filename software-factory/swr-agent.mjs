@@ -978,7 +978,10 @@ async function cmdChat(args) {
       for await (const line of rl) {
         const trimmed = line.trim();
         if (!trimmed) {
-          rl.prompt();
+          // The async iterator closes the interface when the input ends, so
+          // the prompt has to be checked: prompting a closed readline is
+          // ERR_USE_AFTER_CLOSE, and it takes the whole chat down with it.
+          if (!rl.closed) rl.prompt();
           continue;
         }
         if (trimmed === '/exit' || trimmed === '/quit') break;
@@ -1023,7 +1026,7 @@ async function cmdChat(args) {
           history.push({ role: 'tool', content: results });
         }
         if (refusal) break;
-        rl.prompt();
+        if (!rl.closed) rl.prompt();
       }
       rl.close();
     }
