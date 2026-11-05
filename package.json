@@ -216,6 +216,7 @@
     "verify:grid-library-persist": "node verify-grid-library-persist.mjs",
     "check:dashboard": "node scripts/check-dashboard.mjs",
     "check:site-chrome": "node scripts/check-site-chrome.mjs",
+    "check:engine-parity": "node scripts/check-engine-parity.mjs",
     "check:safe-area-inset": "node scripts/check-safe-area-inset.mjs",
     "check:touch-targets": "node scripts/check-touch-targets.mjs",
     "check:sitemap": "node scripts/check-sitemap.mjs",

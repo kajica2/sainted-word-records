@@ -210,17 +210,89 @@ short-circuiting at *"no song loaded"*.
 
 ---
 
-## Part 3 — The remaining slices (not in this PR)
+## Part 3 — The remaining slices
 
-Each slice is independently shippable; this PR deliberately stops at slice 1.
+Each slice is independently shippable.
 
-| Slice | Change | Files | Acceptance |
-|---|---|---|---|
-| **2** | Delete the 4 dead inline copies; add a `check:engine-parity` gate that fails when a page loads a module whose `window.*` dependency the page does not publish | `engine.html`, `scripts/check-engine-parity.mjs` | Gate green on all shipped pages; the 4 globals keep their module implementations |
-| **3** | Adopt `lib/audio.client.js` on neon; drop the inline fork | `versions/neon.html`, `lib/audio.client.js` | One audio contract: `loadFile`, `seek`, `audioEl`, song persistence on both pages |
-| **4** | One render core: either bring `engine-render.client.js` + `lib/ease.js` + `lib/audio-damp.client.js` to the engine, or declare the engine's 2D path canonical and move the variants onto it | `engine.html`, `versions/*.html` | Identical layer transform maths on both surfaces |
-| **5** | One recorder: fold the inline `Recorder` into `lib/recorder.client.js`, give both pages the same format/fps/quality selects | `lib/recorder.client.js`, both pages | Same export controls and bitrate ladder on both |
-| **6** | One binding layer: load `lib/variant-curator-wiring.client.js` on the engine, delete the inline equivalents | `engine.html` | One place wires `#stats-btn`/`#hook-btn`/`#mood-btn`/`#scenes-btn` |
+| Slice | Change | Files | Acceptance | State |
+|---|---|---|---|---|
+| **2** | Delete the 4 dead inline copies; add a `check:engine-parity` gate that fails when a page loads a module whose `window.*` dependency the page does not publish | `engine.html`, `scripts/check-engine-parity.mjs` | Gate green on all shipped pages; the 4 globals keep their module implementations | **landed** (see Part 4) |
+| **3** | Adopt `lib/audio.client.js` on neon; drop the inline fork | `versions/neon.html`, `lib/audio.client.js` | One audio contract: `loadFile`, `seek`, `audioEl`, song persistence on both pages | **landed** (see Part 4) |
+| **4** | One render core: either bring `engine-render.client.js` + `lib/ease.js` + `lib/audio-damp.client.js` to the engine, or declare the engine's 2D path canonical and move the variants onto it | `engine.html`, `versions/*.html` | Identical layer transform maths on both surfaces | **not started** — direction decided: the engine's 2D path is canonical, so the variants move onto it, not the other way round |
+| **5** | One recorder: fold the inline `Recorder` into `lib/recorder.client.js`, give both pages the same format/fps/quality selects | `lib/recorder.client.js`, both pages | Same export controls and bitrate ladder on both | **not started** |
+| **6** | One binding layer: load `lib/variant-curator-wiring.client.js` on the engine, delete the inline equivalents | `engine.html` | One place wires `#stats-btn`/`#hook-btn`/`#mood-btn`/`#scenes-btn` | **landed** (see Part 4) |
+
+---
+
+## Part 4 — What slices 2, 3 and 6 changed
+
+### 4.1 Slice 2 — the dead copies are gone, and there is a gate
+
+The engine carried four inline copies of modules it also loads: `SWR_HOOK_DETECTOR`,
+`SWR_STATS`, `SWR_MOOD` and `SWR_SCENES`. The inline copies are in a module script that
+runs **before** the deferred modules that define the same four globals, so every one of
+them was overwritten before it was ever read — 548 lines of code that could not run.
+
+They are deleted. The modules that own those globals stay.
+
+`scripts/check-engine-parity.mjs` is the gate. It builds the graph and asks one
+question per page and module: **does this page publish everything this module
+reads?**
+
+- The universe of interesting globals is every global some script in the repo
+  publishes, so browser APIs drop out on their own.
+- A dependency is a read of a global the module does not publish itself.
+- Comments and string literals are stripped before the scan — without that, every
+  identifier in prose looks like a read, and the first version of the gate reported
+  1,577 violations instead of 670.
+- Severity is per module, not per read: a module that checks for a global anywhere
+  copes with its absence (the feature quietly does nothing); a module that never
+  checks will throw a TypeError (the page breaks).
+
+**The gate fails on the two contract surfaces** — `engine.html` and
+`versions/neon.html` — and **reports** the other 33 variant pages, which are missing
+the contract too. Making those pages carry it is their own job; the gate is here to
+keep the two surfaces that do carry it honest.
+
+Three dependencies are **accepted on purpose**, each with a reason in the script:
+`window.SWR_RENDER` (the engine has its own renderer), `window.SWR_GRADE` (the engine
+grades through its own WebGL context) and `window.SWR_GENOPS` (the engine ships no
+generative-ops UI).
+
+### 4.2 Slice 3 — neon runs the engine's audio core
+
+Neon's inline audio object was a second implementation of the same contract: 102 lines
+with the same names and slightly different behaviour. It is gone; neon loads
+`lib/audio.client.js`, the engine's core.
+
+The core grew the two things neon's fork had and the core did not:
+
+- `Audio.params` — `{ sens, gate, decay }`, the reaction knobs, with neon's values as
+  the defaults so nothing changes visually.
+- `Audio.el` — the `music_video.html` spelling of `audioEl`. Shared modules are
+  written against both names, so the core now answers to both.
+
+Neon's call sites followed: `A.load` → `A.loadFile`, `A.an` → `A.analyser`.
+
+### 4.3 Slice 6 — one binding layer
+
+The engine wired `#stats-btn`, `#hook-btn`, `#mood-btn` and `#scenes-btn` inline, in
+its own copy of the code the variant pages share. Those four wirings are deleted and
+the engine loads `lib/variant-curator-wiring.client.js` instead — the only place that
+binds them now.
+
+### 4.4 What the gate found along the way
+
+Two real defects, both invisible before:
+
+- The engine's **"+ 3D"** button opened its picker, but the primitive buttons called
+  `add3DLayer`, which needed `window.SWR_3D` — a module the engine never loaded. The
+  button led to an error message. `engine-3d.client.js` is now loaded.
+- The **mood overlay's drag and its persisted position** were wired inline in the
+  engine, in a block that reached for `window.SWR_MOOD` while the module defining it
+  had not run yet — so the saved position was never restored. The wiring moved into
+  `client/mood.client.js`, which owns the overlay's state, and every page that loads
+  it now behaves the same.
 
 ---
 

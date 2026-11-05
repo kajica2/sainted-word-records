@@ -533,6 +533,16 @@ once it hits 1.0.
   to the current frame if the clip cannot be seeked.
 
 ### Changed
+- The **engine and the neon variant now run one contract** instead of two
+  implementations of it. Neon loads the engine's audio core rather than its own
+  inline copy, the engine loads the shared binding layer instead of wiring the
+  stats, hooks, mood and scene buttons a second time, and four inline copies on
+  the engine that were overwritten before anything could read them are gone.
+  A new gate, `npm run check:engine-parity`, fails when a page loads a module
+  whose dependency the page does not publish — the failure that shows up as a
+  feature that quietly does nothing. It found two: the engine's "+ 3D" button
+  led to an error because the module it needed was never loaded, and the mood
+  overlay never restored its saved position.
 - **The sign-in page now says what an account is for.** The headline is
   "Save it here. Open it on any device." and the one-sentence value prop is
   a four-line list: your song stays in your browser, your Drive files stay
