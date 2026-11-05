@@ -305,32 +305,21 @@
   }
 
   function injectStyles() {
+    if (typeof document.querySelector === 'function' &&
+        document.querySelector('link[href*="engine-chrome-dock.css"]')) return;
     if (document.getElementById('swr-neon-demo-styles')) return;
     var s = document.createElement('style');
     s.id = 'swr-neon-demo-styles';
-    s.textContent = [
-      '#swr-neon-demo{position:fixed;z-index:6;left:max(8px,var(--safe-left));bottom:max(44px,calc(var(--safe-bottom) + 40px));max-width:min(320px,calc(100vw - 16px - var(--safe-left) - var(--safe-right));font:10px/1.35 ui-monospace,Menlo,monospace;color:var(--ink);pointer-events:none;}',
-      '#swr-neon-demo *{box-sizing:border-box;}',
-      '#swr-neon-demo .swr-neon-demo-toggle{pointer-events:auto;display:block;width:100%;padding:8px 10px;border-radius:4px 4px 0 0;border:1px solid var(--line);background:var(--panel-2);color:var(--m);cursor:pointer;font:inherit;letter-spacing:.12em;text-transform:uppercase;text-align:left;}',
-      '#swr-neon-demo .swr-neon-demo-toggle:focus-visible{outline:2px solid var(--c);outline-offset:2px;}',
-      '#swr-neon-demo.collapsed .swr-neon-demo-body{display:none;}',
-      '#swr-neon-demo:not(.collapsed) .swr-neon-demo-toggle{border-radius:4px 4px 0 0;}',
-      '#swr-neon-demo.collapsed .swr-neon-demo-toggle{border-radius:4px;}',
-      '#swr-neon-demo .swr-neon-demo-body{pointer-events:auto;max-height:min(52vh,420px);overflow:auto;border:1px solid var(--line);border-top:none;background:rgba(14,8,24,.94);padding:8px;border-radius:0 0 4px 4px;}',
-      '#swr-neon-demo .demo-sec{margin-bottom:8px;}',
-      '#swr-neon-demo .demo-sec h3{margin:0 0 4px;font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;}',
-      '#swr-neon-demo .demo-grid{display:flex;flex-wrap:wrap;gap:3px;}',
-      '#swr-neon-demo .demo-grid button{padding:4px 6px;font:inherit;font-size:9px;border:1px solid var(--line);border-radius:3px;background:var(--bg-2);color:var(--ink);cursor:pointer;}',
-      '#swr-neon-demo .demo-grid button.is-active,#swr-neon-demo .demo-grid button[aria-pressed="true"]{border-color:var(--m);color:var(--m);box-shadow:0 0 0 1px var(--m);}',
-      '#swr-neon-demo .demo-grid button:disabled{opacity:.35;cursor:not-allowed;}',
-      '#swr-neon-demo .demo-row{display:flex;align-items:center;gap:6px;margin:3px 0;flex-wrap:wrap;}',
-      '#swr-neon-demo .demo-row label{min-width:3.5em;color:var(--muted);font-size:8px;text-transform:uppercase;}',
-      '#swr-neon-demo .demo-row input[type=range]{flex:1;min-width:80px;}',
-      '#swr-neon-demo .demo-actions{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}',
-      '#swr-neon-demo .demo-actions button{padding:5px 8px;font:inherit;font-size:9px;border:1px solid var(--line);border-radius:3px;background:var(--panel-2);color:var(--ink);cursor:pointer;}',
-      '#swr-neon-demo .demo-note{font-size:8px;color:var(--muted);margin-top:2px;}',
-    ].join('');
+    s.textContent = '#swr-neon-demo{position:fixed;z-index:6;left:8px;bottom:44px;}';
     document.head.appendChild(s);
+  }
+
+  function collapsePanel() {
+    if (!state.root) return;
+    state.collapsed = true;
+    state.root.classList.add('collapsed');
+    var toggle = state.root.querySelector('.swr-neon-demo-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
   }
 
   function buildPanel() {
@@ -349,11 +338,17 @@
       state.collapsed = !state.collapsed;
       root.classList.toggle('collapsed', state.collapsed);
       toggle.setAttribute('aria-expanded', state.collapsed ? 'false' : 'true');
-      if (!state.collapsed) syncLayerControlsFromSelection();
+      if (!state.collapsed) {
+        if (window.SWR_CHROME_DOCK) {
+          window.SWR_CHROME_DOCK.hideAutomixDebug();
+          window.SWR_CHROME_DOCK.hideKeysHelp();
+        }
+        syncLayerControlsFromSelection();
+      }
     });
     root.appendChild(toggle);
 
-    var body = mk('div', 'swr-neon-demo-body');
+    var body = mk('div', 'swr-neon-demo-body swr-chrome-panel');
     body.id = 'swr-neon-demo-body';
 
     var secPresets = mk('div', 'demo-sec');
@@ -849,6 +844,7 @@
   window.SWR_NEON_DEMO = {
     mount: mount,
     unmount: unmount,
+    collapse: collapsePanel,
     listShortcutPresets: listShortcutPresets,
     listGradePresets: listGradePresets,
     applyShortcutPreset: applyShortcutPreset,

@@ -48,6 +48,7 @@
   <link rel="stylesheet" href="/lib/presets-dropdown.css" />
   <link rel="stylesheet" href="/brandkit.css" />
   <link rel="stylesheet" href="/lib/drive-modal.css" />
+  <link rel="stylesheet" href="/lib/engine-chrome-dock.css" />
   <!-- Chain view (Ozone-style mastering surface over the same engine).
        Inert unless the URL carries ?chain=1 — see lib/chain-ui.client.js.
        The script is cheap and always loaded; the stylesheet is fetched on
@@ -8325,6 +8326,12 @@
 
   <!-- Automix runtime + UI wiring (extracted from music_video, Phase 1) -->
   <script src="/client/automix-session-store.client.js" defer></script>
+  <!-- The shared floating-chrome dock. It publishes window.SWR_CHROME_DOCK,
+       which automix-runtime, engine-keys, home-link and the NEON demo panel
+       all read to collapse the other panel. It must come BEFORE them or the
+       reads are undefined and the feature silently does nothing — which is
+       what check:engine-parity is there to catch. -->
+  <script src="/lib/engine-chrome-dock.client.js" defer></script>
   <script src="/client/automix-runtime.client.js" defer></script>
   <script src="/client/scenes-keyboard.client.js" defer></script>
   <!-- Act-driven clip cutting (L3 composition coupling). The 22 variant
