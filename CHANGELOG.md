@@ -214,6 +214,37 @@ once it hits 1.0.
   "Dune Plasma Lateral" and "Vapor Curl Counter" (2026-08-23) existed
   only on a dead branch. Their files are restored and the manifest is
   synced, so `preset-pipeline/verify.mjs` reports 74/74.
+- **The CI workflow published the SAME check-run context twice for one
+  commit, and its job timeout was too tight to survive a slow step.** Three
+  defects in `.github/workflows/ci.yml`:
+  1. The `push` trigger and the `pull_request` trigger both fire for a
+     branch that has an open PR, and both publish a check-run with the
+     **identical context name** (`check + verify + build-size`) for the same
+     SHA. GitHub matches a required status check by **context name**, so the
+     pair is ambiguous: the branch-protection ruleset on `main` (which
+     requires exactly that context) is decided by whichever twin finished
+     last. This predates the consolidation — `origin/main`'s
+     `push.branches-ignore: [main]` fires the push event for a non-`main`
+     branch too, and the 2026-11-03 SHA showed the same shape (push
+     **failure** alongside pull_request **success**). Measured on
+     2026-11-04: the PR-event run passed all 33 steps while its push-event
+     twin was cancelled — a green commit showing `UNSTABLE`, and a ruleset
+     would have blocked the merge. The trigger is now `push.branches:
+     [main]`, so there is exactly ONE run per commit (the PR run for a
+     branch, the push run once it lands on `main`), matching
+     `visual-correct.yml`. This also keeps the `main`-push gate the
+     production-readiness plan asks for ("CI runs on main and PRs"), which
+     dropping the trigger filter had been threatening to cost.
+  2. `timeout-minutes` was **45** (added by the consolidation), against a
+     chain that takes ~22m — not enough headroom for one slow step.
+  3. The ffmpeg install was **unbounded**. One run stalled **34m22s** in
+     `apt-get update` (against 51s on the twin PR run of the same commit)
+     and was then killed by the timeout with `check:full` never started — a
+     red CI that had proved nothing. The install is now bounded
+     (`timeout 120` on the update, `timeout 300` on the install), retried
+     three times, and repairs dpkg's lock between attempts so a killed
+     install cannot make every later attempt fail for the wrong reason. The
+     job ceiling is now **90 minutes**.
 - **The bench smoke's sampling-error margin was a fixed 4 ms, and the
   measurement it guards is phase-dependent.** The non-interpolated run
   presents the NEWEST sample, so its sampling error is the time since
