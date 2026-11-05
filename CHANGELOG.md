@@ -263,24 +263,33 @@ once it hits 1.0.
      install cannot make every later attempt fail for the wrong reason. The
      job ceiling is now **90 minutes**.
 - **The bench smoke's sampling-error margin was a fixed 4 ms, and the
-  measurement it guards is phase-dependent.** The non-interpolated run
-  presents the NEWEST sample, so its sampling error is the time since
-  the last fill — and that depends on where the render loop lands
-  relative to the fill timer. When the render rate matches the fill
-  rate the phase locks and every frame sees the SAME age: measured
-  **3.5 ms** on one CI runner and **9.7 ms** on another, with the fill
-  rate identical (60 Hz) in both. The fixed margin therefore failed a
-  runner where interpolation was working perfectly — the interpolated
-  run read **0.0 ms** in both cases. The margin is now scaled to the
-  host's own fill period (10% of one period — 1.7 ms at 60 Hz, floored
-  at 0.5 ms), measured from the step between consecutive buffer labels
-  rather than from pushes-per-wall-second: the lab's clock is rAF-paced
-  and catches up, so a slow render loop pushes a BURST of samples at
-  once (measured 4000 Hz on a laptop against the same 16.7 ms period).
-  The gate stays falsifiable — two neighbouring assertions pin the
-  interpolated run at the ideal label (<= 0.5 ms) and the
-  non-interpolated run above zero, and disabling interpolation fails
-  all three.
+  measurement it guards is phase-dependent.** Without interpolation the run
+  presents the NEWEST sample, so its sampling error is the age of that
+  sample — the time since the last fill. How old that is depends on where
+  the render loop lands relative to the fill timer. When the render rate
+  matches the fill rate the phase locks and every frame sees the SAME age:
+  measured **3.5 ms** on one CI runner, **9.7 ms** on another, and as little
+  as **1.4 ms** when the render lands just after a fill — with the fill
+  rate identical (60 Hz) in every case. The interpolated run read **0.0 ms**
+  throughout, so the difference was only ever as large as the phase
+  allowed, and **no fixed margin can work**: a 4 ms margin failed at 3.5 ms,
+  and scaling it to 10% of the period (1.7 ms) still failed at 1.4 ms.
+  The assertion now rests on a **deterministic sweep** of the buffer:
+  asked for a label deliberately *between* two buffered samples, the
+  non-interpolated path is off by that distance and the interpolated path
+  lands exactly on target — so the measured difference is half a period
+  (8.3 ms at 16.7 ms) whatever the render loop is doing. The sweep runs
+  again on the buffer the *lagged* runs leave behind, so the lagged pair is
+  measured on its own buffer. The run-based figures are still reported and
+  the neighbouring assertions still pin the run-based behaviour.
+  Falsifiability is unchanged and re-proved by mutation: disabling
+  interpolation fails **three** assertions (the clean sweep, the
+  ideal-label check and the lagged sweep). A second fix in the same gate:
+  the buffer-fill wait watched `pushes` while the assertion watched the
+  ring's length, and the suite clears the buffer at the start of a run, so
+  a wait that ended on the 10th push could meet a ring holding exactly 10
+  — and `10 > 10` is false. The wait now watches the same quantity the
+  assertion does.
 - `check:live-input` **sampled for the Live control instead of waiting for
   it**, so it reported a missing control whenever the media panel had not
   mounted yet. The panel is built by a deferred module which loads three

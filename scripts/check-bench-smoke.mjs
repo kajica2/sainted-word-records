@@ -325,7 +325,13 @@ try {
       () => {
         const b = window.SWRBench && window.SWRBench.buffer;
         if (!b || typeof window.__benchSmokeFill0 !== 'number') return false;
-        return b.pushes - window.__benchSmokeFill0 >= 10;
+        // The RING must hold more than 10 samples — the assertion below is
+        // about what the ring holds, so the wait has to be about the same
+        // quantity. Waiting on `pushes` instead let the two disagree: the
+        // suite clears the buffer at the start of a run, so a wait that
+        // ended on the 10th push could be met by a ring holding exactly 10
+        // (10 > 10 is false) while the count said 10.
+        return b.buf && b.buf.length > 10;
       },
       { timeout: 15000, polling: 50 },
     );
@@ -411,6 +417,52 @@ try {
     const lagOffCfg = Object.assign({}, noint.cfg, { injectAudioDrift: LAG });
     const RUN_MS = 3500;
     const out = { on: [], off: [], lagOn: [], lagOff: [], av: [] };
+
+    // ---- the DETERMINISTIC sweep ------------------------------------------
+    // The run-based sampling-error comparison below is phase-dependent (see
+    // the comment there), so this measures the SAME contract without
+    // depending on where the render loop happens to land.
+    //
+    // The contract is a property of the BUFFER, not of the render loop:
+    // asked for a label L, the non-interpolated path hands back the newest
+    // sample at or before L (so the error is L - sample.t), while the
+    // interpolated path blends the two samples that BRACKET L and places
+    // the result exactly on L (error 0). So for a label that sits
+    // deliberately BETWEEN two buffered samples, the non-interpolated error
+    // is a known fraction of the period and the interpolated error is
+    // exactly zero — whatever the render loop is doing.
+    //
+    // Sweep the label across the buffer and measure both paths at each
+    // point. This is the assertion's real subject: interpolation resolves
+    // the requested label; without it you get whatever was last buffered.
+    const sweep = () => {
+      const b = B.buffer;
+      const buf = b.buf || [];
+      if (buf.length < 4) return null;
+      // Pick labels halfway between consecutive samples: maximally far from
+      // either one, so the non-interpolated error is the largest it can be.
+      const points = [];
+      for (let i = 0; i + 1 < buf.length; i++) {
+        const a = buf[i], c = buf[i + 1];
+        if (!(c.t > a.t)) continue;
+        points.push((a.t + c.t) / 2);
+      }
+      if (!points.length) return null;
+      let offSum = 0, onSum = 0;
+      for (const L of points) {
+        const off = b.sampleAtLabel(L, false);
+        const on = b.sampleAtLabel(L, true);
+        offSum += Math.abs(off.quant || 0);
+        onSum += Math.abs(on.quant || 0);
+      }
+      return {
+        n: points.length,
+        offAvg: offSum / points.length,
+        onAvg: onSum / points.length,
+        periodMs: (buf[1].t - buf[0].t) * 1000,
+      };
+    };
+
     for (let i = 0; i < 3; i++) {
       const on = await B.runTest(reactive.name, reactive.cfg, RUN_MS);
       const off = await B.runTest(noint.name, noint.cfg, RUN_MS);
@@ -418,6 +470,9 @@ try {
       out.on.push({ q: on.metrics.quantAvg, d: on.metrics.driftAvg });
       out.off.push({ q: off.metrics.quantAvg, d: off.metrics.driftAvg });
     }
+    // The sweep runs on the buffer as the suite left it.
+    out.sweep = sweep();
+
     for (let i = 0; i < 2; i++) {
       const lOn = await B.runTest(lagged.name, lagged.cfg, RUN_MS);
       const lOff = await B.runTest(noint.name, lagOffCfg, RUN_MS);
@@ -425,6 +480,10 @@ try {
       out.lagOn.push({ q: lOn.metrics.quantAvg, d: lOn.metrics.driftAvg });
       out.lagOff.push({ q: lOff.metrics.quantAvg, d: lOff.metrics.driftAvg });
     }
+    // And again, on the buffer as the LAGGED runs left it, so the lagged
+    // pair is measured on its own buffer rather than reusing the clean
+    // sweep.
+    out.sweepLag = sweep();
     return out;
   });
   if (!model || model.fail) {
@@ -465,35 +524,44 @@ try {
 
     // B) interpolation moves the sampling error, never the clock offset
     //
-    // The margin is a FRACTION OF THE FILL PERIOD, not a fixed number of
-    // milliseconds. Without interpolation the run presents the NEWEST
-    // sample, so its sampling error is the age of that sample — which is
-    // the time since the last fill. How old that is depends on where the
-    // render loop lands relative to the fill timer:
+    // The run-based comparison below is phase-dependent: without
+    // interpolation the run presents the NEWEST sample, so its sampling
+    // error is the age of that sample — the time since the last fill. How
+    // old that is depends on where the render loop lands relative to the
+    // fill timer:
     //
     //   * when the render rate and the fill rate differ, the phase beats
-    //     and the staleness averages half a period (measured: 9.7 ms at
-    //     a 60 Hz fill, 16.7 ms period);
+    //     and the staleness averages about half a period;
     //   * when they MATCH, the phase locks and every frame sees the SAME
-    //     age (measured: 3.5 ms at the same 60 Hz fill).
+    //     age (measured 3.5 ms on one runner, 9.7 ms on another, and as
+    //     little as 1.4 ms when the render lands just after a fill).
     //
-    // A fixed 4 ms margin therefore fails on a phase-locked runner even
-    // though interpolation is working perfectly — the interpolated run
-    // read 0.0 ms in both cases. Scale the margin to the period the host
-    // can actually deliver: 10% of one fill period (1.67 ms at the 60 Hz
-    // the lab targets), floored at the lab's own sub-ms resolution.
+    // So the run-based DIFFERENCE is only as large as the phase allows, and
+    // no fixed margin can work: it legitimately approaches zero when the
+    // render loop happens to land right after a fill. Scaling the margin to
+    // the period (10% = 1.7 ms) still failed on a run that read 1.4 ms.
     //
-    // This stays falsifiable. The separate assertion below pins the
-    // interpolated run at the IDEAL label (<= 0.5 ms), and the one after
-    // it pins the non-interpolated run ABOVE zero — so a regression that
-    // stopped interpolation from working would fail those, and would
-    // collapse this difference to ~0 as well.
-    const periodMs = fillPeriodMs > 0 ? fillPeriodMs : (fillRateHz > 0 ? 1000 / fillRateHz : 16.7);
-    const quantMarginMs = Math.max(0.5, periodMs * 0.1);
-    if (offQ - onQ >= quantMarginMs) {
-      ok('interpolation lowers the sampling error', f1(onQ) + ' vs ' + f1(offQ) + 'ms (medians, margin ' + f1(quantMarginMs) + 'ms = 10% of the ' + f1(periodMs) + 'ms fill period)');
+    // The ASSERTION therefore rests on the deterministic sweep, which
+    // measures the same contract without the phase: asked for a label
+    // BETWEEN two buffered samples, the non-interpolated path is off by
+    // that distance and the interpolated path is exactly on target. It
+    // cannot be near zero by luck — a label between two samples is as far
+    // from the non-interpolated answer as it can be.
+    //
+    // The run-based figures are still reported, and the two neighbouring
+    // assertions still pin the run-based behaviour (the interpolated run
+    // presents the ideal label, the non-interpolated one presents the
+    // newest sample). So the sweep REPLACES the phase-sensitive margin
+    // rather than the measurement.
+    const sw = model.sweep;
+    const periodMs = fillPeriodMs > 0 ? fillPeriodMs : (sw && sw.periodMs > 0 ? sw.periodMs : (fillRateHz > 0 ? 1000 / fillRateHz : 16.7));
+    if (sw && sw.n >= 3 && sw.onAvg <= 0.001 && sw.offAvg >= periodMs * 0.4) {
+      ok('interpolation lowers the sampling error',
+        f1(sw.onAvg) + ' vs ' + f1(sw.offAvg) + 'ms over ' + sw.n + ' labels between samples (period ' + f1(periodMs) + 'ms); runs read ' + f1(onQ) + ' vs ' + f1(offQ) + 'ms');
     } else {
-      bad('interpolation lowers the sampling error', f1(onQ) + ' vs ' + f1(offQ) + 'ms (need ≥' + f1(quantMarginMs) + 'ms = 10% of the ' + f1(periodMs) + 'ms fill period)');
+      bad('interpolation lowers the sampling error',
+        sw ? (f1(sw.onAvg) + ' vs ' + f1(sw.offAvg) + 'ms over ' + sw.n + ' labels between samples (period ' + f1(periodMs) + 'ms); runs read ' + f1(onQ) + ' vs ' + f1(offQ) + 'ms')
+        : 'the sweep found no labels between buffered samples');
     }
     if (onQ <= 0.5) ok('the interpolated run presents the ideal label (sampling error ~0)', f1(onQ) + 'ms');
     else bad('the interpolated run presents the ideal label (sampling error ~0)', f1(onQ) + 'ms');
@@ -505,10 +573,19 @@ try {
     else bad('the non-interpolated run presents the newest sample (sampling error within one audio period)', f1(offQ) + 'ms');
     if (Math.abs(lagOnD - lagOffD) < 1) ok('interpolation does not move the clock offset', 'both lagged runs read ' + f1(lagOnD) + 'ms');
     else bad('interpolation does not move the clock offset', f1(lagOnD) + ' vs ' + f1(lagOffD) + 'ms');
-    if (lagOffQ - lagOnQ >= quantMarginMs) {
-      ok('interpolation lowers the sampling error even with the lag injected', f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms (margin ' + f1(quantMarginMs) + 'ms)');
+    const swLag = model.sweepLag;
+    if (swLag && swLag.n >= 3 && swLag.onAvg <= 0.001 && swLag.offAvg >= periodMs * 0.4) {
+      // The lag moves the CLOCK, not the buffer's labelling, so the sweep's
+      // verdict holds for the lagged pair too — and it is measured on the
+      // buffer the LAGGED runs left behind. The lagged runs are compared on
+      // the CLOCK offset above (a differential against the injected lag),
+      // which is the property the lag is supposed to move.
+      ok('interpolation lowers the sampling error even with the lag injected',
+        f1(swLag.onAvg) + ' vs ' + f1(swLag.offAvg) + 'ms over ' + swLag.n + ' labels between samples; lagged runs read ' + f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms');
     } else {
-      bad('interpolation lowers the sampling error even with the lag injected', f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms (need ≥' + f1(quantMarginMs) + 'ms)');
+      bad('interpolation lowers the sampling error even with the lag injected',
+        swLag ? (f1(swLag.onAvg) + ' vs ' + f1(swLag.offAvg) + 'ms over ' + swLag.n + ' labels between samples; lagged runs read ' + f1(lagOnQ) + ' vs ' + f1(lagOffQ) + 'ms')
+        : 'the lagged sweep found no labels between buffered samples');
     }
   }
 
