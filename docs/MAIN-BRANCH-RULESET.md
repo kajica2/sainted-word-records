@@ -62,11 +62,45 @@ A branch ruleset closes both.
 ### Require a pull request before merging
 | Setting | Value | Why |
 |---|---|---|
-| Required approvals | **1** | one human review; the repo has no CODEOWNERS file |
+| Required approvals | **0** | **this repository has ONE collaborator**, and GitHub refuses a self-approval outright (*"Review Can not approve your own pull request"*) — so a required approval could never be satisfied and the ruleset would wedge `main` permanently. See §2b. |
 | Dismiss stale approvals when a new commit is pushed | **on** | an approval must be for the code that merges |
-| Require approval from the most recent pusher | **on** | stops the author approving their own PR |
+| Require approval from the most recent pusher | **off** | moot at 0 approvals, and it is the setting that makes the wedge worst — it bars the only person who could approve |
 | Require conversation resolution | **on** | no unresolved threads at merge time |
-| Allowed merge methods | **Merge** and **Squash** | the history contains merge commits (`Merge branch 'cursor/…'`) and squash merges (`feat(neon): … (#266)`) |
+| Allowed merge methods | **Squash** and **Rebase** | `required_linear_history` forbids a merge commit, so "Merge" is unreachable however the list reads. The history contains merge commits (`Merge branch 'cursor/…'`) and squash merges (`feat(neon): … (#266)`); the linear-history rule means new merges must be squash or rebase. |
+
+> **Two of these values contradict each other in the UI.** "Require linear
+> history" disables the *Create a merge commit* button outright, so leaving
+> "Merge" in the allowed list does not make merge commits available — it
+> only makes the list look inconsistent. Pick **Squash and Rebase**.
+
+### 2b. The one-collaborator problem (read this before setting approvals)
+
+This repository has **exactly one** collaborator with push access, and every
+branch commit is pushed as that account. GitHub **refuses a self-approval**
+at the API level:
+
+```
+GraphQL: Review Can not approve your own pull request (addPullRequestReview)
+```
+
+So a ruleset that asks for **1 approving review** can never be satisfied here.
+It does not fail loudly and it does not wait — the PR simply sits at
+`mergeStateStatus=BLOCKED`, `reviewDecision=REVIEW_REQUIRED`, forever. That
+was measured on PR #276: a **green** required check, and still unmergeable.
+
+`require_last_push_approval: true` makes it strictly worse: it bars the one
+person who could have approved.
+
+**For a solo operator the working shape is `required_approving_review_count:
+0`.** The real gate is then the status check: every change arrives through a
+pull request, and `check + verify + build-size` must be green on it. What is
+lost is the "a second human must look at this" property — which was never
+available here anyway.
+
+**If a second collaborator is ever added**, put the count back to 1 (and
+`require_last_push_approval` back to on). The ruleset can be edited in place:
+the `rules` array is replaced wholesale on update, so a PUT must carry every
+rule, not just the one being changed.
 
 ### Require status checks to pass
 | Setting | Value |
@@ -106,10 +140,11 @@ For an admin who would rather script it:
       "parameters": {
         "dismiss_stale_reviews_on_push": true,
         "require_code_owner_review": false,
-        "require_last_push_approval": true,
-        "required_approving_review_count": 1,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 0,
         "required_review_thread_resolution": true,
-        "allowed_merge_methods": ["merge", "squash"]
+        "require_extra_approval_for_unattributed_changes": true,
+        "allowed_merge_methods": ["squash", "rebase"]
       }
     },
     {
@@ -129,8 +164,13 @@ For an admin who would rather script it:
 > **The parameter is `strict_required_status_checks_policy`.** The shorter
 > `strict_required_status_checks` is **rejected** by the API with
 > `422 — Invalid property /rules/2: data matches no possible input`. The
-> payload above is the one that was applied to this repository on
-> 2026-11-05 (ruleset `26608109`).
+> payload above is the one that is applied to this repository (ruleset
+> `26608109`) as of 2026-11-05.
+>
+> **`required_approving_review_count` is 0, not 1, on purpose.** See §2b: this
+> repository has one collaborator, GitHub refuses a self-approval, and a
+> required approval would leave `main` permanently unmergeable. The status
+> check is the gate.
 
 ```bash
 gh api --method POST repos/kajica2/sainted-word-records/rulesets \
@@ -160,11 +200,32 @@ answered `current_user_can_bypass: never` — **nobody, including the repository
 owner, can push around it**; the only way through is the audited "break" the
 ruleset action in the UI.
 
+### The first application wedged `main`, and why
+
+The ruleset in §3 was **applied to this repository on 2026-11-05** (ruleset
+`26608109`, enforcement `active`, target `main`, bypass list empty). The API
+answered `current_user_can_bypass: never` — **nobody, including the repository
+owner, can push around it**; the only way through is the audited "break" the
+ruleset action in the UI.
+
 Applying it needed one correction to the payload above (§3): the API rejects
 `strict_required_status_checks` and requires
 `strict_required_status_checks_policy`. The ruleset was created without the
 status-check rule, then updated with it — the update is a full replacement of
-the `rules` array, so both rules must be in it.
+the `rules` array, so all three rules must be in it.
+
+**The payload as first written also wedged `main`, and that was not obvious.**
+It asked for **1 approving review** with `require_last_push_approval: true`.
+This repository has one collaborator, and GitHub refuses a self-approval, so
+the review could never be satisfied: every PR sat at
+`mergeStateStatus=BLOCKED` with `reviewDecision=REVIEW_REQUIRED` while its
+required check sat **green**. The ruleset was not "waiting for a review" — it
+was waiting for a person who does not exist.
+
+The fix is in §2b: `required_approving_review_count: 0` and
+`require_last_push_approval: false`. The ruleset was edited in place (the
+`rules` array is replaced wholesale, so the PUT carried all three rules). The
+status check remains the gate.
 
 ### What was verified, and what was not
 
@@ -173,7 +234,7 @@ the `rules` array, so both rules must be in it.
 | §4.1 the ruleset is live and active | **verified** — `GET /rulesets/26608109` → `enforcement: active`, `bypass_actors: []`, `current_user_can_bypass: never`; `GET /rules/branches/main` returns all three rules as applying to `main` |
 | §4.2 a direct push is refused | **verified, without touching `main`** — `PATCH /git/refs/heads/main` with the branch's **current** sha (a no-op update, so the ref could not change) → **`422 Repository rule violations found — Changes must be made through a pull request`** |
 | §4.3 the required context is the check that runs | **verified** — `gh pr checks` reports the context as `check + verify + build-size`, exactly as configured (not `CI / check + verify + build-size`) |
-| §4.4 a red or missing check blocks the merge | **verified** — PR #276 has a **green** required check and is still `mergeStateStatus=BLOCKED`, `reviewDecision=REVIEW_REQUIRED` with 0 approvals: the review gate holds it |
+| §4.4 a red or missing check blocks the merge | **verified** — PR #276 has a **green** required check and was still `mergeStateStatus=BLOCKED` while the approval count was 1: the review gate held it. After the count went to 0 the PR merged on its green check, which is the intended behaviour for a one-collaborator repository |
 | §4.5 the workflow runs where it should | **verified** — the CI run on the merge commit `60cb1722` is green, and `main` pushes now trigger the workflow |
 
 **§4.2 was deliberately probed with a no-op rather than a real commit.** A
@@ -193,8 +254,15 @@ gh api repos/kajica2/sainted-word-records/branches/main/protection \
 ```
 
 Expect: `enforcement: active`, a `pull_request` rule with
-`required_approving_review_count: 1`, and a `required_status_checks` entry whose
-`context` is exactly `check + verify + build-size`.
+`required_approving_review_count: 0` and `require_last_push_approval: false`
+(see §2b), and a `required_status_checks` entry whose `context` is exactly
+`check + verify + build-size`.
+
+> The `branches/main/protection` endpoint reports the **legacy** branch
+> protection API, which a ruleset does not populate — it will show
+> `enabled: false` and empty `required_status_checks` even though the
+> ruleset is live and active. That is not a failure; read the ruleset
+> endpoint instead.
 
 ### 4.2 A direct push is refused
 
@@ -219,9 +287,13 @@ context to the job name.
 ### 4.4 A red check blocks the merge
 
 Open a PR whose CI fails and try to merge. GitHub must refuse with
-*"At least 1 approving review is required"* or *"Required status check
-`check + verify + build-size` is expected"*. A merge button that is merely
-greyed out for the wrong reason is not a verification — read the message.
+*"Required status check `check + verify + build-size` is expected"*. A merge
+button that is merely greyed out for the wrong reason is not a verification —
+read the message.
+
+> With `required_approving_review_count: 0` the **only** refusal message you
+> should see is the status-check one. If the message says *"At least 1
+> approving review is required"*, the approval count is still 1 — see §2b.
 
 ### 4.5 The workflow still runs where it should
 
@@ -258,6 +330,11 @@ trigger to `push.branches: [main]`.
   reconciliation needs a cross-version test matrix first.
 - It does not replace the `check:full` gate itself. It makes the gate
   **mandatory** instead of advisory.
+- **It does not give a solo repository a second pair of eyes.** With
+  `required_approving_review_count: 0` the guarantee is *"every change to
+  `main` passed the full suite on a pull request"* — not *"a human read it
+  first"*. That second property needs a second collaborator (§2b); it cannot
+  be configured into existence.
 
 ---
 
