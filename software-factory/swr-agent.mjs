@@ -974,19 +974,14 @@ async function cmdChat(args) {
 
     if (!refusal) {
       const rl = readline({ input: process.stdin, output: process.stdout, prompt: '> ' });
-      // prompt() on a CLOSED interface is an error in Node 26
-      // (ERR_USE_AFTER_CLOSE); in Node 22 it was a silent no-op. The
-      // interface closes itself when stdin reaches EOF, and that can happen
-      // while a turn is still in flight — the piped input "/exit" ends the
-      // stream before the turn comes back — so every prompt is guarded.
-      // `rl.closed` is undefined while open and true once closed, on both
-      // runtimes.
-      const prompt = () => { if (!rl.closed) rl.prompt(); };
-      prompt();
+      rl.prompt();
       for await (const line of rl) {
         const trimmed = line.trim();
         if (!trimmed) {
-          prompt();
+          // The async iterator closes the interface when the input ends, so
+          // the prompt has to be checked: prompting a closed readline is
+          // ERR_USE_AFTER_CLOSE, and it takes the whole chat down with it.
+          if (!rl.closed) rl.prompt();
           continue;
         }
         if (trimmed === '/exit' || trimmed === '/quit') break;
@@ -1031,7 +1026,7 @@ async function cmdChat(args) {
           history.push({ role: 'tool', content: results });
         }
         if (refusal) break;
-        prompt();
+        if (!rl.closed) rl.prompt();
       }
       rl.close();
     }
