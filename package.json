@@ -280,6 +280,8 @@
     "check:generations": "node scripts/check-generations.mjs",
     "check:neon-v2-phase1": "node scripts/check-neon-v2-phase1.mjs",
     "check:neon-audio-v3": "node scripts/check-neon-audio-v3.mjs",
+    "check:root-neon-sync": "node scripts/sync-root-neon.mjs --check",
+    "neon:sync": "node scripts/sync-root-neon.mjs",
     "prebuild": "node scripts/media-inventory.mjs && node scripts/generate-generations.mjs",
     "check:chain-view": "node scripts/check-chain-view.mjs",
     "check:command-center": "node scripts/check-command-center.mjs"
