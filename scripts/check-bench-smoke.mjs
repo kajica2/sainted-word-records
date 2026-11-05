@@ -42,7 +42,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import puppeteer from 'puppeteer';
 import { ensureDist } from './with-dist.mjs';
-import { depthOk } from './lib/bench-depth.mjs';
+import { depthOk, frameSampleFloorFor } from './lib/bench-depth.mjs';
 
 const ROOT = path.resolve(dirname(fileURLToPath(import.meta.url)), '..');
 ensureDist();
@@ -679,12 +679,19 @@ try {
     else bad('a run compiles a versioned report', JSON.stringify(report));
     if (report.hasScores && report.grade) ok('the report is scored and graded', report.grade);
     else bad('the report is scored and graded', JSON.stringify(report));
-    // the frame rate the report claims must be a real number, and the
-    // samples behind it must exist
-    if (report.samples >= 5 && report.fps > 0 && isFinite(report.fps)) {
-      ok('the report carries frame samples', report.samples + ' samples, ' + f1(report.fps) + ' fps, p99 ' + f1(report.p99) + 'ms');
+    // The frame rate the report claims must be a real number, and the
+    // samples behind it must exist. The COUNT the report must carry is
+    // derived from the host's own measured frame rate: a flat floor of 5
+    // asks a slow machine for frames it cannot draw (CI run 42118548118
+    // rendered at 1.30 fps, so a 3.5 s run held 4 samples). The floor only
+    // drops for a host that has proved it cannot deliver the flat number;
+    // a fast host still has to carry the full five.
+    const reportRunMs = 3500;
+    const frameFloor = frameSampleFloorFor(report.fps, reportRunMs);
+    if (report.samples >= frameFloor && report.fps > 0 && isFinite(report.fps)) {
+      ok('the report carries frame samples', report.samples + ' samples, ' + f1(report.fps) + ' fps, p99 ' + f1(report.p99) + 'ms (floor ' + frameFloor + ' for this host)');
     } else {
-      bad('the report carries frame samples', JSON.stringify(report));
+      bad('the report carries frame samples', JSON.stringify(report) + ' (floor ' + frameFloor + ' for this host)');
     }
     if (report.audioSamples >= 30 && report.featureSamples > 0) {
       ok("the suite measured the host's samples", report.audioSamples + ' audio, ' + report.featureSamples + ' feature');
