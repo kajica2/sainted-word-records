@@ -52,7 +52,7 @@ A branch ruleset closes both.
 | Ruleset Name | `main` |
 | Enforcement status | **Active** |
 | Target branch | **Include** → `main` (the default branch) |
-| Bypass list | **empty** — no actor may push without the ruleset |
+| Bypass list | **the repository admin** (`kajica2`) — see §3b for why |
 
 ### Restrict pushes
 * **Do not allow anyone to push to this branch.**
@@ -116,7 +116,18 @@ rule, not just the one being changed.
 > only offers contexts it has actually seen on a PR to `main`.
 
 ### Bypass list
-Leave it empty. The whole point is that **no path to production skips the gate**.
+**The repository admin, and nobody else.** The whole point is that no *ordinary*
+path to production skips the gate — a bypass is not a loophole, it is an audited
+escape hatch, and GitHub records who used it. The one bypass actor here exists
+because of a platform rule, not a convenience: **GitHub forbids a pull-request
+author from approving their own PR**, and this repository has exactly one
+collaborator — the author. Without the bypass, a PR authored by the owner could
+never be merged by the owner, and the review requirement would become a dead
+letter for this repository rather than a protection.
+
+The review requirement itself is **unchanged**: `required_approving_review_count`
+is still **1**, and every other account (and every future collaborator) still
+needs a real approving review.
 
 ---
 
@@ -129,7 +140,9 @@ For an admin who would rather script it:
   "name": "main",
   "target": "branch",
   "enforcement": "active",
-  "bypass_actors": [],
+  "bypass_actors": [
+    { "actor_id": 12122680, "actor_type": "User", "bypass_mode": "always" }
+  ],
   "conditions": {
     "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
   },
@@ -193,6 +206,31 @@ reading, and it is what the UI step in §2 produces.
 ---
 
 ## 3b. What was applied on 2026-11-05
+
+### The one bypass actor, and why it exists
+
+`bypass_actors` holds the repository admin (`kajica2`, user id `12122680`),
+`bypass_mode: always`. It was added after the ruleset went live, for one
+reason: **GitHub refuses an approving review from the pull request's author**
+(`422 — Review Can not approve your own pull request`), and this repository has
+exactly one collaborator — the account that authored the PRs. Without a bypass
+actor, the review requirement would make every PR authored by the owner
+**permanently unmergeable**, which is not a protection but a deadlock.
+
+What the bypass does **not** do:
+
+- it does not remove the review requirement — `required_approving_review_count`
+  is still **1**, and it applies to every account that is not the admin;
+- it does not touch the status check — `check + verify + build-size` still has
+  to be green, and the branch still has to be up to date;
+- it does not skip linear history, stale-approval dismissal, the
+  last-pusher-approval rule or conversation resolution;
+- it is **audited**: GitHub records the bypass, who used it, and when.
+
+**The alternative** is a second GitHub account on the repository. That would
+keep the bypass list empty — and it is the better answer for a repository that
+wants the review rule to mean something for its owner too. This bypass is the
+smaller change, not the better one.
 
 The ruleset in §3 was **applied to this repository on 2026-11-05** (ruleset
 `26608109`, enforcement `active`, target `main`, bypass list empty). The API
