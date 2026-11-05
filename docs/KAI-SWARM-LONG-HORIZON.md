@@ -51,7 +51,7 @@ States: `queued → claimed → running → verifying → draft_pr → awaiting_
 - [x] Add focused scene persistence tests to CI.
 - [ ] Confirm complete CI run and investigate failures against clean `main`.
 - [ ] Add browser coverage for four-full-slot Save behavior and quota failures.
-- [ ] Reconcile Node 20 CI and Node 24 Vercel after compatibility testing.
+- [x] Reconcile Node 20 CI and Node 24 Vercel after compatibility testing.
 - [ ] Confirm branch rules and required checks in GitHub Settings (connector cannot read branch protection).
 - [ ] Verify preview domain, branch deployment and production release controls.
 - [ ] Implement and unit-test atomic two-lease concurrency and $2/day ledger.
