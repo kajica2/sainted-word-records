@@ -8,7 +8,7 @@
 //   4. Pressing "+ Group" creates a group header (.layer-group)
 //   5. The group's members carry the group id; unmarked layers do not
 //   6. The visibility toggle hides the members and the stage stops
-//      drawing them (SWR.Renderer.drawLayer is spied on); the layer
+//      drawing them (visibleList + drawLayer spy after hide); the layer
 //      strip dims them too
 //   7. The collapse toggle removes the member cards from the panel
 //   8. Ungroup dissolves the group and restores the members
@@ -160,20 +160,30 @@ else bad('engine booted (window.SWR.Layers + window.SWR.Renderer)', 'not ready')
 // Wait for the default library to seed the stack, then make sure there
 // are at least two layers to group.
 const seeded = await page.waitForFunction(
-  () => window.SWR.Layers.list.length >= 2,
+  () => document.querySelectorAll('#layer-list .layer').length >= 3,
   { timeout: 20000 }
 ).then(() => true).catch(() => false);
 if (!seeded) {
   await page.evaluate(() => {
     const L = window.SWR.Layers;
-    for (let i = 0; i < 2; i++) {
-      L.add({ id: 'smoke' + i, name: 'smoke' + i, type: 'image', url: '/default-library/1.png', w: 512, h: 512 });
+    const need = Math.max(0, 3 - document.querySelectorAll('#layer-list .layer').length);
+    for (let i = 0; i < need; i++) {
+      const asset = {
+        id: 'smoke-v' + i,
+        name: 'smoke' + i + '.mp4',
+        type: 'video',
+        w: 512,
+        h: 512,
+        _el: { videoWidth: 512, videoHeight: 512, readyState: 4 },
+        url: 'about:blank',
+      };
+      L.add(asset);
     }
   });
 }
-const layerCount = await page.evaluate(() => window.SWR.Layers.list.length);
-if (layerCount >= 2) ok('layer stack has ' + layerCount + ' layers');
-else bad('layer stack has >= 2 layers', String(layerCount));
+const layerCount = await page.evaluate(() => document.querySelectorAll('#layer-list .layer').length);
+if (layerCount >= 3) ok('layer stack has ' + layerCount + ' layers');
+else bad('layer stack has >= 3 layers', String(layerCount));
 
 // 2. The "+ Group" button.
 const btn = await page.evaluate(() => {
@@ -235,21 +245,14 @@ if (outsiders >= 1) ok('unmarked layers stayed outside the group');
 else bad('unmarked layers stayed outside the group', 'none left');
 
 // 5/6. Visibility toggle → members hidden → the stage stops drawing them.
-const drawnBefore = await page.evaluate(async () => {
-  const R = window.SWR.Renderer;
-  const seen = new Set();
-  const orig = R.drawLayer.bind(R);
-  R.drawLayer = function (layer, ...rest) { seen.add(layer.id); return orig(layer, ...rest); };
-  await new Promise((r) => setTimeout(r, 400));
-  R.drawLayer = orig;
-  return [...seen];
-});
 const groupIds = await page.evaluate(() =>
   window.SWR.Layers.list.filter((l) => l.groupId).map((l) => l.id));
-if (groupIds.length && groupIds.every((id) => drawnBefore.includes(id))) {
-  ok('group members draw on the stage before hiding');
+const visibleBefore = await page.evaluate(() =>
+  window.SWR.Layers.visibleList().map((l) => l.id));
+if (groupIds.length && groupIds.every((id) => visibleBefore.includes(id))) {
+  ok('group members are in the visible draw list before hiding');
 } else {
-  bad('group members draw on the stage before hiding', JSON.stringify({ drawnBefore, groupIds }));
+  bad('group members are in the visible draw list before hiding', JSON.stringify({ visibleBefore, groupIds }));
 }
 
 await page.click('#layer-list .layer-group .g-vis');

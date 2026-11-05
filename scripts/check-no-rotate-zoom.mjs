@@ -5,7 +5,6 @@ import vm from 'node:vm';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const KILL = path.join(ROOT, 'lib/motion-kill-switch.client.js');
@@ -143,13 +142,32 @@ for (const f of versionHtml) {
 }
 
 console.log('no-rotate-zoom: script load order on engine surfaces');
-let htmlFiles = [];
-try {
-  htmlFiles = execFileSync('rg', ['-l', '--glob', '*.html', 'apply-reactors\\.js', path.join(ROOT, 'engine.html'), VERSIONS_DIR], { encoding: 'utf8' })
-    .trim().split('\n').filter(Boolean);
-} catch {
-  htmlFiles = [];
+// Walk the tree in Node instead of shelling out to `rg`. The CI runner does
+// not install ripgrep, and the old `catch {}` turned that exec failure into
+// an EMPTY list — so the gate reported "found HTML surfaces with
+// apply-reactors (count=0)" and failed for a missing TOOL rather than for a
+// missing script tag. A gate that cannot run must fail loudly, not silently
+// degrade into a false positive. (An intermediate version kept `rg` as the
+// primary path and this walk as the fallback — which still left the gate
+// depending on a binary the runner does not have.)
+function findHtmlWithApplyReactors() {
+  const hits = [];
+  const scanDir = (dir) => {
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) scanDir(full);
+      else if (ent.isFile() && ent.name.endsWith('.html') && fs.readFileSync(full, 'utf8').includes('apply-reactors.js')) {
+        hits.push(full);
+      }
+    }
+  };
+  const engine = path.join(ROOT, 'engine.html');
+  if (fs.existsSync(engine) && fs.readFileSync(engine, 'utf8').includes('apply-reactors.js')) hits.push(engine);
+  if (fs.existsSync(VERSIONS_DIR)) scanDir(VERSIONS_DIR);
+  return [...new Set(hits)].sort();
 }
+
+const htmlFiles = findHtmlWithApplyReactors();
 check(htmlFiles.length >= 15, 'found HTML surfaces with apply-reactors', 'count=' + htmlFiles.length);
 for (const f of htmlFiles) {
   const rel = path.relative(ROOT, f);

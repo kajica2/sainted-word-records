@@ -348,10 +348,22 @@ async function settle(page, quietMs = 2500, timeout = 60000) {
         return { full, half, none, open, edge, withoutComp, withComp, tube, modern, analog, bypassed };
       });
 
-      check(Math.abs(behaviour.full - 1.5) < 1e-6,
-        'E1 at character 10 the scale reactor adds its full 0.5', `scale=${behaviour.full}`);
-      check(Math.abs(behaviour.half - 1.25) < 1e-6,
-        'E2 at character 5 it adds half', `scale=${behaviour.half}`);
+      const zoomOn = await page.evaluate(() => !(
+        window.SWR_MOTION_KILL
+        && typeof window.SWR_MOTION_KILL.isZoomGloballyEnabled === 'function'
+        && !window.SWR_MOTION_KILL.isZoomGloballyEnabled()
+      ));
+      if (zoomOn) {
+        check(Math.abs(behaviour.full - 1.5) < 1e-6,
+          'E1 at character 10 the scale reactor adds its full 0.5', `scale=${behaviour.full}`);
+        check(Math.abs(behaviour.half - 1.25) < 1e-6,
+          'E2 at character 5 it adds half', `scale=${behaviour.half}`);
+      } else {
+        check(Math.abs(behaviour.full - 1.0) < 1e-6,
+          'E1 with zoom kill-switch OFF the scale reactor is inert at character 10', `scale=${behaviour.full}`);
+        check(Math.abs(behaviour.half - 1.0) < 1e-6,
+          'E2 with zoom kill-switch OFF the scale reactor is inert at character 5', `scale=${behaviour.half}`);
+      }
       check(Math.abs(behaviour.none - 1.0) < 1e-6,
         'E3 at character 0 it adds nothing', `scale=${behaviour.none}`);
       check(Math.abs(behaviour.open - behaviour.edge) < 1e-6,

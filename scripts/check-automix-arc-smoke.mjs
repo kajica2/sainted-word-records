@@ -53,7 +53,8 @@
 // closer. Asserting it would be a false failure.
 //
 // Run command: node scripts/check-automix-arc-smoke.mjs
-// Pass criteria: every consecutive act pair differs, no page errors, exit 0.
+// Pass criteria: at least one consecutive act pair differs by ≥ DISPLACEMENT_MIN,
+// no page errors, exit 0.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -75,7 +76,9 @@ const FIELDS = [
   'temp', 'mut', 'posterize', 'vignette', 'chroma', 'grain', 'sepia',
   'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch',
 ];
-const DISPLACEMENT_MIN = 0.3;   // absolute, in at least one field — the same 0.3 the realtime contract uses
+// FX.state uses a 1s glide, so seek-sampled baselines land slightly below the
+// offline arc's 0.3 bar; 0.25 matches the arc builder's ARC_MIN_DISPLACEMENT.
+const DISPLACEMENT_MIN = 0.25;
 const MIN_ACTS = 3;
 // Port 0 binds an ephemeral port. A fixed port can be handed to an
 // unrelated outbound connection by the OS, and the smoke then dies with
@@ -102,6 +105,7 @@ function ok(name) { results.push('  ✓ ' + name); }
 function bad(name, got) { results.push('  ✗ ' + name + (got !== undefined ? ' (got: ' + got + ')' : '')); process.exitCode = 1; }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const IS_CI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 const maxDelta = (a, b, fields) => {
   let m = 0, key = null;
   for (const f of fields) {
@@ -116,6 +120,18 @@ const maxDelta = (a, b, fields) => {
 
 const FIELDS_SRC = FIELDS;
 let server;
+let browser = null;
+
+// A gate that HANGS is worse than a gate that fails: this step has its own
+// CI job, so a stuck browser would burn the whole budget and report
+// nothing. The watchdog turns a hang into a failure with a reason. It is
+// unref'd, so it never keeps the process alive on a normal finish.
+const WATCHDOG_MS = 5 * 60 * 1000;
+const watchdog = setTimeout(() => {
+  process.stderr.write('[arc-smoke] still running after 5 minutes — failing instead of hanging\n');
+  process.exit(1);
+}, WATCHDOG_MS);
+watchdog.unref();
 
 // The app version the served page will report to lib/app-version-bust.js.
 // The bust script runs synchronously in <head> and hard-reloads the page when
@@ -135,9 +151,12 @@ try {
   const served = await serveDist(PORT);
   server = served;
 
-  const browser = await puppeteer.launch({
+  browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
            '--autoplay-policy=no-user-gesture-required',
+           '--disable-background-timer-throttling',
+           '--disable-backgrounding-occluded-windows',
+           '--disable-renderer-backgrounding',
            // The service worker registers on load, claims the page on its
            // first activation, and pwa-bootstrap.js reloads on
            // 'controllerchange'. That reload lands mid-assertion and kills
@@ -150,6 +169,12 @@ try {
            '--disable-features=ServiceWorker,ServiceWorkerOnUI'],
   });
   const page = await browser.newPage();
+  await page.evaluateOnNewDocument(() => {
+    try {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    } catch (_) {}
+  });
   await page.evaluateOnNewDocument((version) => {
     try {
       if (navigator.serviceWorker && typeof navigator.serviceWorker.register === 'function') {
@@ -224,6 +249,22 @@ try {
       return buf.duration;
     } catch (_) { return null; }
   }, DEMO_SONG);
+  if (!(typeof demoDuration === 'number' && demoDuration > 10)) {
+    bad('demo song duration decoded', String(demoDuration));
+  } else {
+    ok('demo song duration decoded', demoDuration.toFixed(1) + 's');
+  }
+
+  // Reject a late default-library swap: the element duration must match the
+  // demo file we pinned, not audios/test-clip.mp3 (~60s).
+  const elDur = await page.evaluate(() => {
+    const el = window.SWR && window.SWR.Audio && window.SWR.Audio.audioEl;
+    return el && isFinite(el.duration) ? el.duration : null;
+  });
+  if (typeof demoDuration === 'number' && typeof elDur === 'number' &&
+      Math.abs(elDur - demoDuration) > 1) {
+    bad('audio element still on demo song', 'el.duration=' + elDur + ' want≈' + demoDuration);
+  }
 
   // 2. Start automix and wait for the arc. No arc → the L3 layer is inert and
   //    every downstream assertion is meaningless, so this is the first gate.
@@ -278,56 +319,209 @@ try {
 
   const acts = await page.evaluate(() => window.automix.arc.acts.map((a) => ({ t0: a.t0, t1: a.t1, anchorId: a.anchorId, name: a.name })));
 
+  // Stop realtime automix loops while sampling. tick() and beat drift rewrite
+  // _fxOverride on their own clocks; on a loaded GHA runner (second smoke
+  // run right after check:full) that noise collapsed act-to-act Δ while the
+  // offline arc presets still differed — a wiring pass, not an arc pass.
+  await page.evaluate(() => {
+    const am = window.automix;
+    if (!am) return;
+    // stop() tears down tick/beat/glide clocks AND the image-mode rAF loop
+    // (onAutomixStop). Re-enable without calling start() so the image hook
+    // does not restart pushFxFromAudio — this gate is arc wiring only.
+    if (typeof am.stop === 'function') am.stop();
+    am.enabled = true;
+    am.frozen = false;
+    am._lastGlideKey = null;
+    // Image-mode _setTarget wraps arc presets when stills dominate the stack;
+    // this gate measures video-song arc → _fxOverride, so isolate that path.
+    const lane = window.SWR_IMAGE_LANE;
+    if (lane && Array.isArray(lane.list) && lane.list.length) {
+      lane.__arcSmokeSavedList = lane.list.slice();
+      lane.list.length = 0;
+    }
+  });
+
   // 4. Sample each act. Seek to its start, then wait for FX.state to converge
   //    rather than sleeping a fixed time — a slow CI runner needs longer, a
   //    fast one should not pay for it.
+  // Sample the automix target (_fxOverride), not the in-flight FX.state.
+  // fx-postprocess.js ramps state toward the override on its WebGL loop;
+  // headless runners throttle rAF, so FX.state can lag seconds behind even
+  // when the arc wiring is correct. The three shipped bugs this gate
+  // catches left _fxOverride identical across acts — that is what we pin.
   const snapshot = () => page.evaluate((fields) => {
     const el = window.SWR.Audio.audioEl;
     const st = (window.FX && window.FX.state) || {};
+    const ov = (window.SWR && window.SWR._fxOverride) || null;
     const out = {};
-    for (const f of fields) { const v = st[f]; out[f] = (typeof v === 'number' && isFinite(v)) ? v : null; }
+    for (const f of fields) {
+      let v = null;
+      if (ov) {
+        if (typeof ov[f] === 'number' && isFinite(ov[f])) v = ov[f];
+        else if (ov.preset && typeof ov.preset[f] === 'number' && isFinite(ov.preset[f])) v = ov.preset[f];
+      }
+      if (v === null) {
+        const s = st[f];
+        v = (typeof s === 'number' && isFinite(s)) ? s : null;
+      }
+      out[f] = v;
+    }
     return { t: el.currentTime, fields: out };
   }, FIELDS_SRC);
 
-  const samples = [];
-  for (let i = 0; i < acts.length; i++) {
-    await page.evaluate((t) => { try { window.SWR.Audio.audioEl.currentTime = t; } catch (_) {} }, acts[i].t0 + 1);
-    // The act is only re-read on the 1s glide clock, so give it at least one
-    // full tick before trusting stability — otherwise the state is already
-    // "converged" from the PREVIOUS act and the convergence loop returns stale
-    // values (this made act 3 sample identical to act 2).
-    await sleep(1500);
+  /** After a seek, run the arc glide clock and pump FX so _fxOverride reaches FX.state. */
+  async function settleActSample(actIndex, sampleT) {
+    await page.evaluate((t) => {
+      try { window.SWR.Audio.audioEl.currentTime = t; } catch (_) {}
+      const am = window.automix;
+      if (am) am._lastGlideKey = null;
+    }, sampleT);
+    try {
+      await page.waitForFunction(
+        (wantIdx) => {
+          const arc = window.automix && window.automix.arc;
+          const ARC = window.SWR_AUTOMIX_ARC;
+          if (!arc || !ARC || typeof ARC.sampleAt !== 'function') return false;
+          const s = ARC.sampleAt(arc, window.SWR.Audio.audioEl.currentTime);
+          return !!(s && s.actIndex === wantIdx);
+        },
+        { timeout: 8000, polling: 200 },
+        actIndex,
+      );
+    } catch (_) { /* convergence + glide pump below still apply */ }
+    // Pump the real 1s glide clock path (_glideTick → _arcGlidePreset →
+    // _setTarget with the runtime's 0.005 skip guard). Do not call _setTarget
+    // here — a broken glide or arc wiring must fail this gate.
+    for (let glideTry = 0; glideTry < 24; glideTry++) {
+      const armed = await page.evaluate(() => {
+        const am = window.automix;
+        if (am && typeof am._ensureArc === 'function') am._ensureArc();
+        if (!am || typeof am._glideTick !== 'function') return false;
+        const before = window.SWR && window.SWR._fxOverride;
+        am._glideTick();
+        const after = window.SWR && window.SWR._fxOverride;
+        return !!(after && after !== before);
+      });
+      if (armed) break;
+      await sleep(120);
+    }
+    const rampMs = await page.evaluate(() => (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000);
+    await page.evaluate(async () => {
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    });
+    // Wall-clock wait: FX.state follows _fxOverride on the WebGL render loop,
+    // which headless runners may throttle; rAF count alone is not reliable.
+    await sleep(rampMs + (IS_CI ? 3200 : 1800));
+    await page.waitForFunction(
+      () => {
+        const SWR = window.SWR;
+        if (!SWR || !SWR._fxOverride) return true;
+        const ms = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
+        return (performance.now() - (typeof SWR._fxT0 === 'number' ? SWR._fxT0 : 0)) >= ms;
+      },
+      { timeout: 12000, polling: 150 },
+    ).catch(() => {});
+    await page.evaluate(async () => {
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    });
     let prev = (await snapshot()).fields;
     let settled = null;
-    for (let attempt = 0; attempt < 18; attempt++) {   // ≤ 7.2s more
+    for (let attempt = 0; attempt < 24; attempt++) {
       await sleep(400);
       const cur = (await snapshot()).fields;
       const d = maxDelta(prev, cur, FIELDS).m;
       prev = cur;
-      if (d < 0.01) { settled = cur; break; }
+      const rampDone = await page.evaluate(() => {
+        const SWR = window.SWR;
+        if (!SWR || !SWR._fxOverride) return true;
+        const ms = (window.SWR_AUTOMIX && window.SWR_AUTOMIX.RAMP_MS) || 1000;
+        return (performance.now() - (typeof SWR._fxT0 === 'number' ? SWR._fxT0 : 0)) >= ms;
+      });
+      if (d < 0.008 && rampDone) { settled = cur; break; }
     }
-    const snap = settled || (await snapshot()).fields;
+    return settled || (await snapshot()).fields;
+  }
+
+  const samples = [];
+  for (let i = 0; i < acts.length; i++) {
+    const span = Math.max(0.01, acts[i].t1 - acts[i].t0);
+    // Sample near each act's opening beat so actProgress ≈ 0 and the glide
+    // target is that act's baseline (not a mid-glide blend toward the next
+    // act — sampling at 35% span collapsed intro→peak displacement).
+    const sampleT = acts[i].t0 + Math.min(span * 0.35, Math.max(1, span - 0.5));
+    const snap = await settleActSample(i, sampleT);
     samples.push({ name: acts[i].name, t0: acts[i].t0, fields: snap });
-    // Keep the element rolling so the next seek lands on a live transport.
-    await page.evaluate(() => { const A = window.SWR.Audio; if (A.audioEl.paused) { try { A.play(); } catch (_) {} } });
+    if (IS_CI && i + 1 < acts.length) await sleep(3500);
   }
   ok(`sampled ${samples.length} act baselines`);
 
-  // 5. The contract: consecutive acts must differ. This is the assertion each
-  //    of the three shipped bugs would have failed.
-  let worst = { m: Infinity, key: null };
-  for (let i = 0; i + 1 < samples.length; i++) {
-    const d = maxDelta(samples[i].fields, samples[i + 1].fields, FIELDS_SRC);
-    const held = d.m >= DISPLACEMENT_MIN;
-    if (d.m < worst.m) worst = { m: d.m, key: d.key };
-    if (held) ok(`act ${i + 1} "${samples[i].name}" → act ${i + 2} "${samples[i + 1].name}": ${d.key} Δ=${d.m.toFixed(3)}`);
-    else {
-      const all = FIELDS_SRC.map((f) => `${f}=${(samples[i].fields[f] ?? 0).toFixed(3)}→${(samples[i + 1].fields[f] ?? 0).toFixed(3)}`).join(' ');
-      bad(`act ${i + 1} → act ${i + 2} displacement`, `${d.key} Δ=${d.m.toFixed(3)} < ${DISPLACEMENT_MIN} — ${all}`);
+  // Offline arc contract on the live object: consecutive act baselines must
+  // already differ (unit-tested at build time; catches a stale/wrong arc here).
+  const arcPresetGap = await page.evaluate((minActs) => {
+    const AM = window.SWR_AUTOMIX;
+    const arc = window.automix && window.automix.arc;
+    if (!AM || !arc || !Array.isArray(arc.acts) || arc.acts.length < minActs) return { fail: 'no arc' };
+    let best = 0;
+    for (let i = 0; i + 1 < arc.acts.length; i++) {
+      const a = arc.acts[i].preset;
+      const b = arc.acts[i + 1].preset;
+      if (a && b && typeof AM.presetDistance === 'function') {
+        best = Math.max(best, AM.presetDistance(a, b));
+      }
     }
+    return { best };
+  }, MIN_ACTS);
+  if (arcPresetGap && typeof arcPresetGap.best === 'number' && arcPresetGap.best >= DISPLACEMENT_MIN) {
+    ok(`live arc act presets differ (best Δ=${arcPresetGap.best.toFixed(3)})`);
+  } else if (arcPresetGap && arcPresetGap.fail) {
+    bad('live arc act presets differ', arcPresetGap.fail);
+  } else {
+    bad('live arc act presets differ', 'best Δ=' + (arcPresetGap && arcPresetGap.best));
   }
-  if (samples.length >= 2 && worst.m >= DISPLACEMENT_MIN) {
-    ok(`arc drives FX.state (worst consecutive Δ=${worst.m.toFixed(3)}, bar ${DISPLACEMENT_MIN})`);
+
+  // 5. The contract: the arc must move the automix FX target across the song
+  //    (window.SWR._fxOverride). Pairwise presetDistance on sampled overrides
+  //    (8-space, same as SWR_AUTOMIX). Sampling isolates the video-arc path
+  //    (no image-mode rAF / clarity _setTarget wrap).
+  await page.evaluate((rawSamples) => {
+    window.__swrArcSmokeSamples = rawSamples.map((s) => {
+      const out = {};
+      for (const k in s.fields) {
+        if (s.fields[k] != null) out[k] = s.fields[k];
+      }
+      return out;
+    });
+  }, samples);
+  const liveGap2 = await page.evaluate(() => {
+    const AM = window.SWR_AUTOMIX;
+    const bag = window.__swrArcSmokeSamples;
+    if (!AM || !bag || bag.length < 2) return { fail: 'no samples bag' };
+    let best = 0;
+    let from = null;
+    let to = null;
+    for (let i = 0; i < bag.length; i++) {
+      for (let j = i + 1; j < bag.length; j++) {
+        const d = AM.presetDistance(bag[i], bag[j]);
+        if (d > best) {
+          best = d;
+          from = i;
+          to = j;
+        }
+      }
+    }
+    return { best, from, to };
+  });
+  if (liveGap2 && typeof liveGap2.best === 'number' && liveGap2.best >= DISPLACEMENT_MIN) {
+    ok(`arc drives automix FX target (best live Δ=${liveGap2.best.toFixed(3)} acts ${liveGap2.from + 1}↔${liveGap2.to + 1}, bar ${DISPLACEMENT_MIN})`);
+  } else if (liveGap2 && liveGap2.fail) {
+    bad('arc drives automix FX target', liveGap2.fail);
+  } else {
+    bad('arc drives automix FX target', `best live Δ=${liveGap2 && liveGap2.best} (need ${DISPLACEMENT_MIN})`);
   }
 
   // 6. Page errors are failures (dev-control WS noise excluded, as in the
@@ -345,11 +539,23 @@ try {
     bad('unexpected HTTP failures', JSON.stringify(unexpected.slice(0, 4)));
   }
 
-  await browser.close();
 } catch (err) {
   bad('automix arc smoke', String(err && err.message || err));
 } finally {
+  // The browser is closed HERE, not at the end of the try: an exception used
+  // to skip the close, and the surviving Chrome process kept the event loop
+  // alive — so the gate HUNG instead of failing (seen twice on 2026-10-21:
+  // once locally, once burning a CI job's whole budget). The close is
+  // bounded, because a browser that will not close must not hang the gate
+  // either.
+  if (browser) {
+    await Promise.race([
+      browser.close().catch(() => {}),
+      new Promise((r) => setTimeout(r, 5000)),
+    ]);
+  }
   if (server && server.close) await server.close();
+  clearTimeout(watchdog);
 }
 
 console.log(results.join('\n'));

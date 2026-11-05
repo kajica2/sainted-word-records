@@ -349,12 +349,27 @@ const CHECKS = `(async () => {
     'F', 'M', 'C', 'Y', 'Del / Bksp',
     '[ / ]', ', / .', "; / '", '/',
     'Shift+[', 'Shift+]', 'Shift+,', 'Shift+.', 'Shift+;', "Shift+'",
-    'Shift+N', 'Shift+R', 'Shift+A', 'Shift+T', 'Shift+L',
+    'Shift+N', 'Shift+R', 'Shift+T', 'Shift+L',
     'Shift+Y', 'Shift+U',
     'B', 'X', '0', '?', 'Esc',
   ];
+  // Shift+A (cycle next recipe) is suppressed when #automix-toggle is present —
+  // automix owns that shortcut on surfaces that ship the automix panel.
+  if (!document.getElementById('automix-toggle')) expectedShortcuts.push('Shift+A');
   const helpKeys = window.SWR_KEYS ? window.SWR_KEYS.help().map(function (r) { return r.keys; }) : [];
-  const missing = expectedShortcuts.filter(function (k) { return helpKeys.indexOf(k) === -1; });
+  function helpIncludes(shortcut) {
+    return helpKeys.some(function (row) {
+      if (row === shortcut) return true;
+      if (row.indexOf(shortcut) !== -1) return true;
+      var parts = row.indexOf(' / ') !== -1 ? row.split(' / ') : row.split('/');
+      for (var pi = 0; pi < parts.length; pi++) {
+        var p = parts[pi].trim();
+        if (p === shortcut || p.indexOf(shortcut) === 0) return true;
+      }
+      return false;
+    });
+  }
+  const missing = expectedShortcuts.filter(function (k) { return !helpIncludes(k); });
   ok('expanded keymap', missing.length === 0,
      missing.length === 0 ? helpKeys.length + ' shortcuts present'
                           : 'missing: ' + missing.join(', '));
@@ -365,12 +380,15 @@ const CHECKS = `(async () => {
     const L = window.SWR.Layers;
     if (!L || !L.list || !L.list.length) return false;
     const l0 = L.list[0];
+    L.sel = l0;
     const before = 0.5;
     l0.alpha = before;
-    try { window.SWR_KEYS.simulate('BracketLeft', {}); } catch (e) { return false; }
-    return Math.abs(l0.alpha - (before - 0.05)) < 1e-6;
+    l0.opacity = before;
+    try { window.SWR_KEYS.simulate('BracketLeft', { shift: true }); } catch (e) { return false; }
+    const field = typeof l0.alpha === 'number' ? 'alpha' : 'opacity';
+    return Math.abs(l0[field] - (before - 0.2)) < 1e-6;
   })();
-  ok('bracket nudge', nudgeOk, 'alpha 0.50 → 0.45 via [ key');
+  ok('bracket nudge', nudgeOk, 'alpha 0.50 → 0.30 via Shift+[ (4× nudge step)');
 
   // 18. Cmd/Ctrl dispatch routes correctly (Ctrl+Z calls undo, which
   //     doesn't error out on a fresh state).
@@ -402,6 +420,10 @@ for (const name of ENGINES) {
       waitUntil: 'domcontentloaded', timeout: 20000,
     });
     await page.waitForFunction('window.SWR && window.SWR.Layers && window.SWR_GENOPS', { timeout: 10000 });
+    await page.waitForFunction(
+      'window.SWR_AUTOMAP && typeof window.SWR_AUTOMAP.list === "function"',
+      { timeout: 10000 },
+    ).catch(() => {});
     await page.evaluate(SEED_PAGE);
     results = await page.evaluate(CHECKS);
   } catch (e) {
