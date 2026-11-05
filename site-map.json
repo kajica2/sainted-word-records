@@ -633,6 +633,7 @@
   "unlisted": [
     "_comment: shipped pages deliberately kept OUT of the navigation (owner request, 2026-09-29). They still resolve — scripts/generate-vercel-rewrites.mjs emits a rewrite for every entry here, so the pretty route survives without a nav item. Add an entry here rather than deleting a nav child when a page should stay reachable but unlisted.",
     "/make-video",
+    "/neon",
     "/muzicki-spot-beograd",
     "/photo",
     "/jpg",
@@ -685,9 +686,9 @@
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-11-02",
-    "totalPages": 190,
-    "corePages": 190,
+    "lastUpdated": "2026-11-05",
+    "totalPages": 191,
+    "corePages": 191,
     "archivedPages": 0
   },
   "discovered": [
@@ -786,6 +787,7 @@
     "marketplace.html",
     "music-video-maker.html",
     "muzicki-spot-beograd.html",
+    "neon.html",
     "offline.html",
     "packs.html",
     "persona-library.html",

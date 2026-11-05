@@ -1,0 +1,1998 @@
+<!doctype html>
+<!-- SWR-ROOT-NEON-SYNC: generated from versions/neon.html; run node scripts/sync-root-neon.mjs -->
+<html lang="en">
+<head>
+  <script src="/lib/app-version.js"></script>
+  <script src="/lib/app-version-bust.js"></script>
+  <!-- Video poster-frame thumbnail — see lib/video-thumb.client.js -->
+  <script src="/lib/video-thumb.client.js"></script>
+  <!-- Video playback sync — see lib/video-sync.client.js -->
+  <script src="/lib/video-sync.client.js"></script>
+  <meta charset="utf-8" />
+  <title>NEON demo · SWR engine</title>
+  <meta name="description" content="Electric magenta/cyan, heavy chromatic aberration, glow" />
+  <meta name="theme-color" content="#0a0d12" />
+  <!-- Device tier + adaptive guard (shared, synchronous — see engine.html). -->
+  <script src="/lib/tier-runtime.js"></script>
+  <script src="/lib/adaptive-guard.js" defer></script>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png" />
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/neon" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Sainted Word Records" />
+  <meta property="og:title" content="NEON · SWR engine" />
+  <meta property="og:description" content="Electric magenta/cyan, heavy chromatic aberration, glow" />
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/keyart/neon.png" />
+  <meta property="og:url" content="https://sainted-word-records.vercel.app/neon.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="NEON · SWR engine" />
+  <meta name="twitter:description" content="Electric magenta/cyan, heavy chromatic aberration, glow" />
+  <meta name="twitter:image" content="/keyart/neon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <style>
+    :root {
+      --bg: #05030a; --bg-2: #0a0612; --panel: #0e0818; --panel-2: #150b22;
+      --ink: #f5e9ff; --muted: #8a7aa0; --line: #2a1d3e;
+      --m: #ff2d8a; --c: #00f0ff; --y: #fff04a; --g: #00ffa3;
+      --r: var(--m); /* legacy startup overlay accent */
+      /* iPhone safe-area insets, read through custom properties so
+         each fixed overlay can use max(n, var(--safe-bottom)) instead of
+         repeating env(). The 0px fallback keeps every non-notched
+         browser pixel-identical to before. */
+      --safe-top:    env(safe-area-inset-top,    0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left,   0px);
+      --safe-right:  env(safe-area-inset-right,  0px);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: #000; color: var(--ink);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    #app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; grid-template-rows: 44px minmax(0, 1fr) 36px; height: 100vh; height: 100dvh; }
+    /* iPhone safe-area (P2.3): the transport header clears the
+       Dynamic Island and the footer bar clears the home indicator;
+       left/right cover landscape, where the notch side insets 59px
+       and the rounded corners eat the other.
+       The padding lands on #app, not body, for the reason
+       engine.html gives: #app is this page's own 100vh grid, so
+       under the global box-sizing: border-box the padding insets its
+       grid tracks in place. Padding body would stack on top of
+       #app's 100vh box and push the footer off-screen with no way
+       back (html/body are overflow:hidden).
+       position:fixed resolves against the viewport, so no padding on
+       an in-flow element reaches the overlays below - each folds its
+       own inset in with max(n, var(--safe-*)). Full-bleed inset:0
+       overlays (#swr-start, .drop-zone, .swr-load) are meant to cover
+       the notch and correctly stay untouched. */
+    #app { padding-top:    var(--safe-top);
+           padding-bottom: var(--safe-bottom);
+           padding-left:   var(--safe-left);
+           padding-right:  var(--safe-right); }
+    header { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; padding: 0 14px;
+      background: var(--bg-2); border-bottom: 1px solid var(--line); }
+    .v { font-weight: 700; letter-spacing: 0.16em; color: var(--m); text-shadow: 0 0 8px var(--m); }
+    .v small { color: var(--c); margin-left: 6px; text-shadow: 0 0 6px var(--c); font-weight: 400; }
+    .pill { font-size: 9px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+    .pill.ok { color: var(--g); border-color: var(--g); }
+    .pill.live { color: var(--y); border-color: var(--y); animation: blink 0.4s infinite alternate; }
+    @keyframes blink { from { opacity: 0.4; } to { opacity: 1; } }
+    .tbtn { background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); font: 10px/1 ui-monospace;
+      letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 12px; border-radius: 4px; cursor: pointer; }
+    .tbtn:hover { border-color: var(--m); color: var(--m); }
+    .tbtn.primary { background: var(--m); color: #000; border-color: var(--m); font-weight: 700; }
+    .tbtn.primary:hover { background: var(--c); border-color: var(--c); }
+    .spacer { flex: 1; }
+    .meter { width: 160px; height: 16px; background: #0a0612; border: 1px solid var(--line); border-radius: 3px; display: block; }
+    aside.lib, aside.layers { background: var(--panel); overflow-y: auto; }
+    aside.lib { border-right: 1px solid var(--line); }
+    aside.layers { border-left: 1px solid var(--line); }
+    .head { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 8px; }
+    .head h2 { margin: 0; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); flex: 1; }
+    .body { padding: 6px; }
+    #lib { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .li { aspect-ratio: 1; background: var(--bg-2); border: 1px solid var(--line); border-radius: 3px;
+      overflow: hidden; position: relative; cursor: pointer; transition: border-color 0.1s; }
+    .li:hover { border-color: var(--c); }
+    .li img, .li video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--m);
+      color: #000; border-radius: 1px; letter-spacing: 0.08em; }
+    .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #layers { display: flex; flex-direction: column; gap: 4px; }
+    .l { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
+    .l.sel { border-color: var(--m); box-shadow: 0 0 0 1px var(--m); }
+    .l .lh { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .l .lh .n { font-size: 9px; color: var(--muted); width: 14px; }
+    .l .lh .nm { flex: 1; font-size: 10px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .l .lh .x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 2px; }
+    .l .lh .x:hover { color: var(--m); }
+    .l .r { display: grid; grid-template-columns: 36px 1fr; gap: 4px; align-items: center; margin-top: 2px; }
+    .l .r label { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .l .r select, .l .r input { background: var(--bg); border: 1px solid var(--line); color: var(--ink);
+      font: 9px ui-monospace; padding: 2px 3px; border-radius: 2px; width: 100%; }
+    .l .react { font-size: 8px; color: var(--c); letter-spacing: 0.04em; margin-top: 3px; }
+    section.stage { position: relative; background: #000; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #flash { position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(circle at center, rgba(255,45,138,0.5), transparent 60%);
+      opacity: 0; mix-blend-mode: screen; }
+    footer { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 14px;
+      background: var(--bg-2); border-top: 1px solid var(--line); font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+    .gc { display: flex; align-items: center; gap: 6px; }
+    .gc input { width: 80px; }
+    .gc b { color: var(--c); min-width: 26px; text-align: right; }
+    .led { width: 8px; height: 8px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
+    .led.on { background: var(--m); box-shadow: 0 0 8px var(--m); }
+    a.nav { color: var(--c); text-decoration: none; border: none; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; }
+    a.nav:hover { color: var(--m); }
+    input[type=file] { display: none; }
+
+    /* SWR watermark overlay */
+    /* ---------- Responsive layout (mobile-first additions) ----------
+       SWR-RESPONSIVE-MARKER
+       Original desktop layout (grid-template-columns: 220px 1fr 240px,
+       header in one row) is preserved. Below 720px viewport we collapse
+       the 3-column grid to a single column, stack the canvas on top of
+       the library + layers panels (each scrollable with a bounded
+       height), and let the header wrap + scroll vertically. */
+    #app { min-width: 0; }
+    header { flex-wrap: wrap; max-height: 30vh; overflow-y: auto; min-width: 0; }
+    header > * { min-width: 0; }
+    header input, header select, header button { max-width: 100%; }
+    aside.lib, aside.layers { min-width: 0; }
+    footer { flex-wrap: wrap; max-height: 24vh; overflow-y: auto; min-width: 0; row-gap: 4px; }
+    footer > * { min-width: 0; }
+    @media (max-width: 720px) {
+      #app {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(220px, 1fr) minmax(0, auto) minmax(0, auto) auto;
+      }
+      header { padding: 6px 10px; gap: 6px; max-height: 22vh; }
+      .meter { width: min(8vw, 80px); }
+      aside.lib, aside.layers { max-height: 30vh; }
+      aside.lib { grid-row: 3; border-right: none; border-top: 1px solid var(--line); }
+      aside.layers { grid-row: 4; border-left: none; border-top: 1px solid var(--line); }
+      section.stage { grid-row: 2; min-height: 220px; }
+    }
+
+    /* ---------- Mobile icons-only header ----------
+       SWR-MOBILE-HEADER-MARKER
+       At <= 480px the header text labels collapse to glyphs to keep all
+       14 controls reachable in one row (~41px tall, was 75-109px when
+       wrapped to multiple rows). At > 480px the labels show normally —
+       the desktop/tablet layout is unchanged.
+       The data-icon attributes are inserted by the codemod's HTML
+       pass; see the HEADER_ICON_INJECTIONS list for the per-control
+       glyph mapping. */
+    /* Stop the header from wrapping to multiple rows at phone widths —
+       let it stay one tall row and use the icons. */
+    @media (max-width: 480px) {
+      header {
+        flex-wrap: nowrap;
+        max-height: 64px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 4px 8px;
+        gap: 2px;
+      }
+      header > * { flex-shrink: 0; }
+      header .spacer { display: none; }
+      /* Hide the textual label of every data-icon control. The ::before
+         pseudo carries the glyph. text-indent:-9999px is the standard
+         "icon-only button" pattern and keeps the text in the DOM for
+         screen readers + the .tbtn:hover color-state rules. */
+      [data-icon] {
+        text-indent: -9999px;
+        position: relative;
+        padding-left: 6px;
+        padding-right: 6px;
+        min-width: 0;
+        font-size: 14px;
+      }
+      [data-icon]::before {
+        content: attr(data-icon);
+        text-indent: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1;
+        pointer-events: none;
+      }
+      /* Auto-cycle's checkbox input is hidden by the original CSS; the
+         label carries the text. We need to keep the checkbox + label
+         behavior but the text label needs to swap to the icon. The
+         label wraps a checkbox AND has data-icon set; the rule above
+         handles the ::before, and we keep the checkbox visual via the
+         existing :checked styles. */
+      #meter { width: 60px !important; height: 18px; }
+      /* rec-dur select: keep visible 3-char "30s" text */
+      #rec-dur { text-indent: 0; padding: 4px 6px; min-width: 50px; }
+      #rec-dur::before { display: none; }
+      /* #time: keep as compact timestamp — the engine writes
+         "0:00 / 0:00" into #time. At icons mode we hide the second
+         half (after the slash) so only the elapsed time shows.
+         "0:00 / 0:00" contains a literal " / " (space-slash-space)
+         that we mask with a zero-width spacer and clip the rest. */
+      #time {
+        text-indent: 0;
+        font-size: 11px;
+        max-width: 50px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      #time::before { display: none; }
+      /* .v title: keep the engine name visible */
+      .v { text-indent: 0; font-size: 14px; }
+      .v::before { display: none; }
+      /* .pill status: keep small text */
+      .pill { text-indent: 0; padding: 2px 6px; }
+      .pill::before { display: none; }
+      /* The auto-cycle label carries text "auto-cycle" but it's a
+         <label> wrapping a checkbox. We need its data-icon glyph to
+         show while the checkbox stays usable. */
+      label[data-icon] {
+        padding: 4px 6px;
+        text-indent: -9999px;
+        position: relative;
+      }
+      label[data-icon]::before {
+        content: attr(data-icon);
+        text-indent: 0;
+        position: absolute;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 14px;
+        line-height: 1;
+        pointer-events: none;
+      }
+      /* Beat/onset indicators are <span class="gc">beat <span class="led">.
+         At icons mode the .gc text "beat"/"onset" is hidden (the LED
+         dot already has its own data-icon glyph). The two header .gc
+         elements have an inline style="font-size:10px" (from the
+         engine's source markup) which would otherwise override our
+         class rule, so we use !important here. */
+      .gc { font-size: 0 !important; gap: 0; }
+      .gc::before { display: none; }
+      .gc .led { font-size: 0; }
+      /* The select inside .gc (rec-dur) keeps its visible text — see
+         the #rec-dur rules above. */
+      /* Tighten the meter canvas — it eats 60px and we need the room
+         for the actual primary controls. */
+      /* At very narrow widths (≤ 380px) hide the meter entirely. It's
+         a nice-to-have spectrum display; the play button + status
+         are the primary signal. */
+      @media (max-width: 380px) {
+        #meter { display: none; }
+      }
+    }
+
+    .swr-watermark {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: min(8vw, 80px);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 9999;
+      mix-blend-mode: screen;
+      animation: heartbeat 1.2s ease-in-out infinite;
+    }
+    .swr-watermark img {
+      width: 100%;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 0 2px rgba(0,0,0,0.6));
+    }
+    @keyframes heartbeat {
+      0% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
+      12% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 4px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(160,160,160,0.4));
+        transform: scale(1.08);
+      }
+      24% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
+      36% {
+        opacity: 0.8;
+        filter: drop-shadow(0 0 4px rgba(255,255,255,0.5)) drop-shadow(0 0 6px rgba(160,160,160,0.4));
+        transform: scale(1.08);
+      }
+      50% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
+      100% {
+        opacity: 0.55;
+        filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)) drop-shadow(0 0 3px rgba(160,160,160,0.15));
+        transform: scale(1);
+      }
+    }
+  
+    /* AUTO-START overlay (browser autoplay policy requires one user gesture) */
+    #swr-start {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.78);
+      cursor: pointer;
+      transition: opacity 0.4s ease;
+    }
+    #swr-start .box {
+      text-align: center; color: var(--ink);
+      font-family: ui-monospace, monospace;
+      padding: 28px 36px;
+      border: 1px solid var(--r);
+      background: rgba(0,0,0,0.65);
+      box-shadow: 0 0 32px var(--r);
+    }
+    #swr-start .arrow { font-size: 56px; color: var(--r); line-height: 1; margin-bottom: 14px; }
+    #swr-start .label { font-size: 13px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink); }
+    #swr-start .sub   { font-size: 9px;  letter-spacing: 0.18em; text-transform: uppercase; color: var(--g); margin-top: 8px; }
+    #swr-start.hide { opacity: 0; pointer-events: none; }
+    #swr-start:focus-visible { outline: 3px solid var(--c); outline-offset: -5px; }
+    @media (prefers-reduced-motion: reduce) {
+      #swr-start { transition: none; }
+      .swr-watermark { animation: none; }
+      .pill.live { animation: none; }
+    }
+    .li .rm { position: absolute; top: 2px; right: 2px; width: 14px; height: 14px;
+      background: rgba(0,0,0,0.6); color: var(--muted); border: none; border-radius: 2px;
+      font: 11px/1 ui-monospace, monospace; cursor: pointer; padding: 0;
+      opacity: 0; transition: opacity 0.1s, color 0.1s, background 0.1s; }
+    .li:hover .rm { opacity: 1; }
+    .li .rm:hover { color: var(--m); background: rgba(0,0,0,0.85); }
+    .li .rm.rm-armed { color: #fff; background: var(--m); opacity: 1; }
+
+    /* ---------- Media panel (replaces the Library + My Media split) ----------
+       SWR-MEDIA-PANEL-MARKER
+       The sidebar used to carry two lists fed by the same IndexedDB
+       store: #lib (rendered by Lib.render) and the shared
+       #swr-user-media-grid mount. Same assets, two places. It is now
+       ONE panel with two states — "library" (every available asset) and
+       "used" (assets currently assigned to a layer) — plus a search box
+       and a grid/list toggle. */
+    aside.lib { display: flex; flex-direction: column; overflow: hidden; }
+    aside.lib > .head { flex: none; }
+    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    .media-bar { flex: none; display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .media-tabs { display: flex; gap: 4px; flex: 1; min-width: 0; }
+    .media-tab { background: none; border: 1px solid transparent; color: var(--muted);
+      font: 8px/1 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase;
+      padding: 4px 6px; border-radius: 3px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .media-tab:hover { color: var(--ink); }
+    .media-tab.is-on { color: var(--ink); border-color: var(--line); background: var(--panel-2); }
+    .media-tab .ct { font-weight: 400; color: var(--c); font-size: 8px; }
+    .media-views { display: flex; gap: 2px; flex: none; }
+    .media-view { padding: 3px 5px; font-size: 9px; line-height: 1; }
+    .media-view.is-on { border-color: var(--m); color: var(--m); }
+    /* Group-by-name toggle + the group headers it produces. The button
+       lives in the media bar next to the grid/list switch, so grouping is
+       one click away from the view it changes. */
+    .media-group-btn { display: inline-flex; align-items: center; justify-content: center;
+      padding: 3px 5px; font-size: 9px; line-height: 1; }
+    .media-group-btn[aria-pressed="true"] { border-color: var(--m); color: var(--m); background: var(--panel-2); }
+    .li-group { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px;
+      margin: 6px 0 1px; padding: 3px 4px 2px; border-bottom: 1px solid var(--line);
+      font: 8px/1 ui-monospace, monospace; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); position: sticky; top: 0; background: var(--panel); z-index: 2; }
+    .li-group:first-child { margin-top: 0; }
+    .li-group .gname { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .li-group .gcount { color: var(--c); font-size: 8px; margin-left: auto; flex: none; }
+    .li-group.is-graphics .gname { color: var(--c); }
+    .li-group .grule { flex: 1; height: 1px; background: var(--line); }
+    .media-search { flex: none; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    .media-search input { width: 100%; background: var(--bg); border: 1px solid var(--line);
+      color: var(--ink); font: 9px ui-monospace, monospace; padding: 3px 5px; border-radius: 3px; }
+    .media-search input:focus { outline: 1px solid var(--c); outline-offset: -1px; }
+    .media-assign { flex: none; display: flex; align-items: center; gap: 6px;
+      padding: 5px 8px; border-top: 1px solid var(--line); background: var(--panel-2); }
+    .media-assign label { font-size: 8px; color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.08em; flex: none; }
+    .media-assign select { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line);
+      color: var(--ink); font: 9px ui-monospace, monospace; padding: 3px 4px; border-radius: 2px; }
+    .media-empty { grid-column: 1 / -1; color: var(--muted); font-size: 10px;
+      padding: 16px 8px; text-align: center; }
+    .li .badge { position: absolute; top: 2px; left: 18px; font-size: 7px; padding: 1px 3px;
+      background: var(--c); color: #000; border-radius: 1px; letter-spacing: 0.04em; }
+    .li .asg { position: absolute; right: 2px; bottom: 15px; font: 7px/1 ui-monospace, monospace;
+      padding: 2px 3px; background: rgba(0,0,0,0.65); color: var(--c); border: 1px solid var(--c);
+      border-radius: 2px; cursor: pointer; opacity: 0; transition: opacity 0.1s; }
+    .li:hover .asg, .li:focus-within .asg { opacity: 1; }
+    .li .asg:hover { background: var(--c); color: #000; }
+    .li.is-focus { border-color: var(--m); box-shadow: 0 0 0 1px var(--m); }
+    #lib.list { display: flex; flex-direction: column; gap: 2px; }
+    #lib.list .li { display: flex; align-items: center; gap: 5px; aspect-ratio: auto; padding: 3px 4px; }
+    #lib.list .li img, #lib.list .li video { width: 26px; height: 26px; border-radius: 2px; flex: none; }
+    #lib.list .li .tag, #lib.list .li .badge { position: static; flex: none; }
+    #lib.list .li .nm { position: static; flex: 1; background: none; color: var(--ink);
+      padding: 0; font-size: 9px; }
+    #lib.list .li .rm { position: static; opacity: 1; flex: none; }
+    #lib.list .li .asg { position: static; opacity: 1; flex: none; }
+    .l .lh .th { width: 18px; height: 18px; border-radius: 2px; overflow: hidden; flex: none;
+      border: 1px solid var(--line); background: var(--bg-2); }
+    .l .lh .th img, .l .lh .th video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .l .lh .chg { background: none; border: 1px solid var(--line); color: var(--muted); cursor: pointer;
+      font: 8px ui-monospace, monospace; padding: 1px 4px; border-radius: 2px; flex: none; }
+    .l .lh .chg:hover { color: var(--m); border-color: var(--m); }
+
+  </style>
+  <script src="/client/library-loader.client.js" defer></script>
+<script src="/client/visualizer-controller.js"></script>
+<script src="/lib/ease.js"></script>
+<script src="/lib/motion-kill-switch.client.js"></script>
+  <script src="/lib/apply-reactors.js"></script>
+  <script src="/engine-render.client.js"></script>
+
+  <!-- Automix + asset-curator stack (Phase 2 port from music_video) -->
+  <script src="/client/preset-anchor-map.client.js"></script>
+  <script src="/client/anchor-embed.js"></script>
+  <script src="/client/automix.client.js"></script>
+<script src="/lib/intensity-slider.client.js" defer></script>
+<script src="/lib/tone-slider.client.js" defer></script>
+  <script src="/client/section-detector.client.js" defer></script>
+  <script src="/client/preset-cycle.client.js"></script>
+  <script src="/client/preset-pick-store.client.js"></script>
+  <script src="/client/layer-state-store.client.js"></script>
+  <script src="/client/last-mix-store.client.js"></script>
+  <script src="/client/asset-curator.client.js"></script>
+  <script src="/client/media-grouping.client.js"></script>
+  <script src="/client/library-packs.client.js" defer></script>
+
+  <!-- Extracted runtimes (Phase 1b) — hero-frames intentionally omitted per /steer skip hero -->
+  <script src="/client/automix-arc.client.js"></script>
+<script src="/client/automix-session-store.client.js"></script>
+<script src="/client/automix-runtime.client.js"></script>
+<script src="/client/automix-composition.client.js" defer></script>
+  <!-- Periodic frame capture runtime + UI (Phase 1) -->
+  <script src="/client/capture-runtime.client.js"></script>
+  <script src="/client/hook-detector.client.js"></script>
+  <script src="/client/stats.client.js"></script>
+  <script src="/client/mood.client.js"></script>
+  <script src="/client/scenes.client.js"></script>
+
+<script src="/engine-timing.client.js"></script>
+<script src="/engine-timing-panel.client.js"></script>
+<script src="/engine-lfos.client.js"></script>
+<script src="/engine-lfo-panel.client.js"></script>
+<script src="/engine-automap.client.js"></script>
+<script src="/engine-settings.client.js"></script>
+<script src="/engine-keys.client.js"></script>
+<script src="/project.client.js"></script>
+<script src="/layer-scheduler.client.js"></script>
+<script src="/lib/reset-state.client.js"></script>
+    <script src="/lib/recorder.client.js"></script>
+<link rel="stylesheet" href="/engine-genops.css" />
+  <link rel="stylesheet" href="/lib/drive-modal.css" />
+</head>
+<body data-page="neon">
+  <div id="app">
+    <!-- SWR-HEADER-DATA-ICONS --><header>
+      <span class="gctrl" data-looks-mount></span>
+      
+      <div class="v">NEON <small>v1</small></div>
+      <span class="pill" id="status">idle</span>
+      <button class="tbtn" id="load-song" data-icon="↑">Load song</button>
+      <button type="button" id="swr-drive-btn" class="tbtn ghost" title="Import from Google Drive">Drive</button>
+      <input type="file" id="song-input" accept="audio/*" />
+      <button class="tbtn primary" id="play" disabled data-icon="▶">▶</button>
+      <span id="time" style="font-size:10px;color:var(--muted);">0:00 / 0:00</span>
+      <canvas class="meter" id="meter" width="320" height="32"></canvas>
+      <span class="spacer"></span><button class="tbtn" id="swr-keys-help-btn" title="Keyboard shortcuts (?)" style="font-family:ui-monospace,monospace;font-weight:700;min-width:24px;padding:5px 8px;line-height:1;position:relative;z-index:10001;">?</button>
+      <span class="gc">beat <span class="led" id="beat-led" data-icon="●"></span></span>
+      <span class="gc">onset <span class="led" id="onset-led" data-icon="●"></span></span>
+            <select id="rec-format" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording format">
+        <option value="auto" selected>MP4 auto</option>
+        <option value="mp4">MP4 (H.264)</option>
+        <option value="webm">WebM (VP9)</option>
+      </select>
+      <select id="rec-fps" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording frame rate">
+        <option value="24">24fps</option>
+        <option value="30" selected>30fps</option>
+        <option value="60">60fps</option>
+      </select>
+      <select id="rec-quality" class="swr-rec-extra-ctl-v2" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Recording quality (video bitrate)">
+        <option value="low">3 Mbps</option>
+        <option value="med">6 Mbps</option>
+        <option value="high" selected>12 Mbps</option>
+      </select>
+      <select id="rec-dur" style="font-size:9px; padding:3px 4px; background:var(--panel-2); color:var(--ink); border:1px solid var(--line); border-radius:3px; font:9px ui-monospace;" title="Auto-stop recording after N seconds">
+        <option value="0">manual</option>
+        <option value="10">10s</option>
+        <option value="15">15s</option>
+        <option value="30" selected>30s</option>
+        <option value="60">60s</option>
+        <option value="song">song</option>
+      </select>
+      <button class="tbtn danger" id="rec" disabled data-icon="⏺">● REC</button>
+      <a class="nav" href="film.html">→ film</a>
+    </header>
+    <aside class="lib">
+      <div class="head"><h2>Media</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;" title="Add media files">+</button><button class="tbtn" id="media-clear" style="padding:3px 8px;font-size:9px;" title="Clear this view">Clear</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
+      <div class="media-bar">
+        <div class="media-tabs" role="tablist" aria-label="Media view">
+          <button type="button" class="media-tab is-on" data-media-tab="library" role="tab" aria-selected="true" aria-controls="lib">Library <b class="ct" id="media-count-library">0</b></button>
+          <button type="button" class="media-tab" data-media-tab="used" role="tab" aria-selected="false" aria-controls="lib">Used <b class="ct" id="media-count-used">0</b></button>
+        </div>
+        <div class="media-views" role="group" aria-label="Layout">
+          <button type="button" class="tbtn media-group-btn" id="media-group-btn" title="Group media by name (G)" aria-pressed="false" aria-label="Group media by name">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" width="11" height="11" aria-hidden="true">
+              <path d="M2 3.5h12M2 8h12M2 12.5h12"/>
+              <path d="M5.5 3.5v9" opacity="0.45"/>
+            </svg>
+          </button>
+          <button type="button" class="tbtn media-view is-on" data-media-view="grid" title="Grid view" aria-pressed="true">▦</button>
+          <button type="button" class="tbtn media-view" data-media-view="list" title="List view" aria-pressed="false">☰</button>
+        </div>
+      </div>
+      <div class="media-search"><input type="search" id="media-search" placeholder="Search media" autocomplete="off" spellcheck="false" aria-label="Search media" /></div>
+      <div class="body"><div id="lib"></div></div>
+      <div class="media-assign">
+        <label for="media-assign-target">Assign to</label>
+        <select id="media-assign-target"><option value="new">+ New layer</option></select>
+      </div>
+    </aside>
+    <section class="stage">
+      <canvas id="render"></canvas>
+      <img id="mood-overlay" alt="mood reference" style="position:fixed;top:max(16px, var(--safe-top));right:max(16px, var(--safe-right));width:160px;height:auto;opacity:0.3;z-index:50;display:none;cursor:move;border:1px solid var(--line);" />
+      <div id="flash"></div>
+      <div class="swr-watermark">
+        <img src="/watermark-monogram.png" alt="SWR" />
+      </div>
+    </section>
+    <aside class="layers">
+      <div class="head"><h2>Layers</h2><button class="tbtn" id="remap" style="padding:3px 8px;font-size:9px;">RE-MAP</button></div>
+      <div class="body"><div id="layers"></div></div>
+    </aside>
+    <!-- iPhone safe-area: this panel is position:absolute with NO positioned
+         ancestor, so its containing block is the viewport and #app's padding
+         cannot reach it. position:relative on #app would not help either: the
+         containing block an absolutely positioned element gets is the PADDING
+         box of its positioned ancestor, which is where the padding lives, so
+         padding on #app insets #app's grid TRACKS and nothing else. The panel's
+         three offsets are therefore composed with the insets here. calc(), not
+         max(): 48px is an offset from the footer track, and the footer track
+         moves down by exactly --safe-bottom, so the gap between them has to
+         stay 48px. max(48px, var(--safe-bottom)) would hold the panel clear of
+         the home indicator but leave it overlapping the footer on a notched
+         phone. Desktop is unchanged: --safe-* is 0px without a notch, and
+         calc(0px + 48px) is 48px. -->
+    <div id="hook-panel" style="display:none;padding:6px 8px 8px;border-bottom:1px solid var(--line);background:var(--panel-2);position:absolute;bottom:calc(var(--safe-bottom) + 48px);left:calc(var(--safe-left) + 8px);right:calc(var(--safe-right) + 8px);z-index:5;border-radius:4px;">
+      <div class="ph" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;">Hook Export</span>
+        <button id="hook-clear" class="tbtn" title="Clear detected drop" style="padding:1px 6px;font-size:10px;line-height:1;">×</button>
+      </div>
+      <div id="hook-info" style="font-size:9px;color:var(--muted);padding:2px 0 4px;">
+        <span>drop: <b id="hook-time">—</b></span> · <span>energy: <b id="hook-energy">—</b></span> · <span>conf: <b id="hook-conf">—</b></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;">
+        <button class="tbtn hook-preset" data-preset="teaser" style="padding:3px 6px;font-size:9px;">Teaser 3s</button>
+        <button class="tbtn hook-preset" data-preset="hook" style="padding:3px 6px;font-size:9px;">Hook 5s</button>
+        <button class="tbtn hook-preset" data-preset="clip" style="padding:3px 6px;font-size:9px;">Clip 15s</button>
+      </div>
+    </div>
+    <footer>
+      <span class="gc">sens <input type="range" id="sens" min="0.2" max="3" step="0.05" value="1.2" /> <b id="sens-v">1.20</b></span>
+      <span class="gc">gate <input type="range" id="gate" min="1.05" max="2.5" step="0.05" value="1.4" /> <b id="gate-v">1.40</b></span>
+      <span class="gc">decay <input type="range" id="decay" min="0.5" max="0.99" step="0.01" value="0.85" /> <b id="decay-v">0.85</b></span>
+      <span class="gc"><button class="tbtn" id="hook-btn" title="Detect drop + export hook clips (teaser 3s / hook 5s / clip 15s)" style="padding:3px 8px;font-size:9px;">Hooks</button></span>
+      <span class="gc"><button class="tbtn" id="stats-btn" title="Local render statistics" style="padding:3px 8px;font-size:9px;">Stats</button></span>
+      <span class="gc"><button class="tbtn" id="mood-btn" title="Mood board: analyze a reference image + suggest engine mapping" style="padding:3px 8px;font-size:9px;">Mood</button></span>
+      <span class="gc"><button class="tbtn" id="scenes-btn" title="Scene pads (4): click=recall, hold 1s=save" style="padding:3px 8px;font-size:9px;">Scenes</button></span>
+      <span class="gc"><a class="tbtn" id="swr-inspect" href="?swrdebug=1" title="Visual debugger — live engine state" style="padding:3px 8px;font-size:9px;text-decoration:none;">Inspect</a></span>
+      <span class="gc" style="border-left:1px solid var(--line);padding-left:14px;margin-left:4px;">
+        <span data-fx-intensity-mount></span>
+        <span data-fx-tone-mount></span>
+        <label class="tbtn" id="automix-toggle" style="cursor:pointer;">Automix <span id="automix-state" style="color:var(--m);">OFF</span></label>
+        <button class="tbtn" id="automix-freeze" title="Freeze (F)" style="padding:3px 8px;font-size:9px;margin-left:6px;">Freeze</button>
+        <button class="tbtn" id="automix-save" title="Save blend (B)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Save</button>
+        <button class="tbtn" id="automix-lock" title="Lock to single anchor (K)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Lock</button>
+        <button class="tbtn" id="automix-debug" title="Toggle debug panel (D)" style="padding:3px 8px;font-size:9px;margin-left:2px;">Debug</button>
+      </span>
+      <span class="spacer" style="flex:1"></span>
+      <span id="fps" style="color:var(--m);">— fps</span>
+    </footer>
+  </div>
+
+  
+
+
+  
+  <div id="swr-start" role="button" tabindex="0" aria-label="Start Sainted Word Records">
+    <div class="box">
+      <div class="arrow">▶</div>
+      <div class="label">Drop a song</div>
+      <div class="sub" id="swr-start-sub">Radio + Video</div>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var DEFAULT_SONG = '/audios/endless-tomorrow.mp3';
+    var overlay = document.getElementById('swr-start');
+    overlay.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        overlay.click();
+      }
+    });
+    var sub = document.getElementById('swr-start-sub');
+    var fired = false;
+
+    // Can we autoplay without a user gesture? Modern browsers
+    // (Chrome 94+, Safari 16.4+, Firefox 121+) relax autoplay for
+    // sites the user has interacted with before. The MediaSession
+    // API surfaces a "activation hint" — non-empty activation
+    // means the user has clicked/tapped/typed since the page loaded,
+    // and we can autoplay. On pages where this is true, run start()
+    // immediately and skip the overlay.
+    var canAutoplay = false;
+    try {
+      if (navigator.userActivation && navigator.userActivation.isActive) {
+        canAutoplay = true;
+      }
+    } catch (_) {}
+
+    async function start() {
+      if (fired) return;
+      fired = true;
+      var succeeded = false;
+      try {
+        // Prefer the user's last-loaded song (from engine.html IDB),
+        // fall back to the per-page bundled audio.
+        var picked = window.SWR_PICK_DEFAULT_SONG
+          ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
+          : null;
+        if (!picked) throw new Error('no song source available');
+        var blob = picked.blob;
+        var name = picked.name;
+        var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
+        if (window.SWR && window.SWR.Audio) {
+          window.SWR.Audio.load(file);
+          await window.SWR.Audio.play();
+          if (sub) {
+            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
+            sub.textContent = tag + name;
+          }
+        }
+        succeeded = true;
+      } catch (e) {
+        // Failure path: leave the overlay visible so the user can
+        // click again. Reset the fired flag so the click handler
+        // can fire a fresh attempt. Without this, a single failed
+        // autoplay leaves the user stranded — the overlay disappears
+        // and the "tap to start" hint vanishes with it. This is the
+        // exact "media is not loading" symptom we were trying to
+        // avoid.
+        fired = false;
+        if (sub) sub.textContent = 'tap "load song" to start';
+        console.warn('swr auto-start failed:', e);
+      }
+      // Only hide + remove the overlay on success. The overlay is
+      // the manual fallback for browsers that still block autoplay;
+      // removing it on failure strands the user with no retry path.
+      if (succeeded) {
+        overlay.classList.add('hide');
+        setTimeout(function(){ overlay.remove(); }, 600);
+      }
+    }
+
+    // Track a one-shot user gesture anywhere on the page to arm the
+    // audio for next time. Once armed, the overlay can autoplay.
+    document.addEventListener('pointerdown', function arm() {
+      try { localStorage.setItem('swr.audio.armed', '1'); } catch (_) {}
+    }, { once: true, capture: true });
+
+    if (canAutoplay || (function () {
+      try { return localStorage.getItem('swr.audio.armed') === '1'; }
+      catch (_) { return false; }
+    })()) {
+      // Try to autoplay immediately — if the browser blocks, the
+      // overlay stays visible (start()'s catch path) and the user
+      // can click it manually. Either way, the engine renders
+      // visual content on enter via the normal RAF loop.
+      //
+      // Wait for window.SWR_PICK_DEFAULT_SONG to be defined —
+      // last-song.js (which defines it) loads AFTER this inline
+      // script. Poll until it's there, then fire. This avoids the
+      // race where the auto-start fires before last-song.js has
+      // registered the helper.
+      function waitForPick() {
+        if (window.SWR_PICK_DEFAULT_SONG) {
+          start();
+          return;
+        }
+        var tries = 0;
+        var iv = setInterval(function() {
+          tries++;
+          if (window.SWR_PICK_DEFAULT_SONG) {
+            clearInterval(iv);
+            start();
+          } else if (tries > 50) {  // ~5s timeout
+            clearInterval(iv);
+            // Don't fire — overlay stays as fallback.
+          }
+        }, 100);
+      }
+      waitForPick();
+    }
+
+    // If the autoplay attempt didn't fire the overlay (because
+    // play() resolved), keep the overlay visible until the user
+    // explicitly hides it. The overlay remains the manual fallback
+    // for browsers that still block autoplay.
+    overlay.addEventListener('click', function manualStart() {
+      if (!fired) start();
+    });
+    document.addEventListener('keydown', function(ev){
+      if (!fired && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); start(); }
+    }, { once: true });
+  })();
+  </script>
+
+
+
+
+
+  <script src="/versions/last-song.js"></script>
+  <script src="/lib/persist.client.js"></script>
+  <script src="/lib/persist-wire.client.js"></script>
+  <!-- The contract producers this page's own modules read. The engine
+       loads these too; a page that loads a module and not its producer
+       gets a feature that quietly does nothing, which is what
+       scripts/check-engine-parity.mjs is for. -->
+  <script src="/audio-analysis-v2.js"></script>
+  <script src="/lib/auto-setup.client.js"></script>
+  <script src="/lib/library-hygiene.client.js"></script>
+  <script src="/lib/library-persist.client.js"></script>
+  <script src="/lib/midi-feat.client.js"></script>
+  <script src="/lib/storage.client.js"></script>
+  <script src="/lib/swr-life.client.js"></script>
+  <script src="/lib/webgl-feature-detect.client.js"></script>
+  <script src="/client/look-filter-cycler.client.js"></script>
+  <script src="/client/media-grouping.client.js"></script>
+  <script src="/client/targeting.client.js"></script>
+  <script src="/client/variant-switcher.client.js"></script>
+  <script src="/engine-3d.client.js"></script>
+  <script src="/engine-panel-visibility.client.js"></script>
+  <!-- The shared audio core. This page used to carry its own inline audio
+       object; the engine's core is the contract now (see
+       PR-engine-neon-parity.md, slice 3). Loaded as a classic script and
+       BEFORE the page's inline script, because that script reads
+       window.Audio while it parses. -->
+  <script src="/lib/audio.client.js"></script>
+  <script>
+    // Seeded randomness: routed through SWR_GENOPS so deterministic mode
+    // reproduces asset selection as well as parameters. Falls back when absent.
+    const _rnd = () => (window.SWR_GENOPS ? window.SWR_GENOPS.rand() : Math.random());
+    function __shuffle_once(key, arr) {
+      if (!__shuffle_once._cache || __shuffle_once._key !== key) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(_rnd() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        __shuffle_once._cache = a;
+        __shuffle_once._key = key;
+      }
+      __shuffle_once._cache.push(__shuffle_once._cache.shift());
+      return __shuffle_once._cache;
+    }
+
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const stage = $('render');
+    const ctx = stage.getContext('2d', { alpha: false, willReadFrequently: true });
+    const meter = $('meter').getContext('2d');
+    let W, H;
+
+    // === AUDIO ===
+    // === AUDIO ===
+    // The shared audio core, loaded above as /lib/audio.client.js. This
+    // page used to carry its own inline audio object — a second
+    // implementation of the same contract, with the same names and
+    // slightly different behaviour (PR-engine-neon-parity.md, slice 3).
+    // One core now: the engine's.
+    const A = window.Audio;
+    const lerp = (a,b,t) => a+(b-a)*t;
+    const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+    const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
+    function setStatus(t, cls) { const p=$('status'); p.textContent=t; p.className='pill'+(cls?' '+cls:''); }
+
+    // === MEDIA PANEL STATE ===
+    // The sidebar is ONE panel with two states. It used to carry two
+    // lists fed by the same IndexedDB store — #lib (Lib.render) and
+    // the shared #swr-user-media-grid mount — so every asset appeared
+    // twice. Now there is one asset array (Lib.items) and one panel;
+    // "library" shows everything available, "used" shows only what is
+    // currently assigned to a layer.
+    const MediaUI = { tab: 'library', view: 'grid', query: '', focusId: null };
+
+    // === LIBRARY ===
+    const Lib = { items: [], nextId: 1,
+      async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
+        for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
+          let blobUrl = '';
+          try { blobUrl = URL.createObjectURL(f); } catch (e) { console.warn('[neon-lib] createObjectURL failed', f.name, e); }
+          if (typeof blobUrl !== 'string' || !blobUrl.startsWith('blob:')) {
+            console.error('[neon-lib] non-blob URL for', f.name, '→', JSON.stringify(blobUrl), '— file has no usable blob URL, skipping');
+            continue;
+          }
+          const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
+            blob: f, url: blobUrl, motion: 0, luma: 0.5, hue: 0, w:0, h:0, added: Date.now(), thumb: null };
+          this.items.push(it); this._classify(it); }
+        this.render(); },
+      _classify(it) {
+        const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
+        const src = it.type==='video' ? Object.assign(document.createElement('video'),{src:it.url,muted:true,playsInline:true,preload:'metadata'}) : Object.assign(new Image(),{src:it.url});
+        const capture = () => {
+          if (it.type==='video') it.duration = src.duration;
+          cx.drawImage(src, 0,0,32,32);
+          const d = cx.getImageData(0,0,32,32).data;
+          let luma=0,hue=0; for (let i=0;i<d.length;i+=4) luma += 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+          it.luma = (luma/(d.length/4))/255;
+          let sx=0,sy=0; for (let i=0;i<d.length;i+=4){
+            const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]);
+            if (mx===mn) continue; const df=mx-mn; let h=0;
+            if (mx===d[i]) h=((d[i+1]-d[i+2])/df)%6;
+            else if (mx===d[i+1]) h=(d[i+2]-d[i])/df+2;
+            else h=(d[i]-d[i+1])/df+4;
+            h/=6; sx+=Math.cos(h*Math.PI*2); sy+=Math.sin(h*Math.PI*2);
+          }
+          it.hue = (Math.atan2(sy/(d.length/4), sx/(d.length/4))/(Math.PI*2)+1)%1;
+          it.w = src.videoWidth||src.naturalWidth; it.h = src.videoHeight||src.naturalHeight;
+          // thumb
+          const tw=120,th=120; const tcv=document.createElement('canvas'); tcv.width=tw;tcv.height=th;
+          const tcx=tcv.getContext('2d'); tcx.drawImage(src,0,0,tw,th);
+          it.thumb = tcv.toDataURL('image/jpeg',0.7);
+          this.render();
+        };
+        // Poster frame, not frame 0: t=0 is black on anything that fades
+        // in, so the thumbnail (and the luma/hue read from it) came out
+        // black. Same rule as lib/library.client.js. The helper seeks to
+        // 1s — or the middle of a shorter clip — and falls back to the
+        // current frame if the clip cannot be seeked.
+        if (src.tagName === 'VIDEO' && window.SWR_VIDEO_THUMB) {
+          window.SWR_VIDEO_THUMB.atPoster(src, capture);
+        } else {
+          src.addEventListener(src.tagName==='VIDEO'?'loadeddata':'load', capture, { once: true });
+        }
+      },
+      removeItem(id) {
+        const i = this.items.findIndex(x => x.id === id);
+        if (i < 0) return false;
+        const it = this.items[i];
+        // Revoke the blob URL to free the underlying file from memory.
+        try { if (it.url) URL.revokeObjectURL(it.url); } catch (_) {}
+        // Drop any layer that referenced this asset. Layers lives in
+        // the same IIFE scope below — it's defined after Lib but by
+        // the time removeItem is called (user click), the whole IIFE
+        // has run and Layers is bound. Use the closure reference so
+        // we don't depend on window.SWR.Layers being set.
+        try { if (typeof Layers.cleanupForAsset === 'function') Layers.cleanupForAsset(it); } catch (_) {}
+        // Also delete the PERSISTED copy. Without this the asset came
+        // straight back on the next visit: Lib.hydrate() re-reads
+        // IndexedDB, and the old "My Media" list kept showing it until
+        // the tab was closed. Removal has to clear both copies.
+        if (it.persistId && window.SWR_MEDIA && window.SWR_MEDIA.deleteMedia) {
+          try {
+            const p = window.SWR_MEDIA.deleteMedia(it.persistId);
+            if (p && typeof p.catch === 'function') p.catch(err => console.warn('[neon-lib] deleteMedia failed', err));
+          } catch (err) { console.warn('[neon-lib] deleteMedia failed', err); }
+        }
+        this.items.splice(i, 1);
+        this.render();
+        return true;
+      },
+      // How many layers use each asset. mediaId -> count.
+      usedBy() { return Layers.usedBy(); },
+      // The assets the panel should show, honouring the active tab
+      // (library | used) and the search box.
+      visible() {
+        const used = this.usedBy();
+        let list = this.items;
+        if (MediaUI.tab === 'used') list = list.filter(it => used.has(it.id));
+        const q = MediaUI.query.trim().toLowerCase();
+        if (q) list = list.filter(it => String(it.name || '').toLowerCase().includes(q));
+        return list;
+      },
+      _emptyText(used) {
+        const q = MediaUI.query.trim();
+        if (q) return 'no media matches "' + q + '"';
+        if (MediaUI.tab === 'used') return used.size ? 'no media matches' : 'no media assigned to a layer yet';
+        return 'no media yet — click + to add images or videos';
+      },
+      // Remove EVERY asset: in-memory, IndexedDB, and the layers that
+      // referenced them. Mirrors the old "My Media → Clear" button,
+      // which lived in the panel that is now gone.
+      clearAll() {
+        const n = this.items.length;
+        for (const it of this.items.slice()) {
+          try { if (it.url) URL.revokeObjectURL(it.url); } catch (_) {}
+          if (it.persistId && window.SWR_MEDIA && window.SWR_MEDIA.deleteMedia) {
+            try {
+              const p = window.SWR_MEDIA.deleteMedia(it.persistId);
+              if (p && typeof p.catch === 'function') p.catch(err => console.warn('[neon-lib] deleteMedia failed', err));
+            } catch (err) { console.warn('[neon-lib] deleteMedia failed', err); }
+          }
+        }
+        this.items.length = 0;
+        this.nextId = 1;
+        try { if (typeof Layers.detachAll === 'function') Layers.detachAll(); } catch (_) {}
+        this.render();
+        return n;
+      },
+      render() { const el = $('lib');
+        const used = this.usedBy();
+        // Tab counters.
+        const cLib = $('media-count-library'), cUsed = $('media-count-used');
+        if (cLib) cLib.textContent = String(this.items.length);
+        if (cUsed) cUsed.textContent = String(used.size);
+        el.classList.toggle('list', MediaUI.view === 'list');
+        const list = this.visible();
+        if (!list.length) {
+          const empty = document.createElement('div');
+          empty.className = 'media-empty';
+          empty.textContent = this._emptyText(used);
+          el.innerHTML = '';
+          el.appendChild(empty);
+          return;
+        }
+        el.innerHTML = '';
+        // One builder for both layouts: flat (upload order) and grouped
+        // (by name prefix, graphics collected in one group).
+        const buildItem = (it) => {
+          const d = document.createElement('div');
+          d.className = 'li' + (it.id === MediaUI.focusId ? ' is-focus' : '');
+          d.dataset.id = String(it.id);
+          d.title = it.name;
+          // The type chip and the × button.
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = it.type === 'video' ? 'V' : 'I';
+          d.appendChild(tag);
+          const rm = document.createElement('span');
+          rm.className = 'rm';
+          rm.dataset.id = String(it.id);
+          rm.title = 'Remove';
+          rm.textContent = '×';
+          d.appendChild(rm);
+          // Thumbnail.
+          if (it.thumb) { const i=new Image(); i.src=it.thumb; i.alt=''; d.appendChild(i); }
+          else if (it.type==='video') { const v=document.createElement('video'); v.src=it.url;v.muted=true;v.playsInline=true;v.preload='metadata';d.appendChild(v); }
+          else { const i=new Image(); i.src=it.url; i.alt=''; d.appendChild(i); }
+          // Name — textContent, never innerHTML: the file name is
+          // user-controlled and would otherwise be an injection vector.
+          const nm = document.createElement('span');
+          nm.className = 'nm';
+          nm.textContent = it.name;
+          d.appendChild(nm);
+          // "Used in N layers" badge.
+          const n = used.get(it.id) || 0;
+          if (n > 0) {
+            const b = document.createElement('span');
+            b.className = 'badge';
+            b.textContent = 'Used in ' + n + (n === 1 ? ' layer' : ' layers');
+            d.appendChild(b);
+          }
+          // Assign-to-layer action.
+          const asg = document.createElement('button');
+          asg.type = 'button';
+          asg.className = 'asg';
+          asg.dataset.id = String(it.id);
+          asg.textContent = 'Assign';
+          asg.title = 'Assign to the layer chosen below';
+          d.appendChild(asg);
+          d.addEventListener('click', (e) => {
+            // Don't fire "add to layer" if the click was on a button.
+            if (e.target.closest('.rm, .asg')) return;
+            Layers.add(it);
+          });
+          return d;
+        };
+        // Group headers: the group name, a rule, and the item count.
+        const buildGroupHeader = (g) => {
+          const h = document.createElement('div');
+          h.className = 'li-group' + (g.kind === 'graphics' ? ' is-graphics' : '');
+          const name = document.createElement('span');
+          name.className = 'gname';
+          name.textContent = g.label;
+          h.appendChild(name);
+          const rule = document.createElement('span');
+          rule.className = 'grule';
+          h.appendChild(rule);
+          const count = document.createElement('span');
+          count.className = 'gcount';
+          count.textContent = String(g.items.length);
+          h.appendChild(count);
+          return h;
+        };
+        const grouping = window.SWR_MEDIA_GROUPING_UI && window.SWR_MEDIA_GROUPING_UI.isOn()
+          && window.SWR_MEDIA_GROUPING;
+        if (grouping) {
+          const groups = grouping.groupItems(list);
+          for (const g of groups) {
+            el.appendChild(buildGroupHeader(g));
+            for (const it of g.items) el.appendChild(buildItem(it));
+          }
+        } else {
+          for (const it of list) el.appendChild(buildItem(it));
+        }
+        // Wire the × buttons. Done after innerHTML so we attach listeners
+        // to the live DOM nodes (innerHTML-replaced elements lose their
+        // listeners on each re-render).
+        const rmButtons = el.querySelectorAll('.rm');
+        rmButtons.forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.getAttribute('data-id'), 10);
+            const it = this.items.find(x => x.id === id);
+            if (!it) return;
+            // Confirm-on-delete: first click arms, second click within
+            // 1.5s fires. The button itself turns red (var(--m)) to
+            // indicate the armed state. After the timeout, returns.
+            if (btn.classList.contains('rm-armed')) {
+              this.removeItem(id);
+              if (typeof setStatus === 'function') setStatus('removed · ' + it.name, 'ok');
+            } else {
+              btn.classList.add('rm-armed');
+              btn.title = 'click again to confirm';
+              if (typeof setStatus === 'function') setStatus('click × again to remove · ' + it.name, 'err');
+              setTimeout(() => {
+                // Only disarm if the button still exists in the DOM.
+                if (btn.isConnected) {
+                  btn.classList.remove('rm-armed');
+                  btn.title = 'Remove';
+                }
+              }, 1500);
+            }
+          });
+        });
+        // Wire the Assign buttons.
+        el.querySelectorAll('.asg').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.getAttribute('data-id'), 10);
+            const it = this.items.find(x => x.id === id);
+            if (!it) return;
+            const target = ($('media-assign-target') || {}).value || 'new';
+            if (target === 'new') {
+              Layers.assign(it, null);
+              if (typeof setStatus === 'function') setStatus('♪ ' + it.name + ' → new layer', 'ok');
+            } else {
+              const idx = Number(target);
+              Layers.assign(it, idx);
+              if (typeof setStatus === 'function') setStatus('♪ ' + it.name + ' → layer ' + (idx + 1), 'ok');
+            }
+          });
+        });
+      }
+    };
+    // Expose Lib for smoke testing (parallels window.SWR.Layers).
+    window.SWR_LIB = Lib;
+
+
+    // === LAYERS ===
+    const Layers = { list: [], sel: null,
+      add(it) { const i=this.list.length;
+        const presets = [
+          [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
+          [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
+          [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
+          [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
+          [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
+          [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
+        ];
+        const l = { id:'L'+(i+1), asset: it, mediaId: it ? it.id : null, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
+          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
+        this.list.push(l); this.render(); this.sel = l; },
+      // Point a layer at an asset. `layerIndex` is the layer's POSITION
+      // in this.list; null/'new' appends a new layer (the old "click a
+      // card to add it" path). An index replaces that layer's media in
+      // place, keeping its blend/opacity/controls.
+      assign(it, layerIndex) {
+        if (!it) return false;
+        if (layerIndex == null || layerIndex === 'new') { this.add(it); return true; }
+        const l = this.list[Number(layerIndex)];
+        if (!l) { this.add(it); return true; }
+        l.asset = it; l.mediaId = it.id;
+        this.sel = l;
+        this.render();
+        try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        return true;
+      },
+      // mediaId -> number of layers using it. Drives the Media panel's
+      // "used" tab and the "Used in N layers" badge.
+      usedBy() {
+        const m = new Map();
+        for (const l of this.list) {
+          const id = l.mediaId != null ? l.mediaId : (l.asset ? l.asset.id : null);
+          if (id == null) continue;
+          m.set(id, (m.get(id) || 0) + 1);
+        }
+        return m;
+      },
+      // Unassign every layer's media but keep the layer rows (and their
+      // blend/opacity settings) in place.
+      detachAll() {
+        let n = 0;
+        for (const l of this.list) { if (l.asset) { l.asset = null; l.mediaId = null; n++; } }
+        if (n) {
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+        return n;
+      },
+      rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
+      cleanupForAsset(it) {
+        const before = this.list.length;
+        this.list = this.list.filter(l => l.asset !== it);
+        if (this.list.length !== before) {
+          this.render();
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+      },
+      render() {
+        const el = $('layers'); el.innerHTML = '';
+        for (let i=0;i<this.list.length;i++) {
+          const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
+          const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
+          // Control rows carry no user data, so they stay on innerHTML.
+          d.innerHTML = `<div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
+          // Header: index, thumbnail, short name, "change media" button.
+          // The name is written with textContent — the file name is
+          // user-controlled and would otherwise be an injection vector.
+          const lh = document.createElement('div'); lh.className = 'lh';
+          const n = document.createElement('span'); n.className = 'n'; n.textContent = String(i+1);
+          lh.appendChild(n);
+          const th = document.createElement('span'); th.className = 'th';
+          if (l.asset) {
+            const im = document.createElement('img');
+            im.src = l.asset.thumb || l.asset.url;
+            im.alt = '';
+            th.appendChild(im);
+          }
+          lh.appendChild(th);
+          const nm = document.createElement('span'); nm.className = 'nm';
+          nm.textContent = l.asset ? l.asset.name : '(empty)';
+          nm.title = l.asset ? l.asset.name : 'no media assigned';
+          lh.appendChild(nm);
+          const chg = document.createElement('button');
+          chg.type = 'button'; chg.className = 'chg'; chg.textContent = 'Change';
+          chg.title = 'Change this layer’s media';
+          lh.appendChild(chg);
+          const x = document.createElement('button');
+          x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.title = 'Remove layer';
+          lh.appendChild(x);
+          d.insertBefore(lh, d.firstChild);
+          d.querySelector('select').value = l.blend;
+          for (const inp of d.querySelectorAll('input[type=range]')) {
+            const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
+            // simpler: by order
+          }
+          const ins = d.querySelectorAll('input[type=range]');
+          ins[0].value = l.opacity; ins[1].value = l.baseScale; ins[2].value = l.hue;
+          ins[3].value = l.contrast; ins[4].value = l.brightness; ins[5].value = l.alpha; ins[6].value = l.mutate;
+          d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
+          ins[0].addEventListener('input', e => l.opacity = +e.target.value);
+          ins[1].addEventListener('input', e => l.baseScale = +e.target.value);
+          ins[2].addEventListener('input', e => l.hue = +e.target.value);
+          ins[3].addEventListener('input', e => l.contrast = +e.target.value);
+          ins[4].addEventListener('input', e => l.brightness = +e.target.value);
+          ins[5].addEventListener('input', e => l.alpha = +e.target.value);
+          ins[6].addEventListener('input', e => l.mutate = +e.target.value);
+          x.addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
+          chg.addEventListener('click', e => {
+            e.stopPropagation();
+            if (!l.asset) return;
+            // Open this asset in the Media panel and pre-target it, so
+            // the next Assign replaces THIS layer's media.
+            MediaUI.focusId = l.asset.id;
+            MediaUI.query = '';
+            const search = $('media-search'); if (search) search.value = '';
+            const sel = $('media-assign-target');
+            if (sel) { syncAssignTarget(i); }
+            setMediaTab('library', true);
+            Lib.render();
+            const card = document.querySelector('#lib .li[data-id="' + l.asset.id + '"]');
+            if (card && card.scrollIntoView) card.scrollIntoView({ block: 'nearest' });
+            if (typeof setStatus === 'function') setStatus('choose media for layer ' + (i+1), 'ok');
+          });
+          el.appendChild(d);
+        }
+        syncAssignTarget(null);
+        // The Media panel derives its "used" tab and the "Used in N
+        // layers" badge from the layer list, so it has to be re-rendered
+        // whenever the layers change — otherwise adding a layer leaves
+        // the badge stale until something else redraws the panel.
+        try { if (typeof Lib !== 'undefined' && Lib && Lib.render) Lib.render(); } catch (_) {}
+      },
+      remap() {
+        if (!Lib.items.length) return;
+        const f = A.feat; const sens = A.params.sens;
+        const roles = [
+          { want:'motion', weight: 0.6 + f.bass * sens },
+          { want:'mid',    weight: 0.4 + f.mid * sens },
+          { want:'luma',   weight: 0.3 + f.treble * sens },
+          { want:'hue',    weight: 0.2 + f.air * sens },
+          { want:'motion', weight: 0.5 + f.rms * sens * 2 },
+          { want:'motion', weight: 0.7 + f.onset * sens * 3 },
+        ];
+        const scored = Lib.items.map(it => {
+          const sc = {};
+          sc.motion = (it.motion)*0.7 + (1 - Math.abs(it.luma-0.5)*2)*0.3;
+          sc.mid = (it.luma)*0.5 + (1-it.motion)*0.5;
+          sc.luma = (1-it.motion)*0.4 + (it.luma)*0.6;
+          sc.hue = (it.hue)*0.5 + (1-it.motion)*0.5;
+          return { it, sc };
+        });
+        // Pick from top-N candidates randomly so each remap = fresh look
+        const topN = 2 + (Math.floor(_rnd()*2)); // 2 or 3
+        const used = new Set();
+        const assignments = roles.map(r => {
+          const cands = [];
+          for (const s of scored) { if (used.has(s.it.id)) continue;
+            cands.push({ it: s.it, v: s.sc[r.want] * r.weight }); }
+          if (!cands.length) return null;
+          cands.sort((a,b) => b.v - a.v);
+          const pool = cands.slice(0, Math.min(topN, cands.length));
+          const total = pool.reduce((s,c) => s + Math.max(c.v, 0.01), 0);
+          let r2 = _rnd() * total;
+          let pick = pool[0];
+          for (const c of pool) { r2 -= Math.max(c.v, 0.01); if (r2 <= 0) { pick = c; break; } }
+          used.add(pick.it.id);
+          return pick.it;
+        });
+        this.list = [];
+        for (let i=0;i<assignments.length;i++) {
+          if (!assignments[i]) continue;
+          const it = assignments[i];
+          const presets = [
+            [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
+            [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
+            [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
+            [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
+            [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
+            [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
+          ];
+          this.list.push({
+            id:'L'+(i+1), asset: it, mediaId: it.id, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
+            opacity:1, baseScale:[1.2,0.8,1.5,0.6,2.0,0.5][i%6], hue:0, brightness:1, contrast:1,
+          alpha:1, mutate:0,
+            reactors: presets[i%presets.length]
+          });
+        }
+        this.render();
+      }
+    };
+
+    // === RENDERER (NEON style) ===
+    let fps=0, lastT=performance.now();
+        function fit() {
+      const m = SWR_RENDER.fit(stage);
+      W = m.cssW; H = m.cssH;
+      ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+    }
+    fit();
+    const proc = document.createElement('canvas'); proc.width = W; proc.height = H;
+    const pcx = proc.getContext('2d');
+    // ease(name, t) now lives in the shared /lib/ease.js curve map (plan
+    // P1.4). This page used to carry its own copy of the function; see
+    // lib/ease.js for the three historical bodies and the one behavior
+    // change the unification makes.
+    const ease = window.SWR_EASE.ease;
+    // The reactor loop now lives once in the shared /lib/apply-reactors.js
+    // contract (plan P1.1). This page's historical per-target unit table is
+    // SWR_REACTORS.UNITS.naturalHalfGrade; the clamp table, the target dispatch,
+    // the rotation gate and the missing-target fallback are the shared ones,
+    // so there is no second copy of any of them on this page any more. See
+    // lib/apply-reactors.js for the full contract, for why the per-surface
+    // unit tables still exist, and for exactly what the unification changes.
+    const RX = window.SWR_REACTORS;
+    function applyR(l) {
+      const rotOn = l.rotationEnabled === true;
+      const out = RX.baseTransform(l, { rot: l.hue * 0.05 });
+      // The narrative drift bias below reads `sens` directly, so this page
+      // keeps the local the old applyR used to declare.
+      const sens = A.params.sens;
+      // Master transformations toggle (swr-tx-master, the pause glyph): when
+      // the user has muted all audio reactors globally, skip the reactor loop
+      // and return the static baseScale/opacity/hue/etc. shape. Per-layer
+      // override: l.reactorsEnabled = true re-enables reactors for that layer
+      // even when the master is OFF (checked first, so the layer opt-out
+      // survives the global mute).
+      const _txOn = (l.reactorsEnabled !== false)
+                 && (window.SWR_TX_MASTER && window.SWR_TX_MASTER.enabled !== false);
+      if (!_txOn) {
+        if (!rotOn) out.rot = 0;
+        return out;
+      }
+      RX.applyReactor(l, A, 0, {
+        base: out,
+        units: RX.UNITS.naturalHalfGrade,
+        ease: ease,
+        random: _rnd,
+        // This page ran the damper TWICE on every reactor (the value was
+        // damped once on read and again on the way into the curve), which is
+        // a faster effective half-life than every other surface. Kept as-is
+        // so the extraction stays behaviour-preserving here.
+        damp: (val, halfLife, key) => (window.SWR_AUDIO_DAMP && window.SWR_AUDIO_DAMP.damp
+          ? window.SWR_AUDIO_DAMP.damp(window.SWR_AUDIO_DAMP.damp(val, halfLife, key), halfLife, key)
+          : val),
+        // The rot-master toggle (swr-rot-master): rotation is opt-in per
+        // layer (rotationEnabled === true). When OFF, rot-target reactors
+        // and the hue→rot base seed stay silent.
+        allowRotation: rotOn
+      });
+      if (!rotOn) out.rot = 0;
+
+      if (window.SWR_NARRATIVE) {
+        const n = window.SWR_NARRATIVE;
+        const phase = n.phaseMultiplier((A.el && A.el.duration) || 0);
+        out.x += n.state.drift.x * phase.driftAmp * sens * 80 * n.getMicroAmp();
+        out.y += n.state.drift.y * phase.driftAmp * sens * 60 * n.getMicroAmp();
+      }
+      out._v = "0";
+      return out;
+    }
+    function drawLayer(l) {
+      const a = l.asset; if (!a) return;
+      // Some uploaded files produce a non-blob url (legacy browser behavior
+      // where URL.createObjectURL(null) returns the literal string "null",
+      // or the file's blob was released). Fall back to the decoded thumb
+      // (a data: URL set by _classify) so the user still sees something on
+      // stage instead of a silent black canvas. Better than a 404.
+      let url = a.url;
+      if (typeof url !== 'string' || !url.startsWith('blob:')) {
+        if (a.thumb && a.thumb.startsWith('data:')) url = a.thumb;
+        else return;
+      }
+      let src;
+      if (a.type === 'video') {
+        if (!a._el) { a._el = document.createElement('video'); a._el.src=url; a._el.muted=true; a._el.loop=true; a._el.playsInline=true; a._el.preload='auto'; }
+        src = a._el;
+        // Drive playback from the audio transport. SWR_VIDEO_SYNC (see
+        // lib/video-sync.client.js) does not trust `paused`: a video paused
+        // while it is still loading has its media pipeline suspended — the
+        // element drops back to readyState 1 and stops fetching — and while
+        // a play() promise is pending `paused` stays true, so the next
+        // frame calls play() again and a second play() on a pending element
+        // resets it to readyState 1. Either way the element sits at
+        // readyState 1, the draw gate below (readyState < 2) skips the
+        // layer, and the clip never reaches the stage.
+        if (window.SWR_VIDEO_SYNC) {
+          window.SWR_VIDEO_SYNC(src, A.playing);
+        } else {
+          if (A.playing && src.paused) src.play().catch(()=>{});
+          if (!A.playing && !src.paused) src.pause();
+        }
+      } else {
+        if (!a._el) { a._el = new Image(); a._el.src=url; }
+        src = a._el;
+      }
+      if (a.type==='video' && src.readyState<2) return;
+      if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
+      const r = SWR_RENDER.imageEvolve(l, applyR(l));
+      ctx.save();
+      ctx.globalCompositeOperation = l.blend || 'screen';
+      ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
+      const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
+      const car = W/H;
+      let dw, dh;
+      if (ar > car) { dh = H * r.scale; dw = dh * ar; } else { dw = W * r.scale; dh = dw / ar; }
+      const dx = (W - dw)/2 + r.x;
+      const dy = (H - dh)/2 + r.y;
+      // GPU grade (lib/gpu-grade.client.js) — this chain used to run as a per-frame
+      // 2D ctx.filter, a full-frame software pass. Same maths, fragment shader.
+      if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
+      const rotDeg = l.rotationEnabled === true ? r.rot : 0;
+      if (Math.abs(rotDeg) > 0.5) {
+        ctx.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(ctx, rotDeg * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+      } else {
+        ctx.drawImage(src, dx, dy, dw, dh);
+      }
+      ctx.filter = 'none';
+      ctx.restore();
+    }
+    function drawFx() {
+      // scanline
+      ctx.save();
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#ff2d8a';
+      for (let y=0; y<H; y+=3) ctx.fillRect(0, y, W, 1);
+      ctx.restore();
+      // beat flash
+        // Same damping as the vignette below: raw beat restrobed this wash
+      if (A.feat.beat > 0.05) {
+        ctx.save(); ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = `rgba(255,45,138,${((window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp) ? SWR_AUDIO_DAMP.damp(A.feat.beat, 0.35, (window.__neonBeatKey = window.__neonBeatKey || {})) : A.feat.beat)*0.25})`;
+        ctx.fillRect(0,0,W,H); ctx.restore();
+      }
+      // Vignette glow pulse — radial gradient from the stage center
+      // that breathes with the beat. Damped to avoid strobing on noisy
+      // onset detection (smoothed via SWR_AUDIO_DAMP at 0.4s half-life).
+      const pulse = (window.SWR_AUDIO_DAMP && SWR_AUDIO_DAMP.damp)
+        ? SWR_AUDIO_DAMP.damp(A.feat.beat, 0.4, (window.__neonPulseKey = window.__neonPulseKey || {}))
+        : A.feat.beat;
+      if (pulse > 0.05) {
+        const cx = W * 0.5, cy = H * 0.5;
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.6);
+        g.addColorStop(0,   `rgba(255,240,74,${0.18 * pulse})`);
+        g.addColorStop(0.5, `rgba(0,240,255,${0.10 * pulse})`);
+        g.addColorStop(1,   'rgba(0,0,0,0)');
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+    }
+    function drawMeter() {
+      const m = meter; const w = m.canvas.width, h = m.canvas.height;
+      m.fillStyle = '#0a0612'; m.fillRect(0,0,w,h);
+      const sens = A.params.sens;
+      const vals = [A.feat.bass*sens, A.feat.mid*sens, A.feat.treble*sens, A.feat.air*sens, A.feat.rms*sens];
+      const bw = w / vals.length;
+      for (let i=0;i<vals.length;i++) {
+        const v = clamp(vals[i], 0, 1);
+        const bh = v * h;
+        const x = i*bw + 2;
+        const y = h - bh;
+        const g = m.createLinearGradient(0, y, 0, h);
+        if (i<2) { g.addColorStop(0,'#ff2d8a'); g.addColorStop(1,'#fff04a'); }
+        else { g.addColorStop(0,'#00f0ff'); g.addColorStop(1,'#00ffa3'); }
+        m.fillStyle = g;
+        m.fillRect(x, y, bw-4, bh);
+      }
+    }
+    function loop(t) {
+      const dt = (t-lastT)/1000; lastT = t; fps = lerp(fps, 1/Math.max(dt,0.0001), 0.05);
+      $('fps').textContent = Math.round(fps)+' fps';
+      if (A.playing) A.sample();
+      // narrative-state step (ADR-001 rollout)
+      if (window.SWR_NARRATIVE && A.feat) {
+        window.SWR_NARRATIVE.step({
+          rms: A.feat.rms,
+          beat: A.feat.beat,
+          centroid: A.feat.centroid || 0,
+          dt: dt,
+        });
+      }
+      SWR_RENDER.setBackground('#000');
+      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
+      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // === UI WIRING ===
+    $('load-song').addEventListener('click', () => $('song-input').click());
+    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.loadFile(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); } });
+    $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
+    $('add').addEventListener('click', () => $('asset-input').click());
+    $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
+    $('remap').addEventListener('click', () => { Layers.remap(); setStatus('remapped ' + Layers.list.length, 'ok'); });
+
+    // === MEDIA PANEL WIRING ===
+    // One panel, two states. "library" lists every available asset,
+    // "used" lists only the assets currently assigned to a layer.
+    function setMediaTab(tab, keepFocus) {
+      MediaUI.tab = (tab === 'used') ? 'used' : 'library';
+      if (!keepFocus) MediaUI.focusId = null;
+      document.querySelectorAll('.media-tab').forEach(b => {
+        const on = b.getAttribute('data-media-tab') === MediaUI.tab;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      const clear = $('media-clear');
+      if (clear) {
+        clear.title = MediaUI.tab === 'used'
+          ? 'Unassign every layer (media stays in the library)'
+          : 'Remove all media from the library';
+      }
+    }
+    // Rebuild the "assign to" target list. `prefer` selects a layer by
+    // its POSITION in Layers.list. The position — not the layer id — is
+    // the option value: a layer's id is 'L' + its position when it was
+    // created, so ids can collide once a middle layer is removed, and
+    // two options with the same value would silently target the wrong
+    // layer.
+    function syncAssignTarget(prefer) {
+      const sel = $('media-assign-target');
+      if (!sel) return;
+      const prev = prefer != null ? String(prefer) : (sel.value || 'new');
+      sel.innerHTML = '';
+      const optNew = document.createElement('option');
+      optNew.value = 'new'; optNew.textContent = '+ New layer';
+      sel.appendChild(optNew);
+      Layers.list.forEach((l, i) => {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = 'Layer ' + (i + 1) + (l.asset ? ' · ' + l.asset.name : ' · (empty)');
+        sel.appendChild(o);
+      });
+      sel.value = Array.prototype.some.call(sel.options, o => o.value === prev) ? prev : 'new';
+    }
+    document.querySelectorAll('.media-tab').forEach(b => {
+      b.addEventListener('click', () => { setMediaTab(b.getAttribute('data-media-tab')); Lib.render(); });
+    });
+    document.querySelectorAll('.media-view').forEach(b => {
+      b.addEventListener('click', () => {
+        MediaUI.view = b.getAttribute('data-media-view') === 'list' ? 'list' : 'grid';
+        document.querySelectorAll('.media-view').forEach(x => {
+          const on = x === b;
+          x.classList.toggle('is-on', on);
+          x.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        Lib.render();
+      });
+    });
+    const mediaSearch = $('media-search');
+    if (mediaSearch) {
+      mediaSearch.addEventListener('input', () => { MediaUI.query = mediaSearch.value; Lib.render(); });
+    }
+    // Group-by-name toggle. The state lives in the shared module so the
+    // button, the G shortcut and the list render can never disagree; the
+    // page only decides how a group looks.
+    const groupBtn = $('media-group-btn');
+    const groupUI = window.SWR_MEDIA_GROUPING_UI;
+    if (groupBtn && groupUI) {
+      const paintGroupBtn = (on) => {
+        groupBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        groupBtn.title = on ? 'Grouped by name — click to show the flat list (G)' : 'Group media by name (G)';
+      };
+      const applyGrouping = (on) => {
+        paintGroupBtn(on);
+        Lib.render();
+        if (on) {
+          const groups = window.SWR_MEDIA_GROUPING.groupItems(Lib.visible());
+          setStatus('grouped ' + groups.length + ' group' + (groups.length === 1 ? '' : 's'), 'ok');
+        } else {
+          setStatus('flat list', 'ok');
+        }
+      };
+      groupBtn.addEventListener('click', () => applyGrouping(groupUI.toggle()));
+      // The keyboard shortcut (G) and the button share this one path.
+      window.SWR_MEDIA_GROUPING_TOGGLE = function () {
+        const on = groupUI.toggle();
+        applyGrouping(on);
+        return on;
+      };
+      paintGroupBtn(groupUI.isOn());
+    }
+    const mediaClear = $('media-clear');
+    if (mediaClear) {
+      mediaClear.addEventListener('click', () => {
+        if (MediaUI.tab === 'used') {
+          if (!window.confirm('Unassign all media from every layer? The media stays in your library.')) return;
+          const n = Layers.detachAll();
+          Lib.render();
+          setStatus('unassigned ' + n + ' layer' + (n === 1 ? '' : 's'), 'ok');
+          return;
+        }
+        if (!window.confirm('Remove ALL media from your library? This cannot be undone.')) return;
+        const n = Lib.clearAll();
+        setStatus('cleared ' + n + ' asset' + (n === 1 ? '' : 's'), 'ok');
+      });
+    }
+    const assignTarget = $('media-assign-target');
+    if (assignTarget) {
+      assignTarget.addEventListener('change', () => {
+        const idx = Number(assignTarget.value);
+        const l = Number.isInteger(idx) ? Layers.list[idx] : null;
+        if (l && l.asset) setStatus('next assign replaces layer ' + (idx + 1), 'ok');
+      });
+    }
+    setMediaTab('library');
+    syncAssignTarget(null);
+    for (const id of ['sens','gate','decay']) {
+      const inp = $(id); const out = $(id+'-v');
+      inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (out) out.textContent = v.toFixed(2);
+        if (A && A.params && Object.prototype.hasOwnProperty.call(A.params, id)) {
+          A.params[id] = v;
+        }
+      });
+    }
+    window.addEventListener('dragover', e => { e.preventDefault(); });
+    window.addEventListener('drop', async e => {
+      e.preventDefault();
+      if (e.dataTransfer.files && e.dataTransfer.files.length) await Lib.addFiles(e.dataTransfer.files);
+    });
+    window.addEventListener('resize', fit);
+    $('rec').addEventListener('click', () => {
+      if (Recorder.recording) Recorder.stop();
+      else Recorder.start();
+    });
+
+    // === Auto-load library ===
+    // Defer to DOMContentLoaded so the deferred `<script
+    // src="/client/library-loader.client.js">` (loaded in <head>
+    // with the defer attribute) has executed first. Without this,
+    // window.SWR_LIBLOAD is undefined when this IIFE runs and boot()
+    // silently never fires — a regression that shipped before this
+    // defer was added (see verify-library-loads.mjs for the guard).
+    function __swr_libboot() {
+      if (!window.SWR_LIBLOAD) return;
+      if (typeof Lib === 'undefined') {
+        console.warn('[swr-libload] inline Lib not found at boot time');
+        return;
+      }
+      if (!window.SWR_LIB_PERSIST) {
+        console.warn('[swr-libload] SWR_LIB_PERSIST not loaded — user uploads will NOT persist on this page');
+        return;
+      }
+      // Persistence-augmented boot: hydrates prior uploads from IndexedDB,
+      // persists new ones, then chains the curated manifest load.
+      window.SWR_LIB_PERSIST.boot(Lib, {
+        manifestUrl: null,
+        filePrefix:  '/library/',
+        phase1Count: 8,
+        doneFlag:    'swr-manifest-loaded',
+        onReady:     function () { try { Layers.remap(); } catch (_) {} },
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', __swr_libboot, { once: true });
+    } else {
+      __swr_libboot();
+    }
+    // === RECORDER (MP4 export) ===
+    const Recorder = {
+      rec: null,
+      chunks: [],
+      recording: false,
+      mime: 'video/webm',
+      mediaDest: null,
+      autoStopAt: 0,
+      autoStopTimer: null,
+      autoStopAt: 0,
+      autoStopTimer: null,
+    // SWR_REC_MP4_INTEGRATION
+      start() {
+        if (!A.el) { setStatus('load a song first', ''); return; }
+        const fpsSel = $('rec-fps') ? $('rec-fps').value : '30';
+        const fps = parseInt(fpsSel, 10) || 30;
+        const qualSel = $('rec-quality') ? $('rec-quality').value : 'high';
+        const BITRATE = { high: 12_000_000, med: 6_000_000, low: 3_000_000 }[qualSel] || 12_000_000;
+        const formatSel = $('rec-format') ? $('rec-format').value : 'auto';
+        const wantMp4 = formatSel === 'mp4' || (formatSel === 'auto' && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs());
+        if (wantMp4 && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs()) {
+          this._wcActive = true;
+          this._wcPending = window.SWR_RECORDER.start({
+            canvas: stage,
+            audioSource: A.analyser,
+            audioSampleRate: A.ctx ? A.ctx.sampleRate : 0,
+            audioNumberOfChannels: 2,
+            width: stage.width,
+            height: stage.height,
+            fps: fps,
+            videoBitsPerSecond: BITRATE,
+          }).then(() => {
+            this.recording = true;
+            this.startedAt = Date.now();
+            const durSel = $('rec-dur') ? $('rec-dur').value : '0';
+            let durMs = 0;
+            if (durSel === 'song' && A.el && A.el.duration) {
+              durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
+            } else if (durSel !== '0' && durSel !== 'manual') {
+              durMs = parseInt(durSel) * 1000;
+            }
+            this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
+            $('rec').classList.add('live');
+            $('rec').textContent = '■ STOP';
+            const formatDur = (ms) => {
+              const s = Math.max(0, Math.round(ms / 1000));
+              return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0');
+            };
+            if (this.autoStopAt > 0) {
+              const durLabel = durSel === 'song' ? 'song' : (durSel + 's');
+              setStatus('rec · MP4 · ' + formatDur(this.autoStopAt - Date.now()) + ' / ' + durLabel, 'live');
+              this.autoStopTimer = setTimeout(() => { if (this.recording) Recorder.stop(); }, this.autoStopAt - Date.now());
+            } else {
+              setStatus('rec · MP4', 'live');
+            }
+            this.tickTimer = setInterval(() => {
+              if (!this.recording) { clearInterval(this.tickTimer); this.tickTimer = null; return; }
+              const el = formatDur(Date.now() - this.startedAt);
+              if (this.autoStopAt > 0) {
+                const rem = formatDur(this.autoStopAt - Date.now());
+                const durSel2 = $('rec-dur') ? $('rec-dur').value : '0';
+                const durLabel = durSel2 === 'song' ? 'song' : (durSel2 + 's');
+                setStatus('rec · MP4 · ' + el + ' / ' + durLabel, 'live');
+              } else {
+                setStatus('rec · MP4 · ' + el, 'live');
+              }
+            }, 500);
+          }).catch((err) => {
+            this._wcActive = false;
+            if (err && err.unsupported) {
+              setStatus('WebCodecs unsupported · falling back to WebM', 'warn');
+              const prev = $('rec-format') ? $('rec-format').value : formatSel;
+              if ($('rec-format')) $('rec-format').value = 'webm';
+              this.start();
+              if ($('rec-format')) $('rec-format').value = prev;
+            } else {
+              setStatus('recorder start failed: ' + (err && err.message || err), 'err');
+            }
+          });
+          return;
+        }
+        // === MEDIA-RECORDER (WEBM) PATH — same as before ===
+        const vstream = stage.captureStream(fps);
+        const dest = A.ctx.createMediaStreamDestination();
+        this.mediaDest = dest;
+        try { A.analyser.disconnect(dest); } catch {}
+        A.analyser.connect(dest);
+        const tracks = [...vstream.getVideoTracks(), ...dest.stream.getAudioTracks()];
+        const stream = new MediaStream(tracks);
+        const mime = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4;codecs=avc1,mp4a.40.2',
+          'video/mp4;codecs=avc1',
+          'video/mp4',
+          'video/webm',
+        ].find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
+        this.mime = mime;
+        this.rec = new MediaRecorder(stream, {
+          mimeType: mime,
+          videoBitsPerSecond: BITRATE,
+          audioBitsPerSecond: 192_000,
+        });
+        this.chunks = [];
+        this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
+        this.rec.onstop = () => this._save();
+        this.rec.start(250);
+        this.recording = true;
+        this.startedAt = Date.now();
+        const durSel = $('rec-dur') ? $('rec-dur').value : '0';
+        let durMs = 0;
+        if (durSel === 'song' && A.el && A.el.duration) {
+          durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
+        } else if (durSel !== '0' && durSel !== 'manual') {
+          durMs = parseInt(durSel) * 1000;
+        }
+        this.autoStopAt = durMs > 0 ? Date.now() + durMs : 0;
+        $('rec').classList.add('live');
+        $('rec').textContent = '■ STOP';
+        const ext = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        const formatDur = (ms) => {
+          const s = Math.max(0, Math.round(ms / 1000));
+          return Math.floor(s/60) + ':' + String(s % 60).padStart(2, '0');
+        };
+        if (this.autoStopAt > 0) {
+          const durLabel = durSel === 'song' ? 'song' : (durSel + 's');
+          setStatus('rec · ' + ext.toUpperCase() + ' · ' + formatDur(this.autoStopAt - Date.now()) + ' / ' + durLabel, 'live');
+          this.autoStopTimer = setTimeout(() => { if (this.recording) Recorder.stop(); }, this.autoStopAt - Date.now());
+        } else {
+          setStatus('rec · ' + ext.toUpperCase(), 'live');
+        }
+        this.tickTimer = setInterval(() => {
+          if (!this.recording) { clearInterval(this.tickTimer); this.tickTimer = null; return; }
+          const el = formatDur(Date.now() - this.startedAt);
+          if (this.autoStopAt > 0) {
+            const rem = formatDur(this.autoStopAt - Date.now());
+            const durSel2 = $('rec-dur') ? $('rec-dur').value : '0';
+            const durLabel = durSel2 === 'song' ? 'song' : (durSel2 + 's');
+            setStatus('rec · ' + ext.toUpperCase() + ' · ' + el + ' / ' + durLabel, 'live');
+          } else {
+            setStatus('rec · ' + ext.toUpperCase() + ' · ' + el, 'live');
+          }
+        }, 500);
+        // SWR_REC_IMPROVED_v2
+      },
+      stop() {
+        if (this._wcActive) {
+          if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+          if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
+          this._wcActive = false;
+          this.recording = false;
+          $('rec').classList.remove('live');
+          $('rec').textContent = '● REC';
+          setStatus('finalizing MP4…', '');
+          window.SWR_RECORDER.stop().then((res) => {
+            this.chunks = [res.blob];
+            this.mime = res.mime;
+            this._save();
+          }).catch((err) => {
+            setStatus('recorder stop failed: ' + (err && err.message || err), 'err');
+          });
+          return;
+        }
+        if (!this.rec) return;
+        if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
+        if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
+        this.rec.stop();
+        this.recording = false;
+        $('rec').classList.remove('live');
+        $('rec').textContent = '● REC';
+        setStatus('rendering…', '');
+        if (this.mediaDest) {
+          try { A.analyser.disconnect(this.mediaDest); } catch {}
+          this.mediaDest = null;
+        }
+      },
+      _save() {
+        const blob = new Blob(this.chunks, { type: this.mime });
+        const a = document.createElement('a');
+        const recUrl = URL.createObjectURL(blob);
+        a.href = recUrl;
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
+        a.download = 'sainted-word-' + ts + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Free the download URL once the click has been dispatched.
+        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
+        setStatus('exported · ' + ext.toUpperCase(), 'ok');
+      },
+    };
+        // Invalidate the per-layer cache whenever the page rebuilds.
+    if (Layers && typeof Layers.render === 'function') {
+      const __r = Layers.render.bind(Layers);
+      Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
+    }
+    window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
+    // ---- Shared-module contract (engine ↔ neon parity, slice 1) ----
+    // The engine gets its core globals from the shared modules —
+    // lib/audio.client.js publishes window.Audio, lib/library.client.js
+    // publishes window.Library, lib/layers.client.js publishes
+    // window.Layers, and engine.html:3918 publishes window.setStatus.
+    // This page carries its own inline copies of the same subsystems, so
+    // without these four lines every shared module that reaches for a
+    // core global degrades to a silent no-op here:
+    //   project.client.js:99     window.Audio  → no song in the saved project
+    //   versions-presets.js:1144 window.Audio  → grade presets stop reacting to audio
+    //   engine-keys.client.js:164 window.Layers → layer remap keys stay suppressed
+    //   client/scenes.client.js:24 window.setStatus → pad recalls show no status
+    // The modules are defensive (they check before use), so the drift
+    // never surfaced as an error — it surfaced as features that quietly
+    // did nothing. Publishing the globals is the smallest change that
+    // makes the contract real on both pages.
+    window.Audio = A;
+    window.Library = Lib;
+    window.Layers = Layers;
+    window.setStatus = setStatus;
+    // `window.A` is the music_video.html convention the SWR_* blocks read
+    // (`A.el`, `A.feat`); the engine publishes the same alias at
+    // engine.html:7274. This page's A already uses that convention.
+    window.A = A;
+  })();
+  </script>
+<script src="/versions-presets.js"></script>
+<script src="/versions/temp-slider.js"></script>
+<script src="/fx-postprocess.js"></script>
+<script src="/engine-genops.client.js"></script>
+  <script src="/lib/command-center-launcher.client.js" defer></script>
+<!-- Live input: camera as a live layer, microphone as engine input.
+     Loaded in order — the media input primitive first, then the preview
+     and meter it feeds, then the control that ties them to the engine. -->
+<script src="/client/swr-media-input.client.js" defer></script>
+<script src="/client/swr-camera-preview.client.js" defer></script>
+<script src="/client/swr-mic-meter.client.js" defer></script>
+<script src="/client/swr-live-input.client.js" defer></script>  <script src="/engine-transitions.client.js" defer></script>
+  <script src="/lib/media-store.client.js" defer></script>
+  <script src="/lib/library-persist.client.js" defer></script>
+
+  <!-- ADR-001 Step 3 rollout: narrative-state accumulator (extracted
+       from music_video.html integration, ported to neon). -->
+  <script src="/client/narrative-state.client.js" defer></script>
+
+<!-- Automix debug panel (Phase 2 port) -->
+<div id="automix-debug-panel" hidden style="position:fixed; bottom:max(80px, var(--safe-bottom)); right:max(14px, var(--safe-right)); z-index:9999; background:rgba(10,10,16,0.92); color:var(--fg); padding:14px 18px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:11px; min-width:240px; max-width:340px; line-height:1.55;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <b style="letter-spacing:0.1em; text-transform:uppercase;">Debug</b>
+    <button id="automix-debug-close" title="Close" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; line-height:1;">×</button>
+  </div>
+  <div id="automix-debug-body" style="color:var(--fg-mute);">idle</div>
+</div>
+
+<script src="/lib/variant-curator-wiring.client.js" defer></script>
+  <!-- Natural-evolution render pass: envelope followers, filmic grade, feedback trail, rotating mirror -->
+  <script src="/lib/swr-natural.client.js"></script>
+  <script src="/lib/look-variant.client.js" defer></script>
+<!-- SWR-AUDIO-DAMP-MARKER -->
+<script src="/lib/audio-damp.client.js"></script>
+<!-- SWR-FX-GRADE-MARKER -->
+<script src="/lib/gpu-grade.client.js"></script>
+<!-- SWR-WATERMARK-MARKER -->
+<script src="/lib/watermark.client.js"></script>
+<script src="/lib/auth.client.js" defer></script>
+<script src="/lib/google-drive.client.js" defer></script>
+  <script src="/lib/drive-modal.client.js" defer></script>
+
+  <script>
+    (function() {
+      var driveBtn = document.getElementById('swr-drive-btn');
+      if (!driveBtn) return;
+
+      function getDriveState() {
+        return window.SWR_AUTH ? window.SWR_AUTH.session() : Promise.resolve(null);
+      }
+
+      function updateBtnState(user) {
+        if (!user) {
+          driveBtn.title = 'Sign in to import from Google Drive';
+          driveBtn.style.opacity = '0.4';
+        } else if (!user.googleDriveLinkedAt) {
+          driveBtn.title = 'Connect Google Drive to import files';
+          driveBtn.style.opacity = '0.7';
+        } else {
+          driveBtn.title = 'Import from Google Drive';
+          driveBtn.style.opacity = '1';
+        }
+      }
+
+      // Bootstrap: check session and listen for auth changes.
+      if (window.SWR_AUTH) {
+        getDriveState().then(updateBtnState);
+        window.SWR_AUTH.onChange(updateBtnState);
+      } else {
+        driveBtn.title = 'Sign in to import from Google Drive';
+        driveBtn.style.opacity = '0.4';
+      }
+
+      driveBtn.addEventListener('click', function() {
+        getDriveState().then(function(user) {
+          if (!user) {
+            // Not logged in → redirect to login with return path.
+            var returnTo = encodeURIComponent(location.pathname);
+            location.href = '/auth/login?redirect=' + returnTo;
+            return;
+          }
+          if (!user.googleDriveLinkedAt) {
+            // Drive not linked → initiate OAuth in popup.
+            if (window.SWR_GDRIVE) {
+              window.SWR_GDRIVE.link(location.pathname)
+                .then(function() { updateBtnState(Object.assign({}, user, { googleDriveLinkedAt: new Date().toISOString() })); })
+                .catch(function(e) {
+                  if (e.message !== 'popup_blocked' && e.message !== 'oauth_timeout') {
+                    console.warn('[drive] link error:', e);
+                  }
+                });
+            }
+            return;
+          }
+          // Drive linked → open browser modal.
+          if (window.SWR_DRIVE_MODAL) {
+            window.SWR_DRIVE_MODAL.show();
+          }
+        });
+      });
+    })();
+  </script>
+  <script src="/lib/home-link.client.js" defer></script>
+    <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/client/looks-menu.client.js" defer></script>
+  <script src="/client/look-filter-cycler.client.js" defer></script>
+  <script src="/client/neon-demo-panel.client.js" defer></script>
+<script src="/lib/version-watcher.client.js" defer></script>
+  <!-- Visual debugger. Nothing is fetched unless ?swrdebug=1 asks for it,
+       so the page pays nothing for the tool being one click away. -->
+  <script>
+    if (/[?&]swrdebug=1/.test(location.search)) {
+      var s = document.createElement('script');
+      s.src = '/client/engine-debugger.client.js';
+      s.defer = true;
+      document.head.appendChild(s);
+    }
+  </script>
+</body>
+</html>
