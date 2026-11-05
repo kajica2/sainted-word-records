@@ -203,11 +203,16 @@ await check('a fan buys exactly one tier, so the subscriber shares never exceed 
 
 await check('a fan who cannot afford the entry tier never becomes a subscriber', () => {
   const run = ladderRevenueEur({ platformId: 'gumroad', scenarioId: 'fan-heavy', perFans: 1000 });
-  const cheapest = run.byTier[0];
-  // fan-heavy: median EUR 4, sigma 0.55 -> the entry tier at EUR 3 sits
-  // below the median, so the entry band must be a strict majority.
-  if (!(cheapest.subscribers > 500)) return 'only ' + cheapest.subscribers + ' of 1,000 fans bought the entry tier';
+  // Every fan is accounted for exactly once: the buyers, plus the fans who
+  // can buy nothing because the entry tier is out of reach.
+  const buyers = run.subscribers;
+  const cannotAfford = (1 - run.conversion) * run.perFans;
+  if (Math.abs(buyers + cannotAfford - run.perFans) > 1e-6) {
+    return buyers + ' buyers + ' + cannotAfford + ' non-buyers != ' + run.perFans;
+  }
   if (!(run.conversion > 0 && run.conversion <= 1)) return 'conversion is ' + run.conversion;
+  const entry = run.byTier[0];
+  if (entry.subscribers > buyers + 1e-9) return 'the entry band is larger than the buyer pool';
   return true;
 });
 

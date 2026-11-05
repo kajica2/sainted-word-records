@@ -103,6 +103,13 @@ export const SUBSCRIPTION_TIERS = {
     grants: ['audio-library-mp3', 'early-access'],
     blurb: 'The full audio library, as MP3, and every release seven days early.',
   },
+  collector: {
+    id: 'collector',
+    name: 'Collector',
+    priceMinor: 500,
+    grants: ['audio-library-mp3', 'early-access', 'media-packs'],
+    blurb: 'The listener catalogue, plus the media packs.',
+  },
   studio: {
     id: 'studio',
     name: 'Studio',
