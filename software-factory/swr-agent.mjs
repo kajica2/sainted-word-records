@@ -962,6 +962,13 @@ async function cmdChat(args) {
 
         history.push({ role: 'user', content: [{ type: 'text', text: trimmed }] });
         for (let turn = 0; turn < 3; turn++) {
+          // The conversation-wide heartbeat is the thing that kept this
+          // chat's slot alive while it was idle. If it says the slot is
+          // gone, the chat does not continue outside the pool.
+          if (chatHeartbeat.lost) {
+            refusal = { message: `the worker slot was lost before the turn (${chatHeartbeat.lost}) — the chat stopped rather than continue without a slot.` };
+            break;
+          }
           const slot = ensureWorkerSlot(guard, workerId, route.task ? `${args.agent}/${route.task}` : args.agent);
           if (!slot.ok) {
             refusal = { message: `the worker slot was lost before the turn (${slot.reason}) — the chat stopped rather than continue without a slot.` };

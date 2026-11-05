@@ -417,17 +417,42 @@ console.log('\n14. the heartbeat keeps a long turn alive');
   // A renewal that THROWS (the lock could not be acquired) must not take
   // the process down: an exception inside a timer callback is uncaught,
   // and the process would die before the settlement is written — the
-  // reservation would burn the day's budget with no spend record.
+  // reservation would burn the day's budget with no spend record. And it
+  // must not latch: a lock timeout says nothing about whether the lease
+  // is still there, so the heartbeat keeps trying.
   const guard = makeGuard({ maxWorkers: 2 });
   guard.claimWorker({ workerId: 'hb-3' });
+  let attempts = 0;
   guard.renewWorker = () => {
+    attempts++;
     throw new Error('worker-lease: could not acquire the lease lock');
   };
   const heartbeat = guard.startHeartbeat('hb-3', { intervalMs: 10 });
   await new Promise((r) => setTimeout(r, 60));
   heartbeat.stop();
-  assert(typeof heartbeat.lost === 'string', 'a throwing renewal is recorded, not thrown');
-  assert(String(heartbeat.lost).includes('renew-failed'), 'the recorded failure says what happened');
+  assert(typeof heartbeat.lastError === 'string', 'a throwing renewal is recorded, not thrown');
+  assert(String(heartbeat.lastError).includes('could not acquire'), 'the recorded failure says what happened');
+  assert(attempts > 1, 'the heartbeat keeps trying after a transient failure');
+  assert(heartbeat.lost === null, 'a transient failure does not claim the lease is gone');
+  cleanup(guard);
+}
+
+{
+  // A renewal that works again clears the failure.
+  const guard = makeGuard({ maxWorkers: 2 });
+  guard.claimWorker({ workerId: 'hb-4' });
+  let fail = true;
+  const real = guard.renewWorker.bind(guard);
+  guard.renewWorker = (id) => {
+    if (fail) throw new Error('worker-lease: could not acquire the lease lock');
+    return real(id);
+  };
+  const heartbeat = guard.startHeartbeat('hb-4', { intervalMs: 10 });
+  await new Promise((r) => setTimeout(r, 40));
+  fail = false;
+  await new Promise((r) => setTimeout(r, 40));
+  heartbeat.stop();
+  assert(heartbeat.lastError === null, 'a successful renewal clears the recorded failure');
   cleanup(guard);
 }
 

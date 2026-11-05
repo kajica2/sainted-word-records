@@ -275,6 +275,54 @@ section('a young unreadable lease file is NOT pruned');
 }
 
 // ---------------------------------------------------------------------------
+section('the lock is owned, and a stale one is broken safely');
+{
+  const dir = tmpDir();
+  const m = createLeaseManager({ dir, maxWorkers: 2, staleLockMs: 10, lockWaitMs: 2000 });
+  // A lock left behind by a crashed holder is stale after staleLockMs and
+  // must be breakable — otherwise one crash blocks the pool forever.
+  const lock = path.join(dir, 'leases.lock');
+  fs.writeFileSync(lock, 'crashed-holder\n');
+  await new Promise((r) => setTimeout(r, 30));
+  const claim = m.claim({ workerId: 'after-crash' });
+  assert(claim.ok === true, 'a stale lock is broken and the claim proceeds');
+}
+{
+  const dir = tmpDir();
+  const m = createLeaseManager({ dir, maxWorkers: 2 });
+  const lock = path.join(dir, 'leases.lock');
+  // The holder must delete only its OWN lock. If the lock was taken over
+  // while it was inside the critical section, the release must leave the
+  // new owner's lock alone.
+  m._withLock(() => {
+    fs.writeFileSync(lock, 'somebody-else\n');
+  });
+  assert(fs.existsSync(lock), 'a holder does not delete a lock it no longer owns');
+}
+{
+  const dir = tmpDir();
+  const m = createLeaseManager({ dir, maxWorkers: 2 });
+  const a = m.claim({ workerId: 'ops/one' });
+  const b = m.claim({ workerId: 'ops_one' });
+  assert(a.ok === true, 'the first claim succeeds');
+  assert(b.ok === false && b.reason === 'race', 'a colliding worker id is refused, not allowed to steal the lease');
+  assert(m.status().active === 1, 'the pool counts one worker, not two');
+}
+
+// ---------------------------------------------------------------------------
+section('a leaked temp file is pruned');
+{
+  const dir = tmpDir();
+  const tmp = path.join(dir, 'x.lease.json.tmp-1-abc');
+  fs.writeFileSync(tmp, 'x');
+  const old = new Date(Date.now() - 5 * 60 * 1000);
+  fs.utimesSync(tmp, old, old);
+  const m = createLeaseManager({ dir, maxWorkers: 2 });
+  m.status();
+  assert(!fs.existsSync(tmp), 'a temp file left by a crashed write is pruned');
+}
+
+// ---------------------------------------------------------------------------
 // Summary
 // ---------------------------------------------------------------------------
 console.log('');

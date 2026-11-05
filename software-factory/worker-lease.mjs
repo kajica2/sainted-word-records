@@ -41,8 +41,8 @@ export const REPO_ROOT = path.resolve(HERE, '..');
 export const DEFAULT_MAX_WORKERS = 2;
 export const DEFAULT_LEASE_DIR = path.join(REPO_ROOT, 'data', 'swr-leases');
 export const DEFAULT_LEASE_TTL_MS = 15 * 60 * 1000; // 15 minutes
-export const STALE_LOCK_MS = 5_000;
-export const LOCK_WAIT_MS = 15_000;
+export const STALE_LOCK_MS = 15_000;
+export const LOCK_WAIT_MS = 20_000;
 // A lease file younger than this is assumed to be a writer's work in
 // progress, not debris. It is never deleted on the strength of being
 // unreadable.
@@ -96,10 +96,26 @@ export class WorkerLeaseManager {
     return Number(this.now());
   }
 
+  /**
+   * Run `fn` under the global lock.
+   *
+   * Two rules make the lock safe:
+   *
+   * 1. **The holder releases only its OWN lock.** The lock file carries a
+   *    unique token; the release unlinks it only if the token still
+   *    matches. Without that, a holder whose lock was broken would delete
+   *    the BREAKER's lock on its way out — and two processes would be
+   *    inside the critical section at once.
+   * 2. **A stale lock is broken by an atomic MOVE, not an unlink.** The
+   *    rename moves the stale lock aside; only one process can win that
+   *    race, and the losers wait. An unlink-then-create lets two
+   *    breakers both believe they took the lock.
+   */
   _withLock(fn) {
     const lockPath = this.lockPath;
     const deadline = Date.now() + this.lockWaitMs;
     for (;;) {
+      const token = `${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       let fd;
       try {
         fd = fs.openSync(lockPath, 'wx');
@@ -108,7 +124,15 @@ export class WorkerLeaseManager {
         try {
           const st = fs.statSync(lockPath);
           if (Date.now() - st.mtimeMs > this.staleLockMs) {
-            fs.unlinkSync(lockPath);
+            // Break it by MOVING it aside: the rename is atomic, so only
+            // one breaker wins and the others keep waiting.
+            const stale = `${lockPath}.stale-${process.pid}-${Math.random().toString(36).slice(2)}`;
+            try {
+              fs.renameSync(lockPath, stale);
+              fs.unlinkSync(stale);
+            } catch {
+              /* somebody else broke it first */
+            }
             continue;
           }
         } catch {
@@ -119,17 +143,19 @@ export class WorkerLeaseManager {
         continue;
       }
       try {
-        fs.writeSync(fd, `${process.pid} ${new Date().toISOString()}\n`);
+        fs.writeSync(fd, `${token}\n`);
       } finally {
         fs.closeSync(fd);
       }
       try {
         return fn();
       } finally {
+        // Release only if the lock is still OURS.
         try {
-          fs.unlinkSync(lockPath);
+          const current = fs.readFileSync(lockPath, 'utf8');
+          if (current.trim() === token) fs.unlinkSync(lockPath);
         } catch {
-          /* already gone */
+          /* gone, or somebody else's now */
         }
       }
     }
@@ -158,6 +184,7 @@ export class WorkerLeaseManager {
       if (err && err.code === 'ENOENT') return out;
       throw err;
     }
+    this._pruneTempFiles();
     for (const name of names) {
       if (!name.endsWith('.lease.json')) continue;
       const file = path.join(this.dir, name);
@@ -202,6 +229,36 @@ export class WorkerLeaseManager {
     }
   }
 
+  /**
+   * Remove temp files left behind by a crashed atomic write.
+   *
+   * A crash between the create and the rename leaves a `.tmp-` fragment.
+   * It says nothing about any slot, and nothing else would ever remove
+   * it — so the directory would grow litter forever.
+   */
+  _pruneTempFiles(maxAgeMs = 60_000) {
+    let names = [];
+    try {
+      names = fs.readdirSync(this.dir);
+    } catch {
+      return 0;
+    }
+    let removed = 0;
+    for (const name of names) {
+      if (!name.includes('.tmp-') && !name.includes('.stale-')) continue;
+      const file = path.join(this.dir, name);
+      const age = this._fileAgeMs(file);
+      if (age === null || age < maxAgeMs) continue;
+      try {
+        fs.unlinkSync(file);
+        removed++;
+      } catch {
+        /* already gone */
+      }
+    }
+    return removed;
+  }
+
   _pruneExpired(leases) {
     const expired = leases.filter((l) => l.expired);
     for (const l of expired) {
@@ -215,7 +272,7 @@ export class WorkerLeaseManager {
   }
 
   /**
-   * Write a lease file ATOMICALLY.
+   * Write a lease file ATOMICALLY, and never over a live one.
    *
    * The file used to be created empty and then filled in place, which
    * leaves a window in which another process reads a zero-length file. A
@@ -223,9 +280,19 @@ export class WorkerLeaseManager {
    * lease — and the pool hands out more slots than the cap allows. The
    * temp file plus the rename closes the window: a reader sees either the
    * old lease or the new one, never a fragment.
+   *
+   * The rename OVERWRITES its destination, so the exclusivity has to be
+   * checked explicitly: a lease id that already exists on disk belongs to
+   * somebody else, and this claim is a race — two worker ids can
+   * sanitise to the same file name.
    */
   _writeLease(lease) {
     const file = this._leasePath(lease.workerId);
+    if (fs.existsSync(file)) {
+      const err = new Error(`worker-lease: a lease for "${lease.workerId}" already exists`);
+      err.code = 'EEXIST';
+      throw err;
+    }
     this._writeJsonAtomic(file, lease);
     return file;
   }

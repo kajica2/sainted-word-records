@@ -216,18 +216,26 @@ export class SwarmGuard {
     const ttl = this.leaseTtlMs || DEFAULT_LEASE_TTL_MS;
     const every = intervalMs || Math.max(50, Math.floor(ttl / 3));
     let lost = null;
+    let lastError = null;
     const timer = setInterval(() => {
-      if (lost) return;
       try {
         const res = this.renewWorker({ workerId });
-        if (!res.ok) lost = res.reason || 'lease-lost';
+        if (!res.ok) {
+          lost = res.reason || 'lease-lost';
+        } else {
+          // A renewal that works clears the failure: the lease was there
+          // all along and the earlier error was transient.
+          lost = null;
+          lastError = null;
+        }
       } catch (err) {
         // A throw inside a timer callback is an UNCAUGHT exception: it
         // would kill the process mid-request, before the settlement is
         // written, and the reservation would burn the day's budget with
-        // no spend record. The failure is recorded instead, and the run
-        // stops cleanly after it settles.
-        lost = `renew-failed: ${(err && err.message) || String(err)}`;
+        // no spend record. The failure is recorded — and the heartbeat
+        // KEEPS TRYING, because a lock timeout says nothing about
+        // whether the lease is still there.
+        lastError = (err && err.message) || String(err);
       }
     }, every);
     if (typeof timer.unref === 'function') timer.unref();
@@ -237,6 +245,9 @@ export class SwarmGuard {
       },
       get lost() {
         return lost;
+      },
+      get lastError() {
+        return lastError;
       },
     };
   }

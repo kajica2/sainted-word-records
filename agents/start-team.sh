@@ -78,11 +78,14 @@ PIDS=()
 # question the bridge asks — otherwise it starts an agent, watches it get
 # refused, and still prints "Team launched".
 #
-# The answer comes from the SAME module the bridge reads, and it also asks
-# the pool how many slots are already held: the pool is machine-wide, and a
-# leftover lease from a crashed agent still holds its slot until it expires.
-read -r MAX_WORKERS ACTIVE_LEASES LEASE_DIR <<EOF
-$(node -e '
+# The answer comes from the SAME module the bridge reads, from the SAME
+# lease directory (SWR_LEASE_DIR when it is set), and it also asks the pool
+# how many slots are already held: the pool is machine-wide, and a leftover
+# lease from a crashed agent still holds its slot until it expires.
+#
+# If the query cannot be answered, the launcher does NOT start anything:
+# a silent no-op with a garbled message is worse than a clear refusal.
+if ! POLICY="$(node -e '
 const { pathToFileURL } = require("node:url");
 const root = process.argv[1];
 Promise.all([
@@ -90,11 +93,20 @@ Promise.all([
   import(pathToFileURL(root + "/software-factory/worker-lease.mjs").href),
 ]).then(([ledger, leases]) => {
   const limits = ledger.readLimits();
-  const manager = leases.createLeaseManager({ dir: leases.DEFAULT_LEASE_DIR });
-  process.stdout.write([limits.maxConcurrentAgents, manager.status().active, leases.DEFAULT_LEASE_DIR].join(" "));
-}).catch(() => process.stdout.write("2 0 " + root + "/data/swr-leases"));
-' "$REPO_ROOT")
-EOF
+  const dir = process.env.SWR_LEASE_DIR || leases.DEFAULT_LEASE_DIR;
+  const manager = leases.createLeaseManager({ dir });
+  process.stdout.write([limits.maxConcurrentAgents, manager.status().active].join(" "));
+}).catch((err) => { process.stderr.write(String(err && err.message)); process.exit(1); });
+' "$REPO_ROOT")"; then
+    echo "⚠️  Could not read the worker-pool policy — refusing to start agents."
+    echo "   (the bridge reads the same policy; if this fails, the bridge will refuse too)"
+    exit 1
+fi
+read -r MAX_WORKERS ACTIVE_LEASES <<< "$POLICY"
+if [ -z "$MAX_WORKERS" ] || [ -z "$ACTIVE_LEASES" ]; then
+    echo "⚠️  The worker-pool policy came back empty — refusing to start agents."
+    exit 1
+fi
 FREE_SLOTS=$((MAX_WORKERS - ACTIVE_LEASES))
 if [ "$FREE_SLOTS" -lt 0 ]; then
     FREE_SLOTS=0
