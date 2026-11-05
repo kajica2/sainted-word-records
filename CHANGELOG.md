@@ -178,6 +178,14 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **The bench gate demanded five frame samples from a host that could not
+  draw five frames.** `check:bench-smoke` asserted `report.samples >= 5` — a
+  flat floor. On the CI runner of run 42118548118 the bench page rendered at
+  1.30 fps, so a 3.5 s run held 4 frame samples, and the gate failed a report
+  whose measurement was sound. The count is now derived from the host's own
+  measured frame rate, with one frame of phase slack, and it is capped at the
+  flat requirement — so a fast host still has to carry all five. Same shape as
+  the A/V depth floor beside it.
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a
