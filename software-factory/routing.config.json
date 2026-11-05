@@ -100,7 +100,7 @@
       "context_window": 1000000,
       "max_output_tokens": 524288,
       "reasoning": { "style": "anthropic-adaptive" },
-      "pricing": { "input_per_mtok": 0.30, "output_per_mtok": 1.20, "cache_read_per_mtok": 0.06 },
+      "pricing": { "input_per_mtok": 0.30, "output_per_mtok": 1.20, "cache_read_per_mtok": 0.06 , "long_context": { "above_input_tokens": 512000, "input_per_mtok": 0.6, "output_per_mtok": 2.4 }},
       "supports": { "vision": true, "tool_use": true },
       "maps_from_claude": "claude-3-opus-20240229",
       "note": "Permanent 50% off. Doubles to 0.60/2.40 above 512k input tokens."
@@ -156,7 +156,7 @@
         "output_per_mtok": 6.00,
         "cache_read_per_mtok": 0.50,
         "note": "Long-context rates above a 200k prompt: 4.00 / 1.00 / 12.00"
-      },
+      , "long_context": { "above_input_tokens": 200000, "input_per_mtok": 4, "output_per_mtok": 12, "cache_read_per_mtok": 1 }},
       "supports": { "vision": true, "tool_use": true },
       "note": "Reasoning cannot be disabled. xhigh is supported on 4.7 and 4.6."
     },
@@ -171,7 +171,7 @@
         "output_per_mtok": 6.00,
         "cache_read_per_mtok": 0.50,
         "note": "Long-context rates above a 200k prompt: 4.00 / 1.00 / 12.00"
-      },
+      , "long_context": { "above_input_tokens": 200000, "input_per_mtok": 4, "output_per_mtok": 12, "cache_read_per_mtok": 1 }},
       "supports": { "vision": true, "tool_use": true }
     },
     "xai/grok-4.20-multi-agent-0309": {
@@ -185,7 +185,7 @@
         "output_per_mtok": 2.50,
         "cache_read_per_mtok": 0.20,
         "note": "Long-context rates above a 200k prompt: 2.50 / 0.40 / 5.00"
-      },
+      , "long_context": { "above_input_tokens": 200000, "input_per_mtok": 2.5, "output_per_mtok": 5, "cache_read_per_mtok": 0.4 }},
       "supports": { "vision": true, "tool_use": true }
     },
     "xai/grok-build-0.1": {

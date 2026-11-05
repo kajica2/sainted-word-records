@@ -77,6 +77,7 @@ const GROUPS = {
     'npm run check:preset-cycle-unit',
     'npm run check:neon-demo-panel-unit',
     'npm run check:neon-demo-panel-verify',
+    'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',
     'npm run check:webgl-uniform-guard',
     'npm run check:webgl-no-invalid-op',
@@ -319,6 +320,7 @@ const GROUPS = {
     // versions/neon.html as source — no browser, no build.
     'npm run check:neon-v2-phase1',
     'npm run check:neon-audio-v3',
+    'npm run check:root-neon-sync',
     // The bench gate's A/V sampling-depth floor: derived from the host's
     // OWN measured frame rate, so a slow machine is not asked for what it
     // cannot deliver — while a host that renders at speed but samples once

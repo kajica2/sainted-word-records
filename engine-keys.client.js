@@ -1374,16 +1374,16 @@
 
   let helpEl = null;
   function showHelp() {
+    if (window.SWR_CHROME_DOCK) {
+      window.SWR_CHROME_DOCK.collapseDemo();
+      window.SWR_CHROME_DOCK.hideAutomixDebug();
+    }
     if (helpEl) { helpEl.style.display = ''; state.helpVisible = true; return; }
     helpEl = document.createElement('div');
     helpEl.id = 'swr-keys-help';
+    helpEl.className = 'swr-chrome-panel';
     helpEl.style.cssText = [
-      'position:fixed', 'top:60px', 'right:14px', 'z-index:10002',
-      'min-width:340px', 'max-width:440px', 'max-height:calc(100vh - 100px)',
-      'overflow-y:auto',
-      'background:rgba(10,6,18,0.97)', 'color:#f5e9ff',
-      'border:1px solid #ff3d92', 'border-radius:10px',
-      'padding:14px 16px', 'font:11px/1.45 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+      'border-color:#ff3d92',
       'box-shadow:0 12px 40px rgba(255,61,146,0.25)',
       'user-select:none',
     ].join(';');

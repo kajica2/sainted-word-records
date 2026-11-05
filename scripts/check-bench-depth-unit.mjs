@@ -22,7 +22,7 @@
 //   node scripts/check-bench-depth-unit.mjs
 //
 // Pass criteria: every assertion green, exit 0.
-import { depthFloorFor, depthOk } from './lib/bench-depth.mjs';
+import { depthFloorFor, depthOk, frameSampleFloorFor } from './lib/bench-depth.mjs';
 
 let passed = 0;
 let failed = 0;
@@ -64,6 +64,27 @@ section('the floor is derived from the host frame rate');
   assert(depthFloorFor(NaN, RUN_MS) === 1, 'an unmeasurable frame rate gets a floor of 1');
 }
 
+// ---------------------------------------------------------------------------
+section('the frame-sample floor is derived from the host frame rate');
+{
+  // A fast host: the flat requirement is unchanged.
+  assert(frameSampleFloorFor(60, RUN_MS) === 5, 'a 60 fps host still has to carry 5 frame samples');
+  assert(frameSampleFloorFor(30, RUN_MS) === 5, 'a 30 fps host still has to carry 5 frame samples');
+  assert(frameSampleFloorFor(2, RUN_MS) === 5, 'a 2 fps host still has to carry 5 frame samples');
+  // The CI runner of run 42118548118: 1.30 fps, so a 3.5 s run held 4
+  // frame samples and the flat floor of 5 failed a sound measurement.
+  assert(frameSampleFloorFor(1.304, RUN_MS) === 4, 'the 1.30 fps runner needs only 4 frame samples');
+  assert(frameSampleFloorFor(0.286, RUN_MS) === 1, 'a 0.29 fps host needs only 1 frame sample');
+  assert(frameSampleFloorFor(0.5, RUN_MS) === 1, 'a 0.5 fps host needs only 1 frame sample');
+  // The floor never reaches 0 — that would pass an EMPTY report.
+  assert(frameSampleFloorFor(0, RUN_MS) === 1, 'a host that rendered no frames still needs 1 sample');
+  assert(frameSampleFloorFor(-5, RUN_MS) === 1, 'a negative frame rate still needs 1 sample');
+  assert(frameSampleFloorFor(NaN, RUN_MS) === 1, 'an unmeasurable frame rate still needs 1 sample');
+  assert(frameSampleFloorFor(undefined, RUN_MS) === 1, 'a missing frame rate still needs 1 sample');
+  // The cap is the gate's: it is never exceeded, whatever the host claims.
+  assert(frameSampleFloorFor(1000, RUN_MS) === 5, 'the floor never exceeds the flat requirement');
+  assert(frameSampleFloorFor(1000, RUN_MS, 3) === 3, 'the cap is configurable');
+}
 // ---------------------------------------------------------------------------
 section('the slow host passes — the case that reddened CI');
 {

@@ -949,6 +949,10 @@
     _setBtnActive(btn, !open);
     try { localStorage.setItem('swr.automix.debugOpen', open ? '0' : '1'); } catch (_) {}
     if (!open) {
+      if (window.SWR_CHROME_DOCK) {
+        window.SWR_CHROME_DOCK.collapseDemo();
+        window.SWR_CHROME_DOCK.hideKeysHelp();
+      }
       automix._firstTickTs = Date.now();
       _renderDebug();
     }

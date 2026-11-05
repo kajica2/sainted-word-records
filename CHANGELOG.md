@@ -178,6 +178,24 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **The bench gate demanded five frame samples from a host that could not
+  draw five frames.** `check:bench-smoke` asserted `report.samples >= 5` — a
+  flat floor. On the CI runner of run 42118548118 the bench page rendered at
+  1.30 fps, so a 3.5 s run held 4 frame samples, and the gate failed a report
+  whose measurement was sound. The count is now derived from the host's own
+  measured frame rate, with one frame of phase slack, and it is capped at the
+  flat requirement — so a fast host still has to carry all five. Same shape as
+  the A/V depth floor beside it.
+- **Five more gates had the same orphan-server bug.** `test:asset-curator`,
+  `check:variant-switcher-smoke`, `check:photo-slideshow`,
+  `check:default-library` and `verify:site-nav` spawn a
+  `python3 -m http.server` and killed it only on the success path, so any
+  early exit orphaned it. The orphan kept the fixed port, the next run's
+  own server could not bind, and the gate polled the STALE server until it
+  reported `server timeout` — a failure with nothing to do with the code
+  under test. All five now kill their server from a `process.on('exit')`
+  handler. Mutation-tested: force an early exit and count the listeners —
+  with the fix the port is free (0), without it the server leaks (1).
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a

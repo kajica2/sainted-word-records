@@ -359,6 +359,15 @@ const ACCEPTED = [
       'the engine publishes its own host-rotate binding so engine-keys can ' +
       'bind "R". Neon has no host to rotate.',
   },
+  {
+    page: 'engine.html',
+    dep: 'SWR_NEON_DEMO',
+    reason:
+      'the engine ships no NEON demo panel. The shared chrome dock checks ' +
+      'for the global before using it and falls back to the panel element ' +
+      'in the DOM, so it collapses a panel by DOM when there is one at all; ' +
+      'the demo panel itself lives on versions/neon.html.',
+  },
 ];
 
 const acceptedKey = (page, dep) => `${page}|${dep}`;

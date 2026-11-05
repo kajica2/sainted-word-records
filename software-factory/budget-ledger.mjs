@@ -107,10 +107,27 @@ export function readLimits({ swarmConfigPath = DEFAULT_SWARM_CONFIG, fallbackUsd
 /**
  * Resolve what a model ref costs, and — more importantly — whether we know.
  *
+ * Some models bill a LONG-CONTEXT TIER above an input threshold: xAI's
+ * Grok 4.7 and 4.6 go from $2/$6 to $4/$12 per Mtok above 200k input
+ * tokens, and MiniMax M3 doubles above 512k. Those rates used to live in
+ * the model's `note` — prose the ledger could not read — so a long prompt
+ * was priced at the base rate, the ledger UNDER-COUNTED what left the
+ * account, and the daily cap was applied to a number that was wrong.
+ *
+ * The tier is now machine-readable (`pricing.long_context`) and selected by
+ * the input size:
+ *
+ *   inputTokens   the input size to price (the estimate when reserving, the
+ *                 real usage when settling)
+ *   worstCase     price the long tier whenever the model HAS one, even if
+ *                 the estimate is below the threshold — for a reservation,
+ *                 where the estimate is the uncertain part
+ *
  * @returns {{modelRef:string, provider:string|null, known:boolean, free:boolean,
- *            reason:string, rates?:{input:number,output:number,cacheRead:number}}}
+ *            reason:string, tier?:string, threshold?:number,
+ *            rates?:{input:number,output:number,cacheRead:number}}}
  */
-export function resolvePricing(config, modelRef) {
+export function resolvePricing(config, modelRef, { inputTokens = 0, worstCase = false } = {}) {
   const spec = config?.models?.[modelRef];
   let providerId = spec?.provider || null;
   if (!providerId && typeof modelRef === 'string' && modelRef.includes('/')) {
@@ -138,19 +155,41 @@ export function resolvePricing(config, modelRef) {
   }
 
   const p = spec.pricing || {};
-  const rates = {
-    input: p.input_per_mtok,
-    output: p.output_per_mtok,
-    // A cache-read rate is a discount, not a cost: absent means 0, and a
-    // null cache rate is treated the same way. The INPUT and OUTPUT rates
-    // are the ones that must be known.
-    cacheRead: p.cache_read_per_mtok == null ? 0 : p.cache_read_per_mtok,
-  };
+  const long = p.long_context || null;
+  const threshold = Number(long?.above_input_tokens) > 0 ? Number(long.above_input_tokens) : null;
+  const useLong = Boolean(long) && (worstCase || (threshold !== null && Number(inputTokens) > threshold));
+
+  const rates = useLong
+    ? {
+      input: long.input_per_mtok,
+      output: long.output_per_mtok,
+      // A tier that does not name a cache rate inherits the base one.
+      cacheRead: long.cache_read_per_mtok == null
+        ? (p.cache_read_per_mtok == null ? 0 : p.cache_read_per_mtok)
+        : long.cache_read_per_mtok,
+    }
+    : {
+      input: p.input_per_mtok,
+      output: p.output_per_mtok,
+      // A cache-read rate is a discount, not a cost: absent means 0, and a
+      // null cache rate is treated the same way. The INPUT and OUTPUT rates
+      // are the ones that must be known.
+      cacheRead: p.cache_read_per_mtok == null ? 0 : p.cache_read_per_mtok,
+    };
   const missing = ['input', 'output'].filter((k) => rates[k] === null || rates[k] === undefined || Number.isNaN(Number(rates[k])));
   if (missing.length) {
-    return { modelRef, provider: providerId, known: false, free: false, reason: 'unknown-pricing', rates, missing };
+    return { modelRef, provider: providerId, known: false, free: false, reason: 'unknown-pricing', rates, missing, tier: useLong ? 'long_context' : 'base', threshold };
   }
-  return { modelRef, provider: providerId, known: true, free: false, reason: 'known', rates };
+  return {
+    modelRef,
+    provider: providerId,
+    known: true,
+    free: false,
+    reason: 'known',
+    tier: useLong ? 'long_context' : 'base',
+    threshold,
+    rates,
+  };
 }
 
 /**
