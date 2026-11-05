@@ -214,6 +214,23 @@ once it hits 1.0.
   "Dune Plasma Lateral" and "Vapor Curl Counter" (2026-08-23) existed
   only on a dead branch. Their files are restored and the manifest is
   synced, so `preset-pipeline/verify.mjs` reports 74/74.
+- **`check:grade-smoke` sampled the DOM mid-transition and made the whole
+  `check` group red.** The gate asserts that the house grade sits on the
+  **topmost visible** canvas — the fx overlay when it is up, the stage
+  otherwise — and it read the DOM **once**, immediately after `SWR_NATURAL`
+  appeared. It failed intermittently (3/3 locally on `origin/main`) because
+  the grade is re-applied every animation frame by
+  `lib/swr-natural.client.js` while the fx overlay's **visibility** is
+  toggled on its own rAF loop by `fx-postprocess.js`. A read landing
+  between those two loops sees the grade still on the canvas that was
+  topmost one frame ago — both directions occur (overlay just shown, grade
+  still on the stage; overlay just hidden, grade still on the overlay).
+  Measured with a per-frame probe: the invariant holds within **one** frame
+  and then holds for 58-60 consecutive frames. The check now waits for it
+  to hold across 5 consecutive frames and asserts the settled state — still
+  falsifiable, since a grade on the wrong canvas never settles (the
+  mutation test inverting `gradeTopmost` fails it with
+  `gotTopmost:false, settled:false`).
 - **The CI workflow published the SAME check-run context twice for one
   commit, and its job timeout was too tight to survive a slow step.** Three
   defects in `.github/workflows/ci.yml`:
