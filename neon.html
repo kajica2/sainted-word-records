@@ -747,6 +747,30 @@
   <script src="/versions/last-song.js"></script>
   <script src="/lib/persist.client.js"></script>
   <script src="/lib/persist-wire.client.js"></script>
+  <!-- The contract producers this page's own modules read. The engine
+       loads these too; a page that loads a module and not its producer
+       gets a feature that quietly does nothing, which is what
+       scripts/check-engine-parity.mjs is for. -->
+  <script src="/audio-analysis-v2.js"></script>
+  <script src="/lib/auto-setup.client.js"></script>
+  <script src="/lib/library-hygiene.client.js"></script>
+  <script src="/lib/library-persist.client.js"></script>
+  <script src="/lib/midi-feat.client.js"></script>
+  <script src="/lib/storage.client.js"></script>
+  <script src="/lib/swr-life.client.js"></script>
+  <script src="/lib/webgl-feature-detect.client.js"></script>
+  <script src="/client/look-filter-cycler.client.js"></script>
+  <script src="/client/media-grouping.client.js"></script>
+  <script src="/client/targeting.client.js"></script>
+  <script src="/client/variant-switcher.client.js"></script>
+  <script src="/engine-3d.client.js"></script>
+  <script src="/engine-panel-visibility.client.js"></script>
+  <!-- The shared audio core. This page used to carry its own inline audio
+       object; the engine's core is the contract now (see
+       PR-engine-neon-parity.md, slice 3). Loaded as a classic script and
+       BEFORE the page's inline script, because that script reads
+       window.Audio while it parses. -->
+  <script src="/lib/audio.client.js"></script>
   <script>
     // Seeded randomness: routed through SWR_GENOPS so deterministic mode
     // reproduces asset selection as well as parameters. Falls back when absent.
@@ -773,128 +797,13 @@
     let W, H;
 
     // === AUDIO ===
-    const A = { ctx: null, an: null, src: null, el: null, gain: null,
-      fft: null, time: null,
-      // Engine convention. lib/audio.client.js names the <audio> element
-      // `audioEl` (audio.client.js:89); this page's fork names it `el`
-      // (the music_video.html convention). Shared modules are written
-      // against both — project.client.js:102 reads `A.audioEl`, while
-      // library-switcher.client.js:69 and music-video-maker.client.js:154
-      // read `A.el`. Expose the engine's name as an alias so a module
-      // that expects `audioEl` finds the same element.
-      get audioEl() { return this.el; },
-      feat: { bass:0,mid:0,treble:0,air:0,sub:0,rms:0,centroid:0,beat:0,onset:0,beatPulse:false,onsetPulse:false,bpm:0 },
-      // Cached slider values — read once per slider input, not once
-      // per audio frame. Avoids forcing layout every audio sample.
-      params: { sens: 1.5, gate: 1.2, decay: 0.7 },
-      hist: { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity, lastSampleAt:null }, beats: [], playing: false,
-      unlock() { if (this.ctx) return; this.ctx = new (window.AudioContext||window.webkitAudioContext)();
-        this.an = this.ctx.createAnalyser(); this.an.fftSize = 2048; this.an.smoothingTimeConstant = 0.6;
-        this.fft = new Uint8Array(this.an.frequencyBinCount);
-        this.time = new Uint8Array(this.an.fftSize);
-        this.gain = this.ctx.createGain(); this.gain.gain.value = 1;
-        this.an.connect(this.gain); this.gain.connect(this.ctx.destination);
-        
-      setStatus('ready', 'ok'); },
-      load(file) { this.unlock(); if (this.src) try{this.src.disconnect();}catch{}
-        // AUTO-RESUME-SWAP: remember the transport state BEFORE the element
-        // swap. Read after the swap it would always reflect the new element,
-        // which is never started.
-        const wasPlaying = !!this.playing;
-        if (this.el) { this.el.pause(); this.el.src=''; }
-        // Free the previous Blob URL before allocating a new one.
-        if (this.el && this.el.__swr_blob_url) {
-          try { URL.revokeObjectURL(this.el.__swr_blob_url); } catch (_) {}
-        }
-        this.el = document.createElement('audio'); this.el.crossOrigin='anonymous';
-        this.el.__swr_blob_url = URL.createObjectURL(file);
-        this.el.src = this.el.__swr_blob_url; this.el.preload='auto';
-        this.el.addEventListener('ended', ()=>{A.playing=false;$('play').textContent='▶';});
-        this.el.addEventListener('timeupdate', ()=>{
-          const t=this.el.currentTime,d=this.el.duration||0;
-          $('time').textContent = fmt(t)+' / '+fmt(d); });
-        // narrative-state init (ADR-001 rollout)
-        if (window.SWR_NARRATIVE) window.SWR_NARRATIVE.init(120, this.el.duration || 0);
-        this.src = this.ctx.createMediaElementSource(this.el);
-        this.src.connect(this.an);
-        this.hist = { prev:null, bassAvg:0, fluxAvg:0, lastBeatAt:-Infinity, lastOnsetAt:-Infinity, lastSampleAt:null }; this.beats=[]; this.feat.bpm=0;
-        $('play').disabled=false; $('rec').disabled=false;
-        // AUTO-RESUME-SWAP: loading a song while the transport is playing
-        // used to leave `playing === true` on a paused element — the new
-        // <audio> was created but never started, so the reactive render
-        // saw silence and the recorder captured a still frame. Resume here,
-        // and reconcile `playing` if the browser blocks the autoplay.
-        if (wasPlaying) {
-          if (this.fadeIn) this.fadeIn(250);
-          const pr = this.el.play();
-          if (pr && typeof pr.then === 'function') {
-            pr.catch((err) => {
-              this.playing = false;
-              try { $('play').textContent = '▶'; } catch (_) {}
-              try { console.warn('[SWR_Audio] swap autoplay blocked:', err && err.name); } catch (_) {}
-            });
-          }
-          this.playing = true;
-          $('play').textContent = '❚❚';
-        }
-      },
-      play() { this.unlock(); if (this.ctx.state==='suspended') this.ctx.resume();
-        this.el.play(); this.playing=true; $('play').textContent='❚❚'; },
-      pause() { if (this.el) this.el.pause(); this.playing=false; $('play').textContent='▶'; },
-      sample() { if (!this.an) return;
-        this.an.getByteFrequencyData(this.fft);
-        this.an.getByteTimeDomainData(this.time);
-        const N=this.fft.length, sr=this.ctx.sampleRate, hz=sr/this.an.fftSize;
-        const r = { sub:[1,Math.floor(60/hz)], bass:[Math.floor(60/hz),Math.floor(250/hz)],
-          mid:[Math.floor(250/hz),Math.floor(2000/hz)], treble:[Math.floor(2000/hz),Math.floor(6000/hz)],
-          air:[Math.floor(6000/hz),N-1] };
-        const mean = (lo,hi) => { let s=0,c=0; for (let i=Math.max(1,lo);i<=hi&&i<N;i++){s+=this.fft[i];c++;} return c ? s/c/255 : 0; };
-        this.feat.sub=mean(r.sub[0],r.sub[1]); this.feat.bass=mean(r.bass[0],r.bass[1]);
-        this.feat.mid=mean(r.mid[0],r.mid[1]); this.feat.treble=mean(r.treble[0],r.treble[1]);
-        this.feat.air=mean(r.air[0],r.air[1]);
-        let rms=0; for (let i=0;i<this.time.length;i++){const v=(this.time[i]-128)/128;rms+=v*v;}
-        this.feat.rms = Math.sqrt(rms/this.time.length);
-        let num=0,den=0; for (let i=1;i<N;i++){num+=i*this.fft[i];den+=this.fft[i];}
-        this.feat.centroid = den>0?num/den/N:0;
-        let flux=0; if (this.hist.prev) for (let i=1;i<N;i++){const d=this.fft[i]-this.hist.prev[i]; if (d>0) flux+=d;}
-        flux /= 255*N;
-        this.hist.fluxAvg = lerp(this.hist.fluxAvg, flux, 0.08);
-        const now = this.ctx.currentTime;
-        // One transient must not count as many beats across consecutive RAF samples.
-        // Ignore new detections briefly, but leave envelope decay unchanged.
-        const onsetCandidate = flux > this.hist.fluxAvg * this.params.gate && flux > 0.02;
-        const onsetHit = onsetCandidate && now - this.hist.lastOnsetAt >= 0.08;
-        if (onsetHit) this.hist.lastOnsetAt = now;
-        this.hist.bassAvg = lerp(this.hist.bassAvg, this.feat.bass, 0.06);
-        const beatCandidate = this.feat.bass > this.hist.bassAvg * this.params.gate && this.feat.bass > 0.18;
-        const beatHit = beatCandidate && now - this.hist.lastBeatAt >= 0.22;
-        if (beatHit) this.hist.lastBeatAt = now;
-        if (beatHit) { this.beats.push(now); while (this.beats.length&&this.beats[0]<now-8) this.beats.shift();
-          if (this.beats.length>=4) { let t=0; for (let i=1;i<this.beats.length;i++) t+=this.beats[i]-this.beats[i-1];
-            const a=t/(this.beats.length-1); if (a >= 1/3 && a <= 1) this.feat.bpm=Math.round(60/a); } }
-        // Musical response envelopes: fast attack, slower release, independent of RAF rate.
-        // Keep transient detection on raw FFT values above; only presentation features are smoothed.
-        const dt = this.hist.lastSampleAt == null ? 1/60 : Math.max(0, Math.min(0.25, now - this.hist.lastSampleAt));
-        this.hist.lastSampleAt = now;
-        const smooth = (previous, target, attack, release) => {
-          const tau = target > previous ? attack : release;
-          return previous + (target - previous) * (1 - Math.exp(-dt / tau));
-        };
-        for (const band of ['sub', 'bass', 'mid', 'treble', 'air']) {
-          const key = 'smooth_' + band;
-          const raw = this.feat[band];
-          const previous = this.hist[key] == null ? raw : this.hist[key];
-          this.feat[band] = this.hist[key] = smooth(previous, raw, 0.045, 0.24);
-        }
-        const dec = this.params.decay;
-        this.feat.beat = beatHit ? 1 : this.feat.beat*dec;
-        this.feat.onset = onsetHit ? 1 : this.feat.onset*dec;
-        this.feat.beatPulse = beatHit; this.feat.onsetPulse = onsetHit;
-        this.hist.prev = Uint8Array.from(this.fft);
-        $('beat-led').classList.toggle('on', beatHit);
-        $('onset-led').classList.toggle('on', onsetHit);
-      }
-    };
+    // === AUDIO ===
+    // The shared audio core, loaded above as /lib/audio.client.js. This
+    // page used to carry its own inline audio object — a second
+    // implementation of the same contract, with the same names and
+    // slightly different behaviour (PR-engine-neon-parity.md, slice 3).
+    // One core now: the engine's.
+    const A = window.Audio;
     const lerp = (a,b,t) => a+(b-a)*t;
     const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
     const fmt = s => { if (!isFinite(s)||s<0) s=0; const m=Math.floor(s/60); return m+':'+Math.floor(s%60).toString().padStart(2,'0'); };
@@ -1571,7 +1480,7 @@
 
     // === UI WIRING ===
     $('load-song').addEventListener('click', () => $('song-input').click());
-    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.load(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); } });
+    $('song-input').addEventListener('change', e => { if (e.target.files[0]) { A.loadFile(e.target.files[0]); if (window.SWR_LAST_SONG_SAVE) window.SWR_LAST_SONG_SAVE(e.target.files[0]); } });
     $('play').addEventListener('click', () => { if (!A.el) return; A.playing ? A.pause() : A.play(); });
     $('add').addEventListener('click', () => $('asset-input').click());
     $('asset-input').addEventListener('change', e => { Lib.addFiles(e.target.files); e.target.value=''; });
@@ -1766,7 +1675,7 @@
           this._wcActive = true;
           this._wcPending = window.SWR_RECORDER.start({
             canvas: stage,
-            audioSource: A.an,
+            audioSource: A.analyser,
             audioSampleRate: A.ctx ? A.ctx.sampleRate : 0,
             audioNumberOfChannels: 2,
             width: stage.width,
@@ -1827,8 +1736,8 @@
         const vstream = stage.captureStream(fps);
         const dest = A.ctx.createMediaStreamDestination();
         this.mediaDest = dest;
-        try { A.an.disconnect(dest); } catch {}
-        A.an.connect(dest);
+        try { A.analyser.disconnect(dest); } catch {}
+        A.analyser.connect(dest);
         const tracks = [...vstream.getVideoTracks(), ...dest.stream.getAudioTracks()];
         const stream = new MediaStream(tracks);
         const mime = [
@@ -1915,7 +1824,7 @@
         $('rec').textContent = '● REC';
         setStatus('rendering…', '');
         if (this.mediaDest) {
-          try { A.an.disconnect(this.mediaDest); } catch {}
+          try { A.analyser.disconnect(this.mediaDest); } catch {}
           this.mediaDest = null;
         }
       },
