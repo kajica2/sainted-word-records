@@ -138,7 +138,7 @@ try {
       } catch (e) {
         const msg = String((e && e.message) || e);
         if (/Not attached to an active page|Target closed|Session closed/i.test(msg)) {
-          await page.goto(`http://localhost:${PORT}/engine.html`, { waitUntil: 'load', timeout: 45000 });
+          await page.goto(`${base}/engine.html`, { waitUntil: 'load', timeout: 45000 });
         } else {
           throw e;
         }
