@@ -178,6 +178,23 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **A reader could keep a crashed worker's lease lock alive, wedging the
+  agent pool.** `software-factory/worker-lease.mjs` refreshed the lock file
+  from `_readLeases()`, and `_readLeases()` is called by READERS (a
+  `status()` call, any process watching the pool) as well as by the lock
+  HOLDER. So merely LOOKING at the pool refreshed the lock of a holder
+  that had already crashed. The lock's age is the only signal the
+  staleness check has, so a dead lock kept looking alive: it never aged
+  past `staleLockMs`, `claim()` waited the full `lockWaitMs` and threw
+  *"could not acquire the lease lock"*, and the pool stayed wedged for as
+  long as anything read the status. Reproduced with two processes — with
+  no reader the crashed lock was broken in 8 ms; with an external monitor
+  polling `status()` every 200 ms the claim threw after the full wait.
+  (The single-process case hides it: the claim's own busy-wait starves
+  the reader's timer, so the lock ages out during the wait anyway.) Only
+  the HOLDER may refresh a lock now: `_touchLock()` moved from
+  `_readLeases()` into `_withLock()`. The regression test fails on the
+  old behaviour and passes on the fix.
 - **Twelve CI gates were red on `main` and one branch fixes all of them.**
   The failures shared eight root causes, each of which had taken out a
   gate that had nothing to do with the change that caused it:
