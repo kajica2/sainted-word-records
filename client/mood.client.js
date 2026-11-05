@@ -200,4 +200,47 @@
   };
 
   window.SWR_MOOD = mood;
+
+  // ---- the overlay drag -------------------------------------------------
+  // Wire the mood-overlay drag handlers + restore the persisted position.
+  // Guarded: a page that ships no <img id="mood-overlay"> gets nothing.
+  //
+  // This lived inline in engine.html until the parity work moved it here,
+  // because the module is the only thing that owns the overlay's state
+  // (overlayPos / overlayVisible) and the inline copy could only find the
+  // persisted position by reaching for a global that a deferred module had
+  // not published yet. Now the module owns the element, the drag and the
+  // restore together, and every page that loads it behaves the same.
+  (function () {
+    var overlay = $('mood-overlay');
+    if (!overlay) return;
+    var dragging = false, dx = 0, dy = 0;
+    overlay.addEventListener('mousedown', function (e) {
+      dragging = true;
+      dx = e.clientX - overlay.offsetLeft;
+      dy = e.clientY - overlay.offsetTop;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', function (e) {
+      if (!dragging) return;
+      var x = Math.max(0, Math.min(window.innerWidth - 160, e.clientX - dx));
+      var y = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - dy));
+      overlay.style.left = x + 'px';
+      overlay.style.top = y + 'px';
+      overlay.style.right = 'auto';
+      mood.overlayPos = { x: x, y: y };
+    });
+    document.addEventListener('mouseup', function () {
+      if (!dragging) return;
+      dragging = false;
+      mood.saveOverlayPos(mood.overlayPos.x, mood.overlayPos.y);
+    });
+    var saved = mood.loadOverlayPos();
+    overlay.style.left = saved.x + 'px';
+    overlay.style.top = saved.y + 'px';
+    overlay.style.right = 'auto';
+    overlay.style.display = saved.visible ? 'block' : 'none';
+    mood.overlayPos = { x: saved.x, y: saved.y };
+    mood.overlayVisible = saved.visible;
+  })();
 })();
