@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "autonomy": "bounded",
+  "maxConcurrentAgents": 2,
+  "maxDailyApiUsd": 2,
+  "allowProductionDeploy": false,
+  "allowMerge": false,
+  "allowSecretMutation": false,
+  "allowBaselineUpdates": false,
+  "missions": ["visual", "api", "regression", "security", "creative"],
+  "baseUrl": "http://127.0.0.1:4173",
+  "routes": [
+    {"id": "home", "path": "/"},
+    {"id": "engine", "path": "/engine/"},
+    {"id": "versions", "path": "/versions"}
+  ],
+  "apiChecks": [
+    {"id": "manifest-health", "path": "/api/manifest?action=health", "expectedStatus": [200], "optionalOnStaticPreview": true}
+  ],
+  "viewports": [
+    {"id": "desktop", "width": 1440, "height": 900},
+    {"id": "mobile", "width": 390, "height": 844}
+  ]
+}

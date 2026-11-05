@@ -25,43 +25,16 @@
 // Pass --target=… to point it at a server you are already running.
 //
 // No npm dependencies: headless Chrome over the DevTools Protocol, with
-// Node's built-in WebSocket doing the work.
+// Node's WebSocket doing the work — the global one where the runtime has
+// it (Node 22+), and a minimal client of our own where it does not
+// (Node 20, which is what CI pins).
 
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { serveDist } from './with-dist.mjs';
-
-// Node's global WebSocket landed in Node 21. The CI runner is Node 20
-// (ci.yml pins node-version: '20', .nvmrc says 20), where the global only
-// exists behind --experimental-websocket — so the harness died with
-// "WebSocket is not defined" before it could assert anything, and the
-// failure looked like a broken camera rather than a missing runtime
-// feature.
-//
-// Re-exec once with the flag when the global is missing. On Node 21+ the
-// global is there and this never fires — and the flag MUST NOT be passed
-// unconditionally, because it was REMOVED in Node 22 and an unknown flag
-// stops Node from starting at all.
-if (typeof globalThis.WebSocket === 'undefined') {
-  const canFlag = process.allowedNodeEnvironmentFlags &&
-    (process.allowedNodeEnvironmentFlags.has('--experimental-websocket') ||
-     process.allowedNodeEnvironmentFlags.has('experimental-websocket'));
-  if (canFlag) {
-    const rerun = spawnSync(
-      process.execPath,
-      ['--experimental-websocket', ...process.argv.slice(1)],
-      { stdio: 'inherit' },
-    );
-    process.exit(rerun.status === null ? 1 : rerun.status);
-  }
-  // No WebSocket and no way to enable it on this runtime. The harness
-  // cannot run here at all — the repo's env-skip convention, with the
-  // marker literal so a real failure still surfaces.
-  console.log('(env skip: this Node has no global WebSocket and cannot enable it)');
-  process.exit(0);
-}
+import { pickWebSocket } from './lib/ws-client.mjs';
 
 const argv = process.argv.slice(2);
 // A target given on the command line is used as-is (against a server the
@@ -82,7 +55,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 class Cdp {
   constructor(url) { this.url = url; this.id = 0; this.pending = new Map(); this.ws = null; }
   async connect() {
-    this.ws = new WebSocket(this.url);
+    // Node 20 has no global WebSocket (it is behind
+    // --experimental-websocket there and stable from Node 22), and the CI
+    // runner pins Node 20 — so the gate died there with "WebSocket is not
+    // defined" before it asserted anything. pickWebSocket() returns the
+    // global when the runtime has one and a minimal client when it does not.
+    this.ws = new (pickWebSocket())(this.url);
     await new Promise((res, rej) => {
       this.ws.onopen = res;
       this.ws.onerror = () => rej(new Error('CDP websocket error'));

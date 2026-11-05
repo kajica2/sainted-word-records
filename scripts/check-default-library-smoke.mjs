@@ -152,7 +152,10 @@ const fail = (m, d) => { checks.push({ ok: false, m }); console.log('✗', m, d 
     while (Date.now() - stageT0 < 20000) {
       staged = await page.evaluate(() => {
         const L = window.Layers || (window.SWR && window.SWR.Layers);
-        return (L && (L.list || L.items) || []).length;
+        const videoN = (L && (L.list || L.items) || []).length;
+        const lane = window.SWR_IMAGE_LANE;
+        const stillN = lane && lane.list ? lane.list.length : 0;
+        return videoN + stillN;
       }).catch(() => 0);
       if (staged > 0) break;
       await new Promise(r => setTimeout(r, 250));
