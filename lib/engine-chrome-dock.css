@@ -1,0 +1,273 @@
+/* lib/engine-chrome-dock.css — shared floating chrome for engine + variant pages.
+   SWR-CHROME-DOCK-MARKER
+   One z-index scale and corner docks so home, version, demo, automix debug,
+   keys help and mood reference do not fight each other. */
+
+:root {
+  --swr-chrome-pad: max(12px, var(--safe-left, 0px));
+  --swr-chrome-pad-r: max(12px, var(--safe-right, 0px));
+  --swr-chrome-pad-b: max(12px, var(--safe-bottom, 0px));
+  --swr-chrome-pad-t: max(12px, var(--safe-top, 0px));
+  --swr-transport-h: 36px;
+  --swr-chrome-row: 44px;
+  --swr-chrome-gap: 8px;
+  --swr-z-chrome-base: 9000;
+  --swr-z-chrome-panel: 9010;
+  --swr-z-chrome-exit: 9030;
+  --swr-z-keys-help: 10020;
+  --swr-z-startup: 10000;
+}
+
+.swr-chrome-panel {
+  border: 1px solid var(--line, #2a1d3e);
+  border-radius: 6px;
+  background: rgba(14, 8, 24, 0.94);
+  color: var(--ink, var(--fg, #f5e9ff));
+  font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Bottom-right: home + version + automix debug stack ---- */
+#swr-home-link {
+  position: fixed !important;
+  bottom: var(--swr-chrome-pad-b) !important;
+  right: var(--swr-chrome-pad-r) !important;
+  left: auto !important;
+  z-index: var(--swr-z-chrome-exit) !important;
+}
+
+#swr-version-badge {
+  position: fixed !important;
+  bottom: var(--swr-chrome-pad-b) !important;
+  right: calc(var(--swr-chrome-pad-r) + 62px) !important;
+  left: auto !important;
+  z-index: calc(var(--swr-z-chrome-exit) - 1) !important;
+}
+
+#automix-debug-panel:not([hidden]) {
+  position: fixed !important;
+  right: var(--swr-chrome-pad-r) !important;
+  left: auto !important;
+  bottom: calc(var(--swr-chrome-pad-b) + var(--swr-chrome-row) + var(--swr-chrome-gap)) !important;
+  z-index: var(--swr-z-chrome-panel) !important;
+  min-width: 240px !important;
+  max-width: min(340px, calc(100vw - 24px)) !important;
+  padding: 12px 14px !important;
+  line-height: 1.5 !important;
+  font-size: 10px !important;
+  pointer-events: auto;
+}
+
+#automix-debug-panel[hidden] {
+  display: none !important;
+}
+
+/* ---- Bottom-left: NEON demo panel ---- */
+#swr-neon-demo {
+  position: fixed;
+  z-index: var(--swr-z-chrome-panel);
+  left: var(--swr-chrome-pad);
+  bottom: calc(var(--swr-chrome-pad-b) + var(--swr-transport-h) + var(--swr-chrome-gap));
+  max-width: min(320px, calc(100vw - var(--swr-chrome-pad) - var(--swr-chrome-pad-r) - 8px));
+  font: 10px/1.35 ui-monospace, Menlo, monospace;
+  color: var(--ink, var(--fg, #f5e9ff));
+  pointer-events: none;
+}
+
+#swr-neon-demo * {
+  box-sizing: border-box;
+}
+
+#swr-neon-demo .swr-neon-demo-toggle {
+  pointer-events: auto;
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid var(--line, #2a1d3e);
+  background: var(--panel-2, #150b22);
+  color: var(--m, var(--accent, #ff2d8a));
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+#swr-neon-demo.collapsed .swr-neon-demo-toggle {
+  border-radius: 6px;
+}
+
+#swr-neon-demo .swr-neon-demo-toggle:focus-visible {
+  outline: 2px solid var(--c, var(--accent-2, #00f0ff));
+  outline-offset: 2px;
+}
+
+#swr-neon-demo.collapsed .swr-neon-demo-body {
+  display: none;
+}
+
+#swr-neon-demo .swr-neon-demo-body {
+  pointer-events: auto;
+  max-height: min(42vh, 360px);
+  overflow: auto;
+  border: 1px solid var(--line, #2a1d3e);
+  border-top: none;
+  padding: 8px;
+  border-radius: 0 0 6px 6px;
+}
+
+#swr-neon-demo .demo-sec {
+  margin-bottom: 8px;
+}
+
+#swr-neon-demo .demo-sec h3 {
+  margin: 0 0 4px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted, #8a7aa0);
+  font-weight: 600;
+}
+
+#swr-neon-demo .demo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+#swr-neon-demo .demo-grid button {
+  padding: 5px 7px;
+  font: inherit;
+  font-size: 9px;
+  border: 1px solid var(--line, #2a1d3e);
+  border-radius: 4px;
+  background: var(--bg-2, #0a0612);
+  color: var(--ink, var(--fg, #f5e9ff));
+  cursor: pointer;
+}
+
+#swr-neon-demo .demo-grid button.is-active,
+#swr-neon-demo .demo-grid button[aria-pressed="true"] {
+  border-color: var(--m, var(--accent, #ff2d8a));
+  color: var(--m, var(--accent, #ff2d8a));
+  box-shadow: 0 0 0 1px var(--m, var(--accent, #ff2d8a));
+}
+
+#swr-neon-demo .demo-grid button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#swr-neon-demo .demo-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+  flex-wrap: wrap;
+}
+
+#swr-neon-demo .demo-row label {
+  min-width: 3.5em;
+  color: var(--muted, #8a7aa0);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+#swr-neon-demo .demo-row input[type=range] {
+  flex: 1;
+  min-width: 80px;
+}
+
+#swr-neon-demo .demo-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+#swr-neon-demo .demo-actions button {
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 9px;
+  border: 1px solid var(--line, #2a1d3e);
+  border-radius: 4px;
+  background: var(--panel-2, #150b22);
+  color: var(--ink, var(--fg, #f5e9ff));
+  cursor: pointer;
+}
+
+#swr-neon-demo .demo-note {
+  font-size: 9px;
+  color: var(--muted, #8a7aa0);
+  margin-top: 2px;
+}
+
+/* ---- Top-right: keys help + mood reference ---- */
+#swr-keys-help {
+  position: fixed !important;
+  top: calc(var(--swr-chrome-pad-t) + var(--swr-transport-h) + var(--swr-chrome-gap)) !important;
+  right: var(--swr-chrome-pad-r) !important;
+  left: auto !important;
+  z-index: var(--swr-z-keys-help) !important;
+  min-width: min(340px, calc(100vw - 24px)) !important;
+  max-width: min(440px, calc(100vw - 24px)) !important;
+  max-height: calc(100dvh - var(--swr-chrome-pad-t) - var(--swr-chrome-pad-b) - 80px) !important;
+  overflow-y: auto !important;
+  padding: 12px 14px !important;
+  border-radius: 8px !important;
+  font: 10px/1.45 ui-monospace, Menlo, monospace !important;
+}
+
+#mood-overlay {
+  top: var(--swr-chrome-pad-t) !important;
+  right: var(--swr-chrome-pad-r) !important;
+  z-index: calc(var(--swr-z-chrome-base) - 10) !important;
+}
+
+[data-layout="wide"] #swr-layout-badge {
+  top: calc(var(--swr-chrome-pad-t) + var(--swr-transport-h)) !important;
+  right: var(--swr-chrome-pad-r) !important;
+}
+
+.swr-debug-overlay {
+  right: var(--swr-chrome-pad-r) !important;
+  bottom: calc(var(--swr-chrome-pad-b) + var(--swr-chrome-row) + var(--swr-chrome-gap)) !important;
+  max-width: min(340px, calc(100vw - 24px)) !important;
+}
+
+/* ---- Narrow: demo + debug stack on the left; home row stays bottom-right ---- */
+@media (max-width: 860px) {
+  #swr-neon-demo {
+    left: var(--swr-chrome-pad);
+    right: var(--swr-chrome-pad-r);
+    max-width: none;
+    bottom: calc(var(--swr-chrome-pad-b) + var(--swr-chrome-row) + var(--swr-chrome-gap));
+  }
+
+  #swr-neon-demo:not(.collapsed) .swr-neon-demo-body {
+    max-height: min(32vh, 240px);
+  }
+
+  #automix-debug-panel:not([hidden]) {
+    left: var(--swr-chrome-pad) !important;
+    right: var(--swr-chrome-pad-r) !important;
+    bottom: calc(var(--swr-chrome-pad-b) + var(--swr-chrome-row) * 2 + var(--swr-chrome-gap) * 2) !important;
+    max-width: none !important;
+  }
+
+  #swr-keys-help {
+    left: var(--swr-chrome-pad) !important;
+    right: var(--swr-chrome-pad-r) !important;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 720px) {
+  #hook-panel {
+    left: var(--swr-chrome-pad) !important;
+    right: var(--swr-chrome-pad-r) !important;
+    bottom: calc(var(--swr-chrome-pad-b) + var(--swr-transport-h) + var(--swr-chrome-gap)) !important;
+    z-index: calc(var(--swr-z-chrome-panel) - 1) !important;
+  }
+}
