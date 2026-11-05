@@ -72,6 +72,47 @@ mkdir -p "$LOG_DIR"
 ONLY_AGENT="${1:-}"
 PIDS=()
 
+# The global worker pool allows a fixed number of agents at once (two by
+# default; qa/swarm.config.json can say otherwise). The bridge refuses a
+# third agent BEFORE it does any work, so the launcher has to ask the same
+# question the bridge asks — otherwise it starts an agent, watches it get
+# refused, and still prints "Team launched".
+#
+# The answer comes from the SAME module the bridge reads, from the SAME
+# lease directory (SWR_LEASE_DIR when it is set), and it also asks the pool
+# how many slots are already held: the pool is machine-wide, and a leftover
+# lease from a crashed agent still holds its slot until it expires.
+#
+# If the query cannot be answered, the launcher does NOT start anything:
+# a silent no-op with a garbled message is worse than a clear refusal.
+if ! POLICY="$(node -e '
+const { pathToFileURL } = require("node:url");
+const root = process.argv[1];
+Promise.all([
+  import(pathToFileURL(root + "/software-factory/budget-ledger.mjs").href),
+  import(pathToFileURL(root + "/software-factory/worker-lease.mjs").href),
+]).then(([ledger, leases]) => {
+  const limits = ledger.readLimits();
+  const dir = process.env.SWR_LEASE_DIR || leases.DEFAULT_LEASE_DIR;
+  const manager = leases.createLeaseManager({ dir });
+  process.stdout.write([limits.maxConcurrentAgents, manager.status().active].join(" "));
+}).catch((err) => { process.stderr.write(String(err && err.message)); process.exit(1); });
+' "$REPO_ROOT")"; then
+    echo "⚠️  Could not read the worker-pool policy — refusing to start agents."
+    echo "   (the bridge reads the same policy; if this fails, the bridge will refuse too)"
+    exit 1
+fi
+read -r MAX_WORKERS ACTIVE_LEASES <<< "$POLICY"
+if [ -z "$MAX_WORKERS" ] || [ -z "$ACTIVE_LEASES" ]; then
+    echo "⚠️  The worker-pool policy came back empty — refusing to start agents."
+    exit 1
+fi
+FREE_SLOTS=$((MAX_WORKERS - ACTIVE_LEASES))
+if [ "$FREE_SLOTS" -lt 0 ]; then
+    FREE_SLOTS=0
+fi
+LAUNCHED=0
+
 launch() {
     local name="$1"
     local task="$2"
@@ -81,6 +122,15 @@ launch() {
         return
     fi
 
+    if [ "$LAUNCHED" -ge "$FREE_SLOTS" ]; then
+        echo "  ⏭ $name ($task) — not started: the worker pool allows $MAX_WORKERS active agent(s), $ACTIVE_LEASES already running."
+        echo "     Start it once one of the running agents exits:"
+        echo "       ./agents/start-team.sh $name"
+        return
+    fi
+
+    # bash 3.2 (the macOS default) has no ${var,,}; tr does.
+    local lower="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]')"
     echo "  ▶ $name ($task)…"
     (
         cd "$REPO_ROOT"
@@ -88,9 +138,10 @@ launch() {
             --agent "$name" \
             --task "$task" \
             $extra \
-            2>&1 | tee "$LOG_DIR/${name,,}-$(date +%Y%m%d-%H%M%S).log"
+            2>&1 | tee "$LOG_DIR/$lower-$(date +%Y%m%d-%H%M%S).log"
     ) &
     PIDS+=($!)
+    LAUNCHED=$((LAUNCHED + 1))
 }
 
 # SWR-Ops (orchestrator) — owns agents/TASKS.md
@@ -104,7 +155,13 @@ launch "SWR-Check" "verification" ""
 
 echo ""
 echo "════════════════════════════════════════════════════════════"
-echo "  ✅ Team launched on MiniMax"
+if [ "$LAUNCHED" -eq 0 ]; then
+    echo "  ⚠️  No agent was started (the worker pool allows $MAX_WORKERS, $ACTIVE_LEASES already running)."
+elif [ -z "$ONLY_AGENT" ] && [ "$LAUNCHED" -lt 3 ]; then
+    echo "  ✅ Team launched on MiniMax — $LAUNCHED of 3 agents (the pool allows $MAX_WORKERS, $ACTIVE_LEASES already running)"
+else
+    echo "  ✅ Team launched on MiniMax — $LAUNCHED agent(s)"
+fi
 echo "════════════════════════════════════════════════════════════"
 echo ""
 echo "📝 Logs: $LOG_DIR/"

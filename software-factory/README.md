@@ -125,6 +125,9 @@ software-factory/
   routing.config.json   the router: providers, model catalog, agents, triggers
   providers.mjs         the five wire formats
   swr-agent.mjs         the bridge: routing, tools, guards, failover
+  budget-ledger.mjs     the money: a durable per-UTC-day ledger
+  worker-lease.mjs      the brakes: a global pool of two active agents
+  swarm-guard.mjs       the two composed: price a turn, claim a slot
   README.md             this file
 .github/workflows/
   factory.yml           the factory floor: triage, PR verdict, nightly drift
@@ -133,7 +136,7 @@ scripts/
   check-fx-doc-drift.mjs      the doc-vs-code drift gate
 agents/
   team.config.json       the same model pins, for the local team
-  start-team.sh          launches the three agents
+  start-team.sh          launches the team, up to the worker-pool cap
 ```
 
 ### The router — `routing.config.json`
@@ -170,6 +173,87 @@ with the API key redacted, without calling anything.
 for it, so a verdict can never edit the tree it is judging.
 `node software-factory/swr-agent.mjs self-test` proves all of this without an API key.
 
+### The guard — `budget-ledger.mjs`, `worker-lease.mjs`, `swarm-guard.mjs`
+
+The bridge will not spend money it has not reserved, and it will not start a third
+agent while two are already running. Three modules, zero dependencies:
+
+| Module | What it owns |
+|---|---|
+| `budget-ledger.mjs` | a durable per-UTC-day ledger: reserve before a call, settle after it, release when nothing was billed |
+| `worker-lease.mjs` | the global worker pool: at most `maxConcurrentAgents` live leases, idempotent re-claims, TTL recovery of a crashed agent |
+| `swarm-guard.mjs` | the two composed: worst-case chain pricing, fail-closed on unknown pricing, settle-the-difference |
+
+**How a turn is priced.** The reservation is sized by the **most expensive model in
+the failover chain**, because a failover can land on it. If ANY member of the chain
+is a paid model whose price is unknown, the whole chain is refused **before the
+request is built** — an unpriceable call is not a free call. A local CLI provider
+runs a binary on this machine, so it is free by construction and never blocks a run.
+A missing rate is a **null** cost, never a zero: `estimateUsd()` refuses to price
+what it cannot price.
+
+**What the money does.** `reserve` → the request goes out → `settle` with the
+answering model's own rates and the provider's reported usage. The difference
+between the reservation and the real cost goes back to the day. A chain that failed
+outright releases its reservation: no completion, no bill.
+
+**What the cap does and does not bound.** The cap is enforced on the *reservation*,
+so a turn that bills more than it reserved can push the day's total past the cap —
+the money is already spent. What the guard guarantees is that **nothing else is
+spent after that**: the remaining budget goes negative and every later reservation
+is refused until the next UTC day.
+
+**Where the state lives.** `data/swr-budget/` and `data/swr-leases/` — both
+gitignored (`/data/swr-*`). One file per UTC day, append-only, one JSON line per
+event; a half-written line closes the day until `reconcile` repairs it. The repair
+writes a temp file and renames it, so a crash during the repair leaves the day
+exactly as it was — the spent money is never erased by the thing meant to save it.
+A **corrupt lease file** (a crash between the exclusive create and the write) is
+pruned rather than thrown on: it says nothing about who holds a slot, and one
+truncated file must not brick the pool until an operator deletes it by hand.
+
+```bash
+node software-factory/budget-ledger.mjs status
+node software-factory/worker-lease.mjs status
+node software-factory/budget-ledger.mjs reconcile --day 2026-11-04
+```
+
+`SWR_BUDGET_DIR` and `SWR_LEASE_DIR` relocate *where* the state is. They cannot
+raise the cap or the worker count: those come from `qa/swarm.config.json` when it
+exists and from the committed defaults (`$2` a day, `2` agents) when it does not.
+
+**The slot outlives the turn.** A turn can take ninety minutes (three attempts ×
+ten-minute timeout × three chain models) against a fifteen-minute lease. The
+bridge therefore renews the lease **while the request is in flight**, and it
+*checks* the renewal: a lease that was lost stops the run rather than letting it
+continue outside the pool. A renewal that fails because the lease merely
+**expired** is re-claimed through the pool — which still enforces the cap, so a
+re-claim that finds the pool full is refused. `agents/start-team.sh` reads the
+same cap from the same module, asks the pool how many slots are live, and starts
+only what is free — and says which one it did not start.
+
+**The pool's own machinery is as strict as its policy.** The lock carries a
+unique token and is released only if that token still matches, so a holder whose
+lock was broken cannot delete the breaker's lock; a stale lock is broken by an
+atomic move, so only one breaker can win; a lease id that already exists on disk
+is refused as a race (two worker ids can sanitise to the same file name); and a
+lease file is written atomically, so a reader never catches one mid-write and
+never mistakes it for debris.
+
+Four test suites gate this, all inside the `check` group so `check:full` runs them:
+
+```bash
+npm run test:budget-ledger        # the ledger: cap, idempotency, torn writes, concurrency
+npm run test:worker-lease         # the pool: two workers, re-claims, TTL recovery, corrupt files
+npm run test:swarm-guard          # the guard: chain pricing, settle-the-difference, refusals
+npm run test:swarm-guard-wiring   # the bridge: the real CLI against a local fake provider
+```
+
+The wiring test drives the real CLI as a child process against a **local fake
+provider** (`tests/helpers/fake-provider.mjs`, its own process). The fake reads the
+ledger **at request time**, so "the reservation comes first" is an observation and
+not a claim — and a refused turn is proved by the fake receiving **zero** requests.
+
 ---
 
 ## 5. Setup
@@ -192,7 +276,7 @@ export MINIMAX_API_KEY=...
 npm run check:factory          # the router gate + the drift gate
 node software-factory/swr-agent.mjs self-test
 node software-factory/swr-agent.mjs models --live   # which providers are actually reachable
-./agents/start-team.sh          # three agents
+./agents/start-team.sh          # the team (up to the worker-pool cap)
 ```
 
 ---
@@ -261,3 +345,8 @@ only ever guess. It stays unchecked on purpose.
   without measuring it first.
 - **The verdict is a model opinion.** It is a brake, not a proof. The test gate is
   `ci.yml`.
+- **The ledger is a local brake, not a vault.** It protects against a runaway run on
+  this machine; it cannot stop a determined operator from deleting the state
+  directory or pointing `SWR_BUDGET_DIR` somewhere fresh. The cap and the worker
+  count are policy, not secrets, and they live in `qa/swarm.config.json` when it
+  exists and in the committed defaults when it does not.

@@ -311,6 +311,24 @@ const GROUPS = {
     // versions/neon.html as source — no browser, no build.
     'npm run check:neon-v2-phase1',
     'npm run check:neon-audio-v3',
+    // The swarm's money guard: a durable per-UTC-day ledger that refuses a
+    // reservation once the daily cap would be exceeded, refuses a model with
+    // unknown pricing (fail closed), and settles the actual cost against the
+    // reservation once the turn is done. Zero-dependency.
+    'npm run test:budget-ledger',
+    // The swarm's concurrency guard: at most 2 active agents globally, with
+    // idempotent re-claims by the same worker and TTL-based recovery of a
+    // lease left behind by a crashed agent. Zero-dependency.
+    'npm run test:worker-lease',
+    // The swarm's guard itself: the money and concurrency rails composed
+    // into one object — worst-case chain pricing, fail-closed on unknown
+    // pricing, settle-the-difference, lease cap at two, TTL recovery.
+    // Zero-dependency.
+    'npm run test:swarm-guard',
+    // The guard as the BRIDGE actually uses it: the real CLI as a child
+    // process, with every provider key blanked, so the wiring is proven
+    // without a provider ever being contacted. Zero-dependency.
+    'npm run test:swarm-guard-wiring',
   ],
 
   // Was its own 5-step `&&` chain with the same truncation property.
