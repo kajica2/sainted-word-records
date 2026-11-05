@@ -100,6 +100,13 @@ const GROUPS = {
     // never render a dead checkout URL, and the publish script must write
     // the off-site URL back into the manifest without reformatting it.
     'npm run check:store-unit',
+    // The catalogue subscription ladder: the tier prices, what each tier
+    // grants, and the platform fee arithmetic behind the net economics.
+    // The unit pins the ladder invariants and the fee tables; the econ run
+    // prints the metric and measures whether the catalogue on disk can
+    // actually honour what the ladder promises.
+    'npm run check:subscription-tiers-unit',
+    'npm run check:subscription-econ',
     // The shipped media off-site: the curated packs (582 files, 39.6 MB)
     // can be served from an off-site host instead of the deploy. The
     // build then ships only packs/manifest.json, with its base pointing
