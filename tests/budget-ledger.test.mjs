@@ -135,6 +135,43 @@ const unknownBoth = estimateUsd({}, { input_tokens: 1000, output_tokens: 1000 })
 assert(unknownBoth.usd === null, 'no rates at all is a null cost');
 
 // ---------------------------------------------------------------------------
+// 1b. long-context tiers
+// ---------------------------------------------------------------------------
+section('long-context tiers');
+{
+  const grok = resolvePricing(config, 'xai/grok-4.7');
+  assert(grok.tier === 'base', 'a small prompt is priced at the base tier');
+  assert(grok.rates.input === 2, 'the base tier is the base rate');
+
+  const long = resolvePricing(config, 'xai/grok-4.7', { inputTokens: 250000 });
+  assert(long.tier === 'long_context', 'a prompt over the threshold is priced at the long-context tier');
+  assert(long.rates.input === 4, 'the long-context tier carries the long-context input rate');
+  assert(long.rates.output === 12, 'the long-context tier carries the long-context output rate');
+  assert(long.rates.cacheRead === 1, 'the long-context tier carries the long-context cache rate');
+  assert(long.threshold === 200000, 'the threshold is reported');
+
+  const at = resolvePricing(config, 'xai/grok-4.7', { inputTokens: 200000 });
+  assert(at.tier === 'base', 'the threshold itself is still the base tier');
+
+  const worst = resolvePricing(config, 'xai/grok-4.7', { inputTokens: 10, worstCase: true });
+  assert(worst.tier === 'long_context', 'the worst case prices the long tier even for a small estimate');
+
+  const noTier = resolvePricing(config, 'opencode/claude-sonnet-5', { inputTokens: 900000 });
+  assert(noTier.tier === 'base', 'a model with no tier is unaffected by a huge prompt');
+
+  const minimax = resolvePricing(config, 'minimax/MiniMax-M3', { inputTokens: 600000 });
+  assert(minimax.tier === 'long_context', 'MiniMax M3 doubles above 512k');
+  assert(minimax.rates.input === 0.6, 'the MiniMax long tier is the doubled rate');
+  assert(minimax.rates.cacheRead === 0.06, 'a tier that names no cache rate inherits the base one');
+
+  // The whole point: the money the ledger records for a long prompt is the
+  // money that actually left the account.
+  const shortCost = estimateUsd(resolvePricing(config, 'xai/grok-4.7').rates, { input_tokens: 100000, output_tokens: 1000 }).usd;
+  const longCost = estimateUsd(resolvePricing(config, 'xai/grok-4.7', { inputTokens: 250000 }).rates, { input_tokens: 250000, output_tokens: 1000 }).usd;
+  assert(longCost > shortCost * 2, 'a long prompt costs more than twice the base-tier price of the same output');
+}
+
+// ---------------------------------------------------------------------------
 // 4. limits
 // ---------------------------------------------------------------------------
 section('limits');

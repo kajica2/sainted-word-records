@@ -71,7 +71,15 @@ one even though it is the more capable of the two.
 | `antigravity/gemini-3.8-flash` | 1M | $1.50 | $7.50 | $0.15 |
 
 Long-context rates (above a 200K prompt): Grok 4.7 goes to $4.00/$12.00, MiniMax M3
-to $0.60/$2.40.
+to $0.60/$2.40. Those tiers are **machine-readable** — `pricing.long_context` on the
+model, with `above_input_tokens` and its own rates — because the ledger prices a
+turn against them. A tier that used to live only in the model's `note` was a tier
+the ledger could not see: a long prompt was priced at the base rate, the day's
+total UNDER-COUNTED what left the account, and the daily cap was applied to a
+number that was wrong. The reservation now takes the **worst** tier a model has
+(the estimate is the uncertain part — a characters-per-token guess is several
+times low on CJK text) and the settlement takes the tier the **actual** usage
+landed in; the difference goes back to the day.
 
 ---
 
