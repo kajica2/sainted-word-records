@@ -94,6 +94,14 @@
     }
     /* Sidebar transitions */
     .sidebar-l, .sidebar-r { transition: width .25s ease; }
+    /* The layers header carries eleven controls in a 300px rail: the title,
+       eight buttons, and the two the console appends at runtime. Without a
+       wrap they run past the viewport and the appended Auto-rotate toggle
+       lands off-screen. The list below the header flexes, so a taller
+       header does not clip the layers. */
+    #sidebar-r { display: flex; flex-direction: column; }
+    #sidebar-r > div:first-child,
+    #sidebar-r > div:first-child > div { flex-wrap: wrap; row-gap: 4px; }
     /* Drawer smooth height */
     .drawer-body { transition: max-height .3s ease, opacity .2s ease; overflow: hidden; }
     .drawer.collapsed .drawer-body { max-height: 0; opacity: 0; pointer-events: none; }
@@ -128,6 +136,14 @@
       body > div.flex { height: auto !important; }
       header { height: auto !important; min-height: 56px; flex-wrap: wrap; row-gap: 6px; }
       .versions, #top-wave, #time-readout { display: none; }
+      /* Tailwind's utility sheet is injected after this page's own <style>,
+         so a plain class rule loses to `.flex`. The versions rail is hidden
+         here on purpose: say so with !important. The transport cluster is
+         wider than a phone, and the drawer header is a fixed 40px row that
+         cannot hold the decorative waveform. */
+      .versions { display: none !important; }
+      header > div:last-child { flex-wrap: wrap; row-gap: 4px; }
+      #drawer-wave { display: none; }
       #canvas-wrap { min-height: 100vh; }
       #canvas { inset: 0; border-radius: 0; }
       #sidebar-l, #sidebar-r {
@@ -409,7 +425,7 @@
           <button class="icon-btn" id="toggle-r" title="Collapse layers ( ] )"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
         </div>
       </div>
-      <div class="overflow-y-auto" id="layers-list" style="height: calc(100% - 41px);"></div>
+      <div class="overflow-y-auto" id="layers-list" style="flex: 1; min-height: 0;"></div>
     </aside>
 
   </div>

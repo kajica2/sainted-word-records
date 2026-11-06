@@ -36,6 +36,17 @@ the home-page ones. The dev server and Vercel both rewrite `/engine/` to
 `/engine.html`, so the runner uses the slash-less form every server resolves
 to the same file.
 
+**A route that does not resolve the same way in preview and in production is a
+false finding, so every route in the table is checked in both before it is
+added.** A candidate that 404s in production is dropped; one that resolves
+differently is fixed or dropped. `/command-center` answered 404 in production
+and would have been a finding that named a page that does not exist.
+
+**The surface is deliberately wider than the engine.** Three routes found six
+findings; seventeen routes found nine, and four of them were real horizontal
+overflows on pages nobody had looked at. Widening the table is what turned the
+QA tier from a smoke test into a source of work.
+
 ### A finding has to name its cause
 The runner captures the error's stack frame and the console message's location,
 the HTTP status of every script it loads (a script that 404s is not a
@@ -43,6 +54,13 @@ the HTTP status of every script it loads (a script that 404s is not a
 cross the viewport with how far each one overflows. A finding that names a
 symptom and no cause is not actionable, and a QA pass that cannot produce
 actionable findings is a pass that costs a cycle and returns nothing.
+
+### A finding has to be checked against production
+A console error that only appears in the preview is a finding about the
+preview. `/versions/neon` logs a WebSocket failure to `ws://127.0.0.1:8787`
+because the runner's preview is on a dev host and the product only
+auto-connects there — the deployed page emits **zero** console errors. It was
+triaged out of the queue on the measurement, not on a guess.
 
 ## Future phases
 1. Separate API contract testing against staging with secret-safe read-only fixtures.

@@ -12,7 +12,21 @@
   "routes": [
     {"id": "home", "path": "/"},
     {"id": "engine", "path": "/engine"},
-    {"id": "versions", "path": "/versions"}
+    {"id": "versions", "path": "/versions"},
+    {"id": "for-creators", "path": "/for-creators"},
+    {"id": "marketplace", "path": "/marketplace"},
+    {"id": "personas", "path": "/personas"},
+    {"id": "languages", "path": "/visual-languages"},
+    {"id": "neon", "path": "/versions/neon"},
+    {"id": "persona-library", "path": "/persona-library"},
+    {"id": "generations", "path": "/generations"},
+    {"id": "tutorial", "path": "/tutorial-30s"},
+    {"id": "changelog", "path": "/changelog"},
+    {"id": "style-guide", "path": "/style-guide"},
+    {"id": "dashboard", "path": "/dashboard"},
+    {"id": "photo", "path": "/photo"},
+    {"id": "tiktok", "path": "/tiktok"},
+    {"id": "atlas", "path": "/atlas"}
   ],
   "apiChecks": [
     {"id": "manifest-health", "path": "/api/manifest?action=health", "expectedStatus": [200], "optionalOnStaticPreview": true}

@@ -8,6 +8,13 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- **Responsive overflow gate** (`check:responsive-overflow`, in the `check`
+  group) — asserts that no page scrolls sideways at 390×844 or 1440×900, and
+  names the element that crosses the viewport and by how much. It also
+  asserts that the dashboard's Auto-rotate master toggle is on screen: that
+  control had run 143px past the right edge of the console, so it was
+  invisible and unclickable. Reverting any one of the four fixes it covers
+  makes the gate fail with the pre-fix number.
 - Repository guide with task-based entry points, module responsibilities, and product voice guidance; README introduction distinguishes browser rendering from optional cloud services.
 - **Guest sign-in with Firebase Anonymous Auth** — a "Continue as guest"
   button on the login page: no consent screen, no test-user list. The
@@ -178,6 +185,20 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **Four pages scrolled sideways, and one of them hid a control off-screen.**
+  The KAI SWARM QA pass widened its surface from three routes to seventeen and
+  found four pages whose content ran past the viewport. Each was measured
+  against the deployed site as well as a local preview of the same build, so
+  none was a preview artifact. `/persona-library` carried a 402px nowrap
+  label in a wrapping flex row (32px over at 390px); `/style-guide` and
+  `/tiktok` each had a grid track flooring at min-content, because a bare
+  `1fr` replaced a `minmax(0, 1fr)` (213px and 20px over at 390px); and
+  `/dashboard` ran 143px past the right edge at 1440px, which pushed the
+  Auto-rotate master toggle — the control that drives every layer at once —
+  completely off-screen. The dashboard's own mobile rules were not taking
+  effect: Tailwind's CDN injects its utility sheet after the page's `<style>`,
+  so a plain class rule lost to `.flex` at equal specificity. Each fix is the
+  smallest one that addresses its own cause.
 - **The bench gate demanded five frame samples from a host that could not
   draw five frames.** `check:bench-smoke` asserted `report.samples >= 5` — a
   flat floor. On the CI runner of run 42118548118 the bench page rendered at
