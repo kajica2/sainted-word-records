@@ -257,6 +257,13 @@ once it hits 1.0.
   to land and reads the page it lands on — and rethrows every other error untouched, so the
   assertion keeps its teeth. A new gate (`check:webgl-nav-probe`) reproduces the destroyed
   context deterministically and pins both halves of that contract.
+- **A gate that passed in CI failed in every fresh worktree.** `check:auth-store-dispatch-unit`
+  copies `api/_lib` into a temp directory so the shipped code runs unmodified, and symlinks
+  `node_modules` next to the copy so `import '@vercel/blob'` resolves. It symlinked
+  `ROOT/node_modules` — but a git worktree has no `node_modules` of its own; the real one lives
+  in the main checkout one level up. The symlink dangled, the import failed with
+  `ERR_MODULE_NOT_FOUND`, and the gate reported a failure that had nothing to do with the code
+  it tests. It now looks for the nearest `node_modules` above the checkout.
 - **The PWA reloaded the page for no reason — and that is what broke two gates.**
   `pwa-bootstrap.js` reloaded on every `controllerchange`. Because `sw.js` calls
   `clients.claim()`, the FIRST registration takes the client over immediately, so on a cold
