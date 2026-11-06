@@ -257,6 +257,17 @@ once it hits 1.0.
   to land and reads the page it lands on — and rethrows every other error untouched, so the
   assertion keeps its teeth. A new gate (`check:webgl-nav-probe`) reproduces the destroyed
   context deterministically and pins both halves of that contract.
+- **The PWA reloaded the page for no reason — and that is what broke two gates.**
+  `pwa-bootstrap.js` reloaded on every `controllerchange`. Because `sw.js` calls
+  `clients.claim()`, the FIRST registration takes the client over immediately, so on a cold
+  profile the page reloaded itself seconds after it loaded — when there was nothing to reload,
+  because it had just been fetched from the network with the current assets. The reload tore the
+  page down underneath whatever was reading it: `check:webgl-default-off` lost its first read
+  ("Execution context was destroyed, most likely because of a navigation") and `check:live-input`
+  lost the camera it had just started. The page now reloads only when an UPDATED worker takes
+  over a page that was ALREADY controlled — which is the update toast's flow, and it still
+  works. A new gate (`check:pwa-sw-reload`) counts page loads in `sessionStorage` and pins both
+  directions: the first takeover does not reload, an update still does.
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a
