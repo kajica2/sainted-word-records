@@ -543,6 +543,16 @@ const canvas  = document.getElementById('canvas');
 const ctx     = canvas.getContext('2d');
 const stage   = document.getElementById('stage');
 
+// ── Canvas background — persona palette gradient ──────────────────────────────
+// These three are declared HERE, above the first call to resizeCanvas().
+// They used to be declared below it, which meant drawCanvasBackground()
+// read `currentPalette` while it was still in its temporal dead zone:
+// "Cannot access 'currentPalette' before initialization" — a page-breaking
+// error, on every load, in production too.
+let currentPalette = null;
+let canvasAnimFrame = null;
+let canvasTime = 0;
+
 // ── Canvas setup ──────────────────────────────────────────────────────────────
 function resizeCanvas() {
   canvas.width  = stage.clientWidth;
@@ -553,11 +563,6 @@ function resizeCanvas() {
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
-
-// ── Canvas background — persona palette gradient ─────────────────────────────
-let currentPalette = null;
-let canvasAnimFrame = null;
-let canvasTime = 0;
 
 function drawCanvasBackground() {
   if (!ctx) return;

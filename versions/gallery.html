@@ -149,6 +149,10 @@
     @media (max-width: 640px) {
       .wrap { padding: 40px 20px 60px; }
       .grid { grid-template-columns: 1fr; }
+      /* The title, the badge and the back link do not fit one line at
+         390px, and the row cannot shrink them — the back link ran 27px
+         past the viewport. Let the row wrap instead. */
+      .top { flex-wrap: wrap; }
     }
   </style>
 </head>

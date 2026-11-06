@@ -48,6 +48,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      /* The status bar is 190px wide and cannot shrink; at 390px it ran
+         20px past the viewport. Let the header wrap — at desktop there is
+         room, so this never fires there. */
+      flex-wrap: wrap;
     }
     header h1 {
       font-family: var(--serif);
@@ -137,6 +141,9 @@
     }
     .presets {
       display: flex;
+      /* The four preset buttons do not fit one line at 390px, and the row
+         cannot shrink them — "incandescent" ran 6px past the viewport. */
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 20px;
       padding-top: 20px;

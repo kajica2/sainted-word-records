@@ -24,6 +24,14 @@
 //                     after it
 //   /tiktok          the same grid-track floor as /style-guide, in the
 //                     single-column fallback
+//   /versions/gallery  a title row that cannot shrink its back link
+//   /versions/temple-of-control  a header that cannot shrink its status bar
+//   /shop            a nav row that cannot shrink its CTA
+//   /director-mode-sainted-word  a nav row that cannot shrink its theme toggle
+//
+// The last four are the same class again — a flex row with `flex-wrap:
+// nowrap` whose children do not fit a phone — so the gate now watches
+// eight pages across five distinct causes.
 //
 // The four causes are now four different fixes, so a gate that watches all
 // four pages cannot be satisfied by one lucky rule.
@@ -57,6 +65,11 @@ const ROUTES = [
   { path: '/style-guide.html', label: 'style-guide' },
   { path: '/dashboard.html', label: 'dashboard' },
   { path: '/tiktok.html', label: 'tiktok' },
+  // Cycle 3: the same class on four more pages.
+  { path: '/versions/gallery.html', label: 'versions/gallery' },
+  { path: '/versions/temple-of-control.html', label: 'versions/temple-of-control' },
+  { path: '/shop.html', label: 'shop' },
+  { path: '/director-mode-sainted-word.html', label: 'director-mode-sainted-word' },
 ];
 const VIEWPORTS = [
   { id: 'mobile', width: 390, height: 844 },

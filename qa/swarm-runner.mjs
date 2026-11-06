@@ -14,6 +14,28 @@ try {
   browser = await chromium.launch({ headless: true });
   // Concurrency is intentionally capped at 2 browser contexts; API checks follow serially.
   const work = config.routes.flatMap(route => config.viewports.map(viewport => ({ route, viewport })));
+
+// Does this base have a serverless API behind it? The dev server does
+// (scripts/dev-api.mjs); a static `vite preview` does not, so a page's own
+// fetch to /api/… answers 404 there and in production. The config's
+// apiChecks already say the API may be absent on a static preview; this is
+// the same rule for the errors the pages log themselves, and it is probed
+// once instead of guessed per route.
+let hasApiServer = true;
+for (const endpoint of config.apiChecks) {
+  try {
+    const probe = await fetch(new URL(endpoint.path, base), { signal: AbortSignal.timeout(8000) });
+    // The STATUS is not enough: `vite preview`'s SPA fallback answers 200
+    // with the home page for any unknown path, so a static preview LOOKS
+    // like it has a healthy API. The API answers JSON; the fallback
+    // answers HTML. That is the difference.
+    const type = (probe.headers.get('content-type') || '').toLowerCase();
+    if (!endpoint.expectedStatus.includes(probe.status) || !type.includes('json')) {
+      hasApiServer = false;
+      break;
+    }
+  } catch (_) { hasApiServer = false; break; }
+}
   async function run({ route, viewport }) {
     const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, reducedMotion: 'reduce' });
     const page = await context.newPage();
@@ -36,6 +58,11 @@ try {
       if (msg.type() !== 'error') return;
       const loc = msg.location() || {};
       const at = loc.url ? ` (${loc.url}:${loc.lineNumber}:${loc.columnNumber})` : '';
+      // A failed load of the site's OWN /api/ route is expected when this
+      // base has no serverless API behind it — the route exists (there is
+      // an api/entrance-analytics.js in the repo) and answers in production.
+      // Reporting it here would cost every cycle a turn to triage.
+      if (!hasApiServer && /Failed to load resource/.test(msg.text()) && /\/api\//.test(loc.url || '')) return;
       errors.push(['regression', msg.text() + at]);
     });
     page.on('requestfailed', request => { if (!request.failure()?.errorText?.includes('ERR_ABORTED')) errors.push(['api', request.url() + ': ' + request.failure()?.errorText]); });
@@ -104,10 +131,15 @@ finally { await browser?.close(); }
 for (const endpoint of config.apiChecks) {
   try {
     const response = await fetch(new URL(endpoint.path, base), { signal: AbortSignal.timeout(12000) });
-    evidence.push({ api: endpoint.id, path: endpoint.path, status: response.status });
-    if (!endpoint.expectedStatus.includes(response.status)) {
-      const optional = endpoint.optionalOnStaticPreview && response.status === 404;
-      add(optional ? 'info' : 'high', 'api', endpoint.id, 'HTTP ' + response.status + (optional ? ' (static preview has no serverless API)' : ''));
+    const type = (response.headers.get('content-type') || '').toLowerCase();
+    evidence.push({ api: endpoint.id, path: endpoint.path, status: response.status, contentType: type });
+    // The SPA fallback answers 200 with HTML for any unknown path, so a
+    // static preview looks like it has a healthy API. Compare the content
+    // type as well as the status: the API answers JSON.
+    const healthy = endpoint.expectedStatus.includes(response.status) && type.includes('json');
+    if (!healthy) {
+      const optional = endpoint.optionalOnStaticPreview && (response.status === 404 || !type.includes('json'));
+      add(optional ? 'info' : 'high', 'api', endpoint.id, 'HTTP ' + response.status + ' ' + type + (optional ? ' (static preview has no serverless API)' : ''));
     }
   } catch (err) { add('medium', 'api', endpoint.id, err.message); }
 }
