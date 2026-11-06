@@ -196,6 +196,13 @@ once it hits 1.0.
   under test. All five now kill their server from a `process.on('exit')`
   handler. Mutation-tested: force an early exit and count the listeners —
   with the fix the port is free (0), without it the server leaks (1).
+- **CI could fail because the runner's apt mirror was down.** The `Install ffmpeg`
+  step installs the `ffprobe` the generations gate measures the media with. Its
+  apt path was already bounded and retried, but all three bounded attempts can
+  fail against the same unreachable mirror — which happened on runs 42103655663
+  and 42137248795, and blocked a merge each time. The step now falls back to a
+  STATIC ffmpeg build: one tarball, no package manager, so a mirror that is
+  down cannot fail the whole build.
 - **The media-budget gate counted files the deploy never receives.** It summed
   `dist/<dir>` on disk, but the deploy ships the git tree. `keyart/` is the case
   in point: 58 files are force-tracked and ship (~9.4M), while 20 ignored `.png`

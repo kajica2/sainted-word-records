@@ -135,8 +135,27 @@ jobs:
               /var/cache/apt/archives/lock || true
             sleep 10
           done
-          echo "::error::could not install ffmpeg after 3 attempts"
-          exit 1
+          echo "::warning::apt could not install ffmpeg; falling back to a static build"
+          # The apt mirror is not reliable on the runner: on 2026-11-05 all
+          # three bounded attempts failed against the same unreachable
+          # mirror (runs 42103655663 and 42137248795), and the step failed
+          # both times. A mirror that is down must not be able to fail the
+          # whole build — and this step is the one the generations gate
+          # depends on, so it gates every PR.
+          #
+          # The fallback is a STATIC build: one tarball, no package manager,
+          # no apt mirror involved. The layout is stable:
+          #   ffmpeg-<version>-amd64-static/{ffmpeg,ffprobe}
+          # The tarball's version moves over time, so the directory is
+          # matched with a glob rather than pinned.
+          tmp="$(mktemp -d)"
+          curl -fsSL --retry 3 --retry-delay 5 --max-time 300 \
+            -o "$tmp/ffmpeg.tar.xz" \
+            https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+          tar -xJf "$tmp/ffmpeg.tar.xz" -C "$tmp"
+          sudo install -m 0755 "$tmp"/ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ffmpeg
+          sudo install -m 0755 "$tmp"/ffmpeg-*-amd64-static/ffprobe /usr/local/bin/ffprobe
+          ffprobe -version | head -1
 
       - name: Scene persistence regression tests
         run: node --test tests/scenes-persistence.test.mjs
