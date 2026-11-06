@@ -1,6 +1,6 @@
 // Pure helpers for the Remix Studio. No browser / DOM dependencies.
 export const MAX_LOOPS = 8;
-export const MAX_FILE_BYTES = 50 * 1024 * 1024;
+export const MAX_FILE_BYTES = 50 * 1000 * 1000;
 export const MAX_LOOP_SECONDS = 180;
 
 // Stable input energy estimate. Probe a bounded number of samples, including
