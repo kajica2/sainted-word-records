@@ -168,3 +168,8 @@ media/inventory.json
 # Live invite codes — register via /api/invite/register (workflow or admin);
 # must never ship in dist/ or stay in git history after rotation (purge separately).
 /data/invite-codes.csv
+
+# The KAI SWARM QA pass writes its report, screenshots and dispatch queue
+# here. qa/README.md says the outputs are uploaded as Actions artefacts,
+# not committed — so a local run must not leave the tree dirty.
+qa-results/

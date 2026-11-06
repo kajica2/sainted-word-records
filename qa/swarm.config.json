@@ -11,7 +11,7 @@
   "baseUrl": "http://127.0.0.1:4173",
   "routes": [
     {"id": "home", "path": "/"},
-    {"id": "engine", "path": "/engine/"},
+    {"id": "engine", "path": "/engine"},
     {"id": "versions", "path": "/versions"}
   ],
   "apiChecks": [

@@ -26,6 +26,23 @@ npm run preview -- --host 127.0.0.1
 # In another terminal
 node qa/swarm-runner.mjs
 ```
+### The route table is not decoration
+`routes[].path` is resolved by the server the runner points at, and the servers
+disagree on the trailing slash. `vite preview` resolves `/engine` to
+`dist/engine.html`, but there is no `dist/engine/index.html`, so `/engine/`
+fell through to preview's SPA fallback and served **the home page** — the
+engine app was never tested, and the two "engine" findings were duplicates of
+the home-page ones. The dev server and Vercel both rewrite `/engine/` to
+`/engine.html`, so the runner uses the slash-less form every server resolves
+to the same file.
+
+### A finding has to name its cause
+The runner captures the error's stack frame and the console message's location,
+the HTTP status of every script it loads (a script that 404s is not a
+"requestfailed" — only a transport failure is), and the elements that actually
+cross the viewport with how far each one overflows. A finding that names a
+symptom and no cause is not actionable, and a QA pass that cannot produce
+actionable findings is a pass that costs a cycle and returns nothing.
 
 ## Future phases
 1. Separate API contract testing against staging with secret-safe read-only fixtures.

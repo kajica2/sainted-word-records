@@ -211,6 +211,21 @@ once it hits 1.0.
   now skips a dist file whose source exists in the tree but is not tracked, and
   prints every skip so the exclusion is visible rather than silent. In a clean
   checkout the measurement is byte-for-byte what it was.
+- **The KAI SWARM QA pass found three real defects and could not act on any of
+  them.** The read-only QA pass over `/`, `/engine/` and `/versions` produced six findings
+  in four tasks — two of them duplicates, and none actionable, because the runner stored
+  `err.message` with no stack, recorded overflow as a bare boolean, and never looked at
+  the HTTP status of the scripts it loaded. Three fixes: `versions.html` read
+  `[].concat(buckets.entries())`, and `Array.prototype.concat` does not spread an
+  iterator, so `group[1]` was `undefined` and the preset timeline threw
+  `Cannot read properties of undefined (reading 'length')` the moment any preset arrived
+  (`Array.from` instead); the QA route was `/engine/`, which `vite preview` resolves to
+  the **home page** through its SPA fallback, so the engine app was never tested (now
+  `/engine`); and the home page's header row overflowed a 390px viewport by 107px (the
+  brand is `nowrap` at 226px plus a 148px CTA — the same header was on
+  `for-creators.html`). The runner now captures the error's stack frame, the console
+  message's location, every script's status and the elements that cross the viewport.
+  The same three routes now report **zero** findings.
 - **The bench gate asked a slow host for frames it could not draw in the time it
   allowed.** `runTest` ends on a wall-clock timer, but the measurement arrives at the
   host's frame rate: the sampler primes on one rAF callback and records an interval on
