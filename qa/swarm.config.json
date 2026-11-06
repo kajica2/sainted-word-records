@@ -7,32 +7,628 @@
   "allowMerge": false,
   "allowSecretMutation": false,
   "allowBaselineUpdates": false,
-  "missions": ["visual", "api", "regression", "security", "creative"],
+  "missions": [
+    "visual",
+    "api",
+    "regression",
+    "security",
+    "creative"
+  ],
   "baseUrl": "http://preview.localhost:4173",
   "routes": [
-    {"id": "home", "path": "/"},
-    {"id": "engine", "path": "/engine"},
-    {"id": "versions", "path": "/versions"},
-    {"id": "for-creators", "path": "/for-creators"},
-    {"id": "marketplace", "path": "/marketplace"},
-    {"id": "personas", "path": "/personas"},
-    {"id": "languages", "path": "/visual-languages"},
-    {"id": "neon", "path": "/versions/neon"},
-    {"id": "persona-library", "path": "/persona-library"},
-    {"id": "generations", "path": "/generations"},
-    {"id": "tutorial", "path": "/tutorial-30s"},
-    {"id": "changelog", "path": "/changelog"},
-    {"id": "style-guide", "path": "/style-guide"},
-    {"id": "dashboard", "path": "/dashboard"},
-    {"id": "photo", "path": "/photo"},
-    {"id": "tiktok", "path": "/tiktok"},
-    {"id": "atlas", "path": "/atlas"}
+    {
+      "id": "root",
+      "path": "/"
+    },
+    {
+      "id": "engine",
+      "path": "/engine"
+    },
+    {
+      "id": "versions",
+      "path": "/versions"
+    },
+    {
+      "id": "visual-languages",
+      "path": "/visual-languages"
+    },
+    {
+      "id": "versions-play",
+      "path": "/versions/play"
+    },
+    {
+      "id": "atlas",
+      "path": "/atlas"
+    },
+    {
+      "id": "versions-music-video",
+      "path": "/versions/music-video"
+    },
+    {
+      "id": "artists",
+      "path": "/artists"
+    },
+    {
+      "id": "artists-ana-maric",
+      "path": "/artists/ana-maric"
+    },
+    {
+      "id": "versions-echo-manifold",
+      "path": "/versions/echo-manifold"
+    },
+    {
+      "id": "artists-dusan-popov",
+      "path": "/artists/dusan-popov"
+    },
+    {
+      "id": "artists-kira-lindqvist",
+      "path": "/artists/kira-lindqvist"
+    },
+    {
+      "id": "artists-marko-ilic",
+      "path": "/artists/marko-ilic"
+    },
+    {
+      "id": "artists-nina-volkova",
+      "path": "/artists/nina-volkova"
+    },
+    {
+      "id": "versions-neon",
+      "path": "/versions/neon"
+    },
+    {
+      "id": "versions-film",
+      "path": "/versions/film"
+    },
+    {
+      "id": "versions-music-video-gallery",
+      "path": "/versions/music-video-gallery"
+    },
+    {
+      "id": "shotlist",
+      "path": "/shotlist"
+    },
+    {
+      "id": "versions-grid",
+      "path": "/versions/grid"
+    },
+    {
+      "id": "versions-hallucination",
+      "path": "/versions/hallucination"
+    },
+    {
+      "id": "versions-smoke",
+      "path": "/versions/smoke"
+    },
+    {
+      "id": "versions-aurora",
+      "path": "/versions/aurora"
+    },
+    {
+      "id": "versions-baroque",
+      "path": "/versions/baroque"
+    },
+    {
+      "id": "versions-collage",
+      "path": "/versions/collage"
+    },
+    {
+      "id": "versions-chrome",
+      "path": "/versions/chrome"
+    },
+    {
+      "id": "versions-eclipse",
+      "path": "/versions/eclipse"
+    },
+    {
+      "id": "versions-fractal",
+      "path": "/versions/fractal"
+    },
+    {
+      "id": "versions-glitch",
+      "path": "/versions/glitch"
+    },
+    {
+      "id": "versions-music-video-mtv",
+      "path": "/versions/music-video-mtv"
+    },
+    {
+      "id": "versions-mosaic",
+      "path": "/versions/mosaic"
+    },
+    {
+      "id": "versions-kraft",
+      "path": "/versions/kraft"
+    },
+    {
+      "id": "versions-pulse",
+      "path": "/versions/pulse"
+    },
+    {
+      "id": "versions-spectrum",
+      "path": "/versions/spectrum"
+    },
+    {
+      "id": "versions-simple",
+      "path": "/versions/simple"
+    },
+    {
+      "id": "versions-typography",
+      "path": "/versions/typography"
+    },
+    {
+      "id": "versions-tape",
+      "path": "/versions/tape"
+    },
+    {
+      "id": "versions-watercolor",
+      "path": "/versions/watercolor"
+    },
+    {
+      "id": "versions-void",
+      "path": "/versions/void"
+    },
+    {
+      "id": "versions-bachdrop",
+      "path": "/versions/bachdrop"
+    },
+    {
+      "id": "versions-gallery",
+      "path": "/versions/gallery"
+    },
+    {
+      "id": "versions-music-video-2",
+      "path": "/versions/music_video"
+    },
+    {
+      "id": "versions-console",
+      "path": "/versions/console"
+    },
+    {
+      "id": "versions-temple-of-control",
+      "path": "/versions/temple-of-control"
+    },
+    {
+      "id": "versions-clean",
+      "path": "/versions/clean"
+    },
+    {
+      "id": "versions-phosphor",
+      "path": "/versions/phosphor"
+    },
+    {
+      "id": "artists-vodolija",
+      "path": "/artists/vodolija"
+    },
+    {
+      "id": "versions-music-video-mtv-2",
+      "path": "/versions/music_video_mtv"
+    },
+    {
+      "id": "versions-credits-storyline",
+      "path": "/versions/credits-storyline"
+    },
+    {
+      "id": "versions-envelope",
+      "path": "/versions/envelope"
+    },
+    {
+      "id": "for-creators",
+      "path": "/for-creators"
+    },
+    {
+      "id": "music-video-maker",
+      "path": "/music-video-maker"
+    },
+    {
+      "id": "marketplace",
+      "path": "/marketplace"
+    },
+    {
+      "id": "guides-music-video-no-budget",
+      "path": "/guides/music-video-no-budget"
+    },
+    {
+      "id": "interactive-howto",
+      "path": "/interactive-howto"
+    },
+    {
+      "id": "persona-library",
+      "path": "/persona-library"
+    },
+    {
+      "id": "changelog",
+      "path": "/changelog"
+    },
+    {
+      "id": "generations",
+      "path": "/generations"
+    },
+    {
+      "id": "about",
+      "path": "/about"
+    },
+    {
+      "id": "tutorial-30s",
+      "path": "/tutorial-30s"
+    },
+    {
+      "id": "press",
+      "path": "/press"
+    },
+    {
+      "id": "intro",
+      "path": "/intro"
+    },
+    {
+      "id": "portfolio",
+      "path": "/portfolio"
+    },
+    {
+      "id": "style-guide",
+      "path": "/style-guide"
+    },
+    {
+      "id": "services",
+      "path": "/services"
+    },
+    {
+      "id": "legal-terms-html",
+      "path": "/legal/terms.html"
+    },
+    {
+      "id": "legal-privacy-html",
+      "path": "/legal/privacy.html"
+    },
+    {
+      "id": "sitemap",
+      "path": "/sitemap"
+    },
+    {
+      "id": "photo-scrolls",
+      "path": "/photo-scrolls"
+    },
+    {
+      "id": "packs",
+      "path": "/packs"
+    },
+    {
+      "id": "terms-html",
+      "path": "/terms.html"
+    },
+    {
+      "id": "thanks",
+      "path": "/thanks"
+    },
+    {
+      "id": "muzicki-spot-beograd",
+      "path": "/muzicki-spot-beograd"
+    },
+    {
+      "id": "neon",
+      "path": "/neon"
+    },
+    {
+      "id": "status",
+      "path": "/status"
+    },
+    {
+      "id": "gallery",
+      "path": "/gallery"
+    },
+    {
+      "id": "shop",
+      "path": "/shop"
+    },
+    {
+      "id": "gallery-music",
+      "path": "/gallery/music"
+    },
+    {
+      "id": "gallery-generative",
+      "path": "/gallery/generative"
+    },
+    {
+      "id": "gallery-bio",
+      "path": "/gallery/bio"
+    },
+    {
+      "id": "gallery-cosmic",
+      "path": "/gallery/cosmic"
+    },
+    {
+      "id": "gallery-ai",
+      "path": "/gallery/ai"
+    },
+    {
+      "id": "gallery-dingbats",
+      "path": "/gallery/dingbats"
+    },
+    {
+      "id": "gallery-glyphs",
+      "path": "/gallery/glyphs"
+    },
+    {
+      "id": "gallery-tshirts",
+      "path": "/gallery/tshirts"
+    },
+    {
+      "id": "gallery-vr",
+      "path": "/gallery/vr"
+    },
+    {
+      "id": "gallery-posters",
+      "path": "/gallery/posters"
+    },
+    {
+      "id": "gallery-videofx",
+      "path": "/gallery/videofx"
+    },
+    {
+      "id": "gallery-albums",
+      "path": "/gallery/albums"
+    },
+    {
+      "id": "gallery-photoexp",
+      "path": "/gallery/photoexp"
+    },
+    {
+      "id": "gallery-point4brand",
+      "path": "/gallery/point4brand"
+    },
+    {
+      "id": "gallery-darkfuture",
+      "path": "/gallery/darkfuture"
+    },
+    {
+      "id": "gallery-artist",
+      "path": "/gallery/artist"
+    },
+    {
+      "id": "gallery-bachdrop",
+      "path": "/gallery/bachdrop"
+    },
+    {
+      "id": "gallery-brutalist",
+      "path": "/gallery/brutalist"
+    },
+    {
+      "id": "gallery-vintage",
+      "path": "/gallery/vintage"
+    },
+    {
+      "id": "engine-personas",
+      "path": "/engine-personas"
+    },
+    {
+      "id": "entrance-personas",
+      "path": "/entrance-personas"
+    },
+    {
+      "id": "entrance-minimal",
+      "path": "/entrance-minimal"
+    },
+    {
+      "id": "entrance-mobile",
+      "path": "/entrance-mobile"
+    },
+    {
+      "id": "entrance-wizard",
+      "path": "/entrance-wizard"
+    },
+    {
+      "id": "entrance-cinematic",
+      "path": "/entrance-cinematic"
+    },
+    {
+      "id": "entrance-step1",
+      "path": "/entrance-step1"
+    },
+    {
+      "id": "entrance-step2",
+      "path": "/entrance-step2"
+    },
+    {
+      "id": "entrance-step3",
+      "path": "/entrance-step3"
+    },
+    {
+      "id": "entrance-stats",
+      "path": "/entrance-stats"
+    },
+    {
+      "id": "atlas-200-steps",
+      "path": "/atlas-200-steps"
+    },
+    {
+      "id": "atlas-architect",
+      "path": "/atlas-architect"
+    },
+    {
+      "id": "atlas-checklist",
+      "path": "/atlas-checklist"
+    },
+    {
+      "id": "atlas-crisis",
+      "path": "/atlas-crisis"
+    },
+    {
+      "id": "atlas-final-insight",
+      "path": "/atlas-final-insight"
+    },
+    {
+      "id": "atlas-forge",
+      "path": "/atlas-forge"
+    },
+    {
+      "id": "atlas-integration",
+      "path": "/atlas-integration"
+    },
+    {
+      "id": "atlas-life-stages",
+      "path": "/atlas-life-stages"
+    },
+    {
+      "id": "atlas-legacy",
+      "path": "/atlas-legacy"
+    },
+    {
+      "id": "campaign",
+      "path": "/campaign"
+    },
+    {
+      "id": "engine-demos",
+      "path": "/engine-demos"
+    },
+    {
+      "id": "director-mode-sainted-word",
+      "path": "/director-mode-sainted-word"
+    },
+    {
+      "id": "contact-sheet",
+      "path": "/contact-sheet"
+    },
+    {
+      "id": "gallery-ai-2",
+      "path": "/gallery-ai"
+    },
+    {
+      "id": "gallery-albums-2",
+      "path": "/gallery-albums"
+    },
+    {
+      "id": "gallery-artist-2",
+      "path": "/gallery-artist"
+    },
+    {
+      "id": "gallery-bachdrop-2",
+      "path": "/gallery-bachdrop"
+    },
+    {
+      "id": "gallery-bio-2",
+      "path": "/gallery-bio"
+    },
+    {
+      "id": "gallery-darkfuture-2",
+      "path": "/gallery-darkfuture"
+    },
+    {
+      "id": "gallery-dingbats-2",
+      "path": "/gallery-dingbats"
+    },
+    {
+      "id": "gallery-cosmic-2",
+      "path": "/gallery-cosmic"
+    },
+    {
+      "id": "gallery-brutalist-2",
+      "path": "/gallery-brutalist"
+    },
+    {
+      "id": "gallery-generative-2",
+      "path": "/gallery-generative"
+    },
+    {
+      "id": "gallery-glyphs-2",
+      "path": "/gallery-glyphs"
+    },
+    {
+      "id": "gallery-music-2",
+      "path": "/gallery-music"
+    },
+    {
+      "id": "gallery-photoexp-2",
+      "path": "/gallery-photoexp"
+    },
+    {
+      "id": "gallery-point4brand-2",
+      "path": "/gallery-point4brand"
+    },
+    {
+      "id": "gallery-posters-2",
+      "path": "/gallery-posters"
+    },
+    {
+      "id": "gallery-tshirts-2",
+      "path": "/gallery-tshirts"
+    },
+    {
+      "id": "gallery-vintage-2",
+      "path": "/gallery-vintage"
+    },
+    {
+      "id": "gallery-vr-2",
+      "path": "/gallery-vr"
+    },
+    {
+      "id": "landing-personas-v1-editorial",
+      "path": "/landing-personas-v1-editorial"
+    },
+    {
+      "id": "gallery-videofx-2",
+      "path": "/gallery-videofx"
+    },
+    {
+      "id": "landing-personas-v2-dark",
+      "path": "/landing-personas-v2-dark"
+    },
+    {
+      "id": "landing-personas-v3-friendly",
+      "path": "/landing-personas-v3-friendly"
+    },
+    {
+      "id": "landing-personas-v4-dashboard",
+      "path": "/landing-personas-v4-dashboard"
+    },
+    {
+      "id": "landing-personas-v6-wireframe",
+      "path": "/landing-personas-v6-wireframe"
+    },
+    {
+      "id": "landing-personas-v5-brutalist",
+      "path": "/landing-personas-v5-brutalist"
+    },
+    {
+      "id": "legal-beta-test",
+      "path": "/legal/beta-test"
+    },
+    {
+      "id": "legal-privacy",
+      "path": "/legal/privacy"
+    },
+    {
+      "id": "legal-terms",
+      "path": "/legal/terms"
+    },
+    {
+      "id": "terms",
+      "path": "/terms"
+    },
+    {
+      "id": "play",
+      "path": "/play"
+    }
   ],
   "apiChecks": [
-    {"id": "manifest-health", "path": "/api/manifest?action=health", "expectedStatus": [200], "optionalOnStaticPreview": true}
+    {
+      "id": "manifest-health",
+      "path": "/api/manifest?action=health",
+      "expectedStatus": [
+        200
+      ],
+      "optionalOnStaticPreview": true
+    }
   ],
   "viewports": [
-    {"id": "desktop", "width": 1440, "height": 900},
-    {"id": "mobile", "width": 390, "height": 844}
+    {
+      "id": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "mobile",
+      "width": 390,
+      "height": 844
+    }
   ]
 }

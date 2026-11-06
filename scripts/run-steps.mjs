@@ -73,6 +73,10 @@ const GROUPS = {
     // Auto-rotate master toggle off-screen. This gate watches the four
     // DIFFERENT causes, so no single lucky rule can satisfy it.
     'npm run check:responsive-overflow',
+    // A page must load without a JavaScript error. /engine-personas read
+    // `currentPalette` while it was still in its temporal dead zone, and
+    // the page threw on every load.
+    'npm run check:page-errors',
     'npm run check:pwa-sw-reload',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',

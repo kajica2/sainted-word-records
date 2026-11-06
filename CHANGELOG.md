@@ -185,6 +185,19 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **Five more pages scrolled sideways, and one threw on every load.** The
+  KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
+  — every route that resolves the same way in preview and in production —
+  and found five more real defects. Four were the class cycle 2 already
+  fixed: a flex row with `flex-wrap: nowrap` whose children cannot shrink,
+  so the last child ran past the viewport — `/versions/gallery`'s back link
+  (27px), `/versions/temple-of-control`'s status bar (20px), `/shop`'s CTA
+  (106px) and `/director-mode-sainted-word`'s theme toggle (101px). The
+  fifth was different: `/engine-personas` read `currentPalette` about six
+  lines above the `let` that declares it, so every load threw
+  `ReferenceError: Cannot access 'currentPalette' before initialization`
+  and the page's canvas never painted. `check:page-errors` is the new gate
+  for that class.
 - **A smoke could serve a stale page.** `scripts/with-dist.mjs` decided
   whether `dist/` was current by watching 14 named files and **no pages at
   all**, while the repo ships 114 root HTML files — so changing a page left

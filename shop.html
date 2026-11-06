@@ -120,6 +120,9 @@
     }
     @media (max-width: 880px) {
       .shop { grid-template-columns: 1fr; }
+      /* The links and the CTA do not fit one line at 390px, and the row
+         cannot shrink them — the CTA ran 106px past the viewport. */
+      .nav__inner { flex-wrap: wrap; gap: 12px; }
     }
 
     .shop__art {

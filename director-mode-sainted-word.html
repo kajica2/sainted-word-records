@@ -257,6 +257,10 @@
     }
     @media (max-width: 880px) {
       .hero__grid { grid-template-columns: 1fr; }
+      /* The wordmark, the four links and the theme toggle do not fit one
+         line at 390px — the toggle ran 101px past the viewport. Let the
+         row wrap, and let its fixed height go with it. */
+      .nav__inner { flex-wrap: wrap; height: auto; padding-block: 12px; }
     }
     .hero__eyebrow {
       font-family: var(--font-mono);
