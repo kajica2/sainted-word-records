@@ -8,7 +8,7 @@
   "allowSecretMutation": false,
   "allowBaselineUpdates": false,
   "missions": ["visual", "api", "regression", "security", "creative"],
-  "baseUrl": "http://127.0.0.1:4173",
+  "baseUrl": "http://preview.localhost:4173",
   "routes": [
     {"id": "home", "path": "/"},
     {"id": "engine", "path": "/engine"},

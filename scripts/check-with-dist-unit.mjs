@@ -18,7 +18,7 @@
 
 import { strict as assert } from 'node:assert';
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync, rmSync,
-         chmodSync, readFileSync } from 'node:fs';
+         chmodSync, readFileSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 
@@ -164,6 +164,44 @@ async function loadHelper(caseDir) {
   writeFileSync(join(tmpRoot, 'dist', 'engine.html'), 'x');
   assert.strictEqual(helper.hasDist(), true, 'dist/engine.html with content → true');
   ok('hasDist() distinguishes missing / empty / populated');
+}
+
+// 6. Freshness: a changed ROOT PAGE makes dist stale.
+//    The check used to watch 14 named files and NO pages at all, while the
+//    repo ships 114 root HTML files — so a smoke that serves dist/ tested a
+//    STALE page whenever one of them changed. That is the exact failure
+//    this module exists to prevent, and it bit for real.
+{
+  const caseDir = join(tmpRoot, 'case6');
+  mkdirSync(caseDir, { recursive: true });
+  try { rmSync(join(tmpRoot, 'dist'), { recursive: true, force: true }); } catch (_) {}
+  const binDir = setupFakeNpm(caseDir);
+  const helper = await loadHelper(caseDir);
+
+  // Build once, so dist/ exists and is newer than every source.
+  helper.ensureDist({ env: { PATH: binDir + ':' + process.env.PATH } });
+  assert.strictEqual(helper.distIsStale(), false, 'a fresh dist is not stale');
+
+  // Now touch a root PAGE — not one of the 14 files the old list named.
+  // The mtime is set explicitly into the future so the case does not depend
+  // on the clock's resolution.
+  const page = join(tmpRoot, 'some-root-page.html');
+  writeFileSync(page, '<html></html>');
+  const future = new Date(Date.now() + 5000);
+  utimesSync(page, future, future);
+  assert.strictEqual(helper.distIsStale(), true,
+    'a newer root page must make dist stale, or a smoke serves the old page');
+  ok('freshness: a changed root page makes dist stale');
+
+  // And the tracked data files count too: site-map.json is inlined into
+  // every page that mounts the shared chrome.
+  const map = join(tmpRoot, 'site-map.json');
+  writeFileSync(map, '{}');
+  const later = new Date(Date.now() + 9000);
+  utimesSync(map, later, later);
+  assert.strictEqual(helper.distIsStale(), true,
+    'a newer site-map.json must make dist stale — it is inlined into the pages');
+  ok('freshness: a changed site-map.json makes dist stale');
 }
 
 // Cleanup.

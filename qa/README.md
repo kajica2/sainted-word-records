@@ -58,9 +58,23 @@ actionable findings is a pass that costs a cycle and returns nothing.
 ### A finding has to be checked against production
 A console error that only appears in the preview is a finding about the
 preview. `/versions/neon` logs a WebSocket failure to `ws://127.0.0.1:8787`
-because the runner's preview is on a dev host and the product only
-auto-connects there — the deployed page emits **zero** console errors. It was
-triaged out of the queue on the measurement, not on a guess.
+because the runner's preview was on a dev host and the product only
+auto-connects there — the deployed page emits **zero** console errors.
+
+So the surface is served on **`preview.localhost`**, not `127.0.0.1`. The
+product's own guard (`client/visualizer-controller.js`) skips the dev-bridge
+connection unless the hostname is a dev host, and `preview.localhost` — which
+resolves to loopback in Chromium, per RFC 6761 — is not one. The page then
+behaves exactly as it does in production, and the false finding disappears
+with **nothing suppressed**:
+
+```
+http://127.0.0.1:4173/versions/neon        -> 3 console errors
+http://preview.localhost:4173/versions/neon -> 0 console errors
+```
+
+`KAI_QA_BASE_URL` overrides the base when you point the runner at another
+server; the configured default is the production-shaped one.
 
 ## Future phases
 1. Separate API contract testing against staging with secret-safe read-only fixtures.
