@@ -5,6 +5,7 @@ on:
       - 'remix-*.js'
       - 'remix-*.mjs'
       - 'client/remix-studio.client.js'
+      - 'client/remix-studio.css'
       - 'engine.html'
       - '.github/workflows/remix-studio.yml'
   push:
@@ -14,6 +15,7 @@ on:
       - 'remix-*.js'
       - 'remix-*.mjs'
       - 'client/remix-studio.client.js'
+      - 'client/remix-studio.css'
       - 'engine.html'
       - '.github/workflows/remix-studio.yml'
 permissions:
@@ -34,4 +36,4 @@ jobs:
           node --check remix-workflow.js
           node --check client/remix-studio.client.js
       - name: Run remix tests
-        run: node --test remix-planner.test.mjs remix-renderer.test.mjs remix-workflow.test.mjs
+        run: node --test remix-planner.test.mjs remix-renderer.test.mjs remix-workflow.test.mjs remix-studio-ui.test.mjs
