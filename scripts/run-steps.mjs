@@ -68,6 +68,11 @@ const GROUPS = {
     'npm run check:client-sdk',
     'npm run check:webgl-default-off',
     'npm run check:webgl-nav-probe',
+    // No page may scroll sideways. The KAI SWARM QA pass found four pages
+    // whose content ran past the viewport, and on /dashboard that put the
+    // Auto-rotate master toggle off-screen. This gate watches the four
+    // DIFFERENT causes, so no single lucky rule can satisfy it.
+    'npm run check:responsive-overflow',
     'npm run check:pwa-sw-reload',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',

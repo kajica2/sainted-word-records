@@ -865,3 +865,90 @@ actionable from the evidence the runner captured.
 
 The desktop layout is unchanged: at 1440px the header CTA is still present
 and every route's `scrollWidth` equals its `innerWidth`.
+
+## KAI SWARM Cycle 2 — 2026-11-06
+
+### C2-1 — /style-guide @390px (213px over)
+- Objective: Release the collapsed rail's intrinsic width so /style-guide fits 390px.
+- File:line: style-guide.html:98 (`.shell { grid-template-columns: 280px 1fr }`), :385-387 (the
+  max-width:920px block), :320 (`.field`), :707 (`.card-row` with the inline
+  `grid-template-columns:1fr 1fr`), :708-709 (the two `.field` inputs).
+- Acceptance: at 390x844 `documentElement.scrollWidth` <= 390 (was 603).
+- Risk: medium
+- blocked-by: The rail is a SYMPTOM. `nav.side`'s own min-content is 192px; the
+  grid column resolved to 603px because a bare `1fr` track floors at min-content.
+
+### C2-2 — /dashboard @390px (204px over) and @1440px (143px over)
+- Objective: Stop the console's control rows running past the viewport, and put the
+  Auto-rotate master toggle back on screen.
+- File:line: dashboard.html:155-211 (the top bar and its transport cluster),
+  :169 (the versions rail), :337 (`#drawer-wave`), :397-410 (the layers header
+  and its button cluster), :1007-1019 (the JS-appended master + auto-rotate controls).
+- Acceptance: at 390x844 and 1440x900 `scrollWidth` <= the viewport width (was 594
+  and 1583), and `input#auto-rotate-master` is fully inside the viewport.
+- Risk: medium
+- blocked-by: TWO independent causes, not one. At desktop the layers header is the
+  culprit; at mobile the top-bar transport cluster (577px) and the drawer's 287px
+  waveform are. The planner's first pass merged them — that was wrong.
+
+### C2-3 — /persona-library @390px (32px over)
+- Objective: Let the decision-memo label wrap instead of forcing a nowrap inline-block
+  402px wide.
+- File:line: persona-library.html:142-143 (`.tpill`, `white-space:nowrap`), :768-773 (the
+  four labels, the last of them a long sentence).
+- Acceptance: at 390x844 `scrollWidth` <= 390 (was 422).
+- Risk: low
+- blocked-by: none.
+
+### C2-4 — /tiktok @390px (20px over)
+- Objective: Keep the single-column fallback from flooring at the panel's min-content.
+- File:line: tiktok.html:56-57 (`.tt-grid` — the base rule's `minmax(0, 1fr)` is lost
+  when the media query replaces it with a bare `1fr`), :59-62 (`.tt-panel`).
+- Acceptance: at 390x844 `scrollWidth` <= 390 (was 410).
+- Risk: low
+- blocked-by: none.
+
+### C2-5 — a regression gate that fails without the fixes
+- Objective: Assert that no page scrolls sideways, at 390x844 and 1440x900.
+- File:line: `scripts/check-responsive-overflow.mjs` (new), wired into `package.json`
+  and the `check` group of `scripts/run-steps.mjs`.
+- Acceptance: the gate passes on the fixed tree, and reverting ANY ONE of the four
+  fixes makes it fail — with the pre-fix number in the message.
+- Risk: low
+- blocked-by: none.
+
+---
+
+### Cycle 2 outcome — what the agents got right, and what they got wrong
+
+**SWR-Ops wrote this block three times.** `write_file` appends, and a run that
+cannot see what it wrote re-emits the same content: three headings, the same four
+findings, and three invented dates (2026-02-13, 2026-02-18, 2026-03-09 — none of
+them today). One block was kept, and the dates corrected.
+
+**SWR-Check's first two runs returned nothing.** Both exited 0. The first spent its
+three turns on `read_file` calls (ten tool calls, no text); the second preloaded
+all four pages (95,264 input tokens) and spent 16,384 output tokens thinking
+without answering. The run that worked preloaded a 3KB excerpt instead of four
+whole pages: 2,955 input tokens, `stop_reason: end_turn`, a verdict for $0.0035.
+The lesson is the budget is elastic — a bigger pre-load buys thinking, not answers.
+
+**SWR-Check caught two misattributions in its own plan's drafts, and one of mine.**
+It ruled F2 and F5 MISATTRIBUTED (the rail and the panel are symptoms; the cause is
+a grid track flooring at min-content), which is the same class of error the first
+QA pass made. It also flagged that the planner's C2-2 merged two independent causes
+into one — the dashboard's desktop and mobile overflows have nothing to do with
+each other — and that the style-guide's BASE rule (`:98`) has the same floor as its
+media-query rule, which is a latent bug at any width.
+
+**The one thing the verifier could not decide, I measured.** It was UNCERTAIN on
+why `/dashboard`'s own `.versions { display: none }` was not in effect. The answer:
+Tailwind's CDN injects its utility sheet AFTER the page's own `<style>`, so a plain
+class rule loses to `.flex` at equal specificity. The fix says `!important`, and the
+comment says why.
+
+**Measured, then fixed, then measured again.** Every fix was verified in a real
+browser at both widths before it was written; the gate was mutation-tested by
+reverting each fix in turn (422 / 603 / 594+1583 / 410 all came back), and the
+dashboard's Auto-rotate toggle was confirmed off-screen at `left=1534` before the
+fix and on-screen after it.

@@ -96,7 +96,7 @@
     ::selection { background: var(--hot); color: white; }
 
     /* Shell */
-    .shell { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    .shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
     nav.side {
       position: sticky; top: 0; align-self: start;
       height: 100vh; overflow: auto;
@@ -319,7 +319,7 @@
     /* Inputs */
     .field { display: flex; flex-direction: column; gap: 6px; }
     .field label { font-size: 12.5px; color: var(--slate); font-weight: 500; }
-    .input { padding: 11px 16px; border-radius: var(--r-pill); border: 1px solid var(--hairline); background: var(--surface-soft); font-size: 14px; color: var(--ink); font-family: var(--font-body); outline: none; transition: border-color 0.12s; }
+    .input { padding: 11px 16px; border-radius: var(--r-pill); border: 1px solid var(--hairline); background: var(--surface-soft); font-size: 14px; color: var(--ink); font-family: var(--font-body); outline: none; transition: border-color 0.12s; min-width: 0; }
     .input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(26,22,18,0.08); }
 
     /* Icons */
@@ -383,7 +383,7 @@
     .doc-foot { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--stone); letter-spacing: 0.04em; }
 
     @media (max-width: 920px) {
-      .shell { grid-template-columns: 1fr; }
+      .shell { grid-template-columns: minmax(0, 1fr); }
       nav.side { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--hairline); }
       main { padding: 32px 24px 80px; }
       h1.doc-title { font-size: 40px; }
@@ -704,7 +704,7 @@
     <section id="inputs">
       <h2 class="section"><span class="num">11</span> Inputs</h2>
       <p class="section-blurb">Pill-shaped inputs by default. Hairline border, ink focus ring.</p>
-      <div class="card-row" style="grid-template-columns:1fr 1fr; max-width:760px">
+      <div class="card-row" style="grid-template-columns:repeat(2,minmax(0,1fr)); max-width:760px">
         <div class="field"><label>Email</label><input class="input" type="email" placeholder="you@label.com" /></div>
         <div class="field"><label>Search visual languages</label><input class="input" type="search" placeholder="Filter by mood, BPM, FX…" /></div>
       </div>
