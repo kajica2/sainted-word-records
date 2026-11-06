@@ -107,3 +107,55 @@ export function frameSampleFloorFor(fps, runMs, cap = 5) {
   const framesPerRun = Math.round((f * ms) / 1000) - 1;
   return Math.min(c, Math.max(1, framesPerRun));
 }
+
+/**
+ * The window a run needs, given the host's measured frame rate.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * `runTest` ends on a WALL-CLOCK timer, but the measurement it exists to
+ * collect arrives at the host's frame rate. The sampler primes on one
+ * rAF callback and records an interval on the next, and the A/V samples
+ * are collected in the same render loop — so a run collects NOTHING until
+ * the host has presented a frame, and it collects no frame INTERVAL until
+ * it has presented two.
+ *
+ * So on a host whose frame time exceeds half the window, the timer fires
+ * before the first frame is presented: the report is compiled with no
+ * video and no A/V samples, `scoreReport` returns `invalid`, and the
+ * advisor has no grade to give. That is not a measurement failure — it is
+ * the gate asking the machine for frames it cannot draw in the time it
+ * allowed.
+ *
+ * Measured on the bench page, same host, same stress test, varying the
+ * window:
+ *
+ *   window    20ms -> video=0  av=0  grade=null bottlenecks=0 suggestions=0
+ *   window    60ms -> video=0  av=1  grade=A+   bottlenecks=1 suggestions=1
+ *   window   150ms -> video=6  av=6  grade=D    bottlenecks=2 suggestions=3
+ *   window  3500ms -> video=93 av=94 grade=F    bottlenecks=2 suggestions=3
+ *
+ * The 20ms row is EXACTLY the shape of CI run 42219635267's failure.
+ *
+ * So the window is derived from the host's OWN measured frame rate: the
+ * slower the host, the longer it has to be measured in. The base is the
+ * window the gate always asked for, so a host fast enough to fill it
+ * gets exactly it; the cap keeps a broken host from hanging the gate.
+ *
+ * @param {number} fps           the host's measured frame rate
+ * @param {number} framesWanted  how many frames the run must present
+ * @param {number} baseMs        the window to use when the host is fast
+ * @param {number} capMs         the ceiling, so a broken host cannot hang
+ * @returns {number} milliseconds
+ */
+export function runWindowFor(fps, framesWanted, baseMs, capMs) {
+  const f = Number(fps);
+  const n = Number(framesWanted);
+  const b = Number(baseMs);
+  const c = Number(capMs);
+  if (!Number.isFinite(b) || b <= 0) return 0;
+  if (!Number.isFinite(f) || f <= 0 || !Number.isFinite(n) || n < 1) return b;
+  if (!Number.isFinite(c) || c < b) return b;
+  const needed = Math.ceil((n / f) * 1000);
+  return Math.min(c, Math.max(b, needed));
+}

@@ -211,6 +211,17 @@ once it hits 1.0.
   now skips a dist file whose source exists in the tree but is not tracked, and
   prints every skip so the exclusion is visible rather than silent. In a clean
   checkout the measurement is byte-for-byte what it was.
+- **The bench gate asked a slow host for frames it could not draw in the time it
+  allowed.** `runTest` ends on a wall-clock timer, but the measurement arrives at the
+  host's frame rate: the sampler primes on one rAF callback and records an interval on
+  the next, and the A/V samples come from the same render loop. On a host whose frame
+  time exceeds half the window the timer fires before the first frame is presented, so
+  the report is compiled with no video and no A/V samples, `scoreReport` returns
+  `invalid`, and the advisor has no grade to give — CI run `42219635267` failed five
+  advisor assertions with `grade: null` on a report the suite itself had graded `F`.
+  The run window is now derived from the host's own measured frame rate (`runWindowFor`),
+  with the window the gate always asked for as the floor and a ceiling so a broken host
+  cannot hang the gate.
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a
