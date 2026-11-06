@@ -59,22 +59,45 @@ try {
     return page;
   }
 
+  /* Read the page. A page can navigate out from under an evaluation: the
+     PWA bootstrap reloads the page when the service worker takes control
+     for the FIRST time (`controllerchange` -> `location.reload()`), and on
+     a cold Chrome profile that install happens during this gate's first
+     load. The reload then lands mid-evaluation and the evaluation dies
+     with "Execution context was destroyed, most likely because of a
+     navigation" — a race, not a failed assertion. Only the FIRST
+     assertion saw it, because every later page in the same profile is
+     already controlled by the service worker and never reloads.
+
+     So a destroyed context means "the page is reloading": wait for the
+     reload to land and read the page it lands on. Every other error is
+     the assertion's own, and is rethrown untouched — the gate keeps its
+     teeth exactly where they are. */
+  const NAV_ERROR = /Execution context was destroyed|Target closed|frame was detached|Navigating frame/i;
   async function probe(page) {
-    return await page.evaluate(() => {
-      if (!window.SWR_WEBGL) return { helperPresent: false };
-      // requireWebGL on a fresh canvas — gives us both the boolean
-      // and the convenience-wrapper behaviour.
-      const c = document.createElement('canvas');
-      let gl = null;
-      try { gl = window.SWR_WEBGL.requireWebGL(c); } catch {}
-      return {
-        helperPresent: true,
-        isWebGLEnabled: window.SWR_WEBGL.isWebGLEnabled(),
-        isExplicitlyDisabled: window.SWR_WEBGL.isWebGLExplicitlyDisabled(),
-        requireWebGLReturned: !!gl,
-        defaultIsExported: window.SWR_WEBGL.WEBGL_DEFAULT_ENABLED,
-      };
-    });
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        return await page.evaluate(() => {
+          if (!window.SWR_WEBGL) return { helperPresent: false };
+          // requireWebGL on a fresh canvas — gives us both the boolean
+          // and the convenience-wrapper behaviour.
+          const c = document.createElement('canvas');
+          let gl = null;
+          try { gl = window.SWR_WEBGL.requireWebGL(c); } catch {}
+          return {
+            helperPresent: true,
+            isWebGLEnabled: window.SWR_WEBGL.isWebGLEnabled(),
+            isExplicitlyDisabled: window.SWR_WEBGL.isWebGLExplicitlyDisabled(),
+            requireWebGLReturned: !!gl,
+            defaultIsExported: window.SWR_WEBGL.WEBGL_DEFAULT_ENABLED,
+          };
+        });
+      } catch (e) {
+        if (!NAV_ERROR.test(String((e && e.message) || e))) throw e;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
+    throw new Error('the page kept navigating; could not read it');
   }
 
   console.log('webgl-default-off:');
