@@ -42,7 +42,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import puppeteer from 'puppeteer';
 import { ensureDist } from './with-dist.mjs';
-import { depthOk, frameSampleFloorFor } from './lib/bench-depth.mjs';
+import { depthOk, frameSampleFloorFor, runWindowFor } from './lib/bench-depth.mjs';
 
 const ROOT = path.resolve(dirname(fileURLToPath(import.meta.url)), '..');
 ensureDist();
@@ -764,11 +764,34 @@ try {
   }
 
   // --- 5) the advisor grades, lists, proposes and FILTERS ----------------
-  const advisor = await ev(async () => {
+  // The window the advisor's run is measured in. `runTest` ends on a
+  // WALL-CLOCK timer, but the measurement arrives at the host's frame
+  // rate: the sampler primes on one rAF callback and records an interval
+  // on the next, and the A/V samples come from the same render loop. So
+  // a host whose frame time exceeds half the window produces a report
+  // with NOTHING in it, `scoreReport` returns `invalid`, and the advisor
+  // has no grade to give.
+  //
+  // That is exactly what CI run 42219635267 hit: the suite's own report
+  // had 6 samples at 1.6 fps and graded F, and the advisor's stress run
+  // on the same page collected none and returned `grade: null`. So the
+  // window is derived from the host's own measured rate — the SLOWEST
+  // rate any of the gate's runs measured, because the stress test is the
+  // heaviest thing on the page. The floor is the window the gate always
+  // asked for, so a host fast enough to fill it gets exactly it; the
+  // ceiling keeps a broken host from hanging the gate.
+  const slowestFps = model.fps && model.fps.length
+    ? Math.min(...model.fps.filter((f) => Number.isFinite(f) && f > 0))
+    : 0;
+  const ADVISOR_FRAMES = 3;   // one presented frame + one interval + slack
+  const ADVISOR_BASE_MS = 3500;
+  const ADVISOR_CAP_MS = 20000;
+  const advisorWindow = runWindowFor(slowestFps, ADVISOR_FRAMES, ADVISOR_BASE_MS, ADVISOR_CAP_MS);
+  const advisor = await ev(async (windowMs) => {
     const B = window.SWRBench;
     const t = B.tests().find(x => x.name === 'stress');
     if (!t) return { fail: 'the stress test is missing' };
-    const r = await B.runTest(t.name, t.cfg, 3500);
+    const r = await B.runTest(t.name, t.cfg, windowMs);
     if (!r) return { fail: 'the stress run produced no report' };
     const ai = B.analyze(r);
     const supportsCapDpr = B.host.supports('cap-dpr');
@@ -803,8 +826,14 @@ try {
       supportsCapDpr,
       filtered,
       restored,
+      /* the report's own sample counts, so a failure names its cause
+         instead of pointing at a log */
+      videoSamples: r.metrics.videoSamples,
+      avSamples: r.metrics.avSamples,
+      fps: r.metrics.fpsAvg,
+      windowMs,
     };
-  });
+  }, advisorWindow);
   if (!advisor || advisor.fail) {
     failAll([
       'the advisor grades a report',

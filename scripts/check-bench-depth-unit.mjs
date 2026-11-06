@@ -22,7 +22,7 @@
 //   node scripts/check-bench-depth-unit.mjs
 //
 // Pass criteria: every assertion green, exit 0.
-import { depthFloorFor, depthOk, frameSampleFloorFor } from './lib/bench-depth.mjs';
+import { depthFloorFor, depthOk, frameSampleFloorFor, runWindowFor } from './lib/bench-depth.mjs';
 
 let passed = 0;
 let failed = 0;
@@ -120,6 +120,48 @@ section('a healthy host passes');
   assert(r.median === 13, 'the median was computed');
   // One unlucky run among good ones is not a failure.
   assert(depthOk([1, 12, 13, 14, 15], 30, RUN_MS).ok === true, 'one shallow run among deep ones still passes');
+}
+
+
+// ---------------------------------------------------------------------------
+// The RUN WINDOW: how long a run has to be, given the host's frame rate.
+//
+// `runTest` ends on a wall-clock timer, but the measurement arrives at the
+// host's frame rate — the sampler primes on one rAF callback and records
+// an interval on the next, and the A/V samples come from the same render
+// loop. So a window shorter than the host's frame time collects NOTHING,
+// `scoreReport` returns `invalid`, and the advisor has no grade. CI run
+// 42219635267 hit exactly that.
+//
+// The window is derived from the host's own measured rate.
+section('a fast host gets the window the gate always asked for');
+{
+  assert(runWindowFor(60, 3, 3500, 20000) === 3500, 'a 60 fps host keeps the base window');
+  assert(runWindowFor(30, 3, 3500, 20000) === 3500, 'a 30 fps host keeps the base window');
+  assert(runWindowFor(24, 3, 3500, 20000) === 3500, 'a 24 fps host keeps the base window');
+}
+
+section('a slow host is given the window it needs');
+{
+  // 3 frames at 1.3 fps takes 2308ms — still inside the base window.
+  assert(runWindowFor(1.3, 3, 3500, 20000) === 3500, '1.3 fps still fits the base window');
+  // 3 frames at 0.3 fps takes 10000ms — the window has to grow.
+  assert(runWindowFor(0.3, 3, 3500, 20000) === 10000, '0.3 fps gets a 10s window');
+  assert(runWindowFor(0.29, 3, 3500, 20000) === 10345, '0.29 fps gets a longer window');
+  // The window grows with the host's slowness, monotonically.
+  assert(runWindowFor(0.1, 3, 3500, 20000) > runWindowFor(0.3, 3, 3500, 20000), 'a slower host gets a longer window');
+}
+
+section('the window is bounded, and an unknown host keeps the base');
+{
+  // A broken host cannot hang the gate.
+  assert(runWindowFor(0.0001, 3, 3500, 20000) === 20000, 'the ceiling holds');
+  assert(runWindowFor(0, 3, 3500, 20000) === 3500, 'an unmeasured host keeps the base window');
+  assert(runWindowFor(NaN, 3, 3500, 20000) === 3500, 'a NaN host keeps the base window');
+  assert(runWindowFor(undefined, 3, 3500, 20000) === 3500, 'a missing host keeps the base window');
+  assert(runWindowFor(-1, 3, 3500, 20000) === 3500, 'a negative rate keeps the base window');
+  // A cap below the base is nonsense, and the base wins.
+  assert(runWindowFor(0.3, 3, 3500, 1000) === 3500, 'a cap below the base does not shrink the window');
 }
 
 // ---------------------------------------------------------------------------
