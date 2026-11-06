@@ -196,8 +196,9 @@ section('reserve, settle, release');
   assert(again.ok === true && again.idempotent === true, 'the same reservation id is idempotent');
   assert(Math.abs(again.status.reservedUsd - 0.3) < 1e-9, 'an idempotent reserve does not spend twice');
 
-  const settled = l.settle({ reservationId: 'r1', usd: 0.25 });
+  const settled = l.settle({ reservationId: 'r1', usd: 0.25, model: 'minimax/MiniMax-M3' });
   assert(settled.ok === true, 'a settlement succeeds');
+  assert(settled.settlement.model === 'minimax/MiniMax-M3', 'the settlement records the model that answered');
   assert(Math.abs(settled.status.spentUsd - 0.25) < 1e-9, 'the spend is what was actually charged');
   assert(settled.status.reservedUsd === 0, 'a settled reservation no longer holds money');
   assert(Math.abs(settled.status.remainingUsd - 0.75) < 1e-9, 'the remaining budget reflects the actual spend');
@@ -205,6 +206,17 @@ section('reserve, settle, release');
   const settleAgain = l.settle({ reservationId: 'r1', usd: 0.25 });
   assert(settleAgain.ok === true && settleAgain.idempotent === true, 'settling twice is idempotent');
   assert(Math.abs(l.status().spentUsd - 0.25) < 1e-9, 'a double settle does not double the spend');
+}
+
+{
+  // A caller that does not report a model records null — the ledger never
+  // guesses one, because a wrong attribution is worse than a missing one.
+  const dir = tmpDir();
+  const l = createLedger({ stateDir: dir, maxDailyUsd: 1 });
+  l.reserve({ reservationId: 'r-nm', modelRef: 'test/paid', pricing: paidPricing(), usage: ONE_MTOK });
+  const noModel = l.settle({ reservationId: 'r-nm', usd: 0.25 });
+  assert(noModel.ok === true, 'a settlement without a model succeeds');
+  assert(noModel.settlement.model === null, 'a caller that reports no model records null, not a guess');
 }
 
 {

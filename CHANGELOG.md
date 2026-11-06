@@ -237,6 +237,15 @@ once it hits 1.0.
   The run window is now derived from the host's own measured frame rate (`runWindowFor`),
   with the window the gate always asked for as the floor and a ceiling so a broken host
   cannot hang the gate.
+- **The swarm's ledger priced a Grok reservation and settled it, and the day file
+  never said that MiniMax did the work.** The reservation is deliberately priced at the
+  chain's most expensive member, so a chain that lands on a cheap model still holds the
+  expensive rate — correct, and conservative. But the *settlement* record carried only the
+  amount and the token counts: no model. The day's file therefore could not attribute a
+  spend to the provider that actually served it, and a multi-provider day's costs could
+  not be told apart. The settlement now records the model that answered — even when that
+  model could not be priced (the attribution is not the pricing), and `null` when the
+  caller reports none, because a wrong attribution is worse than a missing one.
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a
