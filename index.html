@@ -103,6 +103,16 @@ em { font-style: italic; }
   .nav.is-open { display: flex; }
   .nav-toggle { display: flex; flex-direction: column; margin-left: auto; }
 }
+@media (max-width: 560px) {
+  /* The header row's min-content width is the brand (226px, nowrap) + two
+     28px gaps + the nav toggle + this CTA (148px) = 497px. At a 390px
+     viewport that overflowed the document by 107px, so EVERY phone visitor
+     could scroll the home page sideways. The mobile drawer already carries
+     /engine as its first link, so on narrow screens this CTA is redundant —
+     and the brand keeps its full size. */
+  .site-head__in > .btn { display: none; }
+}
+
 
 /* ---------- skip link ---------- */
 .skip-link { position: absolute; top: -100px; left: 16px; background: var(--accent); color: #fff; padding: 8px 16px; border-radius: var(--radius); z-index: 100; }

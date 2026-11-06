@@ -19,26 +19,78 @@ try {
     const page = await context.newPage();
     const key = route.id + '-' + viewport.id;
     const errors = [];
-    page.on('pageerror', err => errors.push(['regression', err.message]));
-    page.on('console', msg => { if (msg.type() === 'error') errors.push(['regression', msg.text()]); });
+    // An error WITHOUT a file:line is not actionable. The QA pass used to
+    // store `err.message` and `msg.text()` alone, so every regression finding
+    // it produced named a symptom and no cause: a fixer could not tell which
+    // script threw, let alone which line. Capture the stack and the console
+    // location, and capture a script that 404s (a missing module is the
+    // classic cause of `undefined.length`, and an HTTP 404 is NOT a
+    // "requestfailed" — only a transport failure is).
+    const frame = (err) => {
+      const stack = String(err && err.stack || '');
+      const m = stack.match(/at .*?(\S+):(\d+):(\d+)/);
+      return m ? ` (${m[1]}:${m[2]}:${m[3]})` : '';
+    };
+    page.on('pageerror', err => errors.push(['regression', err.message + frame(err)]));
+    page.on('console', msg => {
+      if (msg.type() !== 'error') return;
+      const loc = msg.location() || {};
+      const at = loc.url ? ` (${loc.url}:${loc.lineNumber}:${loc.columnNumber})` : '';
+      errors.push(['regression', msg.text() + at]);
+    });
     page.on('requestfailed', request => { if (!request.failure()?.errorText?.includes('ERR_ABORTED')) errors.push(['api', request.url() + ': ' + request.failure()?.errorText]); });
+    const scripts = [];
+    page.on('response', res => {
+      if (!/\.(m?js)(\?|$)/.test(res.url())) return;
+      scripts.push({ url: res.url(), status: res.status() });
+    });
     try {
       const response = await page.goto(new URL(route.path, base).href, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await page.waitForTimeout(1200);
       const status = response?.status() || 0;
       if (status >= 400) add('high', 'api', key, 'Navigation HTTP ' + status);
-      const state = await page.evaluate(() => ({
-        title: document.title,
-        bodyTextLength: document.body?.innerText?.trim().length ?? 0,
-        horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 2,
-        brokenImages: [...document.images].filter(img => img.complete && img.naturalWidth === 0 && img.currentSrc).slice(0, 15).map(img => img.currentSrc),
-        canvasCount: document.querySelectorAll('canvas').length
-      }));
+      const state = await page.evaluate(() => {
+        const vw = window.innerWidth;
+        // An overflow finding that names no element is not actionable either:
+        // measure WHICH element crosses the viewport, and by how much.
+        const offenders = [];
+        for (const el of document.querySelectorAll('*')) {
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 && r.height === 0) continue;
+          if (r.right > vw + 2 || r.left < -2) {
+            offenders.push({
+              tag: el.tagName.toLowerCase(),
+              id: el.id || null,
+              cls: (el.className && String(el.className).slice(0, 70)) || null,
+              overBy: Math.round(Math.max(r.right - vw, -r.left)),
+              text: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60),
+            });
+          }
+        }
+        offenders.sort((a, b) => b.overBy - a.overBy);
+        return {
+          title: document.title,
+          bodyTextLength: document.body?.innerText?.trim().length ?? 0,
+          horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 2,
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+          innerWidth: vw,
+          overflowOffenders: offenders.slice(0, 6),
+          brokenImages: [...document.images].filter(img => img.complete && img.naturalWidth === 0 && img.currentSrc).slice(0, 15).map(img => img.currentSrc),
+          canvasCount: document.querySelectorAll('canvas').length
+        };
+      });
       await page.screenshot({ path: join(output, 'screenshots', key + '.png'), fullPage: true, animations: 'disabled', timeout: 15000 });
-      evidence.push({ key, route: route.path, viewport: viewport.id, status, ...state, screenshot: 'screenshots/' + key + '.png' });
+      evidence.push({ key, route: route.path, viewport: viewport.id, status, ...state, scripts: scripts.slice(0, 60), screenshot: 'screenshots/' + key + '.png' });
       if (state.bodyTextLength < 2) add('medium', 'visual', key, 'Page has little visible text; inspect screenshot (canvas-only surfaces may be valid)');
-      if (state.horizontalOverflow) add('medium', 'visual', key, 'Horizontal overflow');
+      if (state.horizontalOverflow) {
+        const who = state.overflowOffenders.map(o => `${o.tag}${o.id ? '#' + o.id : ''}${o.cls ? '.' + o.cls.split(/\s+/).join('.') : ''} (+${o.overBy}px)`).join(', ');
+        add('medium', 'visual', key, 'Horizontal overflow: scrollWidth ' + state.scrollWidth + ' > innerWidth ' + state.innerWidth + ' — ' + (who || 'no element located'));
+      }
       for (const src of state.brokenImages) add('medium', 'visual', key, 'Broken image: ' + src);
+      for (const s of scripts) {
+        if (s.status >= 400) add('medium', 'api', key, 'Script did not load: HTTP ' + s.status + ' ' + s.url);
+      }
     } catch (err) {
       add('high', 'regression', key, 'Browser capture failed: ' + err.message);
     } finally {

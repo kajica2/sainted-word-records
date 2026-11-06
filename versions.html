@@ -1488,7 +1488,15 @@
         if (!buckets.has(day)) buckets.set(day, []);
         buckets.get(day).push(p);
       }
-      return [].concat(buckets.entries()).sort(function (a, b) { return b[0].localeCompare(a[0]); });
+      // `buckets.entries()` is an ITERATOR, and `Array.prototype.concat` does
+      // NOT spread an iterator — it appends it as a single element. The old
+      // `[].concat(buckets.entries())` therefore returned a ONE-element array
+      // whose element was the whole iterator, so `group[1]` was undefined and
+      // `list.length` threw "Cannot read properties of undefined (reading
+      // 'length')" at the line below. The page only survived it because an
+      // EMPTY preset list short-circuits earlier, so the timeline broke the
+      // moment any preset arrived.
+      return Array.from(buckets.entries()).sort(function (a, b) { return b[0].localeCompare(a[0]); });
     }
 
     function applyFilters() {
