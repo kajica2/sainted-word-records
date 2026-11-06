@@ -75,6 +75,26 @@ function newestSourceMtime() {
     } catch (_) { return null; }
   };
   for (const f of SOURCE_FILES) consider(join(ROOT, f));
+  // The ROOT PAGES. This list used to name 14 files and no pages at all,
+  // while the repo ships 114 root HTML files — so a smoke that serves dist/
+  // would test a STALE page whenever one of them changed, with dist/
+  // untouched and no rebuild. That is exactly the failure this module
+  // exists to prevent ("smokes tested OLD code"). It bit for real: the
+  // preset-editor smoke asserted a tick budget while the served
+  // preset-editor.html was nine minutes older than the source.
+  //
+  // One readdir of the root, files only, .html only: the root also holds
+  // directories (which are not walked here) and this stays cheap.
+  try {
+    for (const e of readdirSync(ROOT, { withFileTypes: true })) {
+      if (e.isFile() && e.name.endsWith('.html')) consider(join(ROOT, e.name));
+    }
+  } catch (_) { /* unreadable root: fall back to the tracked list */ }
+  // site-map.json is inlined into every page that mounts the shared chrome
+  // (the build's inline-footer-nav plugin), and package.json carries the
+  // version the build stamps. Both change the output.
+  consider(join(ROOT, 'site-map.json'));
+  consider(join(ROOT, 'package.json'));
   const walk = (dir, depth) => {
     if (depth > 3) return;
     let entries;

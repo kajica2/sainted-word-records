@@ -198,6 +198,22 @@ once it hits 1.0.
   `ReferenceError: Cannot access 'currentPalette' before initialization`
   and the page's canvas never painted. `check:page-errors` is the new gate
   for that class.
+- **A smoke could serve a stale page.** `scripts/with-dist.mjs` decided
+  whether `dist/` was current by watching 14 named files and **no pages at
+  all**, while the repo ships 114 root HTML files — so changing a page left
+  `dist/` "fresh" and the smoke tested the old build. It bit for real: the
+  preset-editor smoke asserted a tick budget while the served page was nine
+  minutes older than the source. The check now watches every root page plus
+  `site-map.json` and `package.json`, and two new unit cases pin it.
+- **The preset editor's tick budget was one sample of one tick.** The 2ms
+  budget was measured from a single tick, which swung from 0.000ms
+  standalone to 2.200ms inside the full gate — noise, not a regression. It
+  now measures the steady state, the median of seven ticks, and reports the
+  worst alongside it. A genuinely slow tick still fails the gate.
+- **CI could spend thirty minutes on an unreachable apt mirror.** The
+  ffmpeg step tried apt three times, each attempt bounded at roughly ten
+  minutes, before reaching the static build that actually works. One
+  bounded attempt, then the static fallback: worst case ~5 minutes.
 - **Four pages scrolled sideways, and one of them hid a control off-screen.**
   The KAI SWARM QA pass widened its surface from three routes to seventeen and
   found four pages whose content ran past the viewport. Each was measured

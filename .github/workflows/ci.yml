@@ -117,25 +117,33 @@ jobs:
         # its own timeout and the step fails fast enough for the job's
         # ceiling (or the next attempt) to decide the outcome.
         run: |
-          for attempt in 1 2 3; do
-            if timeout 120 sudo apt-get update -qq \
-              && timeout 300 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg; then
-              ffprobe -version | head -1
-              exit 0
-            fi
-            echo "::warning::apt attempt ${attempt} failed or timed out; retrying"
-            # A killed `apt-get install` can leave dpkg half-configured and
-            # its lock held, which would make every later attempt fail for
-            # the wrong reason. Put the package manager back in a sane state
-            # before the next try — and bound that too, so the recovery
-            # cannot itself hang.
-            timeout 120 sudo dpkg --configure -a || true
-            timeout 60 sudo rm -f /var/lib/dpkg/lock-frontend \
-              /var/lib/dpkg/lock /var/lib/apt/lists/lock \
-              /var/cache/apt/archives/lock || true
-            sleep 10
-          done
+          # ONE bounded apt attempt, then the static build.
+          #
+          # This used to try apt three times, and each attempt could burn
+          # 120s of update + 300s of install + 120s of dpkg recovery + 60s of
+          # lock removal — so a runner whose mirror is down spent up to
+          # THIRTY MINUTES here before reaching the static build that
+          # actually works. On 2026-11-06 a run of PR #303 sat in this step
+          # for 11 minutes; on 2026-11-05 all three attempts failed against
+          # the same unreachable mirror (runs 42103655663, 42137248795).
+          #
+          # One attempt is enough: the static fallback below is the
+          # resilience, and nothing in the repo pins an ffprobe version
+          # (`scripts/generate-generations.mjs` only asks whether ffprobe
+          # runs). Worst case here is now ~5 minutes, not ~30.
+          if timeout 120 sudo apt-get update -qq \
+            && timeout 300 sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg; then
+            ffprobe -version | head -1
+            exit 0
+          fi
           echo "::warning::apt could not install ffmpeg; falling back to a static build"
+          # A killed `apt-get install` can leave dpkg half-configured and
+          # its lock held. Put the package manager back in a sane state —
+          # bounded, so the recovery cannot itself hang.
+          timeout 120 sudo dpkg --configure -a || true
+          timeout 60 sudo rm -f /var/lib/dpkg/lock-frontend \
+            /var/lib/dpkg/lock /var/lib/apt/lists/lock \
+            /var/cache/apt/archives/lock || true
           # The apt mirror is not reliable on the runner: on 2026-11-05 all
           # three bounded attempts failed against the same unreachable
           # mirror (runs 42103655663 and 42137248795), and the step failed
