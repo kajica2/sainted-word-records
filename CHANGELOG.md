@@ -257,6 +257,24 @@ once it hits 1.0.
   to land and reads the page it lands on — and rethrows every other error untouched, so the
   assertion keeps its teeth. A new gate (`check:webgl-nav-probe`) reproduces the destroyed
   context deterministically and pins both halves of that contract.
+- **A gate that passed in CI failed in every fresh worktree.** `check:auth-store-dispatch-unit`
+  copies `api/_lib` into a temp directory so the shipped code runs unmodified, and symlinks
+  `node_modules` next to the copy so `import '@vercel/blob'` resolves. It symlinked
+  `ROOT/node_modules` — but a git worktree has no `node_modules` of its own; the real one lives
+  in the main checkout one level up. The symlink dangled, the import failed with
+  `ERR_MODULE_NOT_FOUND`, and the gate reported a failure that had nothing to do with the code
+  it tests. It now looks for the nearest `node_modules` above the checkout.
+- **The PWA reloaded the page for no reason — and that is what broke two gates.**
+  `pwa-bootstrap.js` reloaded on every `controllerchange`. Because `sw.js` calls
+  `clients.claim()`, the FIRST registration takes the client over immediately, so on a cold
+  profile the page reloaded itself seconds after it loaded — when there was nothing to reload,
+  because it had just been fetched from the network with the current assets. The reload tore the
+  page down underneath whatever was reading it: `check:webgl-default-off` lost its first read
+  ("Execution context was destroyed, most likely because of a navigation") and `check:live-input`
+  lost the camera it had just started. The page now reloads only when an UPDATED worker takes
+  over a page that was ALREADY controlled — which is the update toast's flow, and it still
+  works. A new gate (`check:pwa-sw-reload`) counts page loads in `sessionStorage` and pins both
+  directions: the first takeover does not reload, an update still does.
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a

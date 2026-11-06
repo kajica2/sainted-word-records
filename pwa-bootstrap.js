@@ -207,6 +207,21 @@ function hideOffline() {
 function registerSW() {
   if (isFileProtocol || !hasSW) return;
   const onLoad = () => {
+    // Was this page ALREADY controlled when it loaded? Read it BEFORE
+    // registering: sw.js calls clients.claim() on activate, so the first
+    // registration takes over this client immediately and fires
+    // controllerchange once — even though this page was just fetched from
+    // the network with the current assets and there is nothing to reload.
+    //
+    // A reload is only needed when an UPDATED worker takes over a page
+    // that was already controlled (that is the update toast's flow:
+    // SKIP_WAITING -> the waiting worker activates -> controllerchange ->
+    // reload). Reloading on the FIRST takeover tore the page down
+    // mid-visit: a gate reading the page lost its read ("Execution
+    // context was destroyed, most likely because of a navigation"), and
+    // the live-input gate lost the camera it had just started.
+    const hadController = !!navigator.serviceWorker.controller;
+
     navigator.serviceWorker.register('/sw.js')
       .then((reg) => {
         swRegistration = reg;
@@ -224,12 +239,17 @@ function registerSW() {
       .catch((err) => console.warn('[pwa] SW registration failed:', err));
 
     let reloading = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloading) return;
-      reloading = true;
-      if (updateToast) updateToast.style.display = 'none';
-      location.reload();
-    });
+    // Only an UPDATE needs the reload. On the first takeover there is
+    // nothing to reload — the page already has the current assets — so
+    // the page is left alone.
+    if (hadController) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        if (updateToast) updateToast.style.display = 'none';
+        location.reload();
+      });
+    }
   };
   if (document.readyState === 'complete') onLoad();
   else window.addEventListener('load', onLoad, { once: true });

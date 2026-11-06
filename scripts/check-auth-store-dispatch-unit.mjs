@@ -65,7 +65,26 @@ import { createFakeFirestore } from './lib/fake-firestore.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const LIB = path.join(ROOT, 'api/_lib');
-const NODE_MODULES = path.join(ROOT, 'node_modules');
+
+// The nearest node_modules ABOVE this checkout. Not ROOT's own: a git
+// worktree has no node_modules of its own — the real one lives in the
+// main checkout, one level up (`.worktrees/<name>` -> `<repo>`) — so
+// symlinking ROOT/node_modules pointed at nothing and the copy's
+// `import '@vercel/blob'` failed with ERR_MODULE_NOT_FOUND. The gate
+// passed in CI and failed in every fresh worktree, for a reason that had
+// nothing to do with the code it tests.
+function findNodeModules(from) {
+  let dir = from;
+  for (let i = 0; i < 8; i++) {
+    const candidate = path.join(dir, 'node_modules');
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return path.join(ROOT, 'node_modules');
+}
+const NODE_MODULES = findNodeModules(ROOT);
 
 let pass = 0;
 const failures = [];

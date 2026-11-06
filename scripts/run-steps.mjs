@@ -68,6 +68,7 @@ const GROUPS = {
     'npm run check:client-sdk',
     'npm run check:webgl-default-off',
     'npm run check:webgl-nav-probe',
+    'npm run check:pwa-sw-reload',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
