@@ -246,6 +246,17 @@ once it hits 1.0.
   not be told apart. The settlement now records the model that answered — even when that
   model could not be priced (the attribution is not the pricing), and `null` when the
   caller reports none, because a wrong attribution is worse than a missing one.
+- **The WebGL gate went red on a navigation, not on WebGL.** CI run `42244823136` failed
+  `check:webgl-default-off` with "Execution context was destroyed, most likely because of a
+  navigation" — on its FIRST assertion, while the other ten passed. The cause is the PWA
+  bootstrap: when the service worker takes control for the first time it reloads the page,
+  and on a cold Chrome profile that install happens during the gate's first load, so the
+  reload can land while the gate is reading the page. Only the first assertion saw it,
+  because every later page in the same profile is already controlled and never reloads. The
+  gate now treats a destroyed context as "the page is reloading" — it waits for the reload
+  to land and reads the page it lands on — and rethrows every other error untouched, so the
+  assertion keeps its teeth. A new gate (`check:webgl-nav-probe`) reproduces the destroyed
+  context deterministically and pins both halves of that contract.
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a
