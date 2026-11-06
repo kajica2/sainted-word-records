@@ -149,8 +149,9 @@
             </ul>
 
             <div class="seo-cta-row">
-              <a class="btn btn--primary" href="/services">Pošalji upit — usluge</a>
+              <a class="btn btn--primary" href="/services#contact">Pošalji upit — usluge</a>
               <a class="btn btn--ghost" href="/bookings">Rezervacija / susret</a>
+              <a class="btn btn--ghost" href="#seo-studio" data-seo-scroll-studio>Probaj besplatno u browseru</a>
             </div>
             <p class="lang-note" style="font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-top:16px;">English overview: <a href="/services" hreflang="en">Services</a></p>
           </div>
@@ -179,6 +180,14 @@
       </header>
 
       <div class="seo-main">
+
+      <section class="seo-section seo-studio" id="seo-studio" data-studio-base="/make-video" data-studio-format="9:16" data-studio-rec-dur="30" data-studio-eager="1" aria-labelledby="msb-studio-h">
+        <h2 id="msb-studio-h">Probaj engine pre porudžbine</h2>
+        <p class="seo-studio__lede">Ubaci pesmu i klipove ispod — besplatan pregled u browseru (bez slanja na server). Za gotov MP4 sa isporukom za 48h, koristi <a href="/services#contact">usluge</a>.</p>
+        <div class="seo-studio__frame-wrap">
+          <iframe class="seo-studio__frame" title="Make Video — probni vizualizer" data-seo-studio-frame loading="lazy"></iframe>
+        </div>
+      </section>
 
       <section class="seo-section" id="sta-dobijas">
         <h2>Šta je uključeno u cenu</h2>
@@ -270,7 +279,7 @@
         <h2>Sledeći korak</h2>
         <p>Jedna rečenica je dovoljna — koja je pesma, rok objave i da li ti treba vertikalni ili horizontalni format.</p>
         <div class="seo-cta-row" style="justify-content:center;">
-          <a class="btn btn--primary" href="/services">Kontakt · usluge</a>
+          <a class="btn btn--primary" href="/services#contact">Kontakt · usluge</a>
           <a class="btn btn--ghost" href="/bookings">Bookings</a>
         </div>
       </section>
@@ -283,5 +292,6 @@
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/lib/seo-landing-studio.client.js" defer></script>
 </body>
 </html>

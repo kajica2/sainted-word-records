@@ -108,6 +108,15 @@
   input[type="file"] { display: none; }
 </style>
 <script src="/fx-background.client.js" defer></script>
+<script>
+(function () {
+  try {
+    var p = new URLSearchParams(location.search);
+    if (p.get('embed') === '1') document.documentElement.classList.add('swr-embed');
+  } catch (_) {}
+})();
+</script>
+<link rel="stylesheet" href="/lib/seo-embed.css" />
 </head>
 <body>
   <swr-nav></swr-nav>
@@ -171,7 +180,9 @@
     <select id="rec-dur" style="background:var(--bg-2);color:var(--ink);border:1px solid var(--line);font:9px ui-monospace;padding:3px 4px;letter-spacing:0.04em;" title="Auto-stop recording after N seconds (0 = manual)">
       <option value="0">manual</option>
       <option value="5">5s</option>
+      <option value="8">8s</option>
       <option value="10">10s</option>
+      <option value="15">15s</option>
       <option value="30">30s</option>
       <option value="60">60s</option>
       <option value="song">song</option>
@@ -258,7 +269,19 @@ function applyFormat(key) {
       console.info('[make-video] format →', e.target.value);
     }
   });
-  applyFormat(window.MVM_FORMAT);
+  var initialFmt = window.MVM_FORMAT;
+  try {
+    var qp = new URLSearchParams(location.search);
+    var fmt = qp.get('format');
+    if (fmt && FORMATS[fmt]) initialFmt = fmt;
+    var durSel = document.getElementById('rec-dur');
+    var dur = qp.get('dur') || qp.get('rec-dur');
+    if (durSel && dur && durSel.querySelector('option[value="' + dur + '"]')) {
+      durSel.value = dur;
+    }
+  } catch (_) {}
+  sel.value = initialFmt;
+  applyFormat(initialFmt);
 })();
 
 // Wire up the Hyper Journey runtime. Idempotent — survives re-eval.

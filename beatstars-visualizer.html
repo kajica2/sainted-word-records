@@ -148,7 +148,7 @@
             <p><strong>How do I make a video preview for my beats on BeatStars?</strong> Open the <a href="/engine">SWR engine</a>, load your beat, choose a visual style, set the recorder to <strong>15 seconds</strong>, export the video, then upload the file in your BeatStars or Airbit dashboard—or publish on YouTube and paste the link on the beat. There is no store integration; you move the file yourself.</p>
           </div>
           <div class="seo-cta-row">
-            <a class="btn btn--primary" href="/engine">Open the engine</a>
+            <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Make a 15s preview →</a>
             <a class="btn btn--ghost" href="/interactive-howto">Interactive how-to</a>
           </div>
           <ul class="seo-pills">
@@ -182,6 +182,15 @@
     </header>
 
     <div class="seo-main">
+    <section class="seo-section seo-studio" id="seo-studio" data-studio-base="/engine/" data-studio-rec-size="landscape" data-studio-rec-dur="15" data-studio-eager="1" aria-labelledby="bs-studio-h">
+      <h2 id="bs-studio-h">Beat preview studio (15 seconds)</h2>
+      <p class="seo-studio__lede">Load your type beat, add clips or pick a look, set duration to <strong>15s</strong>, then <strong>REC</strong> or <strong>Export video</strong> to download. Audio stays on your device.</p>
+      <div class="seo-studio__frame-wrap">
+        <iframe class="seo-studio__frame seo-studio__frame--engine" title="SWR engine — BeatStars preview export" data-seo-studio-frame loading="lazy"></iframe>
+      </div>
+      <p class="seo-studio__hint">Opens the same engine as <a href="/engine/?embed=1&amp;rec-size=landscape&amp;rec-dur=15">/engine/?rec-dur=15</a> — upload the file to BeatStars or Airbit yourself.</p>
+    </section>
+
     <section class="seo-section">
     <h2>What the engine actually does</h2>
     <p>Sainted Word Records is an audio-reactive video engine in the browser. It analyses your track (beats, bands, onsets) and drives layered visuals—your clips, GIFs, and images, or generative looks—while you preview in real time. When you are happy with the frame, you record a file from the same canvas.</p>
@@ -255,7 +264,7 @@
     <section class="seo-closing">
       <h2>Render your next type beat preview</h2>
       <p>Load the instrumental, pick a look, set 15 seconds, and export — all in one browser tab.</p>
-      <a class="btn btn--primary" href="/engine">Open the engine →</a>
+      <a class="btn btn--primary" href="#seo-studio" data-seo-scroll-studio>Open the preview studio →</a>
     </section>
 
     <p class="seo-related">Related: <a href="/personas">personas</a> (including beatmakers), <a href="/engine">engine</a>, <a href="/changelog">changelog</a>.</p>
@@ -267,5 +276,6 @@
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
+  <script src="/lib/seo-landing-studio.client.js" defer></script>
 </body>
 </html>

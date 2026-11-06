@@ -3,6 +3,15 @@
 <head>
   <script src="/lib/app-version.js"></script>
   <script src="/lib/app-version-bust.js"></script>
+  <script>
+  (function () {
+    try {
+      var p = new URLSearchParams(location.search);
+      if (p.get('embed') === '1') document.documentElement.classList.add('swr-embed');
+    } catch (_) {}
+  })();
+  </script>
+  <link rel="stylesheet" href="/lib/seo-embed.css" />
   <!-- Video playback sync — see lib/video-sync.client.js -->
   <script src="/lib/video-sync.client.js" defer></script>
   <meta charset="utf-8" />

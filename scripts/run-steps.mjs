@@ -417,6 +417,9 @@ const GROUPS = {
     // with a disabled Buy button while the Payment Links are missing, and
     // no page ships a placeholder checkout URL. Needs a built dist/.
     'npm run check:store-smoke',
+    // The five SEO landing pages: embedded make-video/engine studio iframes,
+    // ?embed=1 chrome, canvas deep-link presets, and a make-video export blob.
+    'npm run check:seo-landing-smoke',
     // The NEON preset editor in a real browser: the page boots with the
     // shared chrome, the stage paints, a control changes both the document
     // and the pixels, layers add and delete, the JSON tab round-trips (and

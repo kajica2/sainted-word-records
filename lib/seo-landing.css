@@ -690,3 +690,48 @@
 @media (prefers-reduced-motion: reduce) {
   .seo-looks a { transition: none; }
 }
+
+/* In-page studio (iframe to make-video or engine) */
+.seo-studio {
+  margin-top: var(--space-6, 40px);
+}
+
+.seo-studio__lede {
+  color: var(--muted);
+  max-width: 68ch;
+  margin: 0 0 var(--space-4, 18px);
+  line-height: 1.55;
+}
+
+.seo-studio__frame-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius, 14px);
+  overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: 0 12px 40px color-mix(in srgb, var(--bg) 40%, transparent);
+}
+
+.seo-studio__frame {
+  display: block;
+  width: 100%;
+  min-height: 520px;
+  height: min(82vh, 720px);
+  border: 0;
+  background: #0a0008;
+}
+
+.seo-studio__frame--engine {
+  min-height: 560px;
+  height: min(88vh, 780px);
+}
+
+.seo-studio__hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin: var(--space-3, 12px) 0 0;
+  max-width: 68ch;
+}
+
+.seo-studio__hint code {
+  font-size: 12px;
+}
