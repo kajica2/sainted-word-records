@@ -16,6 +16,7 @@
 //   node scripts/media-budget.mjs            # check the current dist/
 //   node scripts/media-budget.mjs --dist X   # check another build dir
 import { existsSync, readdirSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 const DIST = (() => {
@@ -54,18 +55,66 @@ const BUDGETS = {
   icons: 1 * 1024 * 1024,
 };
 
-function dirBytes(dir) {
+// The deploy surface is the GIT TREE: the build runs from a checkout, so a
+// file that is not tracked does not ship, however big it is on the
+// developer's disk.
+//
+// keyart/ is the case in point. 58 files there are force-tracked and ship
+// (~9.4M); 20 ignored .png originals also sit in the tree (~35M) and never
+// ship. Counting them made this gate red on the developer's own machine for
+// a payload the deploy never received — the same shape as a gate that asks
+// a slow host for what it cannot deliver.
+//
+// So a dist file is SKIPPED when its source exists in the tree but is not
+// tracked. A dist file with no source at all is a build artefact, and it
+// still counts. In CI nothing is skipped, so the measurement there is
+// byte-for-byte what it has always been.
+//
+// Every skip is printed. A gate that silently drops files is how a budget
+// stops measuring anything.
+function untrackedSources(dir) {
+  let out = '';
+  for (const args of [
+    ['ls-files', '--others', '--exclude-standard', '--', dir],
+    ['ls-files', '--others', '--ignored', '--exclude-standard', '--', dir],
+  ]) {
+    try {
+      out += execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      return new Set(); // no git, or the dir is outside a repo: count everything
+    }
+  }
+  return new Set(out.split('\n').map((s) => s.trim()).filter(Boolean));
+}
+
+function dirBytes(dir, sourcePrefix, skipSources) {
   let bytes = 0;
   let files = 0;
-  const walk = (d) => {
+  let skipped = 0;
+  let skippedBytes = 0;
+  const walk = (d, rel) => {
     for (const e of readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
-      if (e.isDirectory()) walk(p);
-      else { bytes += statSync(p).size; files++; }
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(p, r);
+      else {
+        const size = statSync(p).size;
+        // The source is the file the build copied this from, at the repo
+        // root. If it exists on disk but git does not track it, the deploy
+        // never receives it. `git ls-files` prints repo-root paths, so the
+        // source prefix has to be put back on.
+        if (skipSources && skipSources.has(`${sourcePrefix}/${r}`)) {
+          skipped++;
+          skippedBytes += size;
+          continue;
+        }
+        bytes += size;
+        files++;
+      }
     }
   };
-  walk(dir);
-  return { bytes, files };
+  walk(dir, '');
+  return { bytes, files, skipped, skippedBytes };
 }
 
 const mb = (b) => (b / 1048576).toFixed(1);
@@ -93,7 +142,10 @@ function packsBudget(distRoot, measuredFiles) {
 for (const [dir, defaultBudget] of Object.entries(BUDGETS)) {
   const target = path.join(DIST, dir);
   if (!existsSync(target)) continue;
-  const { bytes, files } = dirBytes(target);
+  // The source of a dist file is the same path at the repo root. Files
+  // that exist there but are not tracked never ship.
+  const skipSources = untrackedSources(dir);
+  const { bytes, files, skipped, skippedBytes } = dirBytes(target, dir, skipSources);
   let budget = defaultBudget;
   let mode = '';
   if (dir === 'packs') {
@@ -104,12 +156,20 @@ for (const [dir, defaultBudget] of Object.entries(BUDGETS)) {
   total += bytes;
   const over = bytes > budget;
   if (over) failed++;
-  rows.push({ dir, mb: mb(bytes), budget: mb(budget), files, over, mode });
+  rows.push({ dir, mb: mb(bytes), budget: mb(budget), files, over, mode, skipped, skippedBytes });
 }
 rows.sort((a, b) => parseFloat(b.budget) - parseFloat(a.budget));
 for (const r of rows) {
   const tag = r.mode ? ` (${r.mode})` : '';
   console.log(`  ${r.dir.padEnd(22)} ${r.mb.padStart(7)}M  budget ${r.budget.padStart(6)}M  ${String(r.files).padStart(4)} files  ${r.over ? '✗ OVER' : '✓'}${tag}`);
+}
+const skippedRows = rows.filter((r) => r.skipped > 0);
+if (skippedRows.length) {
+  console.log('');
+  console.log('  not shipped (present in the tree, not tracked by git — the deploy never receives these):');
+  for (const r of skippedRows) {
+    console.log(`    ${r.dir.padEnd(22)} ${mb(r.skippedBytes).padStart(7)}M  ${String(r.skipped).padStart(4)} files skipped`);
+  }
 }
 console.log('');
 console.log(`  total budgeted media: ${mb(total)}M`);

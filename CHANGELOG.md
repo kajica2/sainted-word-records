@@ -203,6 +203,14 @@ once it hits 1.0.
   and 42137248795, and blocked a merge each time. The step now falls back to a
   STATIC ffmpeg build: one tarball, no package manager, so a mirror that is
   down cannot fail the whole build.
+- **The media-budget gate counted files the deploy never receives.** It summed
+  `dist/<dir>` on disk, but the deploy ships the git tree. `keyart/` is the case
+  in point: 58 files are force-tracked and ship (~9.4M), while 20 ignored `.png`
+  originals also sit in the tree (~33M) and never ship — so the gate was red on
+  the developer's own machine for a payload the deploy never received. The gate
+  now skips a dist file whose source exists in the tree but is not tracked, and
+  prints every skip so the exclusion is visible rather than silent. In a clean
+  checkout the measurement is byte-for-byte what it was.
 - **A gate that failed early left its test server running, and the next run
   on the same fixed port failed for the wrong reason.** `check:command-center`,
   `check:chain-view` and `check:targeting-smoke` spawn a
