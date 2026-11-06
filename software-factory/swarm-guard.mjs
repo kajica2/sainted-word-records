@@ -370,6 +370,11 @@ export class SwarmGuard {
       usd: priced ? usd : null,
       usage,
       note: priced ? note : note || 'actual model unpriced — settled at reservation',
+      // The model that ANSWERED, which is not the model the reservation
+      // was priced at. Without this the ledger prices a Grok reservation
+      // and settles it, and the day file never says that MiniMax did the
+      // work — so the spend cannot be attributed to a model at all.
+      model: modelRef || null,
     });
     // The LEDGER's settlement record is the truth about what was charged:
     // when the actual could not be priced it settles at the reservation, and

@@ -214,6 +214,8 @@ console.log('\n6. settling releases the difference');
   });
   assert(settled.ok === true, 'the turn settles');
   assert(settled.priced === true, 'the answering model was priced');
+  assert(settled.settlement.model === 'minimax/MiniMax-M2.7',
+    'the settlement names the model that ANSWERED, not the one the reservation was priced at');
   const expected = estimateUsd(resolvePricing(CONFIG, 'minimax/MiniMax-M2.7').rates, { input_tokens: 1000, output_tokens: 100 }).usd;
   assert(near(settled.settledUsd, expected), 'the settled amount is the real cost');
 
@@ -246,6 +248,8 @@ console.log('\n7. an unpriced answering model settles at the full reservation');
   const settled = guard.settleTurn({ reservationId: 'settle-3', modelRef: 'antigravity/gemini-3.6-flash', usage: { input_tokens: 1, output_tokens: 1 } });
   assert(settled.ok === true, 'the turn still settles');
   assert(settled.priced === false, 'the answering model could not be priced');
+  assert(settled.settlement.model === 'antigravity/gemini-3.6-flash',
+    'even an unpriced model is named in the settlement — the attribution is not the pricing');
   const status = guard.ledger.status();
   assert(near(status.spentUsd, reservedUsd), 'the pessimistic direction is taken: the full reservation is spent');
   cleanup(guard);

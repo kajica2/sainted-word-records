@@ -527,7 +527,7 @@ export class BudgetLedger {
   }
 
   /** Settle a reservation with what the call actually cost. */
-  settle({ reservationId, usd = null, usage = null, note = null } = {}) {
+  settle({ reservationId, usd = null, usage = null, note = null, model = null } = {}) {
     if (!reservationId) throw new Error('budget-ledger: settle() needs a reservationId');
     return this._withLock(() => {
       const found = this._locate(reservationId);
@@ -556,6 +556,13 @@ export class BudgetLedger {
         usd: round6(actual),
         usage,
         note,
+        /* The model that ACTUALLY answered — not the reservation's basis.
+           The reservation is priced at the chain's most expensive member
+           (so a chain that lands on MiniMax still holds Grok's rate), so
+           without this field the day's file cannot say which provider
+           served which call, and a spend cannot be attributed to a model.
+           null means "not reported by the caller". */
+        model: model || null,
         overageUsd: round6(Math.max(0, actual - reservedUsd)),
       };
       // Written into the RESERVATION's day, so a call that crosses midnight
