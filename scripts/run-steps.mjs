@@ -277,6 +277,7 @@ const GROUPS = {
     'npm run check:directors-unit',
     'npm run check:spit-live-unit',
     'npm run check:tiktok-unit',
+    'npm run check:color-tales-unit',
     'npm run check:glyphs-layers-unit',
     'npm run check:glyph-forge-unit',
     'npm run check:camera-enhance-unit',
@@ -457,6 +458,7 @@ const GROUPS = {
     'npm run check:live-input',
     'npm run check:spit-live-smoke',
     'npm run check:tiktok-smoke',
+    'npm run check:color-tales-smoke',
     'npm run check:camera-enhance-smoke',
     // Needs a built dist/ (ensureDist builds when stale): asserts every
     // vercel.json rewrite, every root-relative link in a shipped page, and

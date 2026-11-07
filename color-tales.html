@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Color Tales Studio · Sainted Word Records</title>
+  <meta name="description" content="Upload images, choose colors, add music, record and save coloring videos. Offline-capable studio in your browser.">
+  <meta name="color-scheme" content="light">
+  <link rel="canonical" href="https://sainted-word-records.vercel.app/color-tales">
+  <meta property="og:title" content="Color Tales Studio · Sainted Word Records">
+  <meta property="og:description" content="Upload images, choose colors, add music, record and save coloring videos.">
+  <meta property="og:image" content="https://sainted-word-records.vercel.app/press/og-card.png">
+  <link rel="manifest" href="/color-tales/color-tales-manifest.webmanifest">
+  <link rel="stylesheet" href="/lib/design-tokens.css">
+  <link rel="stylesheet" href="/lib/components.css">
+  <link rel="stylesheet" href="/color-tales/color-tales.css">
+  <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/footer.client.js" defer></script>
+</head>
+<body class="swr-color-tales">
+  <swr-nav></swr-nav>
+  <main id="main">
+    <header class="ct-hero">
+      <div class="ct-tagline">Color Tales · coloring video studio</div>
+      <h1>Upload images → Choose colors → Add music → Record → Save video</h1>
+      <p>Batch PNGs become editable SVG pages. Refine to clean 2-colour outlines, paint by hand or to the beat, then export.</p>
+    </header>
+
+    <div class="ct-layout">
+      <section>
+        <div class="ct-book">
+          <svg id="ct-canvas" class="ct-scene" viewBox="0 0 900 550" role="img" aria-label="Coloring canvas"></svg>
+          <div class="ct-nav-row">
+            <div>
+              <div class="ct-tagline" id="ct-chapter">Sheet</div>
+              <h2 id="ct-title" style="margin:4px 0;font:26px Georgia,serif">Welcome</h2>
+              <p id="ct-text" class="ct-hint">Use the panel to upload art and music.</p>
+            </div>
+            <div id="ct-page-count" style="font:italic 32px Georgia;color:#a3ab98">01</div>
+          </div>
+          <label id="ct-coverage-text" class="ct-hint" for="ct-coverage">Paint 60% to unlock the next sheet · 0%</label>
+          <progress id="ct-coverage" max="100" value="0" style="display:block;width:100%;height:12px;accent-color:#50755d"></progress>
+          <div class="ct-nav-row">
+            <button type="button" id="ct-prev" class="ct-nav" disabled>← Previous</button>
+            <div id="ct-dots" class="ct-dots" aria-label="Pages"></div>
+            <button type="button" id="ct-next" class="ct-nav">Next sheet →</button>
+          </div>
+        </div>
+
+        <section class="ct-panel" style="margin-top:18px">
+          <h2>Soundtrack &amp; recording</h2>
+          <p class="ct-hint">Upload local music (MP3, WAV, or MP4 audio). Files stay in this browser.</p>
+          <label class="ct-btn secondary ct-upload">↑ Add music
+            <input id="ct-sound-file" type="file" accept="audio/*,video/mp4,.mp4,.m4a" aria-label="Upload music">
+          </label>
+          <audio id="ct-soundtrack" controls preload="metadata" hidden></audio>
+          <button type="button" id="ct-record" class="ct-btn">● Record</button>
+          <p id="ct-record-status" class="ct-hint" role="status">WebM or MP4 depending on browser codecs.</p>
+          <a id="ct-download" class="ct-hint" hidden download>Download</a>
+        </section>
+      </section>
+
+      <aside class="ct-panel">
+        <h2>Studio controls</h2>
+        <p class="ct-hint">Default art uses <code>color-tales/default-characters-placeholder.svg</code> until <code>characters.webp</code> ships.</p>
+
+        <label class="ct-label" for="ct-png-batch">1. Upload images (PNG batch)</label>
+        <label class="ct-btn secondary ct-upload">＋ Choose PNGs
+          <input id="ct-png-batch" type="file" accept="image/png,image/webp" multiple aria-label="PNG batch">
+        </label>
+
+        <label class="ct-label" for="ct-png-single">Refine one image (2-colour SVG)</label>
+        <label class="ct-btn secondary ct-upload">＋ Refine PNG
+          <input id="ct-png-single" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Single PNG refine">
+        </label>
+        <label class="ct-label" for="ct-threshold">Ink threshold</label>
+        <input id="ct-threshold" class="ct-range" type="range" min="80" max="220" value="160">
+        <progress id="ct-progress" max="100" value="0" hidden></progress>
+
+        <label class="ct-label" for="ct-preset">2. Choose colors (preset)</label>
+        <select id="ct-preset">
+          <option value="calm">Calm</option>
+          <option value="groove" selected>Groove</option>
+          <option value="electric">Electric</option>
+          <option value="original">Original</option>
+          <option value="watercolor">Watercolor-style</option>
+        </select>
+
+        <label class="ct-label" for="ct-speed">Coloring speed</label>
+        <input id="ct-speed" class="ct-range" type="range" min="0.25" max="4" step="0.25" value="1">
+        <p id="ct-speed-label" class="ct-hint" aria-live="polite">1×</p>
+        <label><input id="ct-beat-sync" type="checkbox"> Beat-sync subdivisions</label>
+
+        <label class="ct-label" for="ct-fill-fade">Fill fade</label>
+        <input id="ct-fill-fade" class="ct-range" type="range" min="0" max="100" value="70">
+        <span id="ct-fill-fade-val" class="ct-hint">70%</span>
+
+        <label class="ct-label" for="ct-size">Brush size</label>
+        <input id="ct-size" class="ct-range" type="range" min="15" max="110" value="55">
+
+        <button type="button" id="ct-save-project" class="ct-btn secondary">Save project locally</button>
+        <p id="ct-offline" class="ct-offline" data-state="pending">Preparing offline shell…</p>
+        <p id="ct-status" role="status"></p>
+      </aside>
+    </div>
+  </main>
+  <swr-footer></swr-footer>
+
+  <script src="/client/color-tales-constants.client.js" defer></script>
+  <script src="/client/color-tales-speed.client.js" defer></script>
+  <script src="/client/color-tales-two-color.client.js" defer></script>
+  <script src="/client/color-tales-segment.client.js" defer></script>
+  <script src="/client/color-tales-scheduler.client.js" defer></script>
+  <script src="/client/color-tales-sanitize.client.js" defer></script>
+  <script src="/client/color-tales-storage.client.js" defer></script>
+  <script src="/client/color-tales-export.client.js" defer></script>
+  <script src="/client/color-tales-coverage.client.js" defer></script>
+  <script src="/client/color-tales-record.client.js" defer></script>
+  <script src="/client/color-tales-runtime.client.js" defer></script>
+</body>
+</html>
