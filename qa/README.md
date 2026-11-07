@@ -124,6 +124,13 @@ Three rules the gate follows because each one was learned the hard way:
 - **It uses Puppeteer**, the browser the CI runner installs. Playwright's
   browser is not installed there, and a gate that depends on a tool the
   runner does not ship makes that tool's install a gate for every PR.
+- **It pins the colour scheme.** `lib/nav.client.js` takes the theme from
+  the OS preference, so the same build renders a different palette on a
+  dark-mode machine and on a runner with no preference. The counts are a
+  claim about the palette, not about the code: the same commit measured
+  3425 contrast instances on a dark-mode Mac and 4546 on CI, and the
+  gate failed against its own baseline. Light is the tokens' documented
+  default, so that is what is measured.
 - **It binds an ephemeral port.** A fixed port is a shared global: a
   stale server left by an earlier run would answer this run's readiness
   poll, and the gate would report the stale server's pages as its own.

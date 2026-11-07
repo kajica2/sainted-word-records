@@ -148,7 +148,20 @@ async function startServer() {
     for (const route of config.routes) {
       const page = await browser.newPage();
       await page.setViewport({ width: viewport.width, height: viewport.height });
-      await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+      // The colour scheme is PINNED. lib/nav.client.js picks the theme
+      // from the OS preference — `matchMedia('(prefers-color-scheme: dark)')`
+      // — so the same build renders a DIFFERENT palette on a machine in
+      // dark mode and on a runner with no preference. The contrast counts
+      // are a claim about the palette, not about the code: the same
+      // commit measured 3425 contrast instances on a dark-mode Mac and
+      // 4546 on the CI runner, and the gate failed on its own baseline.
+      //
+      // Light is the tokens' documented default ("light theme (default)"
+      // in lib/design-tokens.css), so that is what is measured.
+      await page.emulateMediaFeatures([
+        { name: 'prefers-reduced-motion', value: 'reduce' },
+        { name: 'prefers-color-scheme', value: 'light' },
+      ]);
       try {
         const res = await page.goto(new URL(route.path, base).href, { waitUntil: 'domcontentloaded', timeout: 30000 });
         if (!res || res.status() >= 400) continue;   // not this gate's business
@@ -161,6 +174,20 @@ async function startServer() {
         // page.waitForTimeout was removed in Puppeteer v23; a plain sleep
         // is the replacement.
         await new Promise(r => setTimeout(r, 700));
+        // PIN THE PALETTE, explicitly. The media-query emulation above
+        // tells the page what the OS prefers; this says what the document
+        // actually is, so a nav that reads localStorage, or a page that
+        // sets its own theme, cannot move the measurement.
+        await page.evaluate(() => {
+          document.documentElement.setAttribute('data-theme', 'light');
+          // PIN THE FONT STACK. A webfont that loads on one machine and
+          // not on another changes the rendered text, and the counts must
+          // not depend on a CDN being reachable. Arial and Liberation
+          // Sans are metric-compatible, so the two platforms agree.
+          const style = document.createElement('style');
+          style.textContent = '*, *::before, *::after { font-family: Arial, "Liberation Sans", sans-serif !important; }';
+          document.head.appendChild(style);
+        });
         const violations = await runAxe(page);
         const t = tally(violations);
         pagesProbed++;

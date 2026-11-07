@@ -229,8 +229,15 @@ once it hits 1.0.
   a gate that fails on CI and nowhere else — and it binds an **ephemeral
   port** — chosen by asking the OS for a free one, not parsed out of
   vite's log — so a stale server from an earlier run can never answer
-  its readiness poll. A route it could not measure is a failure, not a skip:
-  a gate that silently measures nothing reports clean.
+  its  readiness poll. A route it could not measure is a failure, not a skip:
+  a gate that silently measures nothing reports clean. The gate also
+  **pins the palette and the font stack**: `lib/nav.client.js` takes the
+  theme from the OS preference, so the same build rendered a different
+  palette on a dark-mode machine and on a runner with no preference —
+  3425 contrast instances against 4546, and the gate failed against its
+  own baseline. The theme is now set on the document before the
+  measurement, and the font stack is pinned to a metric-compatible pair,
+  so neither an OS preference nor a font CDN can move the count.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —
