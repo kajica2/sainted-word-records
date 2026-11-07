@@ -245,7 +245,10 @@ once it hits 1.0.
   job's own ceiling went from 90 minutes to 150: the check group grew to
   140 steps and the job was being killed at 92 minutes, mid-group, with
   every gate before it green. A timeout that fires while the work is
-  still running is not a budget, it is a cancellation.
+  still running is not a budget, it is a cancellation. The ceiling went
+  again, to 240: the same group takes ten minutes on this machine and
+  120+ minutes on a loaded GitHub runner, and a job killed at 145 minutes
+  with every gate green has proved nothing.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —
