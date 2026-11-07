@@ -82,5 +82,42 @@ server; the configured default is the production-shaped one.
 3. Add semantic visual baselines and multi-agent review with explicit approval before changes.
 4. Add dedicated worker leases, checkpointing and durable retries for always-on operation. A GitHub Action on PRs is not an always-on service.
 
+## The route table
+
+`swarm.config.json` carries 148 routes. They were derived from the site's
+own `vercel.json` rewrites — every source that resolves to a shipped page
+— and then checked against the deployed site: a route enters the table
+only if the preview and production answer it the same way.
+
+**The preview must apply the rewrites, or the table measures the wrong
+document.** `vite preview` resolves `/atlas` on its own, because Vite's
+static middleware finds `dist/atlas.html` for the path `/atlas` — but it
+answers `/play` with the HOME PAGE, because the real file is
+`dist/versions/play.html` and nothing rewrites the path to reach it.
+Twenty-six of the 148 routes were therefore measuring the home page
+instead of the page they name. The fix is in `vite.config.js`: the
+`dev-vercel-rewrites` plugin now hooks `configurePreviewServer` as well as
+`configureServer`, so the preview answers the same routes production
+does.
+
+The runner now proves it on every run: it reads the home page's title
+first, and any route that answers with that title is a **soft 404** — a
+200 that is not the page — and is reported as a high-severity finding.
+
+## Accessibility
+
+`qa/a11y.mjs` is the one place axe-core is invoked, and `scripts/check-a11y.mjs`
+is the gate that uses it. The gate compares the per-rule instance counts
+against `qa/a11y-baseline.json` and fails when any rule's count rises. A
+count that falls is reported but is not a failure — it means the baseline
+should be lowered with `--update-baseline` once the fix has landed.
+
+The baseline stores the counts, the pages that carry each rule, and one
+example element per rule: a count with no location is not a work item.
+
+axe-core is a devDependency on purpose. A gate that fetches its tool from
+a CDN is a gate that fails when the network fails, and it cannot tell "the
+page has a contrast problem" from "fonts.googleapis.com was slow today".
+
 ## Required merge gates
 Green existing CI, new QA evidence inspected, no unauthorized production side effects, human review. No auto-merge.

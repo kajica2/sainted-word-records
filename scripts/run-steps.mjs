@@ -73,6 +73,9 @@ const GROUPS = {
     // Auto-rotate master toggle off-screen. This gate watches the four
     // DIFFERENT causes, so no single lucky rule can satisfy it.
     'npm run check:responsive-overflow',
+    // Accessibility: no rule may regress against the committed baseline.
+    // The baseline counts can only go down — every fix lowers them.
+    'npm run check:a11y',
     // A page must load without a JavaScript error. /engine-personas read
     // `currentPalette` while it was still in its temporal dead zone, and
     // the page threw on every load.
