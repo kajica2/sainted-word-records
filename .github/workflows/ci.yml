@@ -73,22 +73,25 @@ jobs:
   ci:
     name: check + verify + build-size
     runs-on: ubuntu-latest
-    # 2026-11-07: raised from 90. The check group grew to 140 steps and
-    # the accessibility gate added four minutes to it; the job was
-    # killed by this timeout at 92 minutes, mid-group, with every gate
-    # before it green. A timeout that fires while the work is still
-    # running is not a budget, it is a cancellation — and the group
-    # takes 100-120 minutes on a slow runner, so the ceiling is 150.
-    timeout-minutes: 150
     # The budget has to survive one slow step, not just the happy path.
     # The 45m ceiling was not enough headroom: one run lost 34m22s to an
     # apt-get stall in the ffmpeg step and was then killed by the timeout
     # with check:full never started — a red CI that had proved nothing.
     # The 90m ceiling was not enough either: the group grew to 140 steps
     # and the job was killed at 92 minutes, mid-group, every gate before
-    # it green. A timeout that fires while the work is still running is
-    # not a budget, it is a cancellation — and the group takes 100-120
-    # minutes on a slow runner, so the ceiling is 150.
+    # it green. The 150m ceiling was not enough either — the job was
+    # killed at 145 minutes, still inside the check step.
+    #
+    # A timeout that fires while the work is still running is not a
+    # budget, it is a cancellation. The same group takes about ten
+    # minutes on the author's machine and 120+ minutes on a loaded
+    # GitHub runner — a twelve-fold difference, which is what a shared
+    # runner looks like when the machine is busy. A ceiling that only
+    # fits a fast day is a ceiling that fires on a slow one, and a job
+    # killed at 145 minutes with every gate green has proved nothing.
+    # 240 is twice the worst observed duration; GitHub's own maximum is
+    # 360.
+    timeout-minutes: 240
     steps:
       - name: Checkout
         uses: actions/checkout@v4
