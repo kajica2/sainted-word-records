@@ -237,7 +237,11 @@ once it hits 1.0.
   3425 contrast instances against 4546, and the gate failed against its
   own baseline. The theme is now set on the document before the
   measurement, and the font stack is pinned to a metric-compatible pair,
-  so neither an OS preference nor a font CDN can move the count.
+  so neither an OS preference nor a font CDN can move the count. Every
+  wait in the gate is bounded — the webfont wait included, because
+  `document.fonts.ready` never settles when a font request hangs — and the
+  gate has a global ceiling, because a gate that can hang hangs CI for
+  the runner's six-hour limit and tells you nothing about the code.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —

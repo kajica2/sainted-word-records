@@ -130,6 +130,11 @@ async function startServer() {
   const viewport = config.viewports.find(v => v.id === 'desktop') || { width: 1440, height: 900 };
 
   let server;
+  // A global ceiling. A gate that can hang is a gate that hangs CI for
+  // the runner's six-hour limit, and a gate that takes six hours to fail
+  // tells you nothing about the code. Every wait inside the gate is
+  // bounded too; this is the backstop for the ones that are not.
+  const deadline = Date.now() + 20 * 60 * 1000;
   try { server = await startServer(); }
   catch (e) { fail('server boot', e.message); process.exit(1); }
 
@@ -146,6 +151,10 @@ async function startServer() {
 
   try {
     for (const route of config.routes) {
+      if (Date.now() > deadline) {
+        fail('the gate finished inside its budget', `ran out of time after ${pagesProbed} pages`);
+        break;
+      }
       const page = await browser.newPage();
       await page.setViewport({ width: viewport.width, height: viewport.height });
       // The colour scheme is PINNED. lib/nav.client.js picks the theme
@@ -170,7 +179,15 @@ async function startServer() {
         // its font arrives is a different page: two runs of the same
         // build differed by two contrast instances until this wait was
         // added.
-        await page.evaluate(() => (document.fonts ? document.fonts.ready : null)).catch(() => {});
+        // The font wait is BOUNDED. `document.fonts.ready` settles when the
+        // webfonts settle — and if a font request hangs, it never settles,
+        // and a gate that awaits it hangs with it. The page is measured
+        // with whatever font is available; a font that arrives late cannot
+        // change a measurement that has already been taken.
+        await page.evaluate(() => {
+          const fonts = document.fonts ? document.fonts.ready : null;
+          return fonts ? Promise.race([fonts, new Promise(r => setTimeout(r, 3000))]) : null;
+        }).catch(() => {});
         // page.waitForTimeout was removed in Puppeteer v23; a plain sleep
         // is the replacement.
         await new Promise(r => setTimeout(r, 700));
@@ -206,7 +223,8 @@ async function startServer() {
         // like evidence and is not.
         skipped.push({ route: route.path, error: String(err && err.message || err).split('\n')[0] });
       } finally {
-        await page.close().catch(() => {});
+        // A page that will not close must not hold the gate open.
+        await Promise.race([page.close().catch(() => {}), new Promise(r => setTimeout(r, 5000))]);
       }
     }
   } finally {
