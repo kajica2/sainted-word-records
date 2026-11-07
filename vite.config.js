@@ -512,6 +512,14 @@ function copyStatic() {
     'engine-genops.css',
     'engine-layout.css',
     'audio-analysis-v2.js',
+    // Generative Remix Studio is a native browser ESM imported from
+    // client/remix-studio.client.js (copied by the client/ directory rule).
+    // Its relative ../ imports resolve to these root URLs in production.
+    // They must ship explicitly because this build uses a static copy list;
+    // otherwise AutoMix Arc, Variants Smoke and Chain View all see 404s.
+    'remix-planner.js',
+    'remix-renderer.js',
+    'remix-workflow.js',
     'swr-intro-10s.html',
     'swr-intro-10s-script.txt',
     'swr-intro-10s.mp4',
