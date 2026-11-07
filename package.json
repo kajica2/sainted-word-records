@@ -184,6 +184,8 @@
     "check:spit-live-smoke": "node scripts/check-spit-live-smoke.mjs",
     "check:tiktok-unit": "node scripts/check-tiktok-unit.mjs",
     "check:tiktok-smoke": "node scripts/check-tiktok-smoke.mjs",
+    "check:color-tales-unit": "node scripts/check-color-tales-unit.mjs",
+    "check:color-tales-smoke": "node scripts/check-color-tales-smoke.mjs",
     "check:glyphs-layers-unit": "node scripts/check-glyphs-layers-unit.mjs",
     "check:glyph-forge-unit": "node scripts/check-glyph-forge-unit.mjs",
     "check:camera-enhance-unit": "node scripts/check-camera-enhance-unit.mjs",

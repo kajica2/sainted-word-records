@@ -30,7 +30,7 @@
 // (Node 20, which is what CI pins).
 
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { serveDist } from './with-dist.mjs';
@@ -46,8 +46,10 @@ const CHROME_CANDIDATES = [
   process.env.CHROME_BIN,
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Chromium.app/Contents/MacOS/Chromium',
+  '/usr/bin/google-chrome-stable',
   '/usr/bin/google-chrome',
   '/usr/bin/chromium',
+  '/usr/local/bin/google-chrome',
 ].filter(Boolean);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -90,7 +92,7 @@ class Cdp {
 }
 
 async function launchChrome() {
-  const bin = CHROME_CANDIDATES.find(Boolean);
+  const bin = CHROME_CANDIDATES.find((p) => p && existsSync(p));
   if (!bin) throw new Error('No Chrome binary found. Set CHROME_BIN.');
   const profile = mkdtempSync(join(tmpdir(), 'swr-live-'));
   const args = [

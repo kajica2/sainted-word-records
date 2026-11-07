@@ -118,6 +118,14 @@ function generateRewrites(map) {
 
   processItems(map.nav);
   processItems(map.footer);
+  // Shared <swr-footer> IA (footerNav.columns) — /campaign and friends live
+  // here, not in the legacy footer[] CTA block. Without this pass their
+  // extensionless routes never get a rewrite and check:sitemap / dist-links fail.
+  if (map.footerNav && Array.isArray(map.footerNav.columns)) {
+    for (const col of map.footerNav.columns) {
+      if (col && col.links) processItems(col.links);
+    }
+  }
   processItems(map.legal);
   processItems(map.tools);
 
@@ -191,6 +199,7 @@ function generateRewrites(map) {
     // start endpoint lands.
     rules.push({ source: '/auth/google', destination: '/auth/google-callback.html' });
     rules.push({ source: '/auth/google/', destination: '/auth/google-callback.html' });
+    addPath('/auth/google-callback');
   }
 
   // Pages the legacy /nav.client.js linked to. They exist at the repo root but
