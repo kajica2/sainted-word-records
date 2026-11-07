@@ -1,0 +1,39 @@
+name: Remix Studio
+on:
+  pull_request:
+    paths:
+      - 'remix-*.js'
+      - 'remix-*.mjs'
+      - 'client/remix-studio.client.js'
+      - 'client/remix-studio.css'
+      - 'engine.html'
+      - '.github/workflows/remix-studio.yml'
+  push:
+    branches:
+      - 'feat/generative-remix-planner-v1'
+    paths:
+      - 'remix-*.js'
+      - 'remix-*.mjs'
+      - 'client/remix-studio.client.js'
+      - 'client/remix-studio.css'
+      - 'engine.html'
+      - '.github/workflows/remix-studio.yml'
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate module syntax
+        run: |
+          node --check remix-planner.js
+          node --check remix-renderer.js
+          node --check remix-workflow.js
+          node --check client/remix-studio.client.js
+      - name: Run remix tests
+        run: node --test remix-planner.test.mjs remix-renderer.test.mjs remix-workflow.test.mjs remix-studio-ui.test.mjs
