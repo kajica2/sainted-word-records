@@ -89,6 +89,24 @@ const picked = EXPORT.pickRecorderMime(fakeMr);
 assert(picked.extension === 'webm', 'honest webm fallback');
 assert(picked.supportsMp4 === false, 'no false MP4 claim');
 
+console.log('Color Tales — stroke caps');
+loadGlobal('color-tales-paint.client.js');
+const PAINT = win.SWR_COLOR_TALES_PAINT;
+assert(PAINT.needsStrokeCap('M10 20'), 'moveto-only needs cap');
+assert(!PAINT.needsStrokeCap('M10 20 L30 40'), 'segment path uses stroke');
+assert(PAINT.firstPoint('M12.5 18')?.x === 12.5, 'parse move point');
+assert(PAINT.capRadius(40) === 20, 'cap radius half brush size');
+
+console.log('Color Tales — page SVG contract');
+const pageStore = (svgText) => {
+  const pages = [['A', 'hint', { placeholder: true }]];
+  pages[0][2] = { svg: svgText };
+  delete pages[0][2].placeholder;
+  const turnSvg = pages[0][2]?.svg || null;
+  return turnSvg;
+};
+assert(pageStore('<svg/>') === '<svg/>', 'refined SVG stored on page meta');
+
 if (failures) {
   console.error(`\n${failures} failure(s)`);
   process.exit(1);

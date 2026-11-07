@@ -1,12 +1,14 @@
 // Scoped service worker for Color Tales only — does not replace site-wide sw.js
-const CACHE = 'swr-color-tales-v1';
+const CACHE = 'swr-color-tales-v2';
 const SHELL = [
   '/color-tales',
   '/color-tales/',
   '/color-tales.html',
+  '/color-tales/color-tales.css',
   '/color-tales/color-tales-worker.js',
   '/color-tales/default-characters-placeholder.svg',
   '/color-tales/color-tales-manifest.webmanifest',
+  '/color-tales/sw-color-tales.js',
   '/client/color-tales-constants.client.js',
   '/client/color-tales-speed.client.js',
   '/client/color-tales-two-color.client.js',
@@ -16,12 +18,22 @@ const SHELL = [
   '/client/color-tales-storage.client.js',
   '/client/color-tales-export.client.js',
   '/client/color-tales-coverage.client.js',
+  '/client/color-tales-paint.client.js',
+  '/client/color-tales-audio.client.js',
+  '/client/color-tales-record.client.js',
   '/client/color-tales-runtime.client.js',
   '/lib/design-tokens.css',
   '/lib/components.css',
   '/lib/nav.client.js',
   '/lib/footer.client.js',
 ];
+
+function shellMatch(pathname) {
+  if (pathname === '/color-tales' || pathname === '/color-tales.html') return true;
+  if (pathname.startsWith('/color-tales/')) return true;
+  if (pathname.startsWith('/client/color-tales')) return true;
+  return SHELL.includes(pathname);
+}
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -35,7 +47,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k === CACHE).length ? [] : [])
+      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -46,21 +58,20 @@ self.addEventListener('fetch', (e) => {
   let url;
   try { url = new URL(req.url); } catch (_) { return; }
   if (url.origin !== self.location.origin) return;
-  if (url.pathname === '/color-tales') {
-    e.respondWith(caches.match('/color-tales.html').then((r) => r || fetch(req)));
-    return;
-  }
-  if (!url.pathname.startsWith('/color-tales/') &&
-      !url.pathname.startsWith('/client/color-tales')) return;
+  if (!shellMatch(url.pathname)) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(req);
+      if (url.pathname === '/color-tales') {
+        const page = await cache.match('/color-tales.html');
+        if (page) return page;
+      }
       try {
         const fresh = await fetch(req);
         if (fresh.ok) cache.put(req, fresh.clone());
         return fresh;
       } catch {
-        return cached || caches.match('/color-tales.html');
+        return cached || cache.match('/color-tales.html');
       }
     })
   );

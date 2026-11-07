@@ -57,8 +57,10 @@
     await drawFrame();
     stream = canvas.captureStream(20);
     soundtrack = document.querySelector('#ct-soundtrack');
-    const audioDest = window.SWR_COLOR_TALES_AUDIO_DEST;
-    const audioTrack = audioDest?.stream?.getAudioTracks?.()?.[0];
+    const CT_AUDIO = window.SWR_COLOR_TALES_AUDIO;
+    if (soundtrack && CT_AUDIO) CT_AUDIO.attachSoundtrack(soundtrack);
+    await CT_AUDIO?.resumeOnGesture?.();
+    const audioTrack = CT_AUDIO?.recordAudioTrack?.();
     if (audioTrack) {
       try { stream.addTrack(audioTrack); } catch { /* optional */ }
     } else if (soundtrack?.captureStream) {
@@ -71,7 +73,8 @@
     const chunks = [];
     recording.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
     recording.onstop = () => {
-      stream?.getTracks().forEach((t) => t.stop());
+      stream?.getVideoTracks().forEach((t) => t.stop());
+      stream = null;
       const mime = chunks[0]?.type || picked.mime;
       const ext = EXPORT.extensionForMime(mime);
       if (recordingUrl) URL.revokeObjectURL(recordingUrl);

@@ -90,6 +90,15 @@
           "value": "public, max-age=2592000, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/color-tales/sw-color-tales.js",
+      "headers": [
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
     }
   ],
   "rewrites": [

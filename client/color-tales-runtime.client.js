@@ -10,6 +10,8 @@
   const STORAGE = window.SWR_COLOR_TALES_STORAGE;
   const TWO = window.SWR_COLOR_TALES_TWO_COLOR;
   const SEG = window.SWR_COLOR_TALES_SEGMENT;
+  const PAINT = window.SWR_COLOR_TALES_PAINT;
+  const CT_AUDIO = window.SWR_COLOR_TALES_AUDIO;
 
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -81,6 +83,28 @@
     return p;
   }
 
+  function appendStrokeCap(s) {
+    if (!PAINT?.needsStrokeCap(s.d)) return;
+    const pt = PAINT.firstPoint(s.d);
+    if (!pt) return;
+    const r = PAINT.capRadius(s.size);
+    const mk = document.createElementNS(NS, 'circle');
+    mk.setAttribute('cx', pt.x);
+    mk.setAttribute('cy', pt.y);
+    mk.setAttribute('r', r);
+    mk.setAttribute('fill', s.mode === 'erase' ? 'black' : 'white');
+    $('#ct-paint-mask')?.append(mk);
+    if (s.mode !== 'erase') {
+      const dot = document.createElementNS(NS, 'circle');
+      dot.setAttribute('cx', pt.x);
+      dot.setAttribute('cy', pt.y);
+      dot.setAttribute('r', r);
+      dot.setAttribute('fill', s.color);
+      if (s.mode === 'soft') dot.setAttribute('filter', 'url(#ct-blur)');
+      $('#ct-paint')?.append(dot);
+    }
+  }
+
   function addStroke(s) {
     if (s.filled) {
       for (const [sel, fill] of [['#ct-paint-mask', 'white'], ['#ct-paint', s.color]]) {
@@ -89,6 +113,10 @@
         node.setAttribute('fill', fill);
         $(sel).append(node);
       }
+      return;
+    }
+    if (PAINT?.needsStrokeCap(s.d)) {
+      appendStrokeCap(s);
       return;
     }
     $('#ct-paint-mask').append(pathNode(s, true));
@@ -202,6 +230,9 @@
     }
     const safe = SAN.sanitizeSvgText(refined.svg || local.svg);
     customSvg = safe;
+    if (!pages[page][2] || typeof pages[page][2] !== 'object') pages[page][2] = {};
+    pages[page][2].svg = safe;
+    delete pages[page][2].placeholder;
     const segLocal = SEG.segmentRegions(imageData, { tolerance: 40, minArea: 32 });
     regionsByPage[page] = segLocal.regions;
     pages[page][1] = `Refined · ${segLocal.regions.length} regions detected`;
@@ -237,19 +268,29 @@
       drawing = true;
       svg.setPointerCapture(e.pointerId);
       const p = point(e);
-      current = { d: `M${p.x} ${p.y}l.1 .1`, color, mode, size: Number($('#ct-size')?.value || 55) };
+      current = { d: `M${p.x} ${p.y}`, color, mode, size: Number($('#ct-size')?.value || 55) };
       states[page].push(current);
-      addStroke(current);
     });
     svg.addEventListener('pointermove', (e) => {
       if (!drawing || !current) return;
       const p = point(e);
+      const hadSegment = /\sL/i.test(current.d);
       current.d += ` L${p.x} ${p.y}`;
-      $('#ct-paint-mask').lastChild?.setAttribute('d', current.d);
-      if (mode !== 'erase') $('#ct-paint').lastChild?.setAttribute('d', current.d);
+      if (!hadSegment) {
+        $('#ct-paint-mask').append(pathNode(current, true));
+        if (mode !== 'erase') $('#ct-paint').append(pathNode(current, false));
+      } else {
+        $('#ct-paint-mask').lastChild?.setAttribute('d', current.d);
+        if (mode !== 'erase') $('#ct-paint').lastChild?.setAttribute('d', current.d);
+      }
       updateCoverageUi();
     });
-    const end = () => { drawing = false; current = null; updateCoverageUi(); };
+    const end = () => {
+      if (drawing && current && PAINT?.needsStrokeCap(current.d)) addStroke(current);
+      drawing = false;
+      current = null;
+      updateCoverageUi();
+    };
     svg.addEventListener('pointerup', end);
     svg.addEventListener('pointercancel', end);
   }
@@ -309,15 +350,7 @@
       if (audio.src?.startsWith('blob:')) URL.revokeObjectURL(audio.src);
       audio.src = URL.createObjectURL(file);
       audio.hidden = false;
-      try {
-        window.SWR_COLOR_TALES_AUDIO_DEST?.disconnect?.();
-      } catch { /* ok */ }
-      const ctx = window.SWR_COLOR_TALES_AUDIO_CTX || new AudioContext();
-      window.SWR_COLOR_TALES_AUDIO_CTX = ctx;
-      const src = ctx.createMediaElementSource(audio);
-      const dest = ctx.createMediaStreamDestination();
-      src.connect(dest);
-      window.SWR_COLOR_TALES_AUDIO_DEST = dest;
+      CT_AUDIO?.attachSoundtrack(audio);
       setStatus(`${file.name} loaded — press play when ready`);
       e.target.value = '';
     });
@@ -344,10 +377,21 @@
     registerScopedSw();
   }
 
+  function setPageData(nextPages, nextStates) {
+    pages = nextPages;
+    states = nextStates?.length ? nextStates : pages.map(() => []);
+    regionsByPage = pages.map(() => []);
+    page = 0;
+    const meta = pages[0]?.[2];
+    customSvg = meta?.svg ? SAN.sanitizeSvgText(meta.svg) : null;
+    render();
+  }
+
   window.SWR_COLOR_TALES = {
     mount,
     turn,
     render,
+    setPageData,
     refineAndLoadPng,
     onBatchPng,
     pageCoveragePct,
