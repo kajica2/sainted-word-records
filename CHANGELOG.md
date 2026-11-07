@@ -185,6 +185,70 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **The shot list showed 60 broken images.** `shotlist/index.html` linked
+  its frame binaries in `shotlist/_candidates_web/` — a directory that is
+  gitignored and never deployed, so every one of them was a 404 in
+  production. The page said as much in its own copy and linked them
+  anyway. The tiles keep their place in the grid and their drag
+  behaviour, and show the frame's name instead; the slot preview does the
+  same, and a click copies the name rather than opening a file that is
+  not there.
+- **`check:dist-links` never checked a bare relative reference.** Its
+  pattern only matched `./`-prefixed paths, so `src="_candidates_web/x.png"`
+  — a dead link — looked healthy to it. It now checks bare relative media
+  references as well, resolving each from every path the page is served
+  at. The old shotlist page fails that check with all 61 of its dead
+  references named.
+- **The version pill pushed the "Open editor" button 514px off the edge.**
+  Twenty-two links in a flex row that could not shrink, with the
+  overflow handling applied only below 1100px — which is exactly where it
+  was not needed. The pill scrolls now, at every width, and is focusable
+  so it can be scrolled from the keyboard.
+- **The QA preview was measuring the home page for 26 of its 148 routes.**
+  `vite preview` resolves `/atlas` on its own — Vite's static middleware
+  finds `dist/atlas.html` for the path `/atlas` — but it answered `/play`
+  with the home page, because the real file is `dist/versions/play.html`
+  and nothing rewrote the path to reach it. Twenty-six routes were
+  silently measuring the wrong document, so a surface that reported 148
+  routes was covering 122 pages. `vite.config.js`'s `dev-vercel-rewrites`
+  plugin now hooks `configurePreviewServer` as well as `configureServer`,
+  so the preview answers the same routes production does — all eleven
+  spot-checked routes now serve their own page, matching production's
+  titles exactly. The runner reads the home page's title first and
+  reports any route that answers with it as a **soft 404**, so the class
+  cannot come back unnoticed.
+- **Accessibility had no gate at all.** axe-core is now a devDependency
+  (the site never loads it; only the tools do), `qa/a11y.mjs` is the one
+  place it is invoked, and `scripts/check-a11y.mjs` compares the
+  per-rule instance counts against a committed baseline. A rule that
+  regresses fails the gate; a rule that improves is reported so the
+  baseline can be lowered. The baseline stores the counts, the pages that
+  carry each rule, and one example element per rule — a count with no
+  location is not a work item. The gate uses **Puppeteer**, the browser
+  the CI runner installs — a gate that needs a browser nobody installed is
+  a gate that fails on CI and nowhere else — and it binds an **ephemeral
+  port** — chosen by asking the OS for a free one, not parsed out of
+  vite's log — so a stale server from an earlier run can never answer
+  its  readiness poll. A route it could not measure is a failure, not a skip:
+  a gate that silently measures nothing reports clean. The gate also
+  **pins the palette and the font stack**: `lib/nav.client.js` takes the
+  theme from the OS preference, so the same build rendered a different
+  palette on a dark-mode machine and on a runner with no preference —
+  3425 contrast instances against 4546, and the gate failed against its
+  own baseline. The theme is now set on the document before the
+  measurement, and the font stack is pinned to a metric-compatible pair,
+  so neither an OS preference nor a font CDN can move the count. Every
+  wait in the gate is bounded — the webfont wait included, because
+  `document.fonts.ready` never settles when a font request hangs — and the
+  gate has a global ceiling, because a gate that can hang hangs CI for
+  the runner's six-hour limit and tells you nothing about the code. The CI
+  job's own ceiling went from 90 minutes to 150: the check group grew to
+  140 steps and the job was being killed at 92 minutes, mid-group, with
+  every gate before it green. A timeout that fires while the work is
+  still running is not a budget, it is a cancellation. The ceiling went
+  again, to 240: the same group takes ten minutes on this machine and
+  120+ minutes on a loaded GitHub runner, and a job killed at 145 minutes
+  with every gate green has proved nothing.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —

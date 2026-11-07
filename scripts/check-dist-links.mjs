@@ -265,6 +265,21 @@ function paramGlob(destination) {
     servedAt.get(dest).add(dir);
   }
   const REL_RE = /\b(?:href|src|data-audio|poster)\s*=\s*["'](\.\/[^"'#?\s]*)["']/g;
+  // A BARE relative reference — `_candidates_web/frame.png`, no "./" — is
+  // as dead as a root-relative one, and the check used to miss every one
+  // of them: the old pattern only matched "./"-prefixed paths. The
+  // shotlist page linked 61 frame binaries that live in a gitignored
+  // directory and never ship, and this gate said nothing about them.
+  //
+  // Media only (src/poster/data-audio), not href: a bare href is often
+  // an extensionless route, and `href="about"` does not mean a file
+  // called `about`.
+  //
+  // It matches a BARE path only: no URL scheme (`about:blank` is not a
+  // path), no "./" or "../" prefix (both are covered by the two blocks
+  // above), no root-relative path (covered by the first block), and no
+  // template placeholder.
+  const REL_MEDIA_RE = /\b(?:src|poster|data-audio)\s*=\s*["'](?!https?:|[a-z][a-z0-9+.-]*:|\/\/|data:|#|\/|\.\.?\/|\$\{|\{\{)([^"'#?\s]+)["']/g;
   const relBroken = [];
   for (const [page, dirs] of servedAt) {
     const abs = path.join(DIST, page);
@@ -274,6 +289,14 @@ function paramGlob(destination) {
     REL_RE.lastIndex = 0;
     while ((m = REL_RE.exec(source))) {
       const rel = m[1].slice(2); // strip the leading "./"
+      for (const dir of dirs) {
+        if (resolvesInDist('/' + dir.replace(/^\/+/, '') + rel)) continue;
+        relBroken.push(`${m[1]}  ← ${page} (served at ${dir})`);
+      }
+    }
+    REL_MEDIA_RE.lastIndex = 0;
+    while ((m = REL_MEDIA_RE.exec(source))) {
+      const rel = m[1];
       for (const dir of dirs) {
         if (resolvesInDist('/' + dir.replace(/^\/+/, '') + rel)) continue;
         relBroken.push(`${m[1]}  ← ${page} (served at ${dir})`);
