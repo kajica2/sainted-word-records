@@ -57,11 +57,15 @@
     await drawFrame();
     stream = canvas.captureStream(20);
     soundtrack = document.querySelector('#ct-soundtrack');
-    if (soundtrack && !audioCapture) {
-      const audioCtx = window.SWR_COLOR_TALES_AUDIO_CTX;
-      if (audioCtx?.captureStream) {
-        try { stream.addTrack(audioCtx.captureStream().getAudioTracks()[0]); } catch { /* optional */ }
-      }
+    const audioDest = window.SWR_COLOR_TALES_AUDIO_DEST;
+    const audioTrack = audioDest?.stream?.getAudioTracks?.()?.[0];
+    if (audioTrack) {
+      try { stream.addTrack(audioTrack); } catch { /* optional */ }
+    } else if (soundtrack?.captureStream) {
+      try {
+        const at = soundtrack.captureStream().getAudioTracks()[0];
+        if (at) stream.addTrack(at);
+      } catch { /* optional */ }
     }
     recording = new MediaRecorder(stream, { mimeType: picked.mime, videoBitsPerSecond: 4_500_000 });
     const chunks = [];

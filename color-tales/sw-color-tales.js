@@ -1,6 +1,7 @@
 // Scoped service worker for Color Tales only — does not replace site-wide sw.js
 const CACHE = 'swr-color-tales-v1';
 const SHELL = [
+  '/color-tales',
   '/color-tales/',
   '/color-tales.html',
   '/color-tales/color-tales-worker.js',
@@ -45,7 +46,11 @@ self.addEventListener('fetch', (e) => {
   let url;
   try { url = new URL(req.url); } catch (_) { return; }
   if (url.origin !== self.location.origin) return;
-  if (!url.pathname.startsWith('/color-tales') &&
+  if (url.pathname === '/color-tales') {
+    e.respondWith(caches.match('/color-tales.html').then((r) => r || fetch(req)));
+    return;
+  }
+  if (!url.pathname.startsWith('/color-tales/') &&
       !url.pathname.startsWith('/client/color-tales')) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {

@@ -129,6 +129,9 @@
     current = null;
     page = n;
     visited = new Set();
+    const meta = pages[n][2];
+    if (meta?.svg) customSvg = SAN.sanitizeSvgText(meta.svg);
+    else customSvg = null;
     render();
   }
 
@@ -306,6 +309,15 @@
       if (audio.src?.startsWith('blob:')) URL.revokeObjectURL(audio.src);
       audio.src = URL.createObjectURL(file);
       audio.hidden = false;
+      try {
+        window.SWR_COLOR_TALES_AUDIO_DEST?.disconnect?.();
+      } catch { /* ok */ }
+      const ctx = window.SWR_COLOR_TALES_AUDIO_CTX || new AudioContext();
+      window.SWR_COLOR_TALES_AUDIO_CTX = ctx;
+      const src = ctx.createMediaElementSource(audio);
+      const dest = ctx.createMediaStreamDestination();
+      src.connect(dest);
+      window.SWR_COLOR_TALES_AUDIO_DEST = dest;
       setStatus(`${file.name} loaded — press play when ready`);
       e.target.value = '';
     });
@@ -315,7 +327,7 @@
   async function registerScopedSw() {
     if (!('serviceWorker' in navigator)) return;
     try {
-      const reg = await navigator.serviceWorker.register('/color-tales/sw-color-tales.js', { scope: '/color-tales/' });
+      const reg = await navigator.serviceWorker.register('/color-tales/sw-color-tales.js', { scope: '/color-tales' });
       await reg.update();
       offlineReady = true;
       $('#ct-offline').textContent = 'Ready offline';

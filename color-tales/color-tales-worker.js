@@ -51,12 +51,12 @@ function refineTwoColor(imageData, opts) {
       if (on && !open) { open = true; start = x; }
       if ((!on || x === width - 1) && open) {
         const end = on ? x : x - 1;
-        if (end > start) paths.push(`M${start * stride} ${y * stride}H${(end + 1) * stride}v${stride}H${start * stride}Z`);
+        if (end > start) paths.push(`M${start} ${y}H${end + 1}v${stride}H${start}Z`);
         open = false;
       }
     }
   }
-  const vb = `0 0 ${width * stride} ${height * stride}`;
+  const vb = `0 0 ${width} ${height}`;
   const pathD = paths.join(' ');
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}">` +
     `<rect width="100%" height="100%" fill="${paper}"/>` +

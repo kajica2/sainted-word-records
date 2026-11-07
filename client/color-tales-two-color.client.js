@@ -51,20 +51,20 @@
         if (on && !open) { open = true; start = x; }
         if ((!on || x === width - 1) && open) {
           const end = on ? x : x - 1;
-          if (end > start) paths.push(`M${start * stride} ${y * stride}H${(end + 1) * stride}v${stride}H${start * stride}Z`);
+          if (end > start) paths.push(`M${start} ${y}H${end + 1}v${stride}H${start}Z`);
           open = false;
         }
       }
     }
 
     const pathD = paths.join(' ');
-    const vb = `0 0 ${width * stride} ${height * stride}`;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${width * stride}" height="${height * stride}">` +
+    const vb = `0 0 ${width} ${height}`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${width}" height="${height}">` +
       `<rect width="100%" height="100%" fill="${paper}"/>` +
       (pathD ? `<path d="${pathD}" fill="${ink}" fill-rule="evenodd"/>` : '') +
       '</svg>';
 
-    return { svg, pathCount: paths.length, mask, width: width * stride, height: height * stride };
+    return { svg, pathCount: paths.length, mask, width, height };
   }
 
   window.SWR_COLOR_TALES_TWO_COLOR = { refineTwoColor, luminance };
