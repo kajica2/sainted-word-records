@@ -3,18 +3,19 @@
   "note": "Per-rule instance counts. Lower them by fixing the violation; the gate fails on any increase. `pages` and `example` say where — a count with no location is not a work item.",
   "routes": 148,
   "counts": {
-    "color-contrast": 4804,
-    "label-content-name-mismatch": 274,
-    "landmark-one-main": 5,
-    "page-has-heading-one": 5,
+    "color-contrast": 3425,
+    "label-content-name-mismatch": 270,
     "region": 933,
     "heading-order": 108,
-    "link-name": 140,
+    "link-name": 178,
     "label-title-only": 133,
     "label": 128,
+    "landmark-one-main": 6,
     "landmark-unique": 19,
+    "page-has-heading-one": 6,
     "button-name": 3,
     "scrollable-region-focusable": 1,
+    "image-alt": 14,
     "select-name": 6,
     "aria-prohibited-attr": 1,
     "link-in-text-block": 16,
@@ -31,12 +32,10 @@
       "/versions/play",
       "/atlas",
       "/versions/music-video",
-      "/artists",
       "/versions/echo-manifold",
       "/versions/neon",
       "/versions/film",
       "/versions/music-video-gallery",
-      "/shotlist",
       "/versions/grid",
       "/versions/hallucination",
       "/versions/smoke",
@@ -56,7 +55,6 @@
       "/versions/tape",
       "/versions/watercolor",
       "/versions/void",
-      "/versions/gallery",
       "/versions/music_video",
       "/versions/console",
       "/versions/temple-of-control",
@@ -79,7 +77,6 @@
       "/intro",
       "/portfolio",
       "/style-guide",
-      "/services",
       "/legal/terms.html",
       "/legal/privacy.html",
       "/sitemap",
@@ -120,7 +117,6 @@
       "/entrance-step1",
       "/entrance-step2",
       "/entrance-step3",
-      "/entrance-stats",
       "/atlas-200-steps",
       "/atlas-architect",
       "/atlas-checklist",
@@ -131,8 +127,6 @@
       "/atlas-life-stages",
       "/atlas-legacy",
       "/campaign",
-      "/engine-demos",
-      "/director-mode-sainted-word",
       "/contact-sheet",
       "/gallery-ai",
       "/gallery-albums",
@@ -283,20 +277,6 @@
       "/landing-personas-v4-dashboard",
       "/landing-personas-v6-wireframe",
       "/landing-personas-v5-brutalist",
-      "/play"
-    ],
-    "landmark-one-main": [
-      "/engine",
-      "/versions/play",
-      "/versions/hallucination",
-      "/persona-library",
-      "/play"
-    ],
-    "page-has-heading-one": [
-      "/engine",
-      "/versions/play",
-      "/versions/hallucination",
-      "/engine-personas",
       "/play"
     ],
     "region": [
@@ -597,6 +577,14 @@
       "/versions/envelope",
       "/neon"
     ],
+    "landmark-one-main": [
+      "/versions/music-video",
+      "/versions/hallucination",
+      "/versions/music-video-mtv",
+      "/versions/music_video",
+      "/versions/music_video_mtv",
+      "/persona-library"
+    ],
     "landmark-unique": [
       "/versions/music-video",
       "/versions/neon",
@@ -618,11 +606,23 @@
       "/neon",
       "/engine-personas"
     ],
+    "page-has-heading-one": [
+      "/versions/music-video",
+      "/versions/hallucination",
+      "/versions/music-video-mtv",
+      "/versions/music_video",
+      "/versions/music_video_mtv",
+      "/engine-personas"
+    ],
     "button-name": [
       "/versions/echo-manifold"
     ],
     "scrollable-region-focusable": [
       "/shotlist"
+    ],
+    "image-alt": [
+      "/versions/music-video-mtv",
+      "/versions/music_video_mtv"
     ],
     "select-name": [
       "/versions/simple",
@@ -687,25 +687,13 @@
       "help": "Elements must meet minimum color contrast ratio thresholds",
       "impact": "serious",
       "example": "/",
-      "target": ".brand > b"
+      "target": "#features > .shell > .section__head > .section__kicker"
     },
     "label-content-name-mismatch": {
       "help": "Elements must have their visible text as part of their accessible name",
       "impact": "serious",
       "example": "/engine",
       "target": "#swr-version-badge"
-    },
-    "landmark-one-main": {
-      "help": "Document should have one main landmark",
-      "impact": "moderate",
-      "example": "/engine",
-      "target": "html"
-    },
-    "page-has-heading-one": {
-      "help": "Page should contain a level-one heading",
-      "impact": "moderate",
-      "example": "/engine",
-      "target": "html"
     },
     "region": {
       "help": "All page content should be contained by landmarks",
@@ -737,11 +725,23 @@
       "example": "/versions/music-video",
       "target": "#temp"
     },
+    "landmark-one-main": {
+      "help": "Document should have one main landmark",
+      "impact": "moderate",
+      "example": "/versions/music-video",
+      "target": "html"
+    },
     "landmark-unique": {
       "help": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
       "impact": "moderate",
       "example": "/versions/music-video",
       "target": ".lib"
+    },
+    "page-has-heading-one": {
+      "help": "Page should contain a level-one heading",
+      "impact": "moderate",
+      "example": "/versions/music-video",
+      "target": "html"
     },
     "button-name": {
       "help": "Buttons must have discernible text",
@@ -754,6 +754,12 @@
       "impact": "serious",
       "example": "/shotlist",
       "target": "#jsonOut"
+    },
+    "image-alt": {
+      "help": "Images must have alternative text",
+      "impact": "critical",
+      "example": "/versions/music-video-mtv",
+      "target": ".li.is-offline:nth-child(1) > img"
     },
     "select-name": {
       "help": "Select element must have an accessible name",

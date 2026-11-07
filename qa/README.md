@@ -119,5 +119,22 @@ axe-core is a devDependency on purpose. A gate that fetches its tool from
 a CDN is a gate that fails when the network fails, and it cannot tell "the
 page has a contrast problem" from "fonts.googleapis.com was slow today".
 
+Three rules the gate follows because each one was learned the hard way:
+
+- **It uses Puppeteer**, the browser the CI runner installs. Playwright's
+  browser is not installed there, and a gate that depends on a tool the
+  runner does not ship makes that tool's install a gate for every PR.
+- **It binds an ephemeral port.** A fixed port is a shared global: a
+  stale server left by an earlier run would answer this run's readiness
+  poll, and the gate would report the stale server's pages as its own.
+- **A route it could not measure is a failure, not a skip.** A gate that
+  silently measures nothing reports clean, and "no rule regressed" over
+  zero pages is the shape of a false green.
+
+The baseline is taken in the gate's own browser. Chromium versions render
+differently — the same build measured with Playwright's Chromium and
+Puppeteer's Chromium gives 4804 contrast instances and 3425 — so a
+baseline taken in a different browser is a baseline of a different site.
+
 ## Required merge gates
 Green existing CI, new QA evidence inspected, no unauthorized production side effects, human review. No auto-merge.

@@ -224,7 +224,12 @@ once it hits 1.0.
   regresses fails the gate; a rule that improves is reported so the
   baseline can be lowered. The baseline stores the counts, the pages that
   carry each rule, and one example element per rule — a count with no
-  location is not a work item.
+  location is not a work item. The gate uses **Puppeteer**, the browser
+  the CI runner installs — a gate that needs a browser nobody installed is
+  a gate that fails on CI and nowhere else — and it binds an **ephemeral
+  port**, so a stale server from an earlier run can never answer its
+  readiness poll. A route it could not measure is a failure, not a skip:
+  a gate that silently measures nothing reports clean.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —

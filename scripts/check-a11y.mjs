@@ -27,7 +27,11 @@
 // Run: node scripts/check-a11y.mjs
 // Exit 0 on no regression, 1 on a regression or a missing baseline.
 
-import { chromium } from 'playwright';
+// Puppeteer, not Playwright. The repo's CI installs Puppeteer's Chromium
+// (it is the browser every other gate uses); Playwright's browser is not
+// installed there, and a gate that needs a browser nobody installed is a
+// gate that fails on CI and nowhere else.
+import puppeteer from 'puppeteer';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,8 +42,13 @@ import { ensureDist } from './with-dist.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
-const PORT = Number(process.env.SWR_A11Y_PORT || 53988);
-const BASE = `http://127.0.0.1:${PORT}`;
+// The port is EPHEMERAL. A fixed port is a shared global: a stale server
+// left by an earlier run would answer this run's readiness poll, and the
+// gate would then measure the stale server's pages while reporting them
+// as this run's. The gate kills its server on every exit path (verified),
+// but binding is the other half of that.
+const PORT = Number(process.env.SWR_A11Y_PORT || 0);
+let base = '';
 const BASELINE_PATH = join(ROOT, 'qa', 'a11y-baseline.json');
 const CONFIG_PATH = join(ROOT, 'qa', 'swarm.config.json');
 const updateBaseline = process.argv.includes('--update-baseline');
@@ -57,9 +66,13 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
 // configureServer).
 function startServer() {
   return new Promise((resolve, reject) => {
+    // vite prints the port it chose when asked for port 0; the readiness
+    // poll has to use THAT port, not the one that was asked for.
+    let stdout = '';
     const proc = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--host', '127.0.0.1', '--outDir', 'dist'], {
-      cwd: ROOT, stdio: 'ignore',
+      cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'],
     });
+    proc.stdout.on('data', (chunk) => { stdout += String(chunk); });
     // The server must die with THIS process on EVERY exit path — a gate
     // that failed early used to leave it running, and the next run on the
     // same fixed port then polled the STALE server.
@@ -69,16 +82,24 @@ function startServer() {
     // STALE server.
     proc.on('exit', () => { try { proc.kill('SIGKILL'); } catch { /* already gone */ } });
     const start = Date.now();
-    const tick = () => http.get(`${BASE}/`, (res) => {
-      res.resume();
-      if (res.statusCode === 200) return resolve(proc);
-      if (Date.now() - start > 30000) return reject(new Error('server timeout'));
-      setTimeout(tick, 200);
-    }).on('error', () => {
-      if (Date.now() - start > 30000) return reject(new Error('server error'));
-      setTimeout(tick, 150);
-    });
-    setTimeout(tick, 200);
+    const tick = () => {
+      const m = stdout.match(/(?:localhost|127\.0\.0\.1):(\d+)/);
+      if (!m) {
+        if (Date.now() - start > 30000) return reject(new Error('vite preview never printed a port'));
+        return setTimeout(tick, 150);
+      }
+      base = `http://127.0.0.1:${m[1]}`;
+      http.get(`${base}/`, (res) => {
+        res.resume();
+        if (res.statusCode === 200) return resolve(proc);
+        if (Date.now() - start > 30000) return reject(new Error('server timeout'));
+        setTimeout(tick, 200);
+      }).on('error', () => {
+        if (Date.now() - start > 30000) return reject(new Error('server error'));
+        setTimeout(tick, 150);
+      });
+    };
+    setTimeout(tick, 150);
   });
 }
 
@@ -96,19 +117,24 @@ function startServer() {
   try { server = await startServer(); }
   catch (e) { fail('server boot', e.message); process.exit(1); }
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  });
   const counts = {};
   const detail = {};
   const pagesWith = {};
   const pages = {};
+  const skipped = [];
   let pagesProbed = 0;
 
   try {
     for (const route of config.routes) {
-      const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, reducedMotion: 'reduce' });
-      const page = await context.newPage();
+      const page = await browser.newPage();
+      await page.setViewport({ width: viewport.width, height: viewport.height });
+      await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
       try {
-        const res = await page.goto(new URL(route.path, BASE).href, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        const res = await page.goto(new URL(route.path, base).href, { waitUntil: 'domcontentloaded', timeout: 30000 });
         if (!res || res.status() >= 400) continue;   // not this gate's business
         // Wait for the WEBFONTS before measuring. axe computes contrast
         // from the rendered pixels' colours, and a page measured before
@@ -116,7 +142,9 @@ function startServer() {
         // build differed by two contrast instances until this wait was
         // added.
         await page.evaluate(() => (document.fonts ? document.fonts.ready : null)).catch(() => {});
-        await page.waitForTimeout(700);
+        // page.waitForTimeout was removed in Puppeteer v23; a plain sleep
+        // is the replacement.
+        await new Promise(r => setTimeout(r, 700));
         const violations = await runAxe(page);
         const t = tally(violations);
         pagesProbed++;
@@ -126,16 +154,27 @@ function startServer() {
           (pages[id] ||= []).push(route.path);
           if (!detail[id]) detail[id] = { ...t.detail[id], example: route.path };
         }
-      } catch (_) {
+      } catch (err) {
         // A page that will not load is the load gate's finding, not this
-        // gate's; it must not make the accessibility counts unstable.
+        // gate's — but it must not be SILENT. A gate that skips a page
+        // without saying so can report a clean bill of health for a
+        // surface it never measured, which is the same class of bug as
+        // the preview measuring the home page: a measurement that looks
+        // like evidence and is not.
+        skipped.push({ route: route.path, error: String(err && err.message || err).split('\n')[0] });
       } finally {
-        await context.close().catch(() => {});
+        await page.close().catch(() => {});
       }
     }
   } finally {
     await browser.close();
     if (server) try { server.kill('SIGTERM'); } catch (_) { /* already gone */ }
+  }
+
+  if (skipped.length) {
+    fail('every route in the table was measured', `${skipped.length} skipped: ` + skipped.slice(0, 5).map(s => s.route + ' (' + s.error + ')').join('; '));
+  } else {
+    pass('every route in the table was measured', `${pagesProbed} pages`);
   }
 
   const baseline = existsSync(BASELINE_PATH) ? JSON.parse(readFileSync(BASELINE_PATH, 'utf8')) : null;
@@ -150,10 +189,11 @@ function startServer() {
       example: Object.fromEntries(Object.entries(detail).map(([id, d]) => [id, { help: d.help, impact: d.impact, example: d.example, target: d.sample?.target || null }])),
     }, null, 2) + '\n');
     fail('no baseline', `created ${BASELINE_PATH} from ${pagesProbed} pages — review and commit it`);
+    if (skipped.length) console.log('   skipped:', skipped.slice(0, 8));
     process.exit(1);
   }
 
-  const base = baseline.counts || {};
+  const baselineCounts = baseline.counts || {};
   const regressions = [];
   const improvements = [];
   // The tolerance absorbs the measurement's own noise — the font CDN
@@ -167,17 +207,23 @@ function startServer() {
   // change across a page is tens of instances) and ignores the wobble.
   const toleranceFor = (was) => Math.max(2, Math.floor(was * 0.002));
   for (const [id, n] of Object.entries(counts)) {
-    const was = base[id] || 0;
+    const was = baselineCounts[id] || 0;
     const delta = n - was;
     if (delta > toleranceFor(was)) regressions.push(`${id}: ${was} → ${n} (+${delta}, tolerance ${toleranceFor(was)})`);
   }
-  for (const [id, n] of Object.entries(base)) {
+  for (const [id, n] of Object.entries(baselineCounts)) {
     const now = counts[id] || 0;
     if (now < n) improvements.push(`${id}: ${n} → ${now}`);
   }
 
   if (regressions.length === 0) {
-    pass('no accessibility rule regressed', `${pagesProbed} pages, ${Object.keys(counts).length} rules`);
+    // A gate that measured nothing must not report clean. "No rule
+    // regressed" over zero pages is the shape of a false green.
+    if (pagesProbed === 0) {
+      fail('no accessibility rule regressed', 'NOTHING WAS MEASURED — 0 pages');
+    } else {
+      pass('no accessibility rule regressed', `${pagesProbed} pages, ${Object.keys(counts).length} rules`);
+    }
   } else {
     fail('accessibility regressed', regressions.join('; '));
   }
@@ -195,7 +241,7 @@ function startServer() {
   console.log('');
   console.log('  per-rule instance counts (' + pagesProbed + ' pages):');
   for (const [id, n] of Object.entries(counts).sort((a, b) => b[1] - a[1])) {
-    const was = base[id] || 0;
+    const was = baselineCounts[id] || 0;
     const mark = n > was ? '▲' : (n < was ? '▼' : '·');
     const delta = n - was;
     const tol = toleranceFor(was);
