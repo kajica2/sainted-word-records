@@ -73,14 +73,22 @@ jobs:
   ci:
     name: check + verify + build-size
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    # 90-minute ceiling. The chain itself takes ~22m (the 2026-11-04 PR run
-    # was 21m43s for check + check:verify, plus ~5m of setup, the build and
-    # the budgets), so this is >3x the real duration. The previous 45m
-    # ceiling was not enough headroom: one run lost 34m22s to an apt-get
-    # stall in the ffmpeg step and was then killed by this timeout with
-    # check:full never started — a red CI that had proved nothing. The
-    # budget has to survive one slow step, not just the happy path.
+    # 2026-11-07: raised from 90. The check group grew to 140 steps and
+    # the accessibility gate added four minutes to it; the job was
+    # killed by this timeout at 92 minutes, mid-group, with every gate
+    # before it green. A timeout that fires while the work is still
+    # running is not a budget, it is a cancellation — and the group
+    # takes 100-120 minutes on a slow runner, so the ceiling is 150.
+    timeout-minutes: 150
+    # The budget has to survive one slow step, not just the happy path.
+    # The 45m ceiling was not enough headroom: one run lost 34m22s to an
+    # apt-get stall in the ffmpeg step and was then killed by the timeout
+    # with check:full never started — a red CI that had proved nothing.
+    # The 90m ceiling was not enough either: the group grew to 140 steps
+    # and the job was killed at 92 minutes, mid-group, every gate before
+    # it green. A timeout that fires while the work is still running is
+    # not a budget, it is a cancellation — and the group takes 100-120
+    # minutes on a slow runner, so the ceiling is 150.
     steps:
       - name: Checkout
         uses: actions/checkout@v4

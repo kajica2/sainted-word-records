@@ -241,7 +241,11 @@ once it hits 1.0.
   wait in the gate is bounded — the webfont wait included, because
   `document.fonts.ready` never settles when a font request hangs — and the
   gate has a global ceiling, because a gate that can hang hangs CI for
-  the runner's six-hour limit and tells you nothing about the code.
+  the runner's six-hour limit and tells you nothing about the code. The CI
+  job's own ceiling went from 90 minutes to 150: the check group grew to
+  140 steps and the job was being killed at 92 minutes, mid-group, with
+  every gate before it green. A timeout that fires while the work is
+  still running is not a budget, it is a cancellation.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —
