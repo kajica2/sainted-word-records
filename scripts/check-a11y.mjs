@@ -37,6 +37,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import http from 'node:http';
+import { createServer } from 'node:net';
 import { runAxe, tally } from '../qa/a11y.mjs';
 import { ensureDist } from './with-dist.mjs';
 
@@ -47,8 +48,27 @@ const ROOT = join(HERE, '..');
 // gate would then measure the stale server's pages while reporting them
 // as this run's. The gate kills its server on every exit path (verified),
 // but binding is the other half of that.
+//
+// The port is CHOSEN here, by asking the OS for a free one, and handed to
+// vite. Parsing vite's own output for the port it picked worked locally
+// and failed on CI, where nothing in the captured stdout matched — a
+// readiness poll that depends on a log line's format is a readiness poll
+// that breaks when the tool changes how it logs.
 const PORT = Number(process.env.SWR_A11Y_PORT || 0);
 let base = '';
+
+/** Ask the OS for a free TCP port and hand it back. */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.unref();
+    probe.on('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const port = probe.address().port;
+      probe.close(() => resolve(port));
+    });
+  });
+}
 const BASELINE_PATH = join(ROOT, 'qa', 'a11y-baseline.json');
 const CONFIG_PATH = join(ROOT, 'qa', 'swarm.config.json');
 const updateBaseline = process.argv.includes('--update-baseline');
@@ -64,15 +84,17 @@ const fail = (m, d) => { checks.push({ ok: false, m, d }); console.log('✗', m,
 // measures against, and vite.config.js's dev-vercel-rewrites plugin now
 // applies the rewrites to it (configurePreviewServer, as well as
 // configureServer).
-function startServer() {
+async function startServer() {
+  const port = PORT || await freePort();
+  base = `http://127.0.0.1:${port}`;
   return new Promise((resolve, reject) => {
-    // vite prints the port it chose when asked for port 0; the readiness
-    // poll has to use THAT port, not the one that was asked for.
-    let stdout = '';
-    const proc = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--host', '127.0.0.1', '--outDir', 'dist'], {
-      cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'],
+    let stderr = '';
+    const proc = spawn('npx', ['vite', 'preview', '--port', String(port), '--host', '127.0.0.1', '--outDir', 'dist'], {
+      cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'],
     });
-    proc.stdout.on('data', (chunk) => { stdout += String(chunk); });
+    // vite's own complaints are the only useful thing if it refuses to
+    // start, so they are kept — and shown, not swallowed.
+    proc.stderr.on('data', (chunk) => { stderr += String(chunk); });
     // The server must die with THIS process on EVERY exit path — a gate
     // that failed early used to leave it running, and the next run on the
     // same fixed port then polled the STALE server.
@@ -83,19 +105,13 @@ function startServer() {
     proc.on('exit', () => { try { proc.kill('SIGKILL'); } catch { /* already gone */ } });
     const start = Date.now();
     const tick = () => {
-      const m = stdout.match(/(?:localhost|127\.0\.0\.1):(\d+)/);
-      if (!m) {
-        if (Date.now() - start > 30000) return reject(new Error('vite preview never printed a port'));
-        return setTimeout(tick, 150);
-      }
-      base = `http://127.0.0.1:${m[1]}`;
       http.get(`${base}/`, (res) => {
         res.resume();
         if (res.statusCode === 200) return resolve(proc);
         if (Date.now() - start > 30000) return reject(new Error('server timeout'));
         setTimeout(tick, 200);
       }).on('error', () => {
-        if (Date.now() - start > 30000) return reject(new Error('server error'));
+        if (Date.now() - start > 30000) return reject(new Error('server error' + (stderr ? ': ' + stderr.slice(-300) : '')));
         setTimeout(tick, 150);
       });
     };

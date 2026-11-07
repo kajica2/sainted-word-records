@@ -227,8 +227,9 @@ once it hits 1.0.
   location is not a work item. The gate uses **Puppeteer**, the browser
   the CI runner installs — a gate that needs a browser nobody installed is
   a gate that fails on CI and nowhere else — and it binds an **ephemeral
-  port**, so a stale server from an earlier run can never answer its
-  readiness poll. A route it could not measure is a failure, not a skip:
+  port** — chosen by asking the OS for a free one, not parsed out of
+  vite's log — so a stale server from an earlier run can never answer
+  its readiness poll. A route it could not measure is a failure, not a skip:
   a gate that silently measures nothing reports clean.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight

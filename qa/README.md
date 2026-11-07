@@ -127,6 +127,11 @@ Three rules the gate follows because each one was learned the hard way:
 - **It binds an ephemeral port.** A fixed port is a shared global: a
   stale server left by an earlier run would answer this run's readiness
   poll, and the gate would report the stale server's pages as its own.
+  The port is CHOSEN by asking the OS for a free one and handed to
+  vite — not parsed out of vite's output. Parsing the log worked
+  locally and failed on CI, where nothing in the captured stdout
+  matched: a readiness poll that depends on a log line's format is a
+  readiness poll that breaks when the tool changes how it logs.
 - **A route it could not measure is a failure, not a skip.** A gate that
   silently measures nothing reports clean, and "no rule regressed" over
   zero pages is the shape of a false green.
