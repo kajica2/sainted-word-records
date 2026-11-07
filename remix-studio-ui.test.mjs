@@ -52,3 +52,29 @@ test('Waveforms, take selection and visual handoff have listeners', () => {
   assert.match(js, /function invalidateParameters\(/);
   assert.match(js, /renderRemix\(plan, state\.buffers/);
 });
+
+test('Remix ESM dependencies ship with the static build', () => {
+  // The engine's Vite config intentionally copies HTML and browser modules as
+  // static files. A dependency added to the source but not to rootFiles works
+  // in dev yet fails on every deployed engine page with HTTP 404.
+  const config = readFileSync(new URL('./vite.config.js', import.meta.url), 'utf8');
+  const begin = config.indexOf('const rootFiles = [');
+  const end = config.indexOf('\n  ];', begin);
+  assert.ok(begin >= 0 && end > begin, 'Expected Vite copyStatic rootFiles allowlist');
+  const deployFiles = config.slice(begin, end);
+  const rootImports = [...js.matchAll(/^import\s+.+?\s+from\s+['"]\.\.\/([^'"]+)['"]\s*;/gm)]
+    .map(match => match[1]);
+  assert.deepEqual(rootImports.sort(), [
+    'remix-planner.js', 'remix-renderer.js', 'remix-workflow.js',
+  ], 'Keep test synchronized with static browser ESM imports');
+  for (const dependency of rootImports) {
+    assert.ok(
+      deployFiles.includes("'" + dependency + "'"),
+      dependency + ' must be in Vite copyStatic rootFiles (otherwise deployed HTTP 404)'
+    );
+    assert.doesNotThrow(
+      () => readFileSync(new URL('./' + dependency, import.meta.url), 'utf8'),
+      dependency + ' must exist in repository'
+    );
+  }
+});
