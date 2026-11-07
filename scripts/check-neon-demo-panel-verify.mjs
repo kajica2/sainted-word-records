@@ -184,13 +184,27 @@ try {
     }
 
     await sleep(120);
-    await page.evaluate(function () {
-      return new Promise(function (resolve) {
+    // A busy or backgrounded renderer can stop delivering animation frames.
+    // Fail with the control ID rather than hanging until Puppeteer's protocol
+    // timeout, which obscures the actual failing control.
+    await page.evaluate(function (controlId) {
+      return new Promise(function (resolve, reject) {
+        var settled = false;
+        var timeout = setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          reject(new Error('two animation frames timed out after 5000ms for ' + controlId));
+        }, 5000);
         requestAnimationFrame(function () {
-          requestAnimationFrame(resolve);
+          requestAnimationFrame(function () {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeout);
+            resolve();
+          });
         });
       });
-    });
+    }, meta.id);
 
     const afterProbe = await page.evaluate(function (id) {
       return window.SWR_NEON_DEMO.readProbe(id);
