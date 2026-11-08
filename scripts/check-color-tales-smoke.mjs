@@ -34,6 +34,18 @@ async function main() {
     });
     assert(shellList.includes('color-tales-record.client.js'), 'SW shell lists recorder module');
     assert(shellList.includes('color-tales.css'), 'SW shell lists stylesheet');
+    assert(shellList.includes('characters.webp'), 'SW shell lists characters.webp');
+    assert(shellList.includes('default-pages.bundle.js'), 'SW shell lists default pages bundle');
+
+    const defaults = await page.evaluate(() => ({
+      count: window.SWR_COLOR_TALES?.pages?.length ?? 0,
+      firstTitle: window.SWR_COLOR_TALES?.pages?.[0]?.[0] ?? '',
+      artLen: document.querySelector('#ct-art')?.innerHTML?.length ?? 0,
+      hasSvg: !!document.querySelector('#ct-art svg'),
+    }));
+    assert(defaults.count === 8, `eight default coloring pages (got ${defaults.count})`);
+    assert(defaults.firstTitle.includes('Chef'), `first page is chef (${defaults.firstTitle})`);
+    assert(defaults.hasSvg && defaults.artLen > 100, 'default page loads refined SVG art');
 
     await page.evaluate(() => {
       const svg = (id, fill) =>

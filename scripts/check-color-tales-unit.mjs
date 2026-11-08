@@ -97,6 +97,13 @@ assert(!PAINT.needsStrokeCap('M10 20 L30 40'), 'segment path uses stroke');
 assert(PAINT.firstPoint('M12.5 18')?.x === 12.5, 'parse move point');
 assert(PAINT.capRadius(40) === 20, 'cap radius half brush size');
 
+console.log('Color Tales — shipped default pages manifest');
+const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'color-tales/default-pages.json'), 'utf8'));
+assert(Array.isArray(manifest.pages) && manifest.pages.length === 8, 'default-pages.json lists eight pages');
+assert(manifest.hero === '/color-tales/characters.webp', 'hero webp path');
+assert(fs.existsSync(path.join(ROOT, 'color-tales/characters.webp')), 'characters.webp exists');
+assert(fs.existsSync(path.join(ROOT, 'color-tales/default-pages.bundle.js')), 'default-pages.bundle.js exists');
+
 console.log('Color Tales — page SVG contract');
 const pageStore = (svgText) => {
   const pages = [['A', 'hint', { placeholder: true }]];

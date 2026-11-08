@@ -1,5 +1,5 @@
 // Scoped service worker for Color Tales only — does not replace site-wide sw.js
-const CACHE = 'swr-color-tales-v2';
+const CACHE = 'swr-color-tales-v3';
 const SHELL = [
   '/color-tales',
   '/color-tales/',
@@ -7,6 +7,8 @@ const SHELL = [
   '/color-tales/color-tales.css',
   '/color-tales/color-tales-worker.js',
   '/color-tales/default-characters-placeholder.svg',
+  '/color-tales/characters.webp',
+  '/color-tales/default-pages.bundle.js',
   '/color-tales/color-tales-manifest.webmanifest',
   '/color-tales/sw-color-tales.js',
   '/client/color-tales-constants.client.js',
@@ -26,6 +28,22 @@ const SHELL = [
   '/lib/components.css',
   '/lib/nav.client.js',
   '/lib/footer.client.js',
+  '/color-tales/pages/chef-a.webp',
+  '/color-tales/pages/chef-a.svg',
+  '/color-tales/pages/cat-face-a.webp',
+  '/color-tales/pages/cat-face-a.svg',
+  '/color-tales/pages/girl-a.webp',
+  '/color-tales/pages/girl-a.svg',
+  '/color-tales/pages/sitting-cat-a.webp',
+  '/color-tales/pages/sitting-cat-a.svg',
+  '/color-tales/pages/chef-b.webp',
+  '/color-tales/pages/chef-b.svg',
+  '/color-tales/pages/cat-face-b.webp',
+  '/color-tales/pages/cat-face-b.svg',
+  '/color-tales/pages/girl-b.webp',
+  '/color-tales/pages/girl-b.svg',
+  '/color-tales/pages/sitting-cat-b.webp',
+  '/color-tales/pages/sitting-cat-b.svg',
 ];
 
 function shellMatch(pathname) {

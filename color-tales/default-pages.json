@@ -1,0 +1,61 @@
+{
+  "pages": [
+    {
+      "id": "chef-a",
+      "title": "Chef boy (A)",
+      "hint": "Noodles and chopsticks.",
+      "webp": "/color-tales/pages/chef-a.webp",
+      "svgPath": "/color-tales/pages/chef-a.svg"
+    },
+    {
+      "id": "cat-face-a",
+      "title": "Cat face (A)",
+      "hint": "Bold whiskers and stare.",
+      "webp": "/color-tales/pages/cat-face-a.webp",
+      "svgPath": "/color-tales/pages/cat-face-a.svg"
+    },
+    {
+      "id": "girl-a",
+      "title": "Girl and leaves (A)",
+      "hint": "Leaves and curved lines.",
+      "webp": "/color-tales/pages/girl-a.webp",
+      "svgPath": "/color-tales/pages/girl-a.svg"
+    },
+    {
+      "id": "sitting-cat-a",
+      "title": "Sitting cat (A)",
+      "hint": "Patterns and tail.",
+      "webp": "/color-tales/pages/sitting-cat-a.webp",
+      "svgPath": "/color-tales/pages/sitting-cat-a.svg"
+    },
+    {
+      "id": "chef-b",
+      "title": "Chef boy (B)",
+      "hint": "Noodles and chopsticks.",
+      "webp": "/color-tales/pages/chef-b.webp",
+      "svgPath": "/color-tales/pages/chef-b.svg"
+    },
+    {
+      "id": "cat-face-b",
+      "title": "Cat face (B)",
+      "hint": "Bold whiskers and stare.",
+      "webp": "/color-tales/pages/cat-face-b.webp",
+      "svgPath": "/color-tales/pages/cat-face-b.svg"
+    },
+    {
+      "id": "girl-b",
+      "title": "Girl and leaves (B)",
+      "hint": "Leaves and curved lines.",
+      "webp": "/color-tales/pages/girl-b.webp",
+      "svgPath": "/color-tales/pages/girl-b.svg"
+    },
+    {
+      "id": "sitting-cat-b",
+      "title": "Sitting cat (B)",
+      "hint": "Patterns and tail.",
+      "webp": "/color-tales/pages/sitting-cat-b.webp",
+      "svgPath": "/color-tales/pages/sitting-cat-b.svg"
+    }
+  ],
+  "hero": "/color-tales/characters.webp"
+}

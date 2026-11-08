@@ -22,6 +22,7 @@
     minor: [0, 2, 3, 5, 7, 8, 10],
   };
 
+  const CHARACTERS_WEBP = '/color-tales/characters.webp';
   const PLACEHOLDER_ART = '/color-tales/default-characters-placeholder.svg';
 
   window.SWR_COLOR_TALES_CONSTANTS = {
@@ -35,6 +36,7 @@
     PRESETS,
     MUSICAL_KEYS,
     SCALES,
+    CHARACTERS_WEBP,
     PLACEHOLDER_ART,
   };
 })();
