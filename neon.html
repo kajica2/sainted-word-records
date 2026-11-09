@@ -1252,7 +1252,8 @@
 
     // === LAYERS ===
     // Hard cap: three layers on stage. A locked layer keeps its media and
-    // controls through remap / automix / remove until the lock is cleared.
+    // controls through remap / automix / remove, and holds its resting
+    // place on the stage (no reactor / narrative motion) until unlocked.
     const Layers = { list: [], sel: null, MAX: 3,
       add(it) {
         if (this.list.length >= this.MAX) {
@@ -1279,7 +1280,7 @@
         l.locked = !l.locked;
         this.render();
         if (typeof setStatus === 'function') {
-          setStatus(l.locked ? 'layer locked' : 'layer unlocked', 'ok');
+          setStatus(l.locked ? 'layer locked in place' : 'layer unlocked', 'ok');
         }
         return !!l.locked;
       },
@@ -1379,10 +1380,10 @@
           lk.type = 'button'; lk.className = 'lk' + (l.locked ? ' on' : '');
           lk.textContent = l.locked ? '⚿' : '🔓';
           lk.title = l.locked
-            ? 'Unlock — edits, remap, and automix can change this layer again'
-            : 'Lock — keep this layer through remap / automix / remove';
+            ? 'Unlock — edits, motion, remap, and automix can change this layer again'
+            : 'Lock in place — hold position; keep media through remap / automix / remove';
           lk.setAttribute('aria-pressed', l.locked ? 'true' : 'false');
-          lk.setAttribute('aria-label', l.locked ? 'Unlock layer' : 'Lock layer');
+          lk.setAttribute('aria-label', l.locked ? 'Unlock layer position' : 'Lock layer in place');
           lh.appendChild(lk);
           const chg = document.createElement('button');
           chg.type = 'button'; chg.className = 'chg'; chg.textContent = 'Change';
@@ -1544,6 +1545,18 @@
       // The narrative drift bias below reads `sens` directly, so this page
       // keeps the local the old applyR used to declare.
       const sens = A.params.sens;
+      // Position lock: a locked layer holds its resting place on the stage.
+      // Grade (hue / brightness / contrast / opacity) still comes from the
+      // layer's authored values; reactors and narrative drift that would
+      // move it (x / y / scale / rot) stay off until unlocked.
+      if (l.locked) {
+        out.x = Number.isFinite(l.x) ? l.x : 0;
+        out.y = Number.isFinite(l.y) ? l.y : 0;
+        out.scale = Number.isFinite(l.baseScale) ? l.baseScale : 1;
+        out.rot = 0;
+        out._v = "0";
+        return out;
+      }
       // Master transformations toggle (swr-tx-master, the pause glyph): when
       // the user has muted all audio reactors globally, skip the reactor loop
       // and return the static baseScale/opacity/hue/etc. shape. Per-layer
@@ -2109,6 +2122,9 @@
     // makes the contract real on both pages.
     window.Audio = A;
     window.Library = Lib;
+    // Probe hook: resolveTransform is applyR — used by the lock gate and
+    // by headless checks that a locked layer holds its resting place.
+    Layers.resolveTransform = applyR;
     window.Layers = Layers;
     window.setStatus = setStatus;
     // `window.A` is the music_video.html convention the SWR_* blocks read

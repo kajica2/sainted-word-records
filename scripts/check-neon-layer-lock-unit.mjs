@@ -16,6 +16,8 @@ const markers = [
   ['remap preserves locked', /if \(prev\[i\] && prev\[i\]\.locked\)/],
   ['roles capped to MAX', /\.slice\(0, max\)/],
   ['3 layers max status', /3 layers max/],
+  ['position lock in applyR', /if \(l\.locked\) \{[\s\S]*?out\.scale = Number\.isFinite\(l\.baseScale\)/],
+  ['lock-in-place status', /layer locked in place/],
 ];
 
 for (const [name, re] of markers) {
@@ -40,4 +42,8 @@ assert.match(demo, /layer:lock/, 'demo panel registers layer:lock');
 assert.match(demo, /toggleLock/, 'demo panel calls Layers.toggleLock');
 console.log('PASS: demo panel layer:lock control');
 
-console.log('NEON layer lock unit passed (' + (markers.length + 3) + ' checks)');
+assert.match(neon, /Layers\.resolveTransform = applyR/, 'versions/neon.html exposes resolveTransform');
+assert.match(root, /Layers\.resolveTransform = applyR/, 'neon.html exposes resolveTransform');
+console.log('PASS: resolveTransform probe hook');
+
+console.log('NEON layer lock unit passed (' + (markers.length + 4) + ' checks)');
