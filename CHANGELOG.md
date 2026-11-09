@@ -25,6 +25,11 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **NEON has a top layer of moving SVG wave lines, with seven presets.**
+  Tide, Ripple, Pulse, Scan, Ribbon, Stack and Spike sit in an SVG
+  above the picture and redraw their paths every frame. Pulse and
+  Spike follow the bass and the onset. The Demo panel's Wave lines
+  row switches them. CSS animation stays off; the motion is the path.
 - **The NEON Demo panel has Sensitivity and Temperature sliders.**
   Sensitivity writes the page sensitivity control and `A.params.sens`.
   Temperature writes the grade temperature (`#temp` and `FX.setTemp`,

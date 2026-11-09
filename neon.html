@@ -1630,6 +1630,7 @@
           dt: dt,
         });
       }
+      if (window.SWR_WAVE_LINES) window.SWR_WAVE_LINES.frame(dt, A.feat, W, H);
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
@@ -2143,6 +2144,7 @@
     <script src="/lib/version-badge.client.js" defer></script>
   <script src="/client/looks-menu.client.js" defer></script>
   <script src="/client/look-filter-cycler.client.js" defer></script>
+  <script src="/client/wave-lines.client.js" defer></script>
   <script src="/client/neon-demo-panel.client.js" defer></script>
 <script src="/lib/version-watcher.client.js" defer></script>
   <!-- Visual debugger. Nothing is fetched unless ?swrdebug=1 asks for it,

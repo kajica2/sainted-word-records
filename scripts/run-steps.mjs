@@ -100,6 +100,7 @@ const GROUPS = {
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
     'npm run check:neon-demo-panel-unit',
+    'npm run check:wave-lines-unit',
     'npm run check:neon-demo-panel-verify',
     'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',
