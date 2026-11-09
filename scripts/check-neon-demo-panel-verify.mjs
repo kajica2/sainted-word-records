@@ -281,7 +281,27 @@ try {
     if (meta.id.indexOf('layer:') === 0 && meta.id !== 'layer:masterRot' && meta.id !== 'layer:baseScale' && meta.id !== 'layer:mutate') {
       await runStep(meta.id + ' select', () => page.evaluate(function () {
         var L = window.Layers;
-        if (L && L.list && L.list[0]) L.sel = L.list[0];
+        if (!L || !L.list || !L.list[0]) return;
+        L.sel = L.list[0];
+        // A prior layer:lock leave-behind would block later mutations
+        // (nextReactors / opacity / …). Clear it before each layer control.
+        if (L.list[0].locked) {
+          if (typeof L.toggleLock === 'function') L.toggleLock(L.list[0]);
+          else L.list[0].locked = false;
+          if (typeof L.render === 'function') L.render();
+        }
+        // Re-enable demo inputs that syncLayerControls disabled while locked.
+        if (window.SWR_NEON_DEMO && typeof window.SWR_NEON_DEMO.invokeControl === 'function') {
+          // Prefer a no-op sync via a public hook if present; else clear disabled.
+          var host = document.querySelector('[data-demo-layer-fields]');
+          if (host) {
+            host.querySelectorAll('input, select, button').forEach(function (el) {
+              if (el.id === 'demo-layer-lock') return;
+              if (el.hasAttribute('data-demo-disabled')) return;
+              el.disabled = false;
+            });
+          }
+        }
       }));
     }
 

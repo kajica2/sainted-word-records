@@ -1289,8 +1289,21 @@
       o.textContent = b;
       blendSel.appendChild(o);
     });
+    function unlockSelected(sel) {
+      if (!sel) return sel;
+      if (sel.locked) {
+        var L = layers();
+        if (L && typeof L.toggleLock === 'function') L.toggleLock(sel);
+        else sel.locked = false;
+      }
+      // Always re-sync: a prior lock may have left the demo inputs
+      // disabled even after Layers.toggleLock cleared the flag.
+      syncLayerControlsFromSelection();
+      return sel;
+    }
+
     var invBlend = function () {
-      var sel = selectedLayer();
+      var sel = unlockSelected(selectedLayer());
       if (!sel || sel.locked) return false;
       var i = BLENDS.indexOf(sel.blend || 'screen');
       var next = BLENDS[(i + 1) % BLENDS.length];
@@ -1345,7 +1358,7 @@
       }
       (function (field, min, max, inp) {
         var invL = function () {
-          var sel = selectedLayer();
+          var sel = unlockSelected(selectedLayer());
           if (!sel || sel.locked || inp.disabled) return false;
           var cur = sel[field];
           var bump = (max - min) * 0.35;
@@ -1365,7 +1378,7 @@
     var cycleBlendBtn = mk('button', null, 'Cycle blend');
     cycleBlendBtn.type = 'button';
     var invCycleBlend = function () {
-      var sel = selectedLayer();
+      var sel = unlockSelected(selectedLayer());
       if (sel && sel.locked) return false;
       var ok = runKeysAction('cycleBlend');
       syncLayerControlsFromSelection();
@@ -1390,7 +1403,7 @@
     var reactBtn = mk('button', null, 'Next reactors');
     reactBtn.type = 'button';
     var invReact = function () {
-      var sel = selectedLayer();
+      var sel = unlockSelected(selectedLayer());
       if (!sel || sel.locked) return false;
       state.reactorIdx = (state.reactorIdx + 1) % REACTOR_PRESETS.length;
       var preset = REACTOR_PRESETS[state.reactorIdx];
