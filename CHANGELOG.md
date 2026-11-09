@@ -8,6 +8,24 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **Remo history and import stay usable after review findings.**
+  Empty v1/v2 imports re-seed the starter envelopes. Preset undo
+  captures the envelope id it edited. Coalesced depth edits keep the
+  earliest undo. Wire ids are stable across remove/re-add. Remo
+  scripts load in order so the panel never boots before its
+  dependencies.
+- **The NEON wave lines cover the stage, and they stay above the grade.**
+  The renderer floors its drawing size at 640×360, so a smaller stage
+  gave the SVG a different shape and the lines letterboxed. The sheet
+  now stretches to the stage. The FX canvas uses the same stacking
+  level and is inserted later, so it was painting over the lines; the
+  sheet now sits one level above it.
+- **Keys 1–9 apply look filters on NEON.** The digit row was holding
+  1–4 for scene recall whenever the scene store was loaded. This page
+  loads the store and not the scene keyboard, so those four keys did
+  nothing. Bare 1–9 now call the look-filter slots. The engine and play
+  pages still give 1–4 to the scene keyboard, because that script is
+  what actually handles them.
 - **Start demo could not be clicked, and could not be repeated.** The
   start overlay (z-index 10000) sat over the demo panel, so a fresh visit
   had no way to press Start demo. The panel now sits above that overlay.
@@ -19,6 +37,21 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **NEON layer lock, and a hard three-layer cap.** Each layer card has a
+  lock control. A locked layer keeps its media and controls through
+  remap, assign, detach, remove, the layer scheduler, and automix image
+  swaps. The stage refuses a fourth layer. The demo panel’s Selected
+  layer section exposes the same lock.
+- **Remo Panel 2.0 (flagged `?env=1`) — wired envelopes on NEON.**
+  A parameter registry, envelope bus (seven presets + LUT), wiring
+  store, undo history, and ENV / MATRIX UI load only when the flag is
+  on. Snapshots use `schemaVersion: 2` with a v1 migration. Without
+  the flag the page is unchanged.
+- **NEON has a top layer of moving SVG wave lines, with seven presets.**
+  Tide, Ripple, Pulse, Scan, Ribbon, Stack and Spike sit in an SVG
+  above the picture and redraw their paths every frame. Pulse and
+  Spike follow the bass and the onset. The Demo panel's Wave lines
+  row switches them. CSS animation stays off; the motion is the path.
 - **The NEON Demo panel has Sensitivity and Temperature sliders.**
   Sensitivity writes the page sensitivity control and `A.params.sens`.
   Temperature writes the grade temperature (`#temp` and `FX.setTemp`,

@@ -147,19 +147,23 @@
 
   function findLayerByIndex(idx) {
     const Layers = getLayers();
-    const list = (Layers && Layers.list) || [];
+    const all = (Layers && Layers.list) || [];
+    // Locked layers keep their media through automix / scheduler swaps.
+    const list = all.filter(function (l) { return !l || !l.locked; });
     if (!list.length) return null;
     if (idx === -1) {
-      // Round-robin: every layer takes its turn evolving. The old random
-      // pick let one layer churn while another never moved — the
-      // composition stopped reading as an evolving whole.
+      // Round-robin: every unlocked layer takes its turn evolving. The
+      // old random pick let one layer churn while another never moved —
+      // the composition stopped reading as an evolving whole.
       state._rr = ((state._rr == null ? -1 : state._rr) + 1) % list.length;
       return list[state._rr];
     }
-    if (idx < 0 || idx >= list.length) {
+    if (idx < 0 || idx >= all.length) {
       return list[Math.floor(Math.random() * list.length)];
     }
-    return list[idx];
+    const picked = all[idx];
+    if (picked && picked.locked) return null;
+    return picked;
   }
 
   // Resolve an asset id against the engine Library, then the media store
@@ -193,7 +197,7 @@
     let asset = resolveAsset(assetId);
     if (!asset) return false;
     const layer = findLayerByIndex(layerIndex === -1 ? -1 : layerIndex);
-    if (!layer) return false;
+    if (!layer || layer.locked) return false;
 
     // Natural-cut guard: never "swap" a layer to the clip it is already
     // showing — a crossfade to itself reads as a stutter. Re-pick from

@@ -54,6 +54,8 @@
     reactorIdx: 0,
     root: null,
     aspect: 'stage',
+    wave: 'tide',
+    waveStamp: 0,
     markNode: null,
     markRaf: null,
   };
@@ -253,6 +255,25 @@
     }
     if (!w || !h) return 'clip aspect —';
     return 'clips ' + w + '×' + h + ' · ' + labelAspect(w, h);
+  }
+
+  function paintWaveButtons() {
+    if (!state.root || !state.root.querySelectorAll) return;
+    state.root.querySelectorAll('[data-demo-wave]').forEach(function (btn) {
+      var on = btn.getAttribute('data-demo-wave') === state.wave;
+      if (btn.classList) btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function applyWave(id) {
+    var api = window.SWR_WAVE_LINES;
+    if (!api || typeof api.setPreset !== 'function' || !api.setPreset(id)) return false;
+    state.wave = id;
+    state.waveStamp += 1;
+    paintWaveButtons();
+    invalidateRender();
+    return true;
   }
 
   function paintAspectButtons() {
@@ -746,10 +767,20 @@
     var host = state.root.querySelector('[data-demo-layer-fields]');
     if (!host) return;
     var disabled = !sel;
+    var locked = !!(sel && sel.locked);
     host.querySelectorAll('input, select, button').forEach(function (el) {
       if (el.hasAttribute('data-demo-layer-always')) return;
-      el.disabled = disabled || el.hasAttribute('data-demo-disabled');
+      if (el.id === 'demo-layer-lock') {
+        el.disabled = disabled;
+        return;
+      }
+      el.disabled = disabled || locked || el.hasAttribute('data-demo-disabled');
     });
+    var lockBtn = host.querySelector('#demo-layer-lock');
+    if (lockBtn) {
+      lockBtn.textContent = locked ? 'Unlock layer' : 'Lock layer';
+      lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
+    }
     if (!sel) return;
     var map = {
       'demo-blend': sel.blend,
@@ -763,7 +794,9 @@
     };
     Object.keys(map).forEach(function (id) {
       var input = host.querySelector('#' + id);
-      if (input && typeof map[id] === 'number') input.value = String(map[id]);
+      if (!input) return;
+      if (typeof map[id] === 'number') input.value = String(map[id]);
+      else if (typeof map[id] === 'string') input.value = map[id];
     });
   }
 
@@ -771,7 +804,7 @@
     if (!input) return;
     input.addEventListener('input', function () {
       var sel = selectedLayer();
-      if (!sel) return;
+      if (!sel || sel.locked) return;
       var v = +input.value;
       if (!Number.isFinite(v)) return;
       sel[field] = Math.max(min, Math.min(max, v));
@@ -953,6 +986,24 @@
       aspectBtns.appendChild(b);
     });
     secStage.appendChild(aspectBtns);
+    var secWave = mk('div', 'demo-sec');
+    secWave.appendChild(mk('h3', null, 'Wave lines'));
+    var waveGrid = mk('div', 'demo-grid');
+    var wavePresets = (window.SWR_WAVE_LINES && window.SWR_WAVE_LINES.PRESETS) || [];
+    wavePresets.forEach(function (preset) {
+      var b = mk('button', null, preset.label);
+      b.type = 'button';
+      b.setAttribute('data-demo-wave', preset.id);
+      regControl(b, 'wave:' + preset.id, {
+        label: 'Wave ' + preset.label,
+        invoke: function () { return applyWave(preset.id); },
+      });
+      b.addEventListener('click', function () { applyWave(preset.id); });
+      waveGrid.appendChild(b);
+    });
+    secWave.appendChild(waveGrid);
+    secStage.appendChild(secWave);
+    paintWaveButtons();
     var sensSrc = document.getElementById('sens');
     addPaneSlider(secStage, {
       domId: 'demo-sensitivity',
@@ -1038,7 +1089,7 @@
     }
 
     var secFilter = mk('div', 'demo-sec');
-    secFilter.appendChild(mk('h3', null, 'Look filters (5–9 / T+0–9)'));
+    secFilter.appendChild(mk('h3', null, 'Look filters (keys 1–9)'));
     var gridF = mk('div', 'demo-grid');
     for (var f = 0; f <= 9; f++) {
       (function (slot) {
@@ -1238,9 +1289,22 @@
       o.textContent = b;
       blendSel.appendChild(o);
     });
+    function unlockSelected(sel) {
+      if (!sel) return sel;
+      if (sel.locked) {
+        var L = layers();
+        if (L && typeof L.toggleLock === 'function') L.toggleLock(sel);
+        else sel.locked = false;
+      }
+      // Always re-sync: a prior lock may have left the demo inputs
+      // disabled even after Layers.toggleLock cleared the flag.
+      syncLayerControlsFromSelection();
+      return sel;
+    }
+
     var invBlend = function () {
-      var sel = selectedLayer();
-      if (!sel) return false;
+      var sel = unlockSelected(selectedLayer());
+      if (!sel || sel.locked) return false;
       var i = BLENDS.indexOf(sel.blend || 'screen');
       var next = BLENDS[(i + 1) % BLENDS.length];
       blendSel.value = next;
@@ -1253,7 +1317,7 @@
     regControl(blendSel, 'layer:blend', { label: 'Layer blend', invoke: invBlend });
     blendSel.addEventListener('change', function () {
       var sel = selectedLayer();
-      if (!sel) return;
+      if (!sel || sel.locked) return;
       sel.blend = blendSel.value;
       var L = layers();
       if (L && L.render) L.render();
@@ -1294,8 +1358,8 @@
       }
       (function (field, min, max, inp) {
         var invL = function () {
-          var sel = selectedLayer();
-          if (!sel || inp.disabled) return false;
+          var sel = unlockSelected(selectedLayer());
+          if (!sel || sel.locked || inp.disabled) return false;
           var cur = sel[field];
           var bump = (max - min) * 0.35;
           var v = Number.isFinite(cur) && cur < (min + max) / 2 ? cur + bump : min + bump;
@@ -1314,6 +1378,8 @@
     var cycleBlendBtn = mk('button', null, 'Cycle blend');
     cycleBlendBtn.type = 'button';
     var invCycleBlend = function () {
+      var sel = unlockSelected(selectedLayer());
+      if (sel && sel.locked) return false;
       var ok = runKeysAction('cycleBlend');
       syncLayerControlsFromSelection();
       invalidateRender();
@@ -1337,8 +1403,8 @@
     var reactBtn = mk('button', null, 'Next reactors');
     reactBtn.type = 'button';
     var invReact = function () {
-      var sel = selectedLayer();
-      if (!sel) return false;
+      var sel = unlockSelected(selectedLayer());
+      if (!sel || sel.locked) return false;
       state.reactorIdx = (state.reactorIdx + 1) % REACTOR_PRESETS.length;
       var preset = REACTOR_PRESETS[state.reactorIdx];
       if (isRotationOff()) {
@@ -1356,6 +1422,28 @@
     regControl(reactBtn, 'layer:nextReactors', { label: 'Next reactors', invoke: invReact });
     reactBtn.addEventListener('click', invReact);
     layerBtns.appendChild(reactBtn);
+    var lockBtn = mk('button', null, 'Lock layer');
+    lockBtn.type = 'button';
+    lockBtn.id = 'demo-layer-lock';
+    var invLock = function () {
+      var sel = selectedLayer();
+      var L = layers();
+      if (!sel || !L) return false;
+      if (typeof L.toggleLock === 'function') {
+        L.toggleLock(sel);
+      } else {
+        sel.locked = !sel.locked;
+        if (L.render) L.render();
+      }
+      lockBtn.textContent = sel.locked ? 'Unlock layer' : 'Lock layer';
+      lockBtn.setAttribute('aria-pressed', sel.locked ? 'true' : 'false');
+      syncLayerControlsFromSelection();
+      invalidateRender();
+      return true;
+    };
+    regControl(lockBtn, 'layer:lock', { label: 'Lock layer', invoke: invLock });
+    lockBtn.addEventListener('click', invLock);
+    layerBtns.appendChild(lockBtn);
     layerHost.appendChild(layerBtns);
     secLayer.appendChild(layerHost);
     body.appendChild(secLayer);
@@ -1520,14 +1608,20 @@
       var sel = selectedLayer();
       if (!sel) return { layer: null };
       var field = id.split(':')[1];
-      if (field === 'blend') return { blend: sel.blend };
-      if (field === 'cycleBlend') return { blend: sel.blend };
+      if (field === 'blend') return { blend: sel.blend, locked: !!sel.locked };
+      if (field === 'cycleBlend') return { blend: sel.blend, locked: !!sel.locked };
       if (field === 'masterRot') return { rotationEnabled: sel.rotationEnabled };
-      if (field === 'nextReactors') return { reactors: JSON.stringify(sel.reactors || []) };
-      return { layerField: field, value: sel[field] };
+      if (field === 'nextReactors') return { reactors: JSON.stringify(sel.reactors || []), locked: !!sel.locked };
+      if (field === 'lock') return { locked: !!sel.locked };
+      return { layerField: field, value: sel[field], locked: !!sel.locked };
     }
     if (id.indexOf('slider:') === 0) {
       return { sensitivity: readSensitivity(), temperature: readTemperature() };
+    }
+    if (id.indexOf('wave:') === 0) {
+      var live = window.SWR_WAVE_LINES && window.SWR_WAVE_LINES.getPreset
+        ? window.SWR_WAVE_LINES.getPreset() : null;
+      return { wave: live ? live.id : state.wave, stamp: state.waveStamp };
     }
     if (id.indexOf('aspect:') === 0) {
       var canvas = stageCanvas();
