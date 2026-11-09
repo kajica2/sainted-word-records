@@ -24,6 +24,8 @@ const PERSONAS_SRC = fs.readFileSync(path.join(ROOT, 'personas.js'), 'utf8');
 const CYCLER_SRC = fs.readFileSync(path.join(ROOT, 'client/look-filter-cycler.client.js'), 'utf8');
 const MASK_CLIENT = fs.readFileSync(path.join(ROOT, 'lib/mask-illusions.client.js'), 'utf8');
 const DETECT_SRC = fs.readFileSync(path.join(ROOT, 'lib/webgl-feature-detect.client.js'), 'utf8');
+const KEYS_SRC = fs.readFileSync(path.join(ROOT, 'engine-keys.client.js'), 'utf8');
+const SCENES_KB_SRC = fs.readFileSync(path.join(ROOT, 'client/scenes-keyboard.client.js'), 'utf8');
 
 const MASK_KEYS = [
   'maskThreshold', 'maskGooey', 'maskSlit',
@@ -61,6 +63,28 @@ console.log('mask-illusions:');
   }
   check('uniform comment allows mutAlgo 0..11', /u_mutAlgo.*0\.\.11/.test(FX_SRC));
   check('clampMutAlgo max is 11', /MUT_ALGO_MAX\s*=\s*11/.test(FX_SRC));
+  check('Ribbed UV mixes with u_mut', /mix\(v_uv,\s*slitUV\(v_uv,\s*u_time\),\s*u_mut\)/.test(FX_SRC));
+  check('Wedge UV mixes with mask * u_mut', /mask \* u_mut/.test(FX_SRC) && /kaleidoUV/.test(FX_SRC));
+  check('Ribbed edge mask mixes with u_mut', /mix\(1\.0,\s*mask,\s*u_mut\)/.test(FX_SRC));
+}
+
+// ---- Keyboard: mask mode must win over bare digits + scene capture ----
+{
+  check(
+    'bare digit filters defer while maskArmed',
+    /maskArmed/.test(KEYS_SRC) && /lookArmed/.test(KEYS_SRC),
+  );
+  check(
+    'scenes-keyboard defers while look/mask mode armed',
+    /__swrMaskModeUntil/.test(SCENES_KB_SRC) && /modeArmed/.test(SCENES_KB_SRC),
+  );
+  // Mask digit handler must appear after the T-arm block and still be present.
+  const maskIdx = KEYS_SRC.indexOf('__swrMaskModeUntil && performance.now() < window.__swrMaskModeUntil');
+  const bareIdx = KEYS_SRC.indexOf('applyFilterFromDigit(slot)');
+  check(
+    'mask digit handler exists alongside bare digit filter',
+    maskIdx > 0 && bareIdx > 0,
+  );
 }
 
 // ---- 5. Size gate on the mask GLSL block ----

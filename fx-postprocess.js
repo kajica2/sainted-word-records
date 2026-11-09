@@ -273,8 +273,10 @@
         uv = mutate(v_uv, u_time, u_mut, u_mutAlgo);
       } else if (algo < 11.5) {
         mask = maskIllusion(v_uv, u_time, algo);
-        if (algo > 7.5 && algo < 8.5) uv = slitUV(v_uv, u_time);
-        else if (algo > 10.5) uv = mix(v_uv, kaleidoUV(v_uv), clamp(mask, 0.0, 1.0));
+        // Scale UV displacement by u_mut so intensity 0 is a true no-op
+        // (Ribbed / Wedge used to leave the frame shifted with mut at 0).
+        if (algo > 7.5 && algo < 8.5) uv = mix(v_uv, slitUV(v_uv, u_time), u_mut);
+        else if (algo > 10.5) uv = mix(v_uv, kaleidoUV(v_uv), clamp(mask * u_mut, 0.0, 1.0));
       }
 
       // === Liquid glass domain warp ===
@@ -448,11 +450,12 @@
       }
 
       // Mask blend. Algorithms 0..5 leave mask at 0, so this is a no-op for them.
+      // Every branch multiplies by u_mut so intensity 0 restores the clean frame.
       if (algo > 5.5 && algo < 11.5) {
         if (algo > 7.5 && algo < 8.5) {
-          col *= mask;
+          col *= mix(1.0, mask, u_mut);
         } else if (algo > 8.5 && algo < 9.5) {
-          vec2 off = vec2(0.006 * mask, 0.0);
+          vec2 off = vec2(0.006 * mask * u_mut, 0.0);
           float r = texture2D(u_tex, clamp(uv + off, 0.0, 1.0)).r;
           float g = texture2D(u_tex, uv).g;
           float b = texture2D(u_tex, clamp(uv - off, 0.0, 1.0)).b;

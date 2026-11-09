@@ -1636,17 +1636,24 @@
       // 5..9 (or 1..9 when scene pads are absent) = look filter slot N.
       // When SWR_SCENES is mounted, bare 1..4 recall/save scenes via
       // client/scenes-keyboard.client.js (capture phase + preventDefault).
+      // Skip while look-mode or mask-mode is armed — those digit handlers
+      // live further down and must win the chord (T then digit / T,T then digit).
       if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
-        const scenesActive = !!(window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
-        const filterKeyRe = scenesActive ? /^[5-9]$/ : /^[1-9]$/;
-        if (filterKeyRe.test(key)) {
-        const slot = parseInt(key, 10);
-        withNoRotation(function () { applyFilterFromDigit(slot); });
-        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
-          detail: { key, code, mods: {}, action: 'filter-' + slot }
-        })); } catch (_) {}
-        if (ev.preventDefault) ev.preventDefault();
-        return;
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const lookArmed = !!(window.__swrLookModeUntil && now < window.__swrLookModeUntil);
+        const maskArmed = !!(window.__swrMaskModeUntil && now < window.__swrMaskModeUntil);
+        if (!lookArmed && !maskArmed) {
+          const scenesActive = !!(window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
+          const filterKeyRe = scenesActive ? /^[5-9]$/ : /^[1-9]$/;
+          if (filterKeyRe.test(key)) {
+            const slot = parseInt(key, 10);
+            withNoRotation(function () { applyFilterFromDigit(slot); });
+            try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+              detail: { key, code, mods: {}, action: 'filter-' + slot }
+            })); } catch (_) {}
+            if (ev.preventDefault) ev.preventDefault();
+            return;
+          }
         }
       }
       // Shift+1..9 to advance the STORY runtime through its 9 chapters
