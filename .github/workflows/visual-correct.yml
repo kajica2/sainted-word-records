@@ -27,6 +27,14 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Test missing-control detection
-        run: node --test tests/visual-correct.test.mjs
+        run: node --test tests/visual-correct.test.mjs tests/visual-correct-lifecycle.test.mjs
       - name: Assert checked-out Command Center
         run: node scripts/visual-correct.mjs
+      - name: Upload Command Center evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: command-center-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/command-center/
+          if-no-files-found: warn
+          retention-days: 7
