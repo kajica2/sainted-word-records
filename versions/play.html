@@ -3259,6 +3259,12 @@
           <option value="3">kaleido</option>
           <option value="4">ripple</option>
           <option value="5">noise</option>
+          <option value="6">develop</option>
+          <option value="7">bloom</option>
+          <option value="8">ribbed</option>
+          <option value="9">fringe</option>
+          <option value="10">print</option>
+          <option value="11">wedge</option>
         </select>
       </span>
       <span class="separator"></span>
@@ -3350,6 +3356,14 @@
           <option value="morphafracture">MORPHA · FRACTURE</option>
           <option value="morphavoid">MORPHA · VOID</option>
           <option value="morphaecho">MORPHA · ECHO</option>
+          <optgroup label="Mask illusions" title="A moving mask, not a new image. Bass, mid, and treble reveal different parts.">
+            <option value="maskThreshold">Develop</option>
+            <option value="maskGooey">Bloom</option>
+            <option value="maskSlit">Ribbed</option>
+            <option value="maskChromaBand">Fringe</option>
+            <option value="maskHalftone">Print</option>
+            <option value="maskKaleido">Wedge</option>
+          </optgroup>
           <option value="trainstage1">TRAIN · STAGE 1</option>
           <option value="trainstage2">TRAIN · STAGE 2</option>
           <option value="trainstage3">TRAIN · STAGE 3</option>
@@ -8437,6 +8451,7 @@
   <script type="module" src="/fx-postprocess.js"></script>
   <script type="module" src="/engine-transitions.client.js"></script>
   <script type="module" src="/wizard.js"></script>
+  <script src="/lib/mask-illusions.client.js" defer></script>
   <script type="module" src="/personas.js"></script>
   <script type="module" src="/project.js"></script>
   <script type="module" src="/mic-input.client.js"></script>

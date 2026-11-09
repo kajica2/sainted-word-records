@@ -11,6 +11,7 @@ once it hits 1.0.
 - The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
 
 ### Added
+- **Mask illusions** — six beat-driven reveals in the post-process shader (Develop, Bloom, Ribbed, Fringe, Print, Wedge). Bass, mid, and treble open the photograph. They are personas and filter-cycler slots 10–15; press T twice, then 1–6. Slots 0–9 are unchanged.
 - **Offline render HTTP API** (`POST/GET /api/render`) — job queue over the
   existing `renderVariant()` Puppeteer + ffmpeg pipeline. Local / self-hosted
   Node only (`npm run dev`); Vercel serverless returns
