@@ -301,6 +301,7 @@
     "build:generations": "node scripts/generate-generations.mjs",
     "check:generations": "node scripts/check-generations.mjs",
     "check:neon-v2-phase1": "node scripts/check-neon-v2-phase1.mjs",
+    "check:neon-layer-lock-unit": "node scripts/check-neon-layer-lock-unit.mjs",
     "check:neon-audio-v3": "node scripts/check-neon-audio-v3.mjs",
     "check:root-neon-sync": "node scripts/sync-root-neon.mjs --check",
     "neon:sync": "node scripts/sync-root-neon.mjs",

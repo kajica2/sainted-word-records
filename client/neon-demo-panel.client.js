@@ -767,10 +767,20 @@
     var host = state.root.querySelector('[data-demo-layer-fields]');
     if (!host) return;
     var disabled = !sel;
+    var locked = !!(sel && sel.locked);
     host.querySelectorAll('input, select, button').forEach(function (el) {
       if (el.hasAttribute('data-demo-layer-always')) return;
-      el.disabled = disabled || el.hasAttribute('data-demo-disabled');
+      if (el.id === 'demo-layer-lock') {
+        el.disabled = disabled;
+        return;
+      }
+      el.disabled = disabled || locked || el.hasAttribute('data-demo-disabled');
     });
+    var lockBtn = host.querySelector('#demo-layer-lock');
+    if (lockBtn) {
+      lockBtn.textContent = locked ? 'Unlock layer' : 'Lock layer';
+      lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
+    }
     if (!sel) return;
     var map = {
       'demo-blend': sel.blend,
@@ -784,7 +794,9 @@
     };
     Object.keys(map).forEach(function (id) {
       var input = host.querySelector('#' + id);
-      if (input && typeof map[id] === 'number') input.value = String(map[id]);
+      if (!input) return;
+      if (typeof map[id] === 'number') input.value = String(map[id]);
+      else if (typeof map[id] === 'string') input.value = map[id];
     });
   }
 
@@ -792,7 +804,7 @@
     if (!input) return;
     input.addEventListener('input', function () {
       var sel = selectedLayer();
-      if (!sel) return;
+      if (!sel || sel.locked) return;
       var v = +input.value;
       if (!Number.isFinite(v)) return;
       sel[field] = Math.max(min, Math.min(max, v));
@@ -1279,7 +1291,7 @@
     });
     var invBlend = function () {
       var sel = selectedLayer();
-      if (!sel) return false;
+      if (!sel || sel.locked) return false;
       var i = BLENDS.indexOf(sel.blend || 'screen');
       var next = BLENDS[(i + 1) % BLENDS.length];
       blendSel.value = next;
@@ -1292,7 +1304,7 @@
     regControl(blendSel, 'layer:blend', { label: 'Layer blend', invoke: invBlend });
     blendSel.addEventListener('change', function () {
       var sel = selectedLayer();
-      if (!sel) return;
+      if (!sel || sel.locked) return;
       sel.blend = blendSel.value;
       var L = layers();
       if (L && L.render) L.render();
@@ -1334,7 +1346,7 @@
       (function (field, min, max, inp) {
         var invL = function () {
           var sel = selectedLayer();
-          if (!sel || inp.disabled) return false;
+          if (!sel || sel.locked || inp.disabled) return false;
           var cur = sel[field];
           var bump = (max - min) * 0.35;
           var v = Number.isFinite(cur) && cur < (min + max) / 2 ? cur + bump : min + bump;
@@ -1353,6 +1365,8 @@
     var cycleBlendBtn = mk('button', null, 'Cycle blend');
     cycleBlendBtn.type = 'button';
     var invCycleBlend = function () {
+      var sel = selectedLayer();
+      if (sel && sel.locked) return false;
       var ok = runKeysAction('cycleBlend');
       syncLayerControlsFromSelection();
       invalidateRender();
@@ -1377,7 +1391,7 @@
     reactBtn.type = 'button';
     var invReact = function () {
       var sel = selectedLayer();
-      if (!sel) return false;
+      if (!sel || sel.locked) return false;
       state.reactorIdx = (state.reactorIdx + 1) % REACTOR_PRESETS.length;
       var preset = REACTOR_PRESETS[state.reactorIdx];
       if (isRotationOff()) {
@@ -1395,6 +1409,28 @@
     regControl(reactBtn, 'layer:nextReactors', { label: 'Next reactors', invoke: invReact });
     reactBtn.addEventListener('click', invReact);
     layerBtns.appendChild(reactBtn);
+    var lockBtn = mk('button', null, 'Lock layer');
+    lockBtn.type = 'button';
+    lockBtn.id = 'demo-layer-lock';
+    var invLock = function () {
+      var sel = selectedLayer();
+      var L = layers();
+      if (!sel || !L) return false;
+      if (typeof L.toggleLock === 'function') {
+        L.toggleLock(sel);
+      } else {
+        sel.locked = !sel.locked;
+        if (L.render) L.render();
+      }
+      lockBtn.textContent = sel.locked ? 'Unlock layer' : 'Lock layer';
+      lockBtn.setAttribute('aria-pressed', sel.locked ? 'true' : 'false');
+      syncLayerControlsFromSelection();
+      invalidateRender();
+      return true;
+    };
+    regControl(lockBtn, 'layer:lock', { label: 'Lock layer', invoke: invLock });
+    lockBtn.addEventListener('click', invLock);
+    layerBtns.appendChild(lockBtn);
     layerHost.appendChild(layerBtns);
     secLayer.appendChild(layerHost);
     body.appendChild(secLayer);
@@ -1559,11 +1595,12 @@
       var sel = selectedLayer();
       if (!sel) return { layer: null };
       var field = id.split(':')[1];
-      if (field === 'blend') return { blend: sel.blend };
-      if (field === 'cycleBlend') return { blend: sel.blend };
+      if (field === 'blend') return { blend: sel.blend, locked: !!sel.locked };
+      if (field === 'cycleBlend') return { blend: sel.blend, locked: !!sel.locked };
       if (field === 'masterRot') return { rotationEnabled: sel.rotationEnabled };
-      if (field === 'nextReactors') return { reactors: JSON.stringify(sel.reactors || []) };
-      return { layerField: field, value: sel[field] };
+      if (field === 'nextReactors') return { reactors: JSON.stringify(sel.reactors || []), locked: !!sel.locked };
+      if (field === 'lock') return { locked: !!sel.locked };
+      return { layerField: field, value: sel[field], locked: !!sel.locked };
     }
     if (id.indexOf('slider:') === 0) {
       return { sensitivity: readSensitivity(), temperature: readTemperature() };

@@ -188,7 +188,7 @@
     var list = layers();
     if (!list.length) return false;
     var layer = list[0];
-    if (!layer || !mk().isImageAsset(layer.asset)) return false;
+    if (!layer || layer.locked || !mk().isImageAsset(layer.asset)) return false;
     var curId = layer.asset && layer.asset.id;
     var candidates = imgs.filter(function (it) { return it.id !== curId; });
     if (!candidates.length) return false;

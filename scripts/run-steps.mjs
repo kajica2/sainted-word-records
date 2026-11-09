@@ -356,6 +356,7 @@ const GROUPS = {
     // pins the five-band envelope and the transient/tempo bounds. Both read
     // versions/neon.html as source — no browser, no build.
     'npm run check:neon-v2-phase1',
+    'npm run check:neon-layer-lock-unit',
     'npm run check:neon-audio-v3',
     'npm run check:root-neon-sync',
     // The bench gate's A/V sampling-depth floor: derived from the host's

@@ -37,6 +37,11 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **NEON layer lock, and a hard three-layer cap.** Each layer card has a
+  lock control. A locked layer keeps its media and controls through
+  remap, assign, detach, remove, the layer scheduler, and automix image
+  swaps. The stage refuses a fourth layer. The demo panel’s Selected
+  layer section exposes the same lock.
 - **Remo Panel 2.0 (flagged `?env=1`) — wired envelopes on NEON.**
   A parameter registry, envelope bus (seven presets + LUT), wiring
   store, undo history, and ENV / MATRIX UI load only when the flag is
