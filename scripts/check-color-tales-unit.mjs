@@ -99,10 +99,15 @@ assert(PAINT.capRadius(40) === 20, 'cap radius half brush size');
 
 console.log('Color Tales — shipped default pages manifest');
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'color-tales/default-pages.json'), 'utf8'));
-assert(Array.isArray(manifest.pages) && manifest.pages.length === 7, 'default-pages.json lists seven pages');
+assert(Array.isArray(manifest.pages) && manifest.pages.length === 4, 'default-pages.json lists four pages');
+const shipped = new Set(manifest.pages.map((p) => p.id));
 assert(
-  Array.isArray(manifest.dropped) && manifest.dropped.some((d) => d.id === 'sitting-cat-b'),
-  'dropped sitting-cat-b documented',
+  ['cat-face-b', 'girl-a', 'girl-b', 'sitting-cat-a'].every((id) => shipped.has(id)),
+  'shipped page ids',
+);
+assert(
+  Array.isArray(manifest.dropped) && manifest.dropped.length >= 4,
+  'dropped variants documented',
 );
 assert(manifest.hero === '/color-tales/characters.webp', 'hero webp path');
 assert(fs.existsSync(path.join(ROOT, 'color-tales/characters.webp')), 'characters.webp exists');

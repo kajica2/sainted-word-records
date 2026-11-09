@@ -17,6 +17,8 @@ PAGES_DIR = OUT / "pages"
 SRC_A = ROOT / "color-tales/source/characters-a.jpg"
 SRC_B = ROOT / "color-tales/source/characters-b.jpg"
 
+PAPER_RGB = (255, 253, 245)
+
 NAMES = (
     ("chef", "Chef boy", "Noodles and chopsticks."),
     ("cat-face", "Cat face", "Bold whiskers and stare."),
@@ -24,11 +26,27 @@ NAMES = (
     ("sitting-cat", "Sitting cat", "Patterns and tail."),
 )
 
-# Fractions trimmed from left, top, right, bottom (no inpainting). None = skip variant.
+# Shipped default coloring pages (exact crops preserved).
+SHIP_IDS = (
+    "girl-a",
+    "cat-face-b",
+    "sitting-cat-a",
+    "girl-b",
+)
+
+# 2×2 hero mosaic: top-left → top-right → bottom-left → bottom-right
+HERO_GRID_ORDER = (
+    "girl-a",
+    "cat-face-b",
+    "sitting-cat-a",
+    "girl-b",
+)
+
+# Fractions trimmed from left, top, right, bottom (no inpainting). None = never ship.
 CROP_INSETS: dict[tuple[str, str], tuple[float, float, float, float] | None] = {
-    ("chef", "a"): (0.0, 0.0, 0.20, 0.20),
-    ("chef", "b"): (0.0, 0.0, 0.20, 0.10),
-    ("cat-face", "a"): (0.0, 0.0, 0.05, 0.05),
+    ("chef", "a"): None,
+    ("chef", "b"): None,
+    ("cat-face", "a"): None,
     ("cat-face", "b"): (0.0, 0.0, 0.05, 0.05),
     ("girl", "a"): (0.0, 0.0, 0.05, 0.05),
     ("girl", "b"): (0.0, 0.0, 0.05, 0.05),
@@ -37,6 +55,9 @@ CROP_INSETS: dict[tuple[str, str], tuple[float, float, float, float] | None] = {
 }
 
 DROP_REASONS: dict[tuple[str, str], str] = {
+    ("chef", "a"): "Tight crop cuts off the bottom of the noodle box (owner drop).",
+    ("chef", "b"): "Tight crop cuts off the bottom of the noodle box (owner drop).",
+    ("cat-face", "a"): "Crop cuts through the mouth (owner drop).",
     ("sitting-cat", "b"): "LEA/logo overlaps the tail; no crop clears it without cutting the character.",
 }
 
@@ -99,15 +120,13 @@ def validation_issues(im: Image.Image, *, hero: bool = False) -> list[str]:
         if std < 14 and 140 < mean < 200:
             issues.append("flat_beige_patch")
 
-    if hero:
-        strip = arr[int(h * 0.84) :, int(w * 0.52) :]
-    else:
+    if not hero:
         strip = arr[int(h * 0.88) :, int(w * 0.45) :]
-    lum = 0.299 * strip[:, :, 0] + 0.587 * strip[:, :, 1] + 0.114 * strip[:, :, 2]
-    for row in lum:
-        if len(row) and (row > 225).mean() > (0.42 if hero else 0.35):
-            issues.append("logo_text_strip")
-            break
+        lum = 0.299 * strip[:, :, 0] + 0.587 * strip[:, :, 1] + 0.114 * strip[:, :, 2]
+        for row in lum:
+            if len(row) and (row > 225).mean() > 0.35:
+                issues.append("logo_text_strip")
+                break
 
     corner = arr[int(h * 0.8) :, int(w * 0.78) :]
     clum = 0.299 * corner[:, :, 0] + 0.587 * corner[:, :, 1] + 0.114 * corner[:, :, 2]
@@ -174,60 +193,64 @@ def sanitize_svg(svg: str) -> str:
     return re.sub(r"<script[\s>]", "<!--script", svg, flags=re.I)
 
 
-def build_hero(tiles_a: list[Image.Image]) -> Image.Image:
-    """2×2 mosaic from cleaned variant-A crops (no sheet-level watermark)."""
-    top_w = max(tiles_a[0].width, tiles_a[1].width)
-    bot_w = max(tiles_a[2].width, tiles_a[3].width)
-    top_h = max(tiles_a[0].height, tiles_a[1].height)
-    bot_h = max(tiles_a[2].height, tiles_a[3].height)
-    gutter = 8
-    canvas = Image.new(
-        "RGB",
-        (top_w + bot_w + gutter, top_h + bot_h + gutter),
-        (245, 253, 255),
-    )
-    positions = [
-        (0, 0),
-        (top_w + gutter, 0),
-        (0, top_h + gutter),
-        (top_w + gutter, top_h + gutter),
-    ]
-    for tile, (x, y) in zip(tiles_a, positions):
-        canvas.paste(tile, (x, y))
+def fit_tile_cell(tile: Image.Image, cell: int) -> Image.Image:
+    """Scale tile into a square cell, centered on cream paper."""
+    cell_im = Image.new("RGB", (cell, cell), PAPER_RGB)
+    tw, th = tile.size
+    scale = min(cell / tw, cell / th)
+    nw, nh = max(1, int(tw * scale)), max(1, int(th * scale))
+    fitted = tile.resize((nw, nh), Image.Resampling.LANCZOS)
+    ox = (cell - nw) // 2
+    oy = (cell - nh) // 2
+    cell_im.paste(fitted, (ox, oy))
+    return cell_im
+
+
+def build_hero(tiles_by_id: dict[str, Image.Image]) -> Image.Image:
+    """Even 2×2 grid of the four shipped pages."""
+    tiles = [tiles_by_id[tid] for tid in HERO_GRID_ORDER]
+    cell = max(max(t.width, t.height) for t in tiles)
+    gutter = 14
+    cells = [fit_tile_cell(t, cell) for t in tiles]
+    w = cell * 2 + gutter
+    h = cell * 2 + gutter
+    canvas = Image.new("RGB", (w, h), PAPER_RGB)
+    canvas.paste(cells[0], (0, 0))
+    canvas.paste(cells[1], (cell + gutter, 0))
+    canvas.paste(cells[2], (0, cell + gutter))
+    canvas.paste(cells[3], (cell + gutter, cell + gutter))
     canvas.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
     return canvas
 
 
-def process_sheet(src: Path, variant: str, hero_tiles: list[Image.Image] | None) -> list[dict]:
+def process_sheet(src: Path, variant: str) -> list[dict]:
     im = Image.open(src).convert("RGB")
     im = im.crop(frame_crop_box(im))
     tiles = split_grid(im)
     entries = []
     for tile, (slug, title, hint) in zip(tiles, NAMES):
         key = (slug, variant)
+        tid = f"{slug}-{variant}"
         insets = CROP_INSETS.get(key)
         if insets is None:
-            print(f"  drop {slug}-{variant}: {DROP_REASONS.get(key, 'crop unsafe')}", file=sys.stderr)
+            print(f"  drop {tid}: {DROP_REASONS.get(key, 'not shipped')}", file=sys.stderr)
+            continue
+        if tid not in SHIP_IDS:
+            print(f"  skip {tid}: not in SHIP_IDS", file=sys.stderr)
             continue
         cropped = apply_crop_insets(tile, insets)
         issues = validation_issues(cropped)
         if issues:
             print(
-                f"  drop {slug}-{variant}: validation failed after crop: {', '.join(issues)}",
+                f"  drop {tid}: validation failed after crop: {', '.join(issues)}",
                 file=sys.stderr,
             )
             continue
-        tid = f"{slug}-{variant}"
         webp_path = PAGES_DIR / f"{tid}.webp"
         svg_path = PAGES_DIR / f"{tid}.svg"
         cropped.save(webp_path, "WEBP", quality=82, method=6)
         svg = sanitize_svg(refine_two_color(cropped))
         svg_path.write_text(svg, encoding="utf-8")
-        svg_issues = validation_issues(
-            Image.new("RGB", (cropped.width, cropped.height), (255, 253, 245))
-        )
-        if svg_issues and "flat_beige" in "".join(svg_issues):
-            print(f"  warn {tid} svg sidecar check odd: {svg_issues}", file=sys.stderr)
         entries.append(
             {
                 "id": tid,
@@ -236,10 +259,9 @@ def process_sheet(src: Path, variant: str, hero_tiles: list[Image.Image] | None)
                 "webp": f"/color-tales/pages/{tid}.webp",
                 "svg": svg,
                 "svgPath": f"/color-tales/pages/{tid}.svg",
+                "image": cropped,
             }
         )
-        if variant == "a" and hero_tiles is not None:
-            hero_tiles.append(cropped)
     return entries
 
 
@@ -258,10 +280,8 @@ def verify_all_outputs(pages: list[dict]) -> list[str]:
         if re.search(r"\bLEA\b|iqea|®", text, re.I):
             problems.append(f"{e['id']}.svg: forbidden text")
     hero = OUT / "characters.webp"
-    # Hero is a mosaic of tiles that already passed validation (gutter margins are not art).
     if hero.is_file():
-        hero_im = Image.open(hero)
-        arr = np.array(hero_im.convert("RGB"))
+        arr = np.array(Image.open(hero).convert("RGB"))
         h, w, _ = arr.shape
         br = arr[int(h * 0.72) :, int(w * 0.48) :].astype(float)
         if br.size:
@@ -278,15 +298,18 @@ def main() -> int:
         return 1
     PAGES_DIR.mkdir(parents=True, exist_ok=True)
 
-    hero_tiles: list[Image.Image] = []
-    pages = process_sheet(SRC_A, "a", hero_tiles) + process_sheet(SRC_B, "b", None)
-    if len(hero_tiles) != 4:
-        print(f"Expected 4 hero tiles, got {len(hero_tiles)}", file=sys.stderr)
+    raw_pages = process_sheet(SRC_A, "a") + process_sheet(SRC_B, "b")
+    by_id = {e["id"]: e for e in raw_pages}
+    missing = [tid for tid in SHIP_IDS if tid not in by_id]
+    if missing:
+        print(f"Shipped pages missing after build: {missing}", file=sys.stderr)
         return 1
 
+    pages = [by_id[tid] for tid in SHIP_IDS]
+
+    hero_tiles = {tid: by_id[tid]["image"] for tid in HERO_GRID_ORDER}
     build_hero(hero_tiles).save(OUT / "characters.webp", "WEBP", quality=82, method=6)
 
-    # Remove stale outputs (e.g. dropped sitting-cat-b)
     keep = {f"{e['id']}.webp" for e in pages} | {f"{e['id']}.svg" for e in pages}
     for path in PAGES_DIR.glob("*"):
         if path.name not in keep:
@@ -312,7 +335,7 @@ def main() -> int:
         "hero": "/color-tales/characters.webp",
         "dropped": [
             {"id": f"{slug}-{variant}", "reason": reason}
-            for (slug, variant), reason in DROP_REASONS.items()
+            for (slug, variant), reason in sorted(DROP_REASONS.items())
         ],
     }
     (OUT / "default-pages.json").write_text(json.dumps(bundle, indent=2) + "\n", encoding="utf-8")
@@ -362,7 +385,7 @@ def main() -> int:
     page_urls = [u for e in pages for u in (e["webp"], e["svgPath"])]
     flat_shell = static_shell + page_urls
     shell_js = ",\n  ".join(f"'{u}'" for u in flat_shell)
-    sw = re.sub(r"const CACHE = 'swr-color-tales-v\d+'", "const CACHE = 'swr-color-tales-v4'", sw)
+    sw = re.sub(r"const CACHE = 'swr-color-tales-v\d+'", "const CACHE = 'swr-color-tales-v5'", sw)
     sw = re.sub(
         r"const SHELL = \[[\s\S]*?\];",
         f"const SHELL = [\n  {shell_js},\n];",
@@ -371,7 +394,10 @@ def main() -> int:
     )
     sw_path.write_text(sw, encoding="utf-8")
 
-    print(f"✓ {len(pages)} pages, characters.webp (mosaic), dropped: {list(DROP_REASONS)}")
+    for e in pages:
+        e.pop("image", None)
+
+    print(f"✓ {len(pages)} pages, characters.webp (2×2 grid), dropped: {len(DROP_REASONS)}")
     return 0
 
 

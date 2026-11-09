@@ -43,12 +43,15 @@ async function main() {
       artLen: document.querySelector('#ct-art')?.innerHTML?.length ?? 0,
       hasSvg: !!document.querySelector('#ct-art svg'),
     }));
-    assert(defaults.count === 7, `seven default coloring pages (got ${defaults.count})`);
-    assert(defaults.firstTitle.includes('Chef'), `first page is chef (${defaults.firstTitle})`);
+    assert(defaults.count === 4, `four default coloring pages (got ${defaults.count})`);
+    assert(defaults.firstTitle.includes('Girl'), `first page is girl-a (${defaults.firstTitle})`);
     const titles = await page.evaluate(() =>
       (window.SWR_COLOR_TALES?.pages ?? []).map((p) => p[0]),
     );
-    assert(!titles.some((t) => /sitting cat \(B\)/i.test(t)), 'sitting-cat (B) not shipped');
+    const dropped = ['chef', 'sitting cat (B)', 'cat face (A)'];
+    for (const needle of dropped) {
+      assert(!titles.some((t) => t.toLowerCase().includes(needle.toLowerCase())), `${needle} not shipped`);
+    }
     assert(defaults.hasSvg && defaults.artLen > 100, 'default page loads refined SVG art');
 
     await page.evaluate(() => {

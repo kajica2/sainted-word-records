@@ -1,5 +1,5 @@
 // Scoped service worker for Color Tales only — does not replace site-wide sw.js
-const CACHE = 'swr-color-tales-v4';
+const CACHE = 'swr-color-tales-v5';
 const SHELL = [
   '/color-tales',
   '/color-tales/',
@@ -28,18 +28,12 @@ const SHELL = [
   '/lib/components.css',
   '/lib/nav.client.js',
   '/lib/footer.client.js',
-  '/color-tales/pages/chef-a.webp',
-  '/color-tales/pages/chef-a.svg',
-  '/color-tales/pages/cat-face-a.webp',
-  '/color-tales/pages/cat-face-a.svg',
   '/color-tales/pages/girl-a.webp',
   '/color-tales/pages/girl-a.svg',
-  '/color-tales/pages/sitting-cat-a.webp',
-  '/color-tales/pages/sitting-cat-a.svg',
-  '/color-tales/pages/chef-b.webp',
-  '/color-tales/pages/chef-b.svg',
   '/color-tales/pages/cat-face-b.webp',
   '/color-tales/pages/cat-face-b.svg',
+  '/color-tales/pages/sitting-cat-a.webp',
+  '/color-tales/pages/sitting-cat-a.svg',
   '/color-tales/pages/girl-b.webp',
   '/color-tales/pages/girl-b.svg',
 ];
