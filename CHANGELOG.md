@@ -185,7 +185,7 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
-- **Staged media did not come back after a reload.** Dropping or clicking a clip onto the stage filled the library, but the page snapshot was only written when a control changed — so the next visit restored an empty stage. Adding, remapping, or reordering layers now writes the stack, and the existing restore path puts those clips back.
+- **Staged media did not come back after a reload.** Dropping or clicking a clip onto the stage filled the library, but the page snapshot was only written when a control changed — so the next visit restored an empty stage. Adding, remapping, or reordering layers now writes the stack, and the existing restore path puts those clips back. Typed text layers keep their kind and string in the same snapshot.
 - **The NEON demo verify named a stalled control.** A control that stopped delivering animation frames used to sit until Puppeteer's 180s protocol timeout, and the log said `verify run` with no id. Each step now has a Node-side deadline that names the control, and the frame wait itself fails after 5s when the page is still alive but frames never arrive. The run after `layer:baseScale` was the one that hung (`layer:blend`).
 - **Neon auto-start threw `Audio.load is not a function`.** The shared
   audio core (`lib/audio.client.js`) only published `loadFile`, while the

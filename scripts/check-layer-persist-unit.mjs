@@ -188,6 +188,52 @@ check('a saved stack restores the same asset ids', () => {
   return true;
 });
 
+check('a text layer round-trips kind and text', () => {
+  if (!/kind === 'text'/.test(WIRE) && !/l\.kind === 'text'/.test(WIRE)) {
+    return 'persist-wire does not write text layers';
+  }
+  if (!/ls\.kind === 'text'/.test(WIRE)) return 'persist-wire does not restore text layers';
+  const store = {};
+  const sandbox = {
+    console: { warn() {}, log() {}, info() {}, error() {} },
+    localStorage: {
+      getItem(k) { return Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null; },
+      setItem(k, v) { store[k] = String(v); },
+      removeItem(k) { delete store[k]; },
+    },
+    window: null,
+  };
+  sandbox.window = sandbox;
+  vm.createContext(sandbox);
+  vm.runInContext(PERSIST, sandbox);
+  const P = sandbox.SWR_GRID_PERSIST;
+  const pageId = 'engine';
+  const snap = {
+    pageId,
+    version: 1,
+    savedAt: Date.now(),
+    selectedLayerId: null,
+    layers: [{
+      id: 'T1', kind: 'text', text: 'hello stage', font: 'sans-serif',
+      size: 64, weight: 700, family: 'sans-serif', color: '#fff', glow: '#000',
+      assetId: null, blend: 'source-over', opacity: 1, baseScale: 1,
+      contrast: 1, brightness: 1, alpha: 1, mutate: 0, hue: 0,
+      pos: { x: 10, y: -4, rot: 0 }, rotOffset: 0, rotationEnabled: false,
+      snapBeat: false, reactors: [], algo: 'none', algoIntensity: 0,
+    }],
+    global: {},
+    presets: [],
+  };
+  if (!P.saveEngineState(pageId, snap)) return 'save failed';
+  const loaded = P.loadEngineState(pageId);
+  if (!loaded || !loaded.layers || loaded.layers.length !== 1) return 'load failed';
+  const row = loaded.layers[0];
+  if (row.kind !== 'text') return 'kind ' + row.kind;
+  if (row.text !== 'hello stage') return 'text ' + row.text;
+  if (row.assetId != null) return 'unexpected assetId';
+  return true;
+});
+
 const fail = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - fail} passed, ${fail} failed (${results.length} checks)`);
 if (fail) process.exit(1);
