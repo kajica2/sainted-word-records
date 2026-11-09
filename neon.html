@@ -96,6 +96,8 @@
     .li img, .li video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--m);
       color: #000; border-radius: 1px; letter-spacing: 0.08em; }
+    .li .ratio { position: absolute; top: 2px; right: 2px; font-size: 7px; padding: 1px 3px;
+      background: rgba(0,0,0,0.72); color: var(--c); border-radius: 1px; letter-spacing: 0.06em; }
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
       background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #layers { display: flex; flex-direction: column; gap: 4px; }
@@ -493,6 +495,7 @@
     .li-group .gname { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .li-group .gcount { color: var(--c); font-size: 8px; margin-left: auto; flex: none; }
     .li-group.is-graphics .gname { color: var(--c); }
+    .li-group.is-recent .gname { color: var(--m); letter-spacing: .14em; text-transform: uppercase; }
     .li-group .grule { flex: 1; height: 1px; background: var(--line); }
     .media-search { flex: none; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
     .media-search input { width: 100%; background: var(--bg); border: 1px solid var(--line);
@@ -517,7 +520,7 @@
     #lib.list { display: flex; flex-direction: column; gap: 2px; }
     #lib.list .li { display: flex; align-items: center; gap: 5px; aspect-ratio: auto; padding: 3px 4px; }
     #lib.list .li img, #lib.list .li video { width: 26px; height: 26px; border-radius: 2px; flex: none; }
-    #lib.list .li .tag, #lib.list .li .badge { position: static; flex: none; }
+    #lib.list .li .tag, #lib.list .li .badge, #lib.list .li .ratio { position: static; flex: none; }
     #lib.list .li .nm { position: static; flex: 1; background: none; color: var(--ink);
       padding: 0; font-size: 9px; }
     #lib.list .li .rm { position: static; opacity: 1; flex: none; }
@@ -880,6 +883,7 @@
   <script src="/lib/webgl-feature-detect.client.js"></script>
   <script src="/client/look-filter-cycler.client.js"></script>
   <script src="/client/media-grouping.client.js"></script>
+  <script src="/client/recent-media.client.js"></script>
   <script src="/client/targeting.client.js"></script>
   <script src="/client/variant-switcher.client.js"></script>
   <script src="/engine-3d.client.js"></script>
@@ -960,7 +964,8 @@
           }
           const it = { id: this.nextId++, name: f.name, type: kind,
             blob: f, url: blobUrl, motion: 0, luma: 0.5, hue: 0, w:0, h:0, added: Date.now(), thumb: null };
-          this.items.push(it); this._classify(it); }
+          this.items.push(it); this._classify(it);
+          if (window.SWR_RECENT_MEDIA) window.SWR_RECENT_MEDIA.touch(it); }
         this.render(); },
       _classify(it) {
         const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
@@ -1086,11 +1091,24 @@
           d.className = 'li' + (it.id === MediaUI.focusId ? ' is-focus' : '');
           d.dataset.id = String(it.id);
           d.title = it.name;
+          // The tile's box is the clip's own ratio once we know it, so a
+          // 16:9 dance clip is not cropped into the square the grid used
+          // for every item. List view stays a row; the chip still names it.
+          const aw = +it.w || 0, ah = +it.h || 0;
+          if (aw > 0 && ah > 0 && !el.classList.contains('list')) d.style.aspectRatio = (aw / ah).toFixed(4);
           // The type chip and the × button.
           const tag = document.createElement('span');
           tag.className = 'tag';
           tag.textContent = it.type === 'video' ? 'V' : 'I';
           d.appendChild(tag);
+          if (aw > 0 && ah > 0) {
+            const ratio = document.createElement('span');
+            ratio.className = 'ratio';
+            const named = window.SWR_NEON_DEMO && window.SWR_NEON_DEMO.labelAspect
+              ? window.SWR_NEON_DEMO.labelAspect(aw, ah) : null;
+            ratio.textContent = named || ((aw / ah).toFixed(2) + ':1');
+            d.appendChild(ratio);
+          }
           const rm = document.createElement('span');
           rm.className = 'rm';
           rm.dataset.id = String(it.id);
@@ -1126,6 +1144,7 @@
           d.addEventListener('click', (e) => {
             // Don't fire "add to layer" if the click was on a button.
             if (e.target.closest('.rm, .asg')) return;
+            if (window.SWR_RECENT_MEDIA) window.SWR_RECENT_MEDIA.touch(it);
             Layers.add(it);
           });
           return d;
@@ -1133,7 +1152,7 @@
         // Group headers: the group name, a rule, and the item count.
         const buildGroupHeader = (g) => {
           const h = document.createElement('div');
-          h.className = 'li-group' + (g.kind === 'graphics' ? ' is-graphics' : '');
+          h.className = 'li-group' + (g.kind === 'graphics' ? ' is-graphics' : '') + (g.kind === 'recent' ? ' is-recent' : '');
           const name = document.createElement('span');
           name.className = 'gname';
           name.textContent = g.label;
@@ -1147,16 +1166,27 @@
           h.appendChild(count);
           return h;
         };
+        // Recent is its own folder, painted first. Those items leave the
+        // groups below so a clip is not listed twice. groupItems() itself
+        // is unchanged — automix still groups the full list by name.
+        const recentApi = window.SWR_RECENT_MEDIA;
+        const recent = recentApi ? recentApi.pick(list, recentApi.LIMIT) : [];
+        const recentIds = new Set(recent.map(it => it.id));
+        const rest = recent.length ? list.filter(it => !recentIds.has(it.id)) : list;
+        if (recent.length) {
+          el.appendChild(buildGroupHeader({ label: 'recent', kind: 'recent', items: recent }));
+          for (const it of recent) el.appendChild(buildItem(it));
+        }
         const grouping = window.SWR_MEDIA_GROUPING_UI && window.SWR_MEDIA_GROUPING_UI.isOn()
           && window.SWR_MEDIA_GROUPING;
         if (grouping) {
-          const groups = grouping.groupItems(list);
+          const groups = grouping.groupItems(rest);
           for (const g of groups) {
             el.appendChild(buildGroupHeader(g));
             for (const it of g.items) el.appendChild(buildItem(it));
           }
         } else {
-          for (const it of list) el.appendChild(buildItem(it));
+          for (const it of rest) el.appendChild(buildItem(it));
         }
         // Wire the × buttons. Done after innerHTML so we attach listeners
         // to the live DOM nodes (innerHTML-replaced elements lose their
@@ -1195,6 +1225,7 @@
             const id = parseInt(btn.getAttribute('data-id'), 10);
             const it = this.items.find(x => x.id === id);
             if (!it) return;
+            if (window.SWR_RECENT_MEDIA) window.SWR_RECENT_MEDIA.touch(it);
             const target = ($('media-assign-target') || {}).value || 'new';
             if (target === 'new') {
               Layers.assign(it, null);

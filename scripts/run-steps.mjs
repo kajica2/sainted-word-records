@@ -164,6 +164,7 @@ const GROUPS = {
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
+    'npm run check:recent-media-unit',
     // A video loaded as the song becomes a layer that shares the song's own
     // <video> element, so the picture and the sound are one clock. The unit
     // pins the module's decisions (a video song adds one songBound layer

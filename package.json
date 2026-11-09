@@ -86,6 +86,7 @@
     "check:engine-keys-digit-filter-unit": "node scripts/check-engine-keys-digit-filter-unit.mjs",
     "check:engine-keys-digit-rotation-guard-unit": "node scripts/check-engine-keys-digit-rotation-guard-unit.mjs",
     "check:media-grouping-unit": "node scripts/check-media-grouping-unit.mjs",
+    "check:recent-media-unit": "node scripts/check-recent-media-unit.mjs",
     "check:engine-keys-keyspress-unit": "node scripts/check-engine-keys-keyspress-unit.mjs",
     "check:engine-keys-shortcuts-unit": "node scripts/check-engine-keys-shortcuts-unit.mjs",
     "check:engine-keys-shortcuts-p2-unit": "node scripts/check-engine-keys-shortcuts-p2-unit.mjs",

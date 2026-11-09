@@ -8,6 +8,52 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **Start demo could not be clicked, and could not be repeated.** The
+  start overlay (z-index 10000) sat over the demo panel, so a fresh visit
+  had no way to press Start demo. The panel now sits above that overlay.
+  Clearing the library left the pack loader believing the dance clips
+  were still loaded, so Start demo reported success and installed
+  nothing. It drops that cache when the clips are gone and installs them
+  again. A clip touched before it had a persist id also vanished from
+  Recent after a reload; the time is now found by name and copied onto
+  the id.
+
+### Added
+- **The NEON Demo panel has Sensitivity and Temperature sliders.**
+  Sensitivity writes the page sensitivity control and `A.params.sens`.
+  Temperature writes the grade temperature (`#temp` and `FX.setTemp`,
+  −1 to +1). Both show a live number and stay in step with the footer.
+- **The NEON Demo panel sets the stage aspect and animates an SVG mark.**
+  Fill, 16:9, 9:16, 1:1 and 4:5 letterbox `#render` inside the stage, and
+  each library tile takes the clip's own ratio once its dimensions are
+  known, with a chip that names the nearest of those frames (the dance
+  clips read 16:9). The mark beside that readout is an SVG whose scale
+  pulses on a heartbeat. It is drawn by updating the SVG transform,
+  because the motion switch turns CSS animation off.
+- **The media panel has a Recent folder.** Clips that were just added or
+  just assigned to a layer collect under a `recent` header at the top of
+  the library (`client/recent-media.client.js`), newest first, capped at
+  12, and they are not listed again below it. The times are remembered in
+  this browser, so a reload puts the same clips back in the folder. The
+  name-grouping rule the automix pool uses is unchanged.
+- **The NEON Demo panel has audio presets.** Punch, Club, Soft and Tight
+  set sensitivity, beat gate and decay on the page sliders and on the
+  shared audio core, so a preset changes how the layers react, not only
+  the numbers on screen.
+- **The NEON Demo panel installs the dance clips as the demo.** A new
+  **Demo stage** section leads the panel: **Start demo** installs the 13
+  `dancer-video` clips from the Dance Clips pack, stages them as layers
+  once they are classified, loads and plays the demo song (dismissing the
+  start overlay) and starts cycling presets. **Dance clips**, **Demo song**
+  and **Play/Pause** do each step on their own, **WebGL** toggles the
+  `?webgl=1` opt-in and reloads, and a live strip shows the bass / mid /
+  treble / air bands and the beat, with a status line reporting clips,
+  layers, audio and whether the WebGL pipeline is actually running.
+  `check:neon-demo-panel-unit`, `-verify` and `-smoke` cover it, the smoke
+  through the real button: clips decoding and advancing, audio features
+  moving, the overlay gone, WebGL reported honestly.
+
+### Fixed
 - **Neon packs mount** — `versions/neon.html` (and the synced root `neon.html`) loaded `library-packs.client.js` but had no `#packs` host, so the Dance Clips / Dancers toolbar never painted and the Media library stayed empty. The packs strip also shrinks/scrolls inside the clipped Media panel on phone widths so loaded clips stay reachable. Gate: `check:neon-packs-mount-unit`.
 
 ### Changed
