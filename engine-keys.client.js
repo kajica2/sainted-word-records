@@ -2108,9 +2108,14 @@
       if (!L || typeof L.add !== 'function' || L.add.__swrRotMasterWrapped) return;
       var orig = L.add.bind(L);
       var wrapped = function (asset) {
+        var before = L.list ? L.list.length : 0;
         var ret = orig(asset);
         try {
-          var last = L.list && L.list[L.list.length - 1];
+          // A refused add (the 3-layer cap) must not restyle the layer
+          // that was already on top. Neon's add returns nothing, so a
+          // longer list is the other sign that this call created one.
+          var last = (ret && L.list && L.list.indexOf(ret) >= 0) ? ret
+            : (L.list && L.list.length > before ? L.list[L.list.length - 1] : null);
           if (last) {
             if (window.SWR_MOTION_KILL && typeof window.SWR_MOTION_KILL.isRotationAllowed === 'function') {
               last.rotationEnabled = window.SWR_MOTION_KILL.isRotationAllowed({
@@ -2285,9 +2290,11 @@
       if (!L || typeof L.add !== 'function' || L.add.__swrTxMasterWrapped) return;
       var orig = L.add.bind(L);
       var wrapped = function (asset) {
+        var before = L.list ? L.list.length : 0;
         var ret = orig(asset);
         try {
-          var last = L.list && L.list[L.list.length - 1];
+          var last = (ret && L.list && L.list.indexOf(ret) >= 0) ? ret
+            : (L.list && L.list.length > before ? L.list[L.list.length - 1] : null);
           if (last) last.reactorsEnabled = window.SWR_TX_MASTER.enabled;
           if (typeof L.render === 'function') L.render();
         } catch (_) {}

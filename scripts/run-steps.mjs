@@ -112,6 +112,9 @@ const GROUPS = {
     // Staged media must write the page snapshot on add/remap so a
     // reload restores the same clips onto the stage.
     'npm run check:layer-persist-unit',
+    // Camera on a full stage: a refused add must not adopt the layer
+    // already on top, or stopping the camera deletes it.
+    'npm run check:live-layer-cap-unit',
     // The auto-post feed: the posts come from site-map.json's
     // `announcements` array, read from the inlined footer slice or from
     // /site-map.json, and painted into every [data-announcements]

@@ -7,6 +7,9 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Changed
+- The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
+
 ### Added
 - **Responsive overflow gate** (`check:responsive-overflow`, in the `check`
   group) — asserts that no page scrolls sideways at 390×844 or 1440×900, and
