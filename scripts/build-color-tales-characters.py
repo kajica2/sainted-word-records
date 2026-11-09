@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Color Tales default character crops, WebP, and two-color SVG pages."""
+"""Build Color Tales default character crops, WebP, and two-color SVG pages (crop-only)."""
 
 from __future__ import annotations
 
@@ -24,6 +24,22 @@ NAMES = (
     ("sitting-cat", "Sitting cat", "Patterns and tail."),
 )
 
+# Fractions trimmed from left, top, right, bottom (no inpainting). None = skip variant.
+CROP_INSETS: dict[tuple[str, str], tuple[float, float, float, float] | None] = {
+    ("chef", "a"): (0.0, 0.0, 0.20, 0.20),
+    ("chef", "b"): (0.0, 0.0, 0.20, 0.10),
+    ("cat-face", "a"): (0.0, 0.0, 0.05, 0.05),
+    ("cat-face", "b"): (0.0, 0.0, 0.05, 0.05),
+    ("girl", "a"): (0.0, 0.0, 0.05, 0.05),
+    ("girl", "b"): (0.0, 0.0, 0.05, 0.05),
+    ("sitting-cat", "a"): (0.0, 0.0, 0.16, 0.13),
+    ("sitting-cat", "b"): None,
+}
+
+DROP_REASONS: dict[tuple[str, str], str] = {
+    ("sitting-cat", "b"): "LEA/logo overlaps the tail; no crop clears it without cutting the character.",
+}
+
 
 def luminance(r, g, b):
     return 0.299 * r + 0.587 * g + 0.114 * b
@@ -41,60 +57,8 @@ def frame_crop_box(im: Image.Image) -> tuple[int, int, int, int]:
     bottom = next((y for y in range(h - 1, top, -1) if dark_frac(lum[y, :]) > 0.12), h - 1)
     left = next((x for x in range(w) if dark_frac(lum[:, x]) > 0.15), 0)
     right = next((x for x in range(w - 1, left, -1) if dark_frac(lum[:, x]) > 0.12), w - 1)
-  # trim outer black border ~3% inset
     pad = max(4, int(min(w, h) * 0.012))
     return left + pad, top + pad, right - pad, bottom - pad
-
-
-def replace_bottom_right_watermark(im: Image.Image, frac_w=0.18, frac_h=0.11) -> Image.Image:
-    arr = np.array(im.convert("RGB"), dtype=np.uint8)
-    h, w, _ = arr.shape
-    x0 = int(w * (1 - frac_w))
-    y0 = int(h * (1 - frac_h))
-    sample = arr[y0 - 12 : y0, x0 : w - 2]
-    if sample.size == 0:
-        return im
-    fill = np.median(sample.reshape(-1, 3), axis=0).astype(np.uint8)
-    arr[y0:h, x0:w] = fill
-    return Image.fromarray(arr)
-
-
-def remove_small_dark_marks(im: Image.Image, chef: bool) -> Image.Image:
-    """Drop ®-sized dark marks in the chef quadrant (bottom-right of tile)."""
-    if not chef:
-        return im
-    arr = np.array(im.convert("RGB"), dtype=np.uint8)
-    h, w, _ = arr.shape
-    x0, y0 = int(w * 0.62), int(h * 0.72)
-    region = arr[y0:h, x0:w]
-    lum = 0.299 * region[:, :, 0] + 0.587 * region[:, :, 1] + 0.114 * region[:, :, 2]
-    blue = arr[max(0, y0 - 24) : y0, max(0, x0 - 40) : x0]
-    if blue.size:
-        fill = np.median(blue.reshape(-1, 3), axis=0).astype(np.uint8)
-    else:
-        fill = np.array([151, 139, 124], dtype=np.uint8)
-    mask = lum < 95
-    region[mask] = fill
-    arr[y0:h, x0:w] = region
-    return Image.fromarray(arr)
-
-
-def clean_sitting_cat_watermark(im: Image.Image) -> Image.Image:
-    arr = np.array(im.convert("RGB"), dtype=np.uint8)
-    h, w, _ = arr.shape
-    x0, y0 = int(w * 0.55), int(h * 0.78)
-    sample = arr[int(h * 0.35) : int(h * 0.65), int(w * 0.35) : int(w * 0.65)]
-    fill = np.median(sample.reshape(-1, 3), axis=0).astype(np.uint8)
-    region = arr[y0:h, x0:w]
-    lum = 0.299 * region[:, :, 0] + 0.587 * region[:, :, 1] + 0.114 * region[:, :, 2]
-    # grey watermark text / logos
-    mask = (lum > 140) & (lum < 230)
-    region[mask] = fill
-    lum2 = 0.299 * region[:, :, 0] + 0.587 * region[:, :, 1] + 0.114 * region[:, :, 2]
-    mask2 = lum2 < 100
-    region[mask2] = fill
-    arr[y0:h, x0:w] = region
-    return Image.fromarray(arr)
 
 
 def split_grid(im: Image.Image) -> list[Image.Image]:
@@ -110,11 +74,58 @@ def split_grid(im: Image.Image) -> list[Image.Image]:
     return [im.crop(b) for b in boxes]
 
 
+def apply_crop_insets(tile: Image.Image, insets: tuple[float, float, float, float]) -> Image.Image:
+    left, top, right, bottom = insets
+    w, h = tile.size
+    box = (
+        int(w * left),
+        int(h * top),
+        max(int(w * left) + 32, int(w * (1 - right))),
+        max(int(h * top) + 32, int(h * (1 - bottom))),
+    )
+    return tile.crop(box)
+
+
+def validation_issues(im: Image.Image, *, hero: bool = False) -> list[str]:
+    """Reject flat beige patches, stock logo strips, or corner ® marks."""
+    arr = np.array(im.convert("RGB"))
+    h, w, _ = arr.shape
+    issues: list[str] = []
+
+    br = arr[int(h * 0.72) :, int(w * 0.48) :].astype(float)
+    if br.size:
+        std = br.reshape(-1, 3).std(axis=0).mean()
+        mean = br.mean()
+        if std < 14 and 140 < mean < 200:
+            issues.append("flat_beige_patch")
+
+    if hero:
+        strip = arr[int(h * 0.84) :, int(w * 0.52) :]
+    else:
+        strip = arr[int(h * 0.88) :, int(w * 0.45) :]
+    lum = 0.299 * strip[:, :, 0] + 0.587 * strip[:, :, 1] + 0.114 * strip[:, :, 2]
+    for row in lum:
+        if len(row) and (row > 225).mean() > (0.42 if hero else 0.35):
+            issues.append("logo_text_strip")
+            break
+
+    corner = arr[int(h * 0.8) :, int(w * 0.78) :]
+    clum = 0.299 * corner[:, :, 0] + 0.587 * corner[:, :, 1] + 0.114 * corner[:, :, 2]
+    dark = (clum < 55).sum()
+    if 8 < dark < 120:
+        issues.append("corner_r_mark")
+
+    return issues
+
+
 def refine_two_color(im: Image.Image, threshold: int = 165, max_dim: int = 480) -> str:
     im = im.convert("RGB")
     scale = min(1.0, max_dim / max(im.size))
     if scale < 1:
-        im = im.resize((max(1, int(im.width * scale)), max(1, int(im.height * scale))), Image.Resampling.LANCZOS)
+        im = im.resize(
+            (max(1, int(im.width * scale)), max(1, int(im.height * scale))),
+            Image.Resampling.LANCZOS,
+        )
     w, h = im.size
     arr = np.array(im, dtype=np.float64)
     mask = np.zeros((h, w), dtype=np.uint8)
@@ -123,7 +134,6 @@ def refine_two_color(im: Image.Image, threshold: int = 165, max_dim: int = 480) 
             r, g, b = arr[y, x]
             if luminance(r, g, b) < threshold:
                 mask[y, x] = 1
-    # smooth
     for _ in range(1):
         nxt = mask.copy()
         for y in range(1, h - 1):
@@ -164,24 +174,60 @@ def sanitize_svg(svg: str) -> str:
     return re.sub(r"<script[\s>]", "<!--script", svg, flags=re.I)
 
 
-def process_sheet(src: Path, variant: str) -> list[dict]:
+def build_hero(tiles_a: list[Image.Image]) -> Image.Image:
+    """2×2 mosaic from cleaned variant-A crops (no sheet-level watermark)."""
+    top_w = max(tiles_a[0].width, tiles_a[1].width)
+    bot_w = max(tiles_a[2].width, tiles_a[3].width)
+    top_h = max(tiles_a[0].height, tiles_a[1].height)
+    bot_h = max(tiles_a[2].height, tiles_a[3].height)
+    gutter = 8
+    canvas = Image.new(
+        "RGB",
+        (top_w + bot_w + gutter, top_h + bot_h + gutter),
+        (245, 253, 255),
+    )
+    positions = [
+        (0, 0),
+        (top_w + gutter, 0),
+        (0, top_h + gutter),
+        (top_w + gutter, top_h + gutter),
+    ]
+    for tile, (x, y) in zip(tiles_a, positions):
+        canvas.paste(tile, (x, y))
+    canvas.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+    return canvas
+
+
+def process_sheet(src: Path, variant: str, hero_tiles: list[Image.Image] | None) -> list[dict]:
     im = Image.open(src).convert("RGB")
-    im = replace_bottom_right_watermark(im)
-    box = frame_crop_box(im)
-    im = im.crop(box)
+    im = im.crop(frame_crop_box(im))
     tiles = split_grid(im)
     entries = []
     for tile, (slug, title, hint) in zip(tiles, NAMES):
-        if slug == "chef":
-            tile = remove_small_dark_marks(tile, chef=True)
-        if slug == "sitting-cat":
-            tile = clean_sitting_cat_watermark(tile)
+        key = (slug, variant)
+        insets = CROP_INSETS.get(key)
+        if insets is None:
+            print(f"  drop {slug}-{variant}: {DROP_REASONS.get(key, 'crop unsafe')}", file=sys.stderr)
+            continue
+        cropped = apply_crop_insets(tile, insets)
+        issues = validation_issues(cropped)
+        if issues:
+            print(
+                f"  drop {slug}-{variant}: validation failed after crop: {', '.join(issues)}",
+                file=sys.stderr,
+            )
+            continue
         tid = f"{slug}-{variant}"
         webp_path = PAGES_DIR / f"{tid}.webp"
         svg_path = PAGES_DIR / f"{tid}.svg"
-        tile.save(webp_path, "WEBP", quality=82, method=6)
-        svg = sanitize_svg(refine_two_color(tile))
+        cropped.save(webp_path, "WEBP", quality=82, method=6)
+        svg = sanitize_svg(refine_two_color(cropped))
         svg_path.write_text(svg, encoding="utf-8")
+        svg_issues = validation_issues(
+            Image.new("RGB", (cropped.width, cropped.height), (255, 253, 245))
+        )
+        if svg_issues and "flat_beige" in "".join(svg_issues):
+            print(f"  warn {tid} svg sidecar check odd: {svg_issues}", file=sys.stderr)
         entries.append(
             {
                 "id": tid,
@@ -192,7 +238,38 @@ def process_sheet(src: Path, variant: str) -> list[dict]:
                 "svgPath": f"/color-tales/pages/{tid}.svg",
             }
         )
+        if variant == "a" and hero_tiles is not None:
+            hero_tiles.append(cropped)
     return entries
+
+
+def verify_all_outputs(pages: list[dict]) -> list[str]:
+    problems = []
+    for e in pages:
+        webp = ROOT / e["webp"].lstrip("/")
+        svg = ROOT / e["svgPath"].lstrip("/")
+        if not webp.is_file() or not svg.is_file():
+            problems.append(f"missing {e['id']}")
+            continue
+        issues = validation_issues(Image.open(webp))
+        if issues:
+            problems.append(f"{e['id']}.webp: {', '.join(issues)}")
+        text = svg.read_text(encoding="utf-8")
+        if re.search(r"\bLEA\b|iqea|®", text, re.I):
+            problems.append(f"{e['id']}.svg: forbidden text")
+    hero = OUT / "characters.webp"
+    # Hero is a mosaic of tiles that already passed validation (gutter margins are not art).
+    if hero.is_file():
+        hero_im = Image.open(hero)
+        arr = np.array(hero_im.convert("RGB"))
+        h, w, _ = arr.shape
+        br = arr[int(h * 0.72) :, int(w * 0.48) :].astype(float)
+        if br.size:
+            std = br.reshape(-1, 3).std(axis=0).mean()
+            mean = br.mean()
+            if std < 14 and 140 < mean < 200:
+                problems.append("characters.webp: flat_beige_patch")
+    return problems
 
 
 def main() -> int:
@@ -200,13 +277,26 @@ def main() -> int:
         print("Source JPGs missing", file=sys.stderr)
         return 1
     PAGES_DIR.mkdir(parents=True, exist_ok=True)
-    pages = process_sheet(SRC_A, "a") + process_sheet(SRC_B, "b")
-    # Hero sheet: cleaned A grid resized for lightweight reference
-    hero = Image.open(SRC_A).convert("RGB")
-    hero = replace_bottom_right_watermark(hero)
-    hero = hero.crop(frame_crop_box(hero))
-    hero.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
-    hero.save(OUT / "characters.webp", "WEBP", quality=82, method=6)
+
+    hero_tiles: list[Image.Image] = []
+    pages = process_sheet(SRC_A, "a", hero_tiles) + process_sheet(SRC_B, "b", None)
+    if len(hero_tiles) != 4:
+        print(f"Expected 4 hero tiles, got {len(hero_tiles)}", file=sys.stderr)
+        return 1
+
+    build_hero(hero_tiles).save(OUT / "characters.webp", "WEBP", quality=82, method=6)
+
+    # Remove stale outputs (e.g. dropped sitting-cat-b)
+    keep = {f"{e['id']}.webp" for e in pages} | {f"{e['id']}.svg" for e in pages}
+    for path in PAGES_DIR.glob("*"):
+        if path.name not in keep:
+            path.unlink()
+
+    problems = verify_all_outputs(pages)
+    if problems:
+        for p in problems:
+            print(f"VERIFY FAIL: {p}", file=sys.stderr)
+        return 1
 
     bundle = {
         "pages": [
@@ -220,21 +310,24 @@ def main() -> int:
             for e in pages
         ],
         "hero": "/color-tales/characters.webp",
+        "dropped": [
+            {"id": f"{slug}-{variant}", "reason": reason}
+            for (slug, variant), reason in DROP_REASONS.items()
+        ],
     }
     (OUT / "default-pages.json").write_text(json.dumps(bundle, indent=2) + "\n", encoding="utf-8")
 
-  # JS bundle for offline-first load (embedded SVG, no extra fetch)
     js_lines = [
         "/* generated by scripts/build-color-tales-characters.py — do not edit */",
         "(function () {",
-        "  const PAGES = " + json.dumps(
-            [[e["title"], e["hint"], {"svg": e["svg"]}] for e in pages],
-            ensure_ascii=False,
-        ) + ";",
+        "  const PAGES = "
+        + json.dumps([[e["title"], e["hint"], {"svg": e["svg"]}] for e in pages], ensure_ascii=False)
+        + ";",
         "  window.SWR_COLOR_TALES_DEFAULT_PAGES = PAGES;",
         "})();",
     ]
     (OUT / "default-pages.bundle.js").write_text("\n".join(js_lines) + "\n", encoding="utf-8")
+
     sw_path = OUT / "sw-color-tales.js"
     sw = sw_path.read_text(encoding="utf-8")
     static_shell = [
@@ -269,7 +362,7 @@ def main() -> int:
     page_urls = [u for e in pages for u in (e["webp"], e["svgPath"])]
     flat_shell = static_shell + page_urls
     shell_js = ",\n  ".join(f"'{u}'" for u in flat_shell)
-    sw = re.sub(r"const CACHE = 'swr-color-tales-v\d+'", "const CACHE = 'swr-color-tales-v3'", sw)
+    sw = re.sub(r"const CACHE = 'swr-color-tales-v\d+'", "const CACHE = 'swr-color-tales-v4'", sw)
     sw = re.sub(
         r"const SHELL = \[[\s\S]*?\];",
         f"const SHELL = [\n  {shell_js},\n];",
@@ -278,7 +371,7 @@ def main() -> int:
     )
     sw_path.write_text(sw, encoding="utf-8")
 
-    print(f"✓ {len(pages)} pages, characters.webp, default-pages.bundle.js")
+    print(f"✓ {len(pages)} pages, characters.webp (mosaic), dropped: {list(DROP_REASONS)}")
     return 0
 
 

@@ -1,5 +1,5 @@
 // Scoped service worker for Color Tales only — does not replace site-wide sw.js
-const CACHE = 'swr-color-tales-v3';
+const CACHE = 'swr-color-tales-v4';
 const SHELL = [
   '/color-tales',
   '/color-tales/',
@@ -42,8 +42,6 @@ const SHELL = [
   '/color-tales/pages/cat-face-b.svg',
   '/color-tales/pages/girl-b.webp',
   '/color-tales/pages/girl-b.svg',
-  '/color-tales/pages/sitting-cat-b.webp',
-  '/color-tales/pages/sitting-cat-b.svg',
 ];
 
 function shellMatch(pathname) {

@@ -48,14 +48,13 @@
       "hint": "Leaves and curved lines.",
       "webp": "/color-tales/pages/girl-b.webp",
       "svgPath": "/color-tales/pages/girl-b.svg"
-    },
-    {
-      "id": "sitting-cat-b",
-      "title": "Sitting cat (B)",
-      "hint": "Patterns and tail.",
-      "webp": "/color-tales/pages/sitting-cat-b.webp",
-      "svgPath": "/color-tales/pages/sitting-cat-b.svg"
     }
   ],
-  "hero": "/color-tales/characters.webp"
+  "hero": "/color-tales/characters.webp",
+  "dropped": [
+    {
+      "id": "sitting-cat-b",
+      "reason": "LEA/logo overlaps the tail; no crop clears it without cutting the character."
+    }
+  ]
 }

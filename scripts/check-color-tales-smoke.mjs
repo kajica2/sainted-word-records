@@ -43,8 +43,12 @@ async function main() {
       artLen: document.querySelector('#ct-art')?.innerHTML?.length ?? 0,
       hasSvg: !!document.querySelector('#ct-art svg'),
     }));
-    assert(defaults.count === 8, `eight default coloring pages (got ${defaults.count})`);
+    assert(defaults.count === 7, `seven default coloring pages (got ${defaults.count})`);
     assert(defaults.firstTitle.includes('Chef'), `first page is chef (${defaults.firstTitle})`);
+    const titles = await page.evaluate(() =>
+      (window.SWR_COLOR_TALES?.pages ?? []).map((p) => p[0]),
+    );
+    assert(!titles.some((t) => /sitting cat \(B\)/i.test(t)), 'sitting-cat (B) not shipped');
     assert(defaults.hasSvg && defaults.artLen > 100, 'default page loads refined SVG art');
 
     await page.evaluate(() => {
