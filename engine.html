@@ -3033,7 +3033,7 @@
         <button class="tbtn ghost" data-clear="songs" title="Clear only the saved song — keeps your library assets and bundled songs" style="padding:4px 8px; font-size:9px;">Clear song</button>
         <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
-        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" />
         <button class="tbtn ghost" id="add-folder" title="Pick a folder — engine pulls every image/video recursively" style="padding:4px 8px; font-size:9px;">+ Folder</button>
         <input type="file" id="folder-input" webkitdirectory multiple style="display:none;" />
         <div id="import-progress" class="import-progress" hidden>
@@ -3078,7 +3078,7 @@
           <div class="swr-user-media-head">
             <span class="swr-user-media-title">My Media</span>
             <input type="file" id="swr-user-media-input" multiple
-                   accept="image/*,video/*"
+                   accept="image/*,video/*,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp"
                    class="swr-user-media-input"
                    title="Add images or videos to your library" />
             <label for="swr-user-media-input" class="tbtn ghost swr-user-media-add">+ Add</label>
@@ -3305,7 +3305,14 @@
         // inline wire-up (it needs the extra addMedia/deleteAll handling), so
         // the converter lives here too, kept in the same shape.
         function mediaItemToLayerAsset(item) {
-          var isVideo = !!(item.mime && item.mime.indexOf('video/') === 0);
+          // A stored .mov can have an empty mime. The extension is the kind.
+          var K = window.SWR_MEDIA_KIND;
+          var kind = (K && typeof K.kind === 'function')
+            ? K.kind({ type: item.mime || '', name: item.name || '' })
+            : '';
+          var isVideo = kind
+            ? kind === 'video'
+            : !!(item.mime && item.mime.indexOf('video/') === 0);
           var url;
           try { url = URL.createObjectURL(item.blob); } catch (e) { url = null; }
           if (!url) return null;
@@ -4035,6 +4042,7 @@
   <script src="/lib/audio.client.js" defer></script>
   <!-- One bloodstream for the composition's motion: energy / pulse / tide / flow. -->
   <script src="/lib/swr-life.client.js" defer></script>
+  <script src="/lib/media-kind.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
   <script src="/lib/image-lane.client.js" defer></script>
@@ -6588,6 +6596,15 @@
         // directory tree at once. The browser flattens every file into the
         // FileList with webkitRelativePath set to the relative path under
         // the chosen root.
+        // Movies often arrive with an empty File.type. The shared
+        // classifier reads the extension; the MIME check is the fallback
+        // when that script has not loaded.
+        const isVisualFile = (f) => {
+          const K = window.SWR_MEDIA_KIND;
+          if (K && typeof K.kind === 'function') return !!K.kind(f);
+          const type = (f && f.type) || '';
+          return type.startsWith('video/') || type.startsWith('image/');
+        };
         const folderInput = $('folder-input');
         const folderBtn = $('add-folder');
         if (folderBtn && folderInput) {
@@ -6598,7 +6615,7 @@
             // Filter to image/video MIME types up front so the import
             // progress badge reports accurate totals (skip text files,
             // .DS_Store, etc. that webkitdirectory drags along).
-            const wanted = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+            const wanted = files.filter(isVisualFile);
             if (wanted.length === 0) {
               console.warn('[folder-import] no image/video files in selected folder');
               setStatus('no media in folder', 'warn');
@@ -6656,7 +6673,7 @@
             }
           }
           if (all.length === 0) return;
-          const wanted = all.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+          const wanted = all.filter(isVisualFile);
           if (wanted.length === 0) {
             console.warn('[folder-drop] no image/video files in dropped folder');
             return;
