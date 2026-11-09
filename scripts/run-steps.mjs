@@ -78,6 +78,19 @@ const GROUPS = {
     // the page threw on every load.
     'npm run check:page-errors',
     'npm run check:pwa-sw-reload',
+    // A gateway 504 of the document used to be returned to the page even
+    // when the precached shell was sitting in the cache.
+    'npm run check:sw-navigation-unit',
+    // WebGL is off unless the page asks. The post-process pass must not
+    // warn, and must still publish window.FX, on that default path.
+    'npm run check:fx-fallback-unit',
+    // Mask illusions: shader compile for mutAlgo 0..11, MASK personas,
+    // cycler slots 10..15, and a bass 0 vs 1 pixel difference.
+    'npm run check:mask-illusions',
+    // A .mov / .mkv with an empty File.type must still enter the library.
+    'npm run check:media-kind-unit',
+    // Neon must mount #packs so Dance Clips / library-packs can paint.
+    'npm run check:neon-packs-mount-unit',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
@@ -101,6 +114,12 @@ const GROUPS = {
     // group name. The sibling layer-retire/layer-text/layer-lifecycle
     // suites are reachable from no gate (pre-existing, not this gate's job).
     'npm run check:layer-groups-unit',
+    // Staged media must write the page snapshot on add/remap so a
+    // reload restores the same clips onto the stage.
+    'npm run check:layer-persist-unit',
+    // Camera on a full stage: a refused add must not adopt the layer
+    // already on top, or stopping the camera deletes it.
+    'npm run check:live-layer-cap-unit',
     // The auto-post feed: the posts come from site-map.json's
     // `announcements` array, read from the inlined footer slice or from
     // /site-map.json, and painted into every [data-announcements]
@@ -232,6 +251,9 @@ const GROUPS = {
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
     'npm run check:invite-api-smoke',
+    // Offline / full-song render HTTP API (local Chrome+ffmpeg job queue;
+    // Vercel always 503). Dry-run worker — no Puppeteer in the gate.
+    'npm run check:render-offline-api-unit',
     'npm run check:pt-unit',
     'npm run check:zip-reader-unit',
     'npm run check:slots-unit',

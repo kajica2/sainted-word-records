@@ -363,7 +363,110 @@
        and a grid/list toggle. */
     aside.lib { display: flex; flex-direction: column; overflow: hidden; }
     aside.lib > .head { flex: none; }
-    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    /* Packs must shrink inside the clipped panel. On phones aside.lib is
+       capped at 30vh; flex:none + cover tiles would push .body (the loaded
+       clip list) outside the clip and make Dance Clips unreachable. */
+    aside.lib > .packs {
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 45%;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 4.5rem; }
+    /* Opt-in curated packs (Dance Clips, Dancers, …). library-packs.client.js
+       mounts into #packs; without this mount the script loads and does nothing,
+       so neon boots with an empty library and no UI path to the shipped videos. */
+    .packs {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2, rgba(255, 255, 255, 0.02));
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .packs-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .packs-title { font-weight: 600; }
+    .packs-hint { font-style: italic; opacity: 0.55; font-size: 8px; }
+    .packs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .pack-btn {
+      background: var(--bg, #0a0a0a);
+      border: 1px solid var(--line, #222);
+      color: var(--ink, #eee);
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-radius: 2px;
+      transition: background 120ms ease, border-color 120ms ease;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pack-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--c, #888); }
+    .pack-btn.is-loaded {
+      background: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.55);
+      color: rgba(180, 240, 200, 1);
+    }
+    .pack-btn.is-error {
+      background: rgba(200, 80, 80, 0.12);
+      border-color: rgba(200, 80, 80, 0.5);
+    }
+    .pack-btn:disabled { opacity: 0.8; cursor: not-allowed; }
+    .pack-btn.has-cover {
+      position: relative;
+      min-height: 54px;
+      justify-content: flex-end;
+      padding: 5px 6px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    }
+    .pack-btn.has-cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 34%, rgba(0,0,0,0) 62%);
+      pointer-events: none;
+    }
+    .pack-btn.has-cover > * { position: relative; }
+    .pack-btn.has-cover:hover { border-color: var(--c, #888); filter: brightness(1.12); }
+    .pack-btn.has-cover.is-loaded {
+      background-color: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.7);
+    }
+    .packs-empty {
+      padding: 18px 12px;
+      text-align: center;
+      color: var(--muted, #888);
+      font-size: 10px;
+      line-height: 1.5;
+      border: 1px dashed var(--line, #333);
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+    .packs-empty div:first-child { font-size: 22px; margin-bottom: 6px; opacity: 0.7; }
+    .packs-empty-title { font-weight: 600; color: var(--ink, #ccc); margin-bottom: 2px; }
+    .packs-empty-sub { font-size: 9px; opacity: 0.7; }
     .media-bar { flex: none; display: flex; align-items: center; gap: 6px;
       padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
     .media-tabs { display: flex; gap: 4px; flex: 1; min-width: 0; }
@@ -461,6 +564,10 @@
      the document. -->
 <script src="/lib/engine-chrome-dock.client.js"></script>
 <script src="/client/automix-runtime.client.js"></script>
+<!-- Movie files with an empty type need this classifier. automix-composition
+     and media-store read window.SWR_MEDIA_KIND; without the script the
+     parity gate fails and a .mov dropped here is skipped. -->
+<script src="/lib/media-kind.client.js" defer></script>
 <script src="/client/automix-composition.client.js" defer></script>
   <!-- Periodic frame capture runtime + UI (Phase 1) -->
   <script src="/client/capture-runtime.client.js"></script>
@@ -475,6 +582,8 @@
 <script src="/engine-lfo-panel.client.js"></script>
 <script src="/engine-automap.client.js"></script>
 <script src="/engine-settings.client.js"></script>
+<script src="/personas.js"></script>
+<script src="/lib/mask-illusions.client.js"></script>
 <script src="/engine-keys.client.js"></script>
 <script src="/project.client.js"></script>
 <script src="/layer-scheduler.client.js"></script>
@@ -528,7 +637,8 @@
     </header>
     <aside class="lib">
       <div class="head"><h2>Media</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;" title="Add media files">+</button><button class="tbtn" id="media-clear" style="padding:3px 8px;font-size:9px;" title="Clear this view">Clear</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
-        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" /></div>
+      <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
       <div class="media-bar">
         <div class="media-tabs" role="tablist" aria-label="Media view">
           <button type="button" class="media-tab is-on" data-media-tab="library" role="tab" aria-selected="true" aria-controls="lib">Library <b class="ct" id="media-count-library">0</b></button>
@@ -830,14 +940,25 @@
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
       async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
-        for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
+        const kindOf = window.SWR_MEDIA_KIND;
+        for (const f of files) {
+          // Empty File.type and application/octet-stream are how .mov/.mkv
+          // arrive. The classifier reads the extension; a real non-media
+          // type still stays out. Without the classifier, only a real
+          // video/* or image/* type is kept — an octet-stream is not an image.
+          const typed = String((f && f.type) || '');
+          const kind = (kindOf && typeof kindOf.kind === 'function')
+            ? kindOf.kind(f)
+            : (typed.startsWith('video/') ? 'video' : (typed.startsWith('image/') ? 'image' : ''));
+          if (kind !== 'video' && kind !== 'image') continue;
+          const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
           let blobUrl = '';
           try { blobUrl = URL.createObjectURL(f); } catch (e) { console.warn('[neon-lib] createObjectURL failed', f.name, e); }
           if (typeof blobUrl !== 'string' || !blobUrl.startsWith('blob:')) {
             console.error('[neon-lib] non-blob URL for', f.name, '→', JSON.stringify(blobUrl), '— file has no usable blob URL, skipping');
             continue;
           }
-          const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
+          const it = { id: this.nextId++, name: f.name, type: kind,
             blob: f, url: blobUrl, motion: 0, luma: 0.5, hue: 0, w:0, h:0, added: Date.now(), thumb: null };
           this.items.push(it); this._classify(it); }
         this.render(); },

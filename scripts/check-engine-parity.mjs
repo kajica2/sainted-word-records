@@ -368,6 +368,26 @@ const ACCEPTED = [
       'in the DOM, so it collapses a panel by DOM when there is one at all; ' +
       'the demo panel itself lives on versions/neon.html.',
   },
+  // fx-postprocess optionally samples JourneyState when BPM is unknown and
+  // the analyser bands are flat (make-video Hyper Journey). The read is
+  // guarded (`window.JourneyState && …`); the journey runtime itself lives
+  // on make-video.html and must not ship a second state owner on the engine.
+  {
+    page: 'engine.html',
+    dep: 'JourneyState',
+    reason:
+      'optional make-video energy fallback in fx-postprocess.js; guarded. ' +
+      'JourneyState is published by lib/journey-state.client.js on ' +
+      'make-video.html only.',
+  },
+  {
+    page: 'versions/neon.html',
+    dep: 'JourneyState',
+    reason:
+      'optional make-video energy fallback in fx-postprocess.js; guarded. ' +
+      'JourneyState is published by lib/journey-state.client.js on ' +
+      'make-video.html only.',
+  },
 ];
 
 const acceptedKey = (page, dep) => `${page}|${dep}`;

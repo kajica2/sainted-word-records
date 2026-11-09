@@ -1,6 +1,7 @@
 // client/look-filter-cycler.client.js — Tint + variant look cycler.
 //
-// Ten filter presets over the FX uniform vocabulary. Applied through
+// Ten look presets (slots 0..9) plus six mask illusions (slots 10..15)
+// over the FX uniform vocabulary. Applied through
 // FX.setPersona(), which writes state only — the intensity multiplier
 // k still applies at the render/uniform boundary (fx-postprocess.js),
 // so dragging intensity down is an exact restore for every filter
@@ -59,6 +60,14 @@
     // menu, not the FX filter table); the filter is its FX twin — option
     // (c) from the spec's open question (heavy pearl + cool + liquid).
     { id: 9, label: 'echo',            fx: { temp: -0.40, tone: 0.70, pearl: 0.28, mut: 0.18, mutAlgo: 2 } },
+    // Mask illusions. Appended so slots 0..9 keep their keys. mutAlgo is
+    // 6..11 and is not scaled by the intensity ramp (Trap 5); mut is.
+    { id: 10, label: 'Develop', fx: { temp: 0.05, mut: 0.9, mutAlgo: 6, vignette: 0.10, grain: 0.06, glow: 0.10 } },
+    { id: 11, label: 'Bloom',   fx: { temp: 0.10, mut: 1.0, mutAlgo: 7, vignette: 0.15, chroma: 0.15, grain: 0.10, glow: 0.20 } },
+    { id: 12, label: 'Ribbed',  fx: { mut: 0.8, mutAlgo: 8, vignette: 0.10, chroma: 0.10, grain: 0.05 } },
+    { id: 13, label: 'Fringe',  fx: { temp: -0.05, mut: 0.85, mutAlgo: 9, vignette: 0.10, chroma: 0.20, grain: 0.08 } },
+    { id: 14, label: 'Print',   fx: { temp: 0.05, mut: 1.0, mutAlgo: 10, posterize: 0.20, vignette: 0.15, grain: 0.15 } },
+    { id: 15, label: 'Wedge',   fx: { mut: 0.9, mutAlgo: 11, vignette: 0.20, chroma: 0.25, grain: 0.08, glow: 0.15 } },
   ];
 
   // Schema guard for Trap 2 + Trap 5. Catches "all-positive temp" slips
@@ -73,7 +82,7 @@
       if (k === 'temp') {
         if (!(v >= -1 && v <= 1)) console.warn('[look-filter] filter ' + f.id + ' temp out of -1..1:', v);
       } else if (k === 'mutAlgo') {
-        if (!Number.isInteger(v) || v < 0 || v > 5) console.warn('[look-filter] filter ' + f.id + ' bad mutAlgo:', v);
+        if (!Number.isInteger(v) || v < 0 || v > 11) console.warn('[look-filter] filter ' + f.id + ' bad mutAlgo:', v);
       } else if (!(v >= 0 && v <= 1)) {
         console.warn('[look-filter] filter ' + f.id + ' ' + k + ' out of 0..1:', v);
       }
@@ -150,7 +159,7 @@
     for (const key in f.fx) {
       const v = f.fx[key];
       if (typeof v !== 'number') continue;
-      // Trap 5: mutAlgo is an algorithm selector (0..5, integer), not an
+      // Trap 5: mutAlgo is an algorithm selector (0..11, integer), not an
       // amount. The FX pipeline doesn't scale it (see
       // fx-postprocess.js around line 680), and we shouldn't either.
       if (key === 'mutAlgo') { profile[key] = v; continue; }
