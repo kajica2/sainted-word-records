@@ -52,6 +52,7 @@ function makeEl(tag) {
     paused: true,
     readyState: 0,
     dataset: {},
+    parentNode: null,
     style: { cssText: '' },
     _listeners: {},
     addEventListener(n, fn) { (this._listeners[n] = this._listeners[n] || []).push(fn); },
@@ -150,6 +151,15 @@ function loadEngine() {
   const created = [];
   sandbox.document = {
     readyState: 'complete',
+    body: {
+      _kids: [],
+      appendChild(el) { this._kids.push(el); el.parentNode = this; },
+      removeChild(el) {
+        const i = this._kids.indexOf(el);
+        if (i >= 0) this._kids.splice(i, 1);
+        el.parentNode = null;
+      },
+    },
     createElement(tag) { const e = autoReady(makeEl(tag)); created.push(e); return e; },
     getElementById() { return null; },
     head: { appendChild() {} },
@@ -476,6 +486,47 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
     'there is no separate export-side audio source or sync control');
   assert(/id="media-source"/.test(engine),
     'the Media Source panel is mounted in the engine');
+}
+
+// ---- 10. The last song is remembered and preloaded ----------------------
+
+{
+  const sandbox = loadEngine();
+  const A = sandbox.Audio;
+  sandbox.File = function File(bits, name, opts) {
+    this.name = name;
+    this.type = (opts && opts.type) || '';
+    this.size = 3;
+  };
+  sandbox.Library.db.get = async () => ({
+    id: 'current',
+    blob: new Uint8Array([1, 2, 3]),
+    name: 'remembered.mp3',
+    type: 'audio/mpeg',
+  });
+  const pending = A._loadCurrentSong();
+  await tick();
+  const el = A.audioEl;
+  assert(!!el, 'the remembered song is loaded onto an element');
+  assert(el && el.preload === 'auto', 'the remembered song asks the browser to preload');
+  assert(el && el.parentNode === sandbox.document.body, 'the element is in the document so the load starts');
+  if (el) {
+    el.readyState = 3;
+    el.dispatch('canplay');
+  }
+  const restored = await pending;
+  assert(restored === true, 'restore resolves once the song is back');
+  assert(A.preloadedSong === 'remembered.mp3', 'a decoded song is marked preloaded', A.preloadedSong);
+  el.play();
+  const loads = el.loadCount;
+  const again = A._loadCurrentSong();
+  const during = A._loadCurrentSong();
+  assert(again === during, 'a second restore shares the one already running');
+  const restoredAgain = await again;
+  assert(restoredAgain === true, 'a second restore of the same song still reports restored');
+  assert(A.audioEl === el, 'a second restore keeps the playing element');
+  assert(!el.pauseCount, 'a second restore does not pause playback', el.pauseCount);
+  assert(el.loadCount === loads, 'a second restore does not reload the element', el.loadCount);
 }
 
 console.log(failures ? `\nMEDIA SOURCE UNIT: FAILED (${failures})` : '\nMEDIA SOURCE UNIT: PASSED');
