@@ -31,6 +31,11 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **Remo Panel 2.0 (flagged `?env=1`) — wired envelopes on NEON.**
+  A parameter registry, envelope bus (seven presets + LUT), wiring
+  store, undo history, and ENV / MATRIX UI load only when the flag is
+  on. Snapshots use `schemaVersion: 2` with a v1 migration. Without
+  the flag the page is unchanged.
 - **NEON has a top layer of moving SVG wave lines, with seven presets.**
   Tide, Ripple, Pulse, Scan, Ribbon, Stack and Spike sit in an SVG
   above the picture and redraw their paths every frame. Pulse and

@@ -1630,6 +1630,7 @@
         });
       }
       if (window.SWR_WAVE_LINES) window.SWR_WAVE_LINES.frame(dt, A.feat, W, H);
+      if (window.SWR_REMO && window.SWR_REMO.enabled) window.SWR_REMO.tick(dt);
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
@@ -2154,6 +2155,22 @@
       s.src = '/client/engine-debugger.client.js';
       s.defer = true;
       document.head.appendChild(s);
+    }
+  </script>
+  <!-- Remo Panel 2.0. Loaded only with ?env=1 so the flag-off path stays cold. -->
+  <script>
+    if (/[?&]env=1/.test(location.search)) {
+      ['/client/remo-param-store.client.js',
+       '/client/remo-shapes.client.js',
+       '/client/remo-history.client.js',
+       '/client/remo-envelope-bus.client.js',
+       '/client/remo-wiring-store.client.js',
+       '/client/remo-panel.client.js'].forEach(function (src) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.defer = true;
+        document.head.appendChild(s);
+      });
     }
   </script>
 </body>
