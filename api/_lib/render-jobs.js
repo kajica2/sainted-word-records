@@ -155,12 +155,16 @@ export async function updateJob(id, patch) {
   });
 }
 
-export async function listJobs({ limit = 50 } = {}) {
+export async function listJobs({ limit = 50, userId } = {}) {
   const ids = await readIndex();
   const out = [];
-  for (const id of ids.slice(0, Math.max(1, Math.min(200, limit)))) {
+  const cap = Math.max(1, Math.min(200, limit));
+  for (const id of ids) {
+    if (out.length >= cap) break;
     const job = await getJob(id);
-    if (job) out.push(publicJob(job));
+    if (!job) continue;
+    if (userId !== undefined && job.userId !== userId) continue;
+    out.push(publicJob(job));
   }
   return out;
 }
@@ -225,14 +229,10 @@ function clampInt(v, min, max, fallback) {
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-async function countRunning() {
-  const ids = await readIndex();
-  let n = 0;
-  for (const id of ids) {
-    const job = await getJob(id);
-    if (job && job.status === 'running') n += 1;
-  }
-  return n;
+function isActiveStatus(status) {
+  // `starting` is claimed but not yet marked running — it must consume a
+  // concurrency slot or overlapping tryStartNext() calls overshoot the cap.
+  return status === 'starting' || status === 'running';
 }
 
 function workerScript() {
@@ -242,21 +242,28 @@ function workerScript() {
 /** Spawn the next queued job if under the concurrency cap. Returns job id or null. */
 export async function tryStartNext() {
   if (!isOfflineRenderAvailable()) return null;
-  const running = await countRunning();
-  if (running >= maxConcurrent()) return null;
 
-  const ids = await readIndex();
-  let nextId = null;
-  for (const id of ids) {
-    const job = await getJob(id);
-    if (job && job.status === 'queued') {
-      nextId = id;
-      break;
-    }
-  }
-  if (!nextId) return null;
-
+  // Capacity check + claim happen under ONE lock so two overlapping kicks
+  // cannot both see "under cap" and both claim a queued job.
   const claimed = await withLock(async () => {
+    const ids = await readIndex();
+    let active = 0;
+    for (const id of ids) {
+      const job = await getJob(id);
+      if (job && isActiveStatus(job.status)) active += 1;
+    }
+    if (active >= maxConcurrent()) return null;
+
+    let nextId = null;
+    for (const id of ids) {
+      const job = await getJob(id);
+      if (job && job.status === 'queued') {
+        nextId = id;
+        break;
+      }
+    }
+    if (!nextId) return null;
+
     const job = await getJob(nextId);
     if (!job || job.status !== 'queued') return null;
     const next = { ...job, status: 'starting', updatedAt: nowIso() };
@@ -265,6 +272,7 @@ export async function tryStartNext() {
   });
   if (!claimed) return null;
 
+  const nextId = claimed.id;
   const child = spawn(process.execPath, [workerScript(), `--jobId=${nextId}`], {
     cwd: REPO_ROOT,
     env: {

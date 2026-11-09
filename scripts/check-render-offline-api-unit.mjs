@@ -105,6 +105,17 @@ await test('create on VERCEL returns 503 offline_render_unavailable', async () =
   assert.equal(r.json.error, 'offline_render_unavailable');
 });
 
+await test('POST ?action=health on VERCEL still 503 (no create bypass)', async () => {
+  process.env.VERCEL = '1';
+  const r = await req('POST', '/api/render?action=health', {
+    headers: withSecret(),
+    body: { audioPath: 'audios/neon.mp3' },
+  });
+  delete process.env.VERCEL;
+  assert.equal(r.status, 503);
+  assert.equal(r.json.error, 'offline_render_unavailable');
+});
+
 await test('POST without auth → 401', async () => {
   const r = await req('POST', '/api/render', {
     body: { audioPath: 'audios/neon.mp3' },
@@ -228,6 +239,77 @@ await test('bad secret is refused (does not fall through to session)', async () 
   });
   assert.equal(r.status, 401);
   assert.equal(r.json.error, 'unauthorized');
+});
+
+await test('session user cannot read another user\'s job or download it', async () => {
+  const { createUser, createSession } = await import('../api/_lib/db.js');
+  const { COOKIE_NAME } = await import('../api/_lib/http.js');
+  const owner = await createUser({ email: 'owner-render@example.com' });
+  const other = await createUser({ email: 'other-render@example.com' });
+  const ownerSess = await createSession({ userId: owner.id });
+  const otherSess = await createSession({ userId: other.id });
+
+  const created = await req('POST', '/api/render', {
+    headers: {
+      Cookie: `${COOKIE_NAME}=${ownerSess.token}`,
+    },
+    body: {
+      audioPath: 'audios/neon.mp3',
+      variant: 'hallucination',
+      fps: 12,
+    },
+  });
+  assert.equal(created.status, 202, JSON.stringify(created.json));
+  const ownedId = created.json.job.id;
+
+  // Wait for dry-run so download can be attempted.
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    const s = await req('GET', `/api/render?action=status&jobId=${ownedId}`, {
+      headers: { Cookie: `${COOKIE_NAME}=${ownerSess.token}` },
+    });
+    if (s.json.job && s.json.job.status === 'done') break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
+  const peek = await req('GET', `/api/render?action=status&jobId=${ownedId}`, {
+    headers: { Cookie: `${COOKIE_NAME}=${otherSess.token}` },
+  });
+  assert.equal(peek.status, 404);
+  assert.equal(peek.json.error, 'job_not_found');
+
+  const dl = await req('GET', `/api/render?action=download&jobId=${ownedId}`, {
+    headers: { Cookie: `${COOKIE_NAME}=${otherSess.token}` },
+    raw: true,
+  });
+  assert.equal(dl.status, 404);
+
+  const list = await req('GET', '/api/render?action=list', {
+    headers: { Cookie: `${COOKIE_NAME}=${otherSess.token}` },
+  });
+  assert.equal(list.status, 200);
+  assert.ok(!list.json.jobs.some((j) => j.id === ownedId));
+
+  const ownerList = await req('GET', '/api/render?action=list', {
+    headers: { Cookie: `${COOKIE_NAME}=${ownerSess.token}` },
+  });
+  assert.equal(ownerList.status, 200);
+  assert.ok(ownerList.json.jobs.some((j) => j.id === ownedId));
+});
+
+await test('tryStartNext capacity counts starting under one lock', async () => {
+  const jobs = await import('../api/_lib/render-jobs.js');
+  process.env.SWR_RENDER_MAX_CONCURRENT = '1';
+  // Plant a fake "starting" job so the next kick must refuse.
+  const planted = await jobs.createJob({
+    audioPath: 'audios/neon.mp3',
+    variant: 'hallucination',
+  });
+  await jobs.updateJob(planted.id, { status: 'starting' });
+  const kicked = await jobs.tryStartNext();
+  assert.equal(kicked, null, 'must not start another job while one is starting');
+  // Clean up so leftover starting jobs don't poison later runs of this suite.
+  await jobs.updateJob(planted.id, { status: 'failed', error: 'capacity_test' });
 });
 
 server.close();

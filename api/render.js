@@ -87,6 +87,14 @@ function unavailable(res) {
   });
 }
 
+/** Secret mode sees every job; session mode only jobs owned by that user. */
+function canAccessJob(auth, job) {
+  if (!auth || !job) return false;
+  if (auth.mode === 'secret') return true;
+  if (auth.mode === 'session' && auth.user && job.userId === auth.user.id) return true;
+  return false;
+}
+
 export default async function handler(req, res) {
   setCors(res, req.headers.origin);
   if (req.method === 'OPTIONS') {
@@ -97,7 +105,9 @@ export default async function handler(req, res) {
   const q = req.query || {};
   const action = String(q.action || (req.method === 'POST' ? 'create' : 'health')).toLowerCase();
 
-  // Health is public so callers can probe before auth.
+  // Health is public so callers can probe before auth. GET-only — a
+  // POST ?action=health must NOT skip the availability guard below (that
+  // would let create run on Vercel / when SWR_RENDER_DISABLE=1).
   if (req.method === 'GET' && action === 'health') {
     return sendJson(res, 200, {
       ok: true,
@@ -107,7 +117,7 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!isOfflineRenderAvailable() && action !== 'health') {
+  if (!isOfflineRenderAvailable()) {
     return unavailable(res);
   }
 
@@ -117,7 +127,9 @@ export default async function handler(req, res) {
       if (!auth) return;
       const jobId = String(q.jobId || '').trim();
       const job = await getJob(jobId);
-      if (!job) return sendJson(res, 404, { error: 'job_not_found' });
+      if (!job || !canAccessJob(auth, job)) {
+        return sendJson(res, 404, { error: 'job_not_found' });
+      }
       return sendJson(res, 200, { ok: true, job: publicJob(job) });
     }
 
@@ -125,7 +137,11 @@ export default async function handler(req, res) {
       const auth = await authorize(req, res, null);
       if (!auth) return;
       const limit = Number(q.limit || 50);
-      const jobs = await listJobs({ limit });
+      // Secret auth sees the full queue; session users only their own jobs.
+      const jobs = await listJobs({
+        limit,
+        userId: auth.mode === 'session' ? auth.user.id : undefined,
+      });
       return sendJson(res, 200, { ok: true, jobs });
     }
 
@@ -134,7 +150,9 @@ export default async function handler(req, res) {
       if (!auth) return;
       const jobId = String(q.jobId || '').trim();
       const job = await getJob(jobId);
-      if (!job) return sendJson(res, 404, { error: 'job_not_found' });
+      if (!job || !canAccessJob(auth, job)) {
+        return sendJson(res, 404, { error: 'job_not_found' });
+      }
       if (job.status !== 'done' || !job.outPath) {
         return sendJson(res, 409, {
           error: 'not_ready',
