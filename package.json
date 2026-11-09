@@ -143,6 +143,7 @@
     "check:sw-navigation-unit": "node scripts/check-sw-navigation-unit.mjs",
     "check:fx-fallback-unit": "node scripts/check-fx-fallback-unit.mjs",
     "check:mask-illusions": "node verify-mask-illusions.mjs",
+    "check:media-kind-unit": "node scripts/check-media-kind-unit.mjs",
     "check:webgl-safe-uniforms": "node scripts/check-webgl-safe-uniforms.mjs",
     "check:automix-smoke": "node scripts/check-automix-smoke.mjs",
     "check:automix-arc-smoke": "node scripts/check-automix-arc-smoke.mjs",

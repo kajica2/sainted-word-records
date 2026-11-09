@@ -87,6 +87,8 @@ const GROUPS = {
     // Mask illusions: shader compile for mutAlgo 0..11, MASK personas,
     // cycler slots 10..15, and a bass 0 vs 1 pixel difference.
     'npm run check:mask-illusions',
+    // A .mov / .mkv with an empty File.type must still enter the library.
+    'npm run check:media-kind-unit',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
