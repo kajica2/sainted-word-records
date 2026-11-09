@@ -124,7 +124,14 @@
       if (!url) continue;
       wraps.push({
         id: m.id, name: m.name,
-        type: (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image',
+        type: (function () {
+          var K = window.SWR_MEDIA_KIND;
+          var k = (K && typeof K.kind === 'function')
+            ? K.kind({ type: m.mime || '', name: m.name || '' })
+            : '';
+          if (k) return k;
+          return (m.mime && m.mime.indexOf('video/') === 0) ? 'video' : 'image';
+        })(),
         url: url, blob: m.blob,
       });
     }
