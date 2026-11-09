@@ -105,14 +105,20 @@
     if (!A || typeof A.loadFile !== 'function') return;
     for (let i = 0; i < 30; i++) {
       const cur = A.audioEl;
-      if (cur && cur.getAttribute('src')) return;          // engine wired a song
+      if (cur && (cur.src || (cur.getAttribute && cur.getAttribute('src')))) return;
+      let saved = null;
       try {
         if (window.Library && window.Library.db) {
-          const saved = await window.Library.db.get('songs', 'current');
-          if (saved) return;                               // user has a saved song
+          saved = await window.Library.db.get('songs', 'current');
         }
       } catch (_) {}
-      if (window.Library && window.Library.db) break;      // db ready, nothing saved
+      if (saved && saved.blob) {
+        // The record is the last song. Leave it for the boot restore.
+        // Loading it here as well replaces the element and pauses playback
+        // the moment boot restores the same song.
+        return;
+      }
+      if (window.Library && window.Library.db) break;
       await new Promise((res) => setTimeout(res, 200));
     }
     try {

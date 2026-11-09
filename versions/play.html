@@ -2610,7 +2610,7 @@
         <button class="tbtn ghost" data-clear="songs" title="Clear only the saved song — keeps your library assets and bundled songs" style="padding:4px 8px; font-size:9px;">Clear song</button>
         <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
-        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" />
         <button class="tbtn ghost" id="add-folder" title="Pick a folder — engine pulls every image/video recursively" style="padding:4px 8px; font-size:9px;">+ Folder</button>
         <input type="file" id="folder-input" webkitdirectory multiple style="display:none;" />
         <div id="import-progress" class="import-progress" hidden>
@@ -2651,7 +2651,7 @@
           <div class="swr-user-media-head">
             <span class="swr-user-media-title">My Media</span>
             <input type="file" id="swr-user-media-input" multiple
-                   accept="image/*,video/*"
+                   accept="image/*,video/*,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp"
                    class="swr-user-media-input"
                    title="Add images or videos to your library" />
             <label for="swr-user-media-input" class="tbtn ghost swr-user-media-add">+ Add</label>
@@ -2877,7 +2877,13 @@
         // inline wire-up (it needs the extra addMedia/deleteAll handling), so
         // the converter lives here too, kept in the same shape.
         function mediaItemToLayerAsset(item) {
-          var isVideo = !!(item.mime && item.mime.indexOf('video/') === 0);
+          var K = window.SWR_MEDIA_KIND;
+          var kind = (K && typeof K.kind === 'function')
+            ? K.kind({ type: item.mime || '', name: item.name || '' })
+            : '';
+          var isVideo = kind
+            ? kind === 'video'
+            : !!(item.mime && item.mime.indexOf('video/') === 0);
           var url;
           try { url = URL.createObjectURL(item.blob); } catch (e) { url = null; }
           if (!url) return null;
@@ -3138,7 +3144,7 @@
         <button class="tbtn ghost" id="toggle-cover-fullscreen" title="Toggle cover fullscreen" style="padding:4px 8px; font-size:9px;">⛶ Cover</button>
         <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
           <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
-          <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
+          <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">3</b>
           <button class="tbtn ghost" id="layer-count-inc" style="padding:4px 6px; font-size:9px;">+</button>
         </span>
       </div>
@@ -3253,6 +3259,12 @@
           <option value="3">kaleido</option>
           <option value="4">ripple</option>
           <option value="5">noise</option>
+          <option value="6">develop</option>
+          <option value="7">bloom</option>
+          <option value="8">ribbed</option>
+          <option value="9">fringe</option>
+          <option value="10">print</option>
+          <option value="11">wedge</option>
         </select>
       </span>
       <span class="separator"></span>
@@ -3344,6 +3356,14 @@
           <option value="morphafracture">MORPHA · FRACTURE</option>
           <option value="morphavoid">MORPHA · VOID</option>
           <option value="morphaecho">MORPHA · ECHO</option>
+          <optgroup label="Mask illusions" title="A moving mask, not a new image. Bass, mid, and treble reveal different parts.">
+            <option value="maskThreshold">Develop</option>
+            <option value="maskGooey">Bloom</option>
+            <option value="maskSlit">Ribbed</option>
+            <option value="maskChromaBand">Fringe</option>
+            <option value="maskHalftone">Print</option>
+            <option value="maskKaleido">Wedge</option>
+          </optgroup>
           <option value="trainstage1">TRAIN · STAGE 1</option>
           <option value="trainstage2">TRAIN · STAGE 2</option>
           <option value="trainstage3">TRAIN · STAGE 3</option>
@@ -3593,6 +3613,7 @@
   <script src="/lib/audio.client.js" defer></script>
   <!-- One bloodstream for the composition's motion: energy / pulse / tide / flow. -->
   <script src="/lib/swr-life.client.js" defer></script>
+  <script src="/lib/media-kind.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
   <script src="/lib/image-lane.client.js" defer></script>
@@ -5880,6 +5901,12 @@
         // directory tree at once. The browser flattens every file into the
         // FileList with webkitRelativePath set to the relative path under
         // the chosen root.
+        const isVisualFile = (f) => {
+          const K = window.SWR_MEDIA_KIND;
+          if (K && typeof K.kind === 'function') return !!K.kind(f);
+          const type = (f && f.type) || '';
+          return type.startsWith('video/') || type.startsWith('image/');
+        };
         const folderInput = $('folder-input');
         const folderBtn = $('add-folder');
         if (folderBtn && folderInput) {
@@ -5890,7 +5917,7 @@
             // Filter to image/video MIME types up front so the import
             // progress badge reports accurate totals (skip text files,
             // .DS_Store, etc. that webkitdirectory drags along).
-            const wanted = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+            const wanted = files.filter(isVisualFile);
             if (wanted.length === 0) {
               console.warn('[folder-import] no image/video files in selected folder');
               setStatus('no media in folder', 'warn');
@@ -5948,7 +5975,7 @@
             }
           }
           if (all.length === 0) return;
-          const wanted = all.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+          const wanted = all.filter(isVisualFile);
           if (wanted.length === 0) {
             console.warn('[folder-drop] no image/video files in dropped folder');
             return;
@@ -6010,15 +6037,17 @@
           const val = $('layer-count-val');
           function sync() {
             const total = Layers.list.length || 0;
-            const n = (Layers.activeCount > 0 ? Layers.activeCount : total) || 0;
+            const cap = (Layers.MAX > 0 ? Layers.MAX : 3);
+            const n = (Layers.activeCount > 0 ? Layers.activeCount : Math.min(total, cap)) || 0;
             if (val) val.textContent = String(n || '–');
             if (dec) dec.disabled = !(n > 1);
-            if (inc) inc.disabled = !(total && n < total);
+            if (inc) inc.disabled = !(total && n < total && n < cap);
           }
           function setCount(n) {
             const total = Layers.list.length || 0;
+            const cap = (Layers.MAX > 0 ? Layers.MAX : 3);
             if (!total) return;
-            const next = Math.max(1, Math.min(total, n));
+            const next = Math.max(1, Math.min(total, cap, n));
             Layers.setActiveCount(next >= total ? 0 : next);
             try { localStorage.setItem('swr.layers.active', String(next)); } catch (_) {}
             sync();
@@ -6817,7 +6846,7 @@
       try {
         const restored = await Audio._loadCurrentSong();
         if (restored) {
-          setStatus('song restored', 'ok');
+          setStatus(Audio.preloadedSong ? 'song preloaded' : 'song restored', 'ok');
           // Auto-play if the browser allows it (user previously interacted
           // with the page in this tab) or queue for the first user gesture.
           // Without this the user reloads the engine expecting audio to
@@ -8422,6 +8451,7 @@
   <script type="module" src="/fx-postprocess.js"></script>
   <script type="module" src="/engine-transitions.client.js"></script>
   <script type="module" src="/wizard.js"></script>
+  <script src="/lib/mask-illusions.client.js" defer></script>
   <script type="module" src="/personas.js"></script>
   <script type="module" src="/project.js"></script>
   <script type="module" src="/mic-input.client.js"></script>

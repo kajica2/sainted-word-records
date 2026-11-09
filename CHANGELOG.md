@@ -7,7 +7,20 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Fixed
+- **Neon packs mount** — `versions/neon.html` (and the synced root `neon.html`) loaded `library-packs.client.js` but had no `#packs` host, so the Dance Clips / Dancers toolbar never painted and the Media library stayed empty. The packs strip also shrinks/scrolls inside the clipped Media panel on phone widths so loaded clips stay reachable. Gate: `check:neon-packs-mount-unit`.
+
+### Changed
+- The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
+
 ### Added
+- **Mask illusions** — six beat-driven reveals in the post-process shader (Develop, Bloom, Ribbed, Fringe, Print, Wedge). Bass, mid, and treble open the photograph. They are personas and filter-cycler slots 10–15; press T twice, then 1–6. Slots 0–9 are unchanged.
+- **Offline render HTTP API** (`POST/GET /api/render`) — job queue over the
+  existing `renderVariant()` Puppeteer + ffmpeg pipeline. Local / self-hosted
+  Node only (`npm run dev`); Vercel serverless returns
+  `503 offline_render_unavailable`. Auth via `SWR_RENDER_SECRET` or a session
+  cookie. Docs: `docs/RENDER-OFFLINE-API.md`. Gate:
+  `check:render-offline-api-unit` (dry-run worker, in the `check` group).
 - **Responsive overflow gate** (`check:responsive-overflow`, in the `check`
   group) — asserts that no page scrolls sideways at 390×844 or 1440×900, and
   names the element that crosses the viewport and by how much. It also
@@ -249,6 +262,17 @@ once it hits 1.0.
   again, to 240: the same group takes ten minutes on this machine and
   120+ minutes on a loaded GitHub runner, and a job killed at 145 minutes
   with every gate green has proved nothing.
+- **Staged media did not come back after a reload.** Dropping or clicking a clip onto the stage filled the library, but the page snapshot was only written when a control changed — so the next visit restored an empty stage. Adding, remapping, or reordering layers now writes the stack, and the existing restore path puts those clips back. Typed text layers keep their kind and string in the same snapshot.
+- **Movie files never reached the mix.** A `.mov`, `.mkv` or `.avi` often arrives with an empty `File.type` (or `application/octet-stream`). Both import paths kept only `video/*` and `image/*`, so the file was skipped before it could become a layer. The kind now comes from the extension in that case, the file dialog lists those extensions, and a click on the stored movie stages it as video. Neon's own importer uses that classifier too, so an empty-type movie dropped there becomes a video layer instead of being skipped or stored as a still.
+- **The last song is preloaded on the next visit.** Loading a song already writes it to this browser. The next open reads that record back onto a media element that lives in the page, so the browser fetches it before Play. The default clip no longer steps in while that record is waiting, and the restore runs once so it cannot interrupt playback.
+- **The NEON demo verify named a stalled control.** A control that stopped delivering animation frames used to sit until Puppeteer's 180s protocol timeout, and the log said `verify run` with no id. Each step now has a Node-side deadline that names the control, and the frame wait itself fails after 5s when the page is still alive but frames never arrive. The run after `layer:baseScale` was the one that hung (`layer:blend`).
+- **Neon auto-start threw `Audio.load is not a function`.** The shared
+  audio core (`lib/audio.client.js`) only published `loadFile`, while the
+  start overlay on `versions/neon.html` and `neon.html` — and `swr-sets` —
+  still call `SWR.Audio.load(file)`. Neon publishes that core as
+  `SWR.Audio`, so the default song never started. `load` is now the same
+  path as `loadFile`.
+- **The engine page logged a WebGL failure, a document 504, and a long frame on every paint.** Post-process now follows the WebGL gate: with it off (the default) it does not call `getContext` and does not warn, and it still publishes `window.FX` so looks and sliders have somewhere to write. The warning stays only when the page asked for WebGL and the browser refused a context. A navigation that throws or comes back 5xx is served from the precached shell (`/engine`, `/engine.html`, `/`, `/offline.html`) instead of the gateway response. The stage palette tint is rasterised once per size and palette and blitted, rather than rebuilt as two full-canvas gradients inside every animation frame.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —

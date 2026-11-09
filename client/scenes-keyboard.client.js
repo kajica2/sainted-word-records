@@ -53,11 +53,21 @@
     if (_digitDown === index) _digitDown = null;
   }
 
+  function modeArmed() {
+    var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    // Look-mode (T + digit) and mask-mode (T,T + digit) own the next digit.
+    // This listener is capture-phase, so without this gate scenes steal 1..4.
+    if (global.__swrLookModeUntil && now < global.__swrLookModeUntil) return true;
+    if (global.__swrMaskModeUntil && now < global.__swrMaskModeUntil) return true;
+    return false;
+  }
+
   function onKeyDown(ev) {
     if (!ev || ev.defaultPrevented) return;
     if (isFormField(ev.target)) return;
     if (ev.metaKey || ev.ctrlKey || ev.altKey || ev.shiftKey) return;
     if (!/^[1-4]$/.test(ev.key || '')) return;
+    if (modeArmed()) return;
     if (!scenes()) return;
     var index = parseInt(ev.key, 10) - 1;
     beginHold(index);

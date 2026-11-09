@@ -332,6 +332,11 @@
       "description": "Author, preview and export neon generative presets — layers, LFOs, audio bands and a live reactive canvas."
     },
     {
+      "label": "Color Tales",
+      "href": "/color-tales/",
+      "description": "Offline coloring-video studio: PNG batches to SVG packs, music-driven fills, recording and local export."
+    },
+    {
       "label": "Bench & Sync Lab",
       "href": "/bench",
       "description": "Benchmark the editor: frame rate, A/V sync through a timestamped ring buffer, versioned reports and an advisor that applies its own optimizations."
@@ -686,9 +691,9 @@
   "archived": [],
   "meta": {
     "version": "1.0.0",
-    "lastUpdated": "2026-11-05",
-    "totalPages": 191,
-    "corePages": 191,
+    "lastUpdated": "2026-11-07",
+    "totalPages": 192,
+    "corePages": 192,
     "archivedPages": 0
   },
   "discovered": [
@@ -723,6 +728,7 @@
     "camera-enhance.html",
     "campaign.html",
     "changelog.html",
+    "color-tales.html",
     "composer.html",
     "connect.html",
     "contact-sheet.html",

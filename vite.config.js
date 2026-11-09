@@ -816,6 +816,7 @@ function copyStatic() {
     // Engine pages reference /client/visualizer-controller.js (and possibly
     // other shared client scripts added later). Ship the whole directory.
     { src: 'client', dst: 'client' },
+    { src: 'color-tales', dst: 'color-tales' },
     // Vendored browser-side libraries (no CDN at runtime)
     { src: 'client/vendor', dst: 'client/vendor' },
     // Artist pages (artists/<slug>.html + artists/index.html +
