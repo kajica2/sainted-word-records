@@ -7,6 +7,17 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Fixed
+- **Start demo could not be clicked, and could not be repeated.** The
+  start overlay (z-index 10000) sat over the demo panel, so a fresh visit
+  had no way to press Start demo. The panel now sits above that overlay.
+  Clearing the library left the pack loader believing the dance clips
+  were still loaded, so Start demo reported success and installed
+  nothing. It drops that cache when the clips are gone and installs them
+  again. A clip touched before it had a persist id also vanished from
+  Recent after a reload; the time is now found by name and copied onto
+  the id.
+
 ### Added
 - **The media panel has a Recent folder.** Clips that were just added or
   just assigned to a layer collect under a `recent` header at the top of

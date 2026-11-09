@@ -168,6 +168,13 @@
   function installDemoClips() {
     var P = window.SWR_LIBRARY_PACKS;
     if (!P || typeof P.load !== 'function') return Promise.resolve(false);
+    // The pack loader treats "already loaded" as success and does not
+    // re-add the files. After the library is cleared that cache is a lie:
+    // the clips are gone. Drop it before loading so Start demo installs
+    // them again.
+    if (!demoClipItems().length && typeof P.unload === 'function') {
+      try { P.unload(DEMO_CLIPS_PACK); } catch (_) {}
+    }
     return P.load(DEMO_CLIPS_PACK).then(function (res) {
       if (!res || !res.loaded) return false;
       return whenClassified(demoClipItems(), CLASSIFY_WAIT_MS).then(function () {
@@ -569,7 +576,7 @@
     if (document.getElementById('swr-neon-demo-styles')) return;
     var s = document.createElement('style');
     s.id = 'swr-neon-demo-styles';
-    s.textContent = '#swr-neon-demo{position:fixed;z-index:6;left:8px;bottom:44px;}';
+    s.textContent = '#swr-neon-demo{position:fixed;z-index:10008;left:8px;bottom:44px;}';
     document.head.appendChild(s);
   }
 

@@ -47,6 +47,12 @@ api.touch(persisted, 3000);
 const byId = { name: 'renamed.mp4', persistId: 'abc', id: 5 };
 assert(api.stamp(byId) === 3000, 'persist id wins over the file name');
 
+const uploaded = { name: 'clip.mp4', blob: { size: 80 } };
+api.touch(uploaded, 4000);
+const restored = { name: 'clip.mp4', blob: { size: 80 }, persistId: 'xyz' };
+assert(api.stamp(restored) === 4000, 'a restored upload keeps the time stored under its name');
+assert(store['swr.recent-media.v1'].indexOf('"id:xyz":4000') !== -1, 'the time is copied onto the persist id');
+
 vm.runInNewContext(source, { window: window });
 assert(window.SWR_RECENT_MEDIA === api, 'loading twice keeps the first instance');
 

@@ -56,30 +56,52 @@
     } catch (_) {}
   }
 
+  function keysOf(item) {
+    var keys = [];
+    if (!item) return keys;
+    if (item.persistId) keys.push('id:' + item.persistId);
+    if (item.name) {
+      var size = item.blob && item.blob.size;
+      keys.push('name:' + String(item.name) + ':' + (size || 0));
+    }
+    return keys;
+  }
+
   function keyOf(item) {
-    if (!item) return '';
-    if (item.persistId) return 'id:' + item.persistId;
-    var size = item.blob && item.blob.size;
-    return 'name:' + String(item.name || '') + ':' + (size || 0);
+    var keys = keysOf(item);
+    return keys.length ? keys[0] : '';
   }
 
   function touch(item, when) {
-    var key = keyOf(item);
-    if (!key) return 0;
+    var keys = keysOf(item);
+    if (!keys.length) return 0;
     var t = Number.isFinite(when) ? when : Date.now();
     item.recentAt = t;
     var map = readStore();
-    map[key] = t;
+    for (var i = 0; i < keys.length; i++) map[keys[i]] = t;
     writeStore(map);
     return t;
   }
 
   function stamp(item) {
     if (!item) return 0;
-    var stored = readStore()[keyOf(item)] || 0;
+    var map = readStore();
+    var keys = keysOf(item);
+    var stored = 0;
+    var missingId = item.persistId && !map['id:' + item.persistId];
+    for (var i = 0; i < keys.length; i++) {
+      if ((map[keys[i]] || 0) > stored) stored = map[keys[i]];
+    }
     var own = item.recentAt || 0;
     var t = stored > own ? stored : own;
     if (t) item.recentAt = t;
+    // An upload is touched before persistence assigns an id, so the time
+    // lives under the file name. Once the id exists, copy the time across
+    // so the next reload finds it on the id the library restores.
+    if (t && missingId) {
+      map['id:' + item.persistId] = t;
+      writeStore(map);
+    }
     return t;
   }
 

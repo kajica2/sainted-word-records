@@ -62,6 +62,19 @@ try {
   // Start demo drives the whole integration through the real button: the
   // dance clips are installed, staged as layers and decoded, the song plays
   // and the audio features move, a grade preset reaches the FX pipeline.
+  // The start overlay covers the page. Start demo has to be the element
+  // under the pointer, or a fresh visit cannot reach it.
+  const reachable = await page.evaluate(function () {
+    var btn = document.querySelector('[data-demo-control="stage:start"]');
+    if (!btn) return 'missing';
+    var r = btn.getBoundingClientRect();
+    var top = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(8, r.height / 2));
+    if (top === btn || (btn.contains && btn.contains(top))) return 'ok';
+    return top ? (top.id || top.className || top.tagName) : 'none';
+  });
+  if (reachable === 'ok') ok('Start demo is clickable over the start overlay');
+  else bad('Start demo is covered', reachable);
+
   await page.evaluate(function () {
     document.querySelector('[data-demo-control="stage:start"]').click();
   });

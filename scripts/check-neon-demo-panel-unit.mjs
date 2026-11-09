@@ -135,9 +135,16 @@ const window = {
   A: audioCore,
   SWR_LIB: { items: demoItems },
   SWR_LIBRARY_PACKS: {
+    loads: 0,
+    unloads: 0,
     load: function (id) {
+      this.loads++;
       if (!demoItems.length) for (let i = 0; i < 13; i++) demoItems.push({ packId: id, type: 'video', thumb: 'x' });
-      return Promise.resolve({ loaded: true, items: demoItems, error: null });
+      return Promise.resolve({ loaded: true, items: demoItems.slice(), error: null });
+    },
+    unload: function () {
+      this.unloads++;
+      demoItems.length = 0;
     },
   },
   document: document,
@@ -274,5 +281,11 @@ const audioProbe = api.readProbe('audio:punch');
 assert(audioProbe.preset === 'punch' && audioProbe.sens === 2.4, 'audio probe reports the active preset');
 assert(api.applyAudioPreset('soft') === true && parseFloat(document.getElementById('sens').value) === 0.7, 'soft replaces punch');
 assert(api.applyAudioPreset('nope') === false, 'unknown audio preset is refused');
+
+demoItems.length = 0;
+const pack = window.SWR_LIBRARY_PACKS;
+const unloadsBefore = pack.unloads;
+const reinstalled = await api.installDemoClips();
+assert(reinstalled === true && pack.unloads === unloadsBefore + 1 && demoItems.length === 13, 'a cleared library reinstalls the dance clips');
 
 console.log('NEON DEMO PANEL UNIT: ALL GREEN (' + tests + ' tests, ' + listed.length + ' controls)');

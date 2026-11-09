@@ -65,7 +65,9 @@
 /* ---- Bottom-left: NEON demo panel ---- */
 #swr-neon-demo {
   position: fixed;
-  z-index: var(--swr-z-chrome-panel);
+  /* Above the start overlay (--swr-z-startup, 10000) so Start demo is
+     reachable on a fresh visit, and below the keys help (10020). */
+  z-index: calc(var(--swr-z-startup) + 8);
   left: var(--swr-chrome-pad);
   bottom: calc(var(--swr-chrome-pad-b) + var(--swr-transport-h) + var(--swr-chrome-gap));
   max-width: min(320px, calc(100vw - var(--swr-chrome-pad) - var(--swr-chrome-pad-r) - 8px));
