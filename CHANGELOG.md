@@ -43,6 +43,13 @@ once it hits 1.0.
   multi-band mixes, Spike onset decay, Pulse beat-snap, and opacity
   breathe from RMS. Tide / Ripple / Stack remain available internally.
   Media layers stay untouched.
+- **Python audio toolkit for enhanced DSP and additional takes.**
+  `tools/python-audio-toolkit/` adapts
+  [Matin-python/Python-Audio-Processing-Toolkit](https://github.com/Matin-python/Python-Audio-Processing-Toolkit)
+  into a callable CLI: `process` (FFT / spectrogram / onsets / BPM),
+  `record` (fixed or VAD mic takes), `take` (file → take without a mic),
+  and `overdub` (mix a take onto a song for Media Source external audio).
+  Gate: `npm run check:audio-toolkit`. Docs: `docs/AUDIO-TOOLKIT.md`.
 - **NEON layer lock holds position as well as media.** Locking a layer
   freezes its resting place on the stage (no reactor or narrative
   x/y/scale/rot motion) and still keeps its media through remap,
