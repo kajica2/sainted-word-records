@@ -32,6 +32,7 @@ function makeEl(tag) {
     hasAttribute: function (k) { return el.attrs[k] != null; },
     appendChild: function (child) {
       child.parentNode = el;
+      child.parentElement = el;
       el.children.push(child);
       return child;
     },
@@ -76,6 +77,8 @@ function matchSel(node, sel) {
     return node.getAttribute('data-demo-filter') === id;
   }
   if (sel.startsWith('[data-demo-control]')) return node.getAttribute('data-demo-control');
+  if (sel === '[data-demo-aspect]') return node.getAttribute('data-demo-aspect');
+  if (sel === '.demo-mark-pulse') return node.getAttribute('class') === 'demo-mark-pulse';
   return false;
 }
 
@@ -102,6 +105,21 @@ const document = {
     return makeEl(tag);
   },
 };
+
+const stageSection = makeEl('section');
+stageSection.className = 'stage';
+stageSection.clientWidth = 800;
+stageSection.clientHeight = 600;
+stageSection._classes = {};
+stageSection.classList = {
+  add: function (c) { stageSection._classes[c] = true; },
+  remove: function (c) { delete stageSection._classes[c]; },
+  toggle: function () {},
+};
+const stageCanvas = makeEl('canvas');
+stageCanvas.id = 'render';
+stageSection.appendChild(stageCanvas);
+body.appendChild(stageSection);
 
 ['sens', 'gate', 'decay'].forEach(function (id) {
   const inp = makeEl('input');
@@ -282,10 +300,48 @@ assert(audioProbe.preset === 'punch' && audioProbe.sens === 2.4, 'audio probe re
 assert(api.applyAudioPreset('soft') === true && parseFloat(document.getElementById('sens').value) === 0.7, 'soft replaces punch');
 assert(api.applyAudioPreset('nope') === false, 'unknown audio preset is refused');
 
+assert(api.writeSensitivity(2.4) === true, 'sensitivity slider writes');
+assert(document.getElementById('sens').value === '2.4', 'sensitivity slider drives #sens');
+assert(document.getElementById('demo-sensitivity').value === '2.4', 'sensitivity slider shows 2.4');
+assert(document.getElementById('demo-sensitivity-v').textContent === '2.40', 'sensitivity readout is 2.40');
+assert(audioCore.params.sens === 2.4, 'sensitivity slider writes the audio core');
+const sensBumped = await api.invokeControl('slider:sensitivity');
+assert(sensBumped.ok === true && parseFloat(document.getElementById('sens').value) !== 2.4, 'sensitivity control moves the value');
+assert(api.writeTemperature(0.45) === true && window.FX.state.temp === 0.45, 'temperature slider writes FX.state.temp');
+assert(document.getElementById('demo-temperature-v').textContent === '+0.45', 'temperature readout is +0.45');
+const tempProbe = api.readProbe('slider:temperature');
+assert(tempProbe.temperature === 0.45 && Number.isFinite(tempProbe.sensitivity), 'slider probe reports both values');
+const tempBumped = await api.invokeControl('slider:temperature');
+assert(tempBumped.ok === true && api.readProbe('slider:temperature').temperature !== 0.45, 'temperature control moves the value');
+
 demoItems.length = 0;
 const pack = window.SWR_LIBRARY_PACKS;
 const unloadsBefore = pack.unloads;
 const reinstalled = await api.installDemoClips();
 assert(reinstalled === true && pack.unloads === unloadsBefore + 1 && demoItems.length === 13, 'a cleared library reinstalls the dance clips');
+
+assert(api.fitAspectBox(800, 600, 16, 9).h === 450 && api.fitAspectBox(800, 600, 16, 9).w === 800, '16:9 letterboxes a 4:3 cell on the width');
+assert(api.fitAspectBox(800, 600, 9, 16).h === 600 && api.fitAspectBox(800, 600, 9, 16).w === 338, '9:16 letterboxes a 4:3 cell on the height');
+assert(api.fitAspectBox(800, 600, 1, 1).w === 600 && api.fitAspectBox(800, 600, 1, 1).h === 600, '1:1 is the shorter side');
+assert(api.labelAspect(832, 464) === '16:9', 'dance clips (832×464) label as 16:9');
+assert(api.labelAspect(1080, 1920) === '9:16', '1080×1920 labels as 9:16');
+assert(api.labelAspect(1080, 1080) === '1:1', 'square labels as 1:1');
+assert(api.labelAspect(1080, 1350) === '4:5', '1080×1350 labels as 4:5');
+const fitted = [];
+window.SWR_RENDER.fit = function (c) { fitted.push(c && c.style.width + 'x' + c.style.height); };
+assert(api.applyStageAspect('16:9') === true, '16:9 applies');
+assert(stageCanvas.style.width === '800px' && stageCanvas.style.height === '450px', 'canvas box is 800×450 for 16:9');
+assert(stageSection._classes['is-ratio'] === true, 'stage letterboxes');
+assert(api.readProbe('aspect:16:9').aspect === '16:9', 'aspect probe reports 16:9');
+assert(api.applyStageAspect('9:16') === true && stageCanvas.style.width === '338px' && stageCanvas.style.height === '600px', '9:16 resizes the canvas');
+assert(api.applyStageAspect('stage') === true && stageCanvas.style.width === '' && !stageSection._classes['is-ratio'], 'Fill restores the layout cell');
+assert(api.applyStageAspect('nope') === false, 'unknown aspect is refused');
+assert(fitted.length >= 3, 'each aspect asks the renderer to fit');
+
+assert(api.heartbeatScale(0) === 1, 'svg heartbeat rests at the start of the cycle');
+assert(Math.abs(api.heartbeatScale(144) - 1.16) < 0.001, 'svg heartbeat peaks at 144ms');
+assert(Math.abs(api.heartbeatScale(432) - 1.16) < 0.001, 'svg heartbeat peaks again at 432ms');
+assert(api.heartbeatScale(600) === 1, 'svg heartbeat rests after the two pulses');
+assert(/translate\(16 16\) scale\(/.test(api.markTransform()), 'svg mark transform is a scale about its centre: ' + api.markTransform());
 
 console.log('NEON DEMO PANEL UNIT: ALL GREEN (' + tests + ' tests, ' + listed.length + ' controls)');

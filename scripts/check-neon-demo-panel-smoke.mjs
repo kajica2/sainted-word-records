@@ -138,6 +138,87 @@ try {
   if (punch.preset === 'punch' && punch.sens === 2.4 && punch.core === 2.4) ok('audio preset Punch drives the slider and the audio core');
   else bad('audio preset', JSON.stringify(punch));
 
+  await page.evaluate(function () {
+    var sens = document.getElementById('demo-sensitivity');
+    sens.value = '1.8';
+    sens.dispatchEvent(new Event('input', { bubbles: true }));
+    var temp = document.getElementById('demo-temperature');
+    temp.value = '0.45';
+    temp.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const liveSliders = await page.evaluate(function () {
+    var fx = window.FX && window.FX.state;
+    var pageTemp = document.getElementById('temp');
+    return {
+      sens: window.A && window.A.params ? window.A.params.sens : null,
+      sensPage: parseFloat(document.getElementById('sens').value),
+      sensRead: document.getElementById('demo-sensitivity-v').textContent,
+      temp: fx ? fx.temp : null,
+      tempPage: pageTemp ? parseFloat(pageTemp.value) : null,
+      tempRead: document.getElementById('demo-temperature-v').textContent,
+    };
+  });
+  if (liveSliders.sens === 1.8 && liveSliders.sensPage === 1.8 && liveSliders.sensRead === '1.80' &&
+      liveSliders.temp === 0.45 && liveSliders.tempPage === 0.45 && liveSliders.tempRead === '+0.45') {
+    ok('sensitivity and temperature sliders drive the audio core and the grade');
+  } else bad('live sliders', JSON.stringify(liveSliders));
+
+  const clipRatio = await page.waitForFunction(function () {
+    var chip = document.querySelector('#lib .li .ratio');
+    var tile = chip && chip.closest ? chip.closest('.li') : null;
+    if (!chip || chip.textContent !== '16:9') return false;
+    var declared = tile && parseFloat(tile.style.aspectRatio);
+    return declared > 1.7 ? chip.textContent : false;
+  }, { timeout: 20000, polling: 300 }).then(function (h) { return h.jsonValue(); }, function () { return null; });
+  if (clipRatio === '16:9') ok('library tiles take the dance-clip aspect and label it 16:9');
+  else bad('clip aspect chip', String(clipRatio));
+
+  await page.evaluate(function () {
+    document.querySelector('[data-demo-control="aspect:9:16"]').click();
+  });
+  const portrait = await page.evaluate(function () {
+    var c = document.getElementById('render');
+    var r = c.getBoundingClientRect();
+    var section = c.parentElement;
+    return {
+      ratio: r.height ? r.width / r.height : 0,
+      letterbox: section.classList.contains('is-ratio'),
+      aspect: window.SWR_NEON_DEMO.readProbe('aspect:9:16').aspect,
+    };
+  });
+  if (portrait.letterbox && portrait.aspect === '9:16' && Math.abs(portrait.ratio - 9 / 16) < 0.04) {
+    ok('9:16 letterboxes the stage (' + portrait.ratio.toFixed(3) + ')');
+  } else bad('9:16 stage', JSON.stringify(portrait));
+
+  await page.evaluate(function () {
+    document.querySelector('[data-demo-control="aspect:16:9"]').click();
+  });
+  const wide = await page.evaluate(function () {
+    var r = document.getElementById('render').getBoundingClientRect();
+    return r.height ? r.width / r.height : 0;
+  });
+  if (Math.abs(wide - 16 / 9) < 0.04) ok('16:9 letterboxes the stage (' + wide.toFixed(3) + ')');
+  else bad('16:9 stage', String(wide));
+
+  const markMoved = await page.evaluate(function () {
+    var node = document.querySelector('.demo-mark-pulse');
+    if (!node) return null;
+    var first = node.getAttribute('transform');
+    return new Promise(function (resolve) {
+      var started = performance.now();
+      function look() {
+        var next = node.getAttribute('transform');
+        if (next && next !== first && /scale\(/.test(next)) resolve(next);
+        else if (performance.now() - started > 800) resolve(first + ' == ' + next);
+        else requestAnimationFrame(look);
+      }
+      requestAnimationFrame(look);
+    });
+  });
+  if (typeof markMoved === 'string' && /scale\(/.test(markMoved) && markMoved.indexOf('==') === -1) {
+    ok('svg mark scale animates (' + markMoved + ')');
+  } else bad('svg mark did not animate', String(markMoved));
+
   const presetChanged = await page.evaluate(function () {
     return window.SWR_NEON_DEMO.getState().activePreset;
   });

@@ -27,6 +27,15 @@
   var METER_BANDS = ['bass', 'mid', 'treble', 'air'];
   var CLASSIFY_WAIT_MS = 4000;
   var BEAT_STEP_MIN_MS = 2000;
+  // Named frames the stage can letterbox into. "stage" is the layout cell.
+  // A clip within 0.05 of a named ratio is labelled as that ratio.
+  var STAGE_ASPECTS = [
+    { id: 'stage', label: 'Fill', w: 0, h: 0 },
+    { id: '16:9', label: '16:9', w: 16, h: 9 },
+    { id: '9:16', label: '9:16', w: 9, h: 16 },
+    { id: '1:1', label: '1:1', w: 1, h: 1 },
+    { id: '4:5', label: '4:5', w: 4, h: 5 },
+  ];
 
   var hooks = { reload: function (want) { return reloadPage(want); } };
 
@@ -44,6 +53,9 @@
     lastStepAt: 0,
     reactorIdx: 0,
     root: null,
+    aspect: 'stage',
+    markNode: null,
+    markRaf: null,
   };
 
   /** @type {Record<string, { id: string, label: string, skipVerify: boolean, invoke: function(): * }>} */
@@ -87,6 +99,196 @@
     if (cls) el.className = cls;
     if (text != null) el.textContent = text;
     return el;
+  }
+
+  function svgEl(tag) {
+    if (document.createElementNS) return document.createElementNS('http://www.w3.org/2000/svg', tag);
+    return document.createElement(tag);
+  }
+
+  function nowMs() {
+    return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  }
+
+  // Two pulses in the first half of a 1.2s cycle, then a rest. This is the
+  // watermark heartbeat, drawn by writing the SVG transform. The page's
+  // motion switch sets `animation: none` on every element, so a CSS
+  // keyframe on this mark would never move.
+  function heartbeatScale(tMs) {
+    var t = +tMs;
+    if (!isFinite(t)) t = nowMs();
+    var p = (t % 1200) / 1200;
+    if (p < 0.12) return 1 + 0.16 * (p / 0.12);
+    if (p < 0.24) return 1.16 - 0.16 * ((p - 0.12) / 0.12);
+    if (p < 0.36) return 1 + 0.16 * ((p - 0.24) / 0.12);
+    if (p < 0.48) return 1.16 - 0.16 * ((p - 0.36) / 0.12);
+    return 1;
+  }
+
+  function paintMark(t) {
+    if (!state.markNode) return;
+    var s = heartbeatScale(t);
+    state.markNode.setAttribute('transform', 'translate(16 16) scale(' + s.toFixed(3) + ')');
+  }
+
+  function markLoop(t) {
+    state.markRaf = null;
+    if (!state.mounted) return;
+    paintMark(t);
+    state.markRaf = requestAnimationFrame(markLoop);
+  }
+
+  function startMark() {
+    if (state.markRaf || typeof requestAnimationFrame !== 'function') return;
+    state.markRaf = requestAnimationFrame(markLoop);
+  }
+
+  function stopMark() {
+    if (state.markRaf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(state.markRaf);
+    state.markRaf = null;
+  }
+
+  function addPaneSlider(parent, spec) {
+    var row = mk('div', 'demo-row demo-live-slider');
+    row.appendChild(mk('label', null, spec.label));
+    var range = document.createElement('input');
+    range.type = 'range';
+    range.id = spec.domId;
+    range.min = spec.min;
+    range.max = spec.max;
+    range.step = spec.step;
+    var initial = spec.read();
+    range.value = String(initial);
+    var read = mk('b', 'demo-slider-v', spec.format(initial));
+    read.id = spec.domId + '-v';
+    regControl(range, spec.control, {
+      label: spec.label,
+      invoke: function () {
+        return bumpSlider(spec.read, spec.write, parseFloat(spec.min), parseFloat(spec.max));
+      },
+    });
+    range.addEventListener('input', function () { spec.write(parseFloat(range.value)); });
+    row.appendChild(range);
+    row.appendChild(read);
+    parent.appendChild(row);
+  }
+
+  function buildMark() {
+    var wrap = mk('span', 'demo-mark');
+    wrap.setAttribute('aria-hidden', 'true');
+    var svg = svgEl('svg');
+    svg.setAttribute('viewBox', '0 0 32 32');
+    svg.setAttribute('width', '22');
+    svg.setAttribute('height', '22');
+    var pulse = svgEl('g');
+    pulse.setAttribute('class', 'demo-mark-pulse');
+    pulse.setAttribute('transform', 'translate(16 16) scale(1)');
+    var inner = svgEl('g');
+    inner.setAttribute('transform', 'translate(-16 -16)');
+    var ring = svgEl('circle');
+    ring.setAttribute('cx', '16');
+    ring.setAttribute('cy', '16');
+    ring.setAttribute('r', '5.5');
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', 'currentColor');
+    ring.setAttribute('stroke-width', '1.5');
+    var spokes = svgEl('path');
+    spokes.setAttribute('d', 'M16 4.5v3.2M16 24.3v3.2M4.5 16h3.2M24.3 16h3.2');
+    spokes.setAttribute('fill', 'none');
+    spokes.setAttribute('stroke', 'currentColor');
+    spokes.setAttribute('stroke-width', '1.5');
+    spokes.setAttribute('stroke-linecap', 'round');
+    inner.appendChild(ring);
+    inner.appendChild(spokes);
+    pulse.appendChild(inner);
+    svg.appendChild(pulse);
+    wrap.appendChild(svg);
+    state.markNode = pulse;
+    return wrap;
+  }
+
+  function fitAspectBox(boxW, boxH, rw, rh) {
+    var bw = +boxW;
+    var bh = +boxH;
+    var ar = (+rw) / (+rh);
+    if (!(bw > 0) || !(bh > 0) || !(ar > 0)) return null;
+    var cssW;
+    var cssH;
+    if (bw / bh > ar) { cssH = bh; cssW = bh * ar; }
+    else { cssW = bw; cssH = bw / ar; }
+    return { w: Math.max(2, Math.round(cssW)), h: Math.max(2, Math.round(cssH)) };
+  }
+
+  function labelAspect(w, h) {
+    var rw = +w;
+    var rh = +h;
+    if (!(rw > 0) || !(rh > 0)) return null;
+    var r = rw / rh;
+    var best = null;
+    var bestErr = Infinity;
+    for (var i = 0; i < STAGE_ASPECTS.length; i++) {
+      var a = STAGE_ASPECTS[i];
+      if (!a.w || !a.h) continue;
+      var err = Math.abs(r - a.w / a.h);
+      if (err < bestErr) { bestErr = err; best = a; }
+    }
+    if (best && bestErr < 0.05) return best.label;
+    return r.toFixed(2) + ':1';
+  }
+
+  function stageCanvas() {
+    return document.getElementById('render');
+  }
+
+  function clipAspectLabel() {
+    var items = demoClipItems();
+    var w = 0;
+    var h = 0;
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var el = it && it._el;
+      var iw = it ? (+it.w || (el && (+el.videoWidth || +el.naturalWidth)) || 0) : 0;
+      var ih = it ? (+it.h || (el && (+el.videoHeight || +el.naturalHeight)) || 0) : 0;
+      if (iw > 0 && ih > 0) { w = iw; h = ih; break; }
+    }
+    if (!w || !h) return 'clip aspect —';
+    return 'clips ' + w + '×' + h + ' · ' + labelAspect(w, h);
+  }
+
+  function paintAspectButtons() {
+    if (!state.root || !state.root.querySelectorAll) return;
+    state.root.querySelectorAll('[data-demo-aspect]').forEach(function (btn) {
+      var on = btn.getAttribute('data-demo-aspect') === state.aspect;
+      if (btn.classList) btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function applyStageAspect(id) {
+    var spec = null;
+    for (var i = 0; i < STAGE_ASPECTS.length; i++) {
+      if (STAGE_ASPECTS[i].id === id) spec = STAGE_ASPECTS[i];
+    }
+    if (!spec) return false;
+    var canvas = stageCanvas();
+    var section = canvas && (canvas.parentElement || canvas.parentNode);
+    if (!canvas || !section || !canvas.style) return false;
+    state.aspect = id;
+    if (!spec.w || !spec.h) {
+      canvas.style.width = '';
+      canvas.style.height = '';
+      if (section.classList) section.classList.remove('is-ratio');
+    } else {
+      var box = fitAspectBox(section.clientWidth, section.clientHeight, spec.w, spec.h);
+      if (!box) return false;
+      if (section.classList) section.classList.add('is-ratio');
+      canvas.style.width = box.w + 'px';
+      canvas.style.height = box.h + 'px';
+    }
+    if (window.SWR_RENDER && typeof window.SWR_RENDER.fit === 'function') window.SWR_RENDER.fit(canvas);
+    paintAspectButtons();
+    paintStage();
+    return true;
   }
 
   function motionKill() {
@@ -289,6 +491,22 @@
       st.webgl.classList.toggle('is-active', gl.asked);
     }
     if (st.play) st.play.textContent = A && A.playing ? 'Pause' : 'Play';
+    if (st.aspectRead) st.aspectRead.textContent = clipAspectLabel();
+    mirrorPaneSlider('demo-sensitivity', readSensitivity(), function (n) { return n.toFixed(2); });
+    mirrorPaneSlider('demo-temperature', readTemperature(), function (n) {
+      return (n >= 0 ? '+' : '') + n.toFixed(2);
+    });
+  }
+
+  function mirrorPaneSlider(id, value, format) {
+    if (!Number.isFinite(value)) return;
+    var range = document.getElementById(id);
+    if (!range) return;
+    if (document.activeElement && document.activeElement === range) return;
+    var shown = parseFloat(range.value);
+    if (!Number.isFinite(shown) || Math.abs(shown - value) > 0.001) range.value = String(value);
+    var read = document.getElementById(id + '-v');
+    if (read) read.textContent = format(value);
   }
 
   function meterLoop() {
@@ -423,8 +641,84 @@
     }
     state.activeAudio = id;
     paintAudioButtons();
+    var sensNow = document.getElementById('sens');
+    if (sensNow) writeSensitivity(parseFloat(sensNow.value));
     invalidateRender();
     return true;
+  }
+
+  function readSensitivity() {
+    var el = document.getElementById('sens');
+    if (el && el.value !== '') {
+      var fromEl = parseFloat(el.value);
+      if (Number.isFinite(fromEl)) return fromEl;
+    }
+    var A = audioCore();
+    if (A && A.params && Number.isFinite(+A.params.sens)) return +A.params.sens;
+    return 1.2;
+  }
+
+  function writeSensitivity(v) {
+    var el = document.getElementById('sens');
+    var n = el ? clampToInput(el, v) : Math.max(0.2, Math.min(3, +v));
+    if (!Number.isFinite(n)) return false;
+    if (el) {
+      el.value = String(n);
+      var pageRead = document.getElementById('sens-v');
+      if (pageRead) pageRead.textContent = n.toFixed(2);
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+    }
+    var mirror = document.getElementById('demo-global-sens');
+    if (mirror) mirror.value = String(n);
+    var self = document.getElementById('demo-sensitivity');
+    if (self) self.value = String(n);
+    var read = document.getElementById('demo-sensitivity-v');
+    if (read) read.textContent = n.toFixed(2);
+    var A = audioCore();
+    if (A && A.params) A.params.sens = n;
+    invalidateRender();
+    return true;
+  }
+
+  function readTemperature() {
+    var el = document.getElementById('temp');
+    if (el && el.value !== '') {
+      var fromEl = parseFloat(el.value);
+      if (Number.isFinite(fromEl)) return fromEl;
+    }
+    if (window.FX && window.FX.state && Number.isFinite(+window.FX.state.temp)) return +window.FX.state.temp;
+    return 0;
+  }
+
+  function writeTemperature(v) {
+    var n = Math.max(-1, Math.min(1, +v));
+    if (!Number.isFinite(+v) || !Number.isFinite(n)) return false;
+    n = Math.round(n * 20) / 20;
+    var el = document.getElementById('temp');
+    if (el) n = clampToInput(el, n);
+    if (!Number.isFinite(n)) return false;
+    if (el) {
+      el.value = String(n);
+      var pageRead = document.getElementById('temp-v');
+      if (pageRead) pageRead.textContent = (n >= 0 ? '+' : '') + n.toFixed(2);
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+    }
+    if (window.FX && typeof window.FX.setTemp === 'function') window.FX.setTemp(n);
+    else if (window.FX && window.FX.state) window.FX.state.temp = n;
+    var self = document.getElementById('demo-temperature');
+    if (self) self.value = String(n);
+    var read = document.getElementById('demo-temperature-v');
+    if (read) read.textContent = (n >= 0 ? '+' : '') + n.toFixed(2);
+    invalidateRender();
+    return true;
+  }
+
+  function bumpSlider(read, write, lo, hi) {
+    var cur = read();
+    var span = hi - lo;
+    var next = cur + span * 0.2;
+    if (!(next < hi - span * 0.01)) next = lo + span * 0.2;
+    return write(next);
   }
 
   function paintAudioButtons() {
@@ -612,8 +906,10 @@
         }
         syncLayerControlsFromSelection();
         startMeter();
+        startMark();
       } else {
         stopMeter();
+        stopMark();
       }
     });
     root.appendChild(toggle);
@@ -639,6 +935,50 @@
     var beatDot = mk('b', 'demo-meter-beat');
     meter.appendChild(beatDot);
     secStage.appendChild(meter);
+    var aspectRow = mk('div', 'demo-aspect-row');
+    aspectRow.appendChild(buildMark());
+    var aspectRead = mk('span', 'demo-note demo-aspect-read', 'clip aspect —');
+    aspectRow.appendChild(aspectRead);
+    secStage.appendChild(aspectRow);
+    var aspectBtns = mk('div', 'demo-grid');
+    STAGE_ASPECTS.forEach(function (spec) {
+      var b = mk('button', null, spec.label);
+      b.type = 'button';
+      b.setAttribute('data-demo-aspect', spec.id);
+      regControl(b, 'aspect:' + spec.id, {
+        label: 'Aspect ' + spec.label,
+        invoke: function () { return applyStageAspect(spec.id); },
+      });
+      b.addEventListener('click', function () { applyStageAspect(spec.id); });
+      aspectBtns.appendChild(b);
+    });
+    secStage.appendChild(aspectBtns);
+    var sensSrc = document.getElementById('sens');
+    addPaneSlider(secStage, {
+      domId: 'demo-sensitivity',
+      control: 'slider:sensitivity',
+      label: 'Sensitivity',
+      min: sensSrc && sensSrc.min ? sensSrc.min : '0.2',
+      max: sensSrc && sensSrc.max ? sensSrc.max : '3',
+      step: sensSrc && sensSrc.step ? sensSrc.step : '0.05',
+      read: readSensitivity,
+      write: writeSensitivity,
+      format: function (v) { return Number.isFinite(+v) ? (+v).toFixed(2) : '—'; },
+    });
+    addPaneSlider(secStage, {
+      domId: 'demo-temperature',
+      control: 'slider:temperature',
+      label: 'Temperature',
+      min: '-1',
+      max: '1',
+      step: '0.05',
+      read: readTemperature,
+      write: writeTemperature,
+      format: function (v) {
+        var n = +v;
+        return Number.isFinite(n) ? ((n >= 0 ? '+' : '') + n.toFixed(2)) : '—';
+      },
+    });
     var stageBtns = mk('div', 'demo-grid');
     function stageBtn(label, id, meta) {
       var b = mk('button', null, label);
@@ -660,7 +1000,8 @@
     secStage.appendChild(stageBtns);
     secStage.appendChild(mk('p', 'demo-note', 'Start demo installs the 13 dance clips, loads the demo song and cycles presets on the beat.'));
     body.appendChild(secStage);
-    state.stage = { summary: summary, bars: bars, beat: beatDot, play: playBtn, song: songBtn, webgl: glBtn, text: null };
+    state.stage = { summary: summary, bars: bars, beat: beatDot, play: playBtn, song: songBtn, webgl: glBtn, aspectRead: aspectRead, text: null };
+    paintAspectButtons();
     paintStage();
 
     var secPresets = mk('div', 'demo-sec');
@@ -1079,13 +1420,19 @@
         setTimeout(syncLayerControlsFromSelection, 0);
       }
     }, true);
+    window.addEventListener('resize', function () {
+      if (state.aspect && state.aspect !== 'stage') applyStageAspect(state.aspect);
+    });
+    if (!state.collapsed) startMark();
     return el;
   }
 
   function unmount() {
     stopDemoAll();
     stopMeter();
+    stopMark();
     state.stage = null;
+    state.markNode = null;
     if (state.root && state.root.parentNode) state.root.parentNode.removeChild(state.root);
     state.root = null;
     state.mounted = false;
@@ -1179,6 +1526,16 @@
       if (field === 'nextReactors') return { reactors: JSON.stringify(sel.reactors || []) };
       return { layerField: field, value: sel[field] };
     }
+    if (id.indexOf('slider:') === 0) {
+      return { sensitivity: readSensitivity(), temperature: readTemperature() };
+    }
+    if (id.indexOf('aspect:') === 0) {
+      var canvas = stageCanvas();
+      return {
+        aspect: state.aspect,
+        box: canvas && canvas.style ? (canvas.style.width + 'x' + canvas.style.height) : null,
+      };
+    }
     if (id.indexOf('stage:') === 0) {
       var A = audioCore();
       var lay = layers();
@@ -1221,6 +1578,13 @@
     toggleWebGL: toggleWebGL,
     webglState: webglState,
     stageSummary: stageSummary,
+    fitAspectBox: fitAspectBox,
+    labelAspect: labelAspect,
+    heartbeatScale: heartbeatScale,
+    applyStageAspect: applyStageAspect,
+    writeSensitivity: writeSensitivity,
+    writeTemperature: writeTemperature,
+    markTransform: function () { return state.markNode ? state.markNode.getAttribute('transform') : ''; },
     hooks: hooks,
     listControls: listControls,
     invokeControl: invokeControl,

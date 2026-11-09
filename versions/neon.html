@@ -95,6 +95,8 @@
     .li img, .li video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--m);
       color: #000; border-radius: 1px; letter-spacing: 0.08em; }
+    .li .ratio { position: absolute; top: 2px; right: 2px; font-size: 7px; padding: 1px 3px;
+      background: rgba(0,0,0,0.72); color: var(--c); border-radius: 1px; letter-spacing: 0.06em; }
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
       background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #layers { display: flex; flex-direction: column; gap: 4px; }
@@ -517,7 +519,7 @@
     #lib.list { display: flex; flex-direction: column; gap: 2px; }
     #lib.list .li { display: flex; align-items: center; gap: 5px; aspect-ratio: auto; padding: 3px 4px; }
     #lib.list .li img, #lib.list .li video { width: 26px; height: 26px; border-radius: 2px; flex: none; }
-    #lib.list .li .tag, #lib.list .li .badge { position: static; flex: none; }
+    #lib.list .li .tag, #lib.list .li .badge, #lib.list .li .ratio { position: static; flex: none; }
     #lib.list .li .nm { position: static; flex: 1; background: none; color: var(--ink);
       padding: 0; font-size: 9px; }
     #lib.list .li .rm { position: static; opacity: 1; flex: none; }
@@ -1088,11 +1090,24 @@
           d.className = 'li' + (it.id === MediaUI.focusId ? ' is-focus' : '');
           d.dataset.id = String(it.id);
           d.title = it.name;
+          // The tile's box is the clip's own ratio once we know it, so a
+          // 16:9 dance clip is not cropped into the square the grid used
+          // for every item. List view stays a row; the chip still names it.
+          const aw = +it.w || 0, ah = +it.h || 0;
+          if (aw > 0 && ah > 0 && !el.classList.contains('list')) d.style.aspectRatio = (aw / ah).toFixed(4);
           // The type chip and the × button.
           const tag = document.createElement('span');
           tag.className = 'tag';
           tag.textContent = it.type === 'video' ? 'V' : 'I';
           d.appendChild(tag);
+          if (aw > 0 && ah > 0) {
+            const ratio = document.createElement('span');
+            ratio.className = 'ratio';
+            const named = window.SWR_NEON_DEMO && window.SWR_NEON_DEMO.labelAspect
+              ? window.SWR_NEON_DEMO.labelAspect(aw, ah) : null;
+            ratio.textContent = named || ((aw / ah).toFixed(2) + ':1');
+            d.appendChild(ratio);
+          }
           const rm = document.createElement('span');
           rm.className = 'rm';
           rm.dataset.id = String(it.id);

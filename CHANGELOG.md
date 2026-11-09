@@ -19,6 +19,17 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **The NEON Demo panel has Sensitivity and Temperature sliders.**
+  Sensitivity writes the page sensitivity control and `A.params.sens`.
+  Temperature writes the grade temperature (`#temp` and `FX.setTemp`,
+  −1 to +1). Both show a live number and stay in step with the footer.
+- **The NEON Demo panel sets the stage aspect and animates an SVG mark.**
+  Fill, 16:9, 9:16, 1:1 and 4:5 letterbox `#render` inside the stage, and
+  each library tile takes the clip's own ratio once its dimensions are
+  known, with a chip that names the nearest of those frames (the dance
+  clips read 16:9). The mark beside that readout is an SVG whose scale
+  pulses on a heartbeat. It is drawn by updating the SVG transform,
+  because the motion switch turns CSS animation off.
 - **The media panel has a Recent folder.** Clips that were just added or
   just assigned to a layer collect under a `recent` header at the top of
   the library (`client/recent-media.client.js`), newest first, capped at
