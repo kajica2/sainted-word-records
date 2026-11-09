@@ -270,6 +270,7 @@
     "check:invite-unlock-unit": "node scripts/check-invite-unlock-unit.mjs",
     "check:grant-invite-batch-unit": "node scripts/check-grant-invite-batch-unit.mjs",
     "check:invite-api-smoke": "node scripts/check-invite-api-smoke.mjs",
+    "check:render-offline-api-unit": "node scripts/check-render-offline-api-unit.mjs",
     "check:pt-unit": "node scripts/check-pt-unit.mjs",
     "check:zip-reader-unit": "node scripts/check-zip-reader-unit.mjs",
     "check:slots-unit": "node scripts/check-slots-unit.mjs",

@@ -8,6 +8,12 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- **Offline render HTTP API** (`POST/GET /api/render`) — job queue over the
+  existing `renderVariant()` Puppeteer + ffmpeg pipeline. Local / self-hosted
+  Node only (`npm run dev`); Vercel serverless returns
+  `503 offline_render_unavailable`. Auth via `SWR_RENDER_SECRET` or a session
+  cookie. Docs: `docs/RENDER-OFFLINE-API.md`. Gate:
+  `check:render-offline-api-unit` (dry-run worker, in the `check` group).
 - **Responsive overflow gate** (`check:responsive-overflow`, in the `check`
   group) — asserts that no page scrolls sideways at 390×844 or 1440×900, and
   names the element that crosses the viewport and by how much. It also
