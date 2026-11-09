@@ -15,6 +15,12 @@
     [{ feature: 'bass', target: 'scale', scale: 1.0, ease: 'sharp' }, { feature: 'beat', target: 'opacity', scale: 0.9, ease: 'sharp' }],
   ];
 
+  var AUDIO_PRESETS = [
+    { id: 'punch', label: 'Punch', sens: 2.4, gate: 1.15, decay: 0.7 },
+    { id: 'club', label: 'Club', sens: 1.8, gate: 1.35, decay: 0.82 },
+    { id: 'soft', label: 'Soft', sens: 0.7, gate: 1.9, decay: 0.95 },
+    { id: 'tight', label: 'Tight', sens: 1.5, gate: 1.7, decay: 0.55 },
+  ];
   var DEMO_CLIPS_PACK = 'dancer-video';
   var DEMO_SONG_URL = '/audios/endless-tomorrow.mp3';
   var DEMO_SONG_NAME = 'endless-tomorrow.mp3';
@@ -30,6 +36,7 @@
     mounted: false,
     collapsed: true,
     activePreset: null,
+    activeAudio: null,
     activeFilter: null,
     demoAllTimer: null,
     demoBeatRaf: null,
@@ -365,6 +372,58 @@
     state.root.querySelectorAll('[data-demo-preset]').forEach(function (btn) {
       var id = btn.getAttribute('data-demo-preset');
       var on = id === state.activePreset;
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.classList.toggle('is-active', on);
+    });
+  }
+
+  function audioPresetById(id) {
+    for (var i = 0; i < AUDIO_PRESETS.length; i++) {
+      if (AUDIO_PRESETS[i].id === id) return AUDIO_PRESETS[i];
+    }
+    return null;
+  }
+
+  function clampToInput(el, value) {
+    var n = +value;
+    if (!Number.isFinite(n) || !el) return n;
+    var lo = parseFloat(el.min);
+    var hi = parseFloat(el.max);
+    if (Number.isFinite(lo)) n = Math.max(lo, n);
+    if (Number.isFinite(hi)) n = Math.min(hi, n);
+    return n;
+  }
+
+  function applyAudioPreset(id) {
+    var preset = audioPresetById(id);
+    if (!preset) return false;
+    ['sens', 'gate', 'decay'].forEach(function (key) {
+      var el = document.getElementById(key);
+      if (!el) return;
+      var n = clampToInput(el, preset[key]);
+      el.value = String(n);
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+      var mirror = document.getElementById('demo-global-' + key);
+      if (mirror) mirror.value = String(n);
+    });
+    var A = audioCore();
+    if (A && A.params) {
+      ['sens', 'gate', 'decay'].forEach(function (key) {
+        var el = document.getElementById(key);
+        var n = el ? parseFloat(el.value) : preset[key];
+        if (Number.isFinite(n)) A.params[key] = n;
+      });
+    }
+    state.activeAudio = id;
+    paintAudioButtons();
+    invalidateRender();
+    return true;
+  }
+
+  function paintAudioButtons() {
+    if (!state.root) return;
+    state.root.querySelectorAll('[data-demo-audio]').forEach(function (btn) {
+      var on = btn.getAttribute('data-demo-audio') === state.activeAudio;
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
       btn.classList.toggle('is-active', on);
     });
@@ -740,6 +799,18 @@
 
     var secGlobal = mk('div', 'demo-sec');
     secGlobal.appendChild(mk('h3', null, 'Audio + stage'));
+    var audioGrid = mk('div', 'demo-grid');
+    AUDIO_PRESETS.forEach(function (preset) {
+      var b = mk('button', null, preset.label);
+      b.type = 'button';
+      b.setAttribute('data-demo-audio', preset.id);
+      b.setAttribute('data-demo-layer-always', '1');
+      var invA = function () { return applyAudioPreset(preset.id); };
+      regControl(b, 'audio:' + preset.id, { label: 'Audio ' + preset.label, invoke: invA });
+      b.addEventListener('click', invA);
+      audioGrid.appendChild(b);
+    });
+    secGlobal.appendChild(audioGrid);
     ['sens', 'gate', 'decay'].forEach(function (id) {
       var row = mk('div', 'demo-row');
       row.appendChild(mk('label', null, id));
@@ -1064,6 +1135,20 @@
       var lab = document.getElementById('automix-state');
       return { automix: lab ? lab.textContent : null };
     }
+    if (id.indexOf('audio:') === 0) {
+      function num(gid) {
+        var node = document.getElementById(gid);
+        return node ? parseFloat(node.value) : null;
+      }
+      var core = audioCore();
+      return {
+        preset: state.activeAudio,
+        sens: num('sens'),
+        gate: num('gate'),
+        decay: num('decay'),
+        params: core && core.params ? { sens: core.params.sens, gate: core.params.gate, decay: core.params.decay } : null,
+      };
+    }
     if (id.indexOf('global:') === 0) {
       var gid = id.split(':')[1];
       var el = document.getElementById(gid);
@@ -1116,6 +1201,8 @@
     listShortcutPresets: listShortcutPresets,
     listGradePresets: listGradePresets,
     applyShortcutPreset: applyShortcutPreset,
+    applyAudioPreset: applyAudioPreset,
+    listAudioPresets: function () { return AUDIO_PRESETS.map(function (p) { return p.id; }); },
     applyGradePreset: applyGradePreset,
     applyLookFilter: applyLookFilter,
     isRotationOff: isRotationOff,

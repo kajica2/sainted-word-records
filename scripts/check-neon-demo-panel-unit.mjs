@@ -121,6 +121,7 @@ const audioCore = {
   playing: false,
   audioEl: null,
   feat: { bass: 0.4, mid: 0.2, treble: 0.1, air: 0, beat: 0, beatPulse: false },
+  params: { sens: 1, gate: 1, decay: 1 },
   loadFile: function (file) { this.audioEl = { src: 'blob:' + file.name }; this.loadedName = file.name; },
   play: function () { this.playing = true; return Promise.resolve(); },
   pause: function () { this.playing = false; },
@@ -262,5 +263,16 @@ assert(api.webglState().asked === false, 'WebGL starts off');
 assert(api.toggleWebGL() === true && storage.swrWebGL === '1' && reloads[0] === true, 'toggle on stores swrWebGL=1 and reloads');
 assert(api.webglState().asked === true, 'WebGL reads as requested');
 assert(api.toggleWebGL() === true && storage.swrWebGL === '0' && reloads[1] === false, 'toggle off stores swrWebGL=0');
+
+assert(api.listAudioPresets().join(',') === 'punch,club,soft,tight', 'four audio presets');
+assert(api.applyAudioPreset('punch') === true, 'punch applies');
+assert(document.getElementById('sens').value === '2.4', 'punch sets sens on the page slider');
+assert(document.getElementById('gate').value === '1.15', 'punch sets gate');
+assert(document.getElementById('decay').value === '0.7', 'punch sets decay');
+assert(audioCore.params.sens === 2.4 && audioCore.params.gate === 1.15 && audioCore.params.decay === 0.7, 'punch writes the audio core params');
+const audioProbe = api.readProbe('audio:punch');
+assert(audioProbe.preset === 'punch' && audioProbe.sens === 2.4, 'audio probe reports the active preset');
+assert(api.applyAudioPreset('soft') === true && parseFloat(document.getElementById('sens').value) === 0.7, 'soft replaces punch');
+assert(api.applyAudioPreset('nope') === false, 'unknown audio preset is refused');
 
 console.log('NEON DEMO PANEL UNIT: ALL GREEN (' + tests + ' tests, ' + listed.length + ' controls)');

@@ -102,6 +102,29 @@ try {
   if (overlayGone) ok('start overlay is dismissed once the demo song plays');
   else bad('start overlay still covers the stage');
 
+  const recentFolder = await page.evaluate(function () {
+    var head = document.querySelector('#lib .li-group.is-recent .gname');
+    var count = document.querySelector('#lib .li-group.is-recent .gcount');
+    return head ? { label: head.textContent, count: count ? Number(count.textContent) : 0 } : null;
+  });
+  if (recentFolder && recentFolder.label === 'recent' && recentFolder.count >= 12) {
+    ok('recent folder holds the clips just installed (' + recentFolder.count + ')');
+  } else bad('recent folder', JSON.stringify(recentFolder));
+
+  await page.evaluate(function () {
+    document.querySelector('[data-demo-control="audio:punch"]').click();
+  });
+  const punch = await page.evaluate(function () {
+    var params = window.A && window.A.params;
+    return {
+      sens: parseFloat(document.getElementById('sens').value),
+      core: params ? params.sens : null,
+      preset: window.SWR_NEON_DEMO.readProbe('audio:punch').preset,
+    };
+  });
+  if (punch.preset === 'punch' && punch.sens === 2.4 && punch.core === 2.4) ok('audio preset Punch drives the slider and the audio core');
+  else bad('audio preset', JSON.stringify(punch));
+
   const presetChanged = await page.evaluate(function () {
     return window.SWR_NEON_DEMO.getState().activePreset;
   });

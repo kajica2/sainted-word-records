@@ -8,6 +8,16 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- **The media panel has a Recent folder.** Clips that were just added or
+  just assigned to a layer collect under a `recent` header at the top of
+  the library (`client/recent-media.client.js`), newest first, capped at
+  12, and they are not listed again below it. The times are remembered in
+  this browser, so a reload puts the same clips back in the folder. The
+  name-grouping rule the automix pool uses is unchanged.
+- **The NEON Demo panel has audio presets.** Punch, Club, Soft and Tight
+  set sensitivity, beat gate and decay on the page sliders and on the
+  shared audio core, so a preset changes how the layers react, not only
+  the numbers on screen.
 - **The NEON Demo panel installs the dance clips as the demo.** A new
   **Demo stage** section leads the panel: **Start demo** installs the 13
   `dancer-video` clips from the Dance Clips pack, stages them as layers
