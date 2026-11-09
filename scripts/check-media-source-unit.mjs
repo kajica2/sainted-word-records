@@ -176,6 +176,26 @@ const VIDEO = { name: 'clip.mp4', type: 'video/mp4' };
 const SONG = { name: 'track.mp3', type: 'audio/mpeg' };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
+// ---- 0. Audio.load is the name the auto-start overlay calls -------------
+// versions/neon.html (and root neon.html) publish this object as
+// SWR.Audio. Their start overlay, swr-sets and the variant pages call
+// Audio.load(file). The core's own name is loadFile. Missing the alias
+// throws "load is not a function" and the default song never starts.
+
+{
+  const sb = loadEngine();
+  const A = sb.Audio;
+  assert(typeof A.load === 'function', 'Audio.load exists (overlay / swr-sets name)');
+  const calls = [];
+  const orig = A.loadFile;
+  A.loadFile = function (file) { calls.push(file); return 'from-loadFile'; };
+  const file = { name: 'song.mp3', type: 'audio/mpeg' };
+  const ret = A.load(file);
+  A.loadFile = orig;
+  assert(calls.length === 1 && calls[0] === file && ret === 'from-loadFile',
+    'Audio.load delegates to loadFile with the same file');
+}
+
 // ---- 1. The source node is created on loadedmetadata / canplay ----------
 
 {
