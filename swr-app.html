@@ -3121,6 +3121,12 @@
             </div>
 
             <div class="transport">
+              <!-- The scrolling waveform. The playhead is pinned at the
+                   centre and the wave scrolls under it, so the strip
+                   always shows what is coming next. Click or drag it to
+                   seek. lib/waveform-scrub.client.js draws it. -->
+              <swr-waveform id="waveform" for="audioEl" window="20"
+                           style="flex:1 0 100%;height:44px;margin-bottom:2px"></swr-waveform>
               <button class="btn-icon is-primary" id="btnPlay" aria-label="Play / pause" title="Play / pause">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path id="playIconPath" d="M8 5v14l11-7z"/></svg>
               </button>
@@ -8778,6 +8784,56 @@
     });
     if (audioFile) audioFile.setAttribute('accept', 'audio/*,video/*');
 
+    // ---- The scrolling waveform -------------------------------------------
+    // The strip reads the clock from the media element, decodes the
+    // track ONCE into peaks, and draws a window that scrolls with the
+    // playhead. Decoding is skipped when the src has not changed, so
+    // seeking does not re-decode anything.
+    function initWaveformStrip() {
+      const strip = document.getElementById('waveform');
+      if (!strip || !window.SWR_WAVEFORM) return;
+      const el = document.getElementById('audioEl');
+      if (!el) return;
+      strip.setMedia(el);
+
+      let decodedFor = null;
+      let token = 0;
+
+      async function build() {
+        const src = el.currentSrc || el.src;
+        if (!src) return;
+        if (src === decodedFor) return;
+        const mine = ++token;
+        try {
+          const resp = await fetch(src);
+          const arr = await resp.arrayBuffer();
+          if (!audioCtx) ensureAudioCtx();
+          if (!audioCtx) return;
+          const buf = await audioCtx.decodeAudioData(arr);
+          if (mine !== token) return;   // a newer track won the race
+          decodedFor = src;
+          strip.setPeaks(window.SWR_WAVEFORM.peaksFromBuffer(buf, 2048), buf.duration);
+        } catch (e) {
+          // A file this browser cannot decode has no waveform. The
+          // transport still works; the strip simply stays empty.
+        }
+      }
+
+      el.addEventListener('loadedmetadata', build);
+      el.addEventListener('durationchange', build);
+      if (el.src) build();
+    }
+
+    // lib/waveform-scrub.client.js is deferred, so it runs after this
+    // inline script — wait for DOMContentLoaded, which fires once every
+    // deferred script has run. Without this the init finds no
+    // window.SWR_WAVEFORM and installs nothing.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initWaveformStrip);
+    } else {
+      initWaveformStrip();
+    }
+
     volumeInput.addEventListener('input', (e) => {
       state.audio.volume = (+e.target.value) / 100;
       audioEl.volume = state.audio.volume;
@@ -9627,6 +9683,7 @@ recordTimer = setTimeout(() => {
   <script>window.SWR_SITE_KEYS_DISABLE = true;</script>
   <script src="/lib/site-keys.client.js" defer></script>
   <script src="/lib/nav.client.js" defer></script>
+  <script src="/lib/waveform-scrub.client.js" defer></script>
   <script src="/lib/footer.client.js" defer></script>
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>

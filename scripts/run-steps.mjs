@@ -297,6 +297,7 @@ const GROUPS = {
     // always-set response headers and the no-origin/no-throw call paths.
     'npm run check:cors-preview-domain',
     'npm run check:reel-unit',
+    'npm run check:waveform-scrub-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
     'npm run check:grade-smoke',
