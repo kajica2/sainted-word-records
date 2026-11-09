@@ -8,6 +8,12 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **The NEON wave lines cover the stage, and they stay above the grade.**
+  The renderer floors its drawing size at 640×360, so a smaller stage
+  gave the SVG a different shape and the lines letterboxed. The sheet
+  now stretches to the stage. The FX canvas uses the same stacking
+  level and is inserted later, so it was painting over the lines; the
+  sheet now sits one level above it.
 - **Keys 1–9 apply look filters on NEON.** The digit row was holding
   1–4 for scene recall whenever the scene store was loaded. This page
   loads the store and not the scene keyboard, so those four keys did

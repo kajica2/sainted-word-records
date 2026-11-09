@@ -141,6 +141,8 @@ assert(api.getPreset().id === 'ribbon', 'ribbon becomes current');
 
 const svg = api.mount(stage);
 assert(svg && svg.id === 'swr-wave-lines', 'mount inserts the sheet');
+assert(svg.getAttribute('preserveAspectRatio') === 'none', 'the sheet stretches to the stage instead of letterboxing');
+assert(head.children.some((n) => n.textContent && n.textContent.indexOf('z-index:3') >= 0), 'the sheet stacks above the FX canvas');
 assert(canvas.nextSibling === svg || stage.children[1] === svg, 'sheet sits immediately above the canvas');
 const before = api._state.phase;
 assert(api.frame(0.016, { bass: 0.4 }, 640, 360) === true, 'frame paints');

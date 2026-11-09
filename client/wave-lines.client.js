@@ -92,6 +92,10 @@
     svg.id = 'swr-wave-lines';
     svg.setAttribute('aria-hidden', 'true');
     svg.setAttribute('data-wave', state.id);
+    // The renderer floors its drawing size at 640×360, so the viewBox can
+    // be a different shape from the stage. Stretch to the element, the
+    // same way the canvas bitmap stretches into its CSS box.
+    svg.setAttribute('preserveAspectRatio', 'none');
     var canvas = host.querySelector ? host.querySelector('#render') : null;
     if (canvas && canvas.nextSibling) host.insertBefore(svg, canvas.nextSibling);
     else host.appendChild(svg);
@@ -157,7 +161,7 @@
     if (!document.getElementById('swr-wave-lines-css')) {
       var style = document.createElement('style');
       style.id = 'swr-wave-lines-css';
-      style.textContent = '#swr-wave-lines{position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;overflow:visible}';
+      style.textContent = '#swr-wave-lines{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}';
       document.head.appendChild(style);
     }
     paint(presetById(state.id), {}, stage.clientWidth || 640, stage.clientHeight || 360);
