@@ -7,6 +7,9 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Fixed
+- **Neon packs mount** — `versions/neon.html` (and the synced root `neon.html`) loaded `library-packs.client.js` but had no `#packs` host, so the Dance Clips / Dancers toolbar never painted and the Media library stayed empty. Gate: `check:neon-packs-mount-unit`.
+
 ### Changed
 - The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
 
