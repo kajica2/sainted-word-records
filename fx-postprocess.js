@@ -374,6 +374,77 @@
     cinematic: 0,
   };
 
+  // No GL context (the gate is off, or the browser has no WebGL). The
+  // setters still have to exist: looks, automix and the FX sliders write
+  // through them, and the recorder falls back to the stage canvas when
+  // outputCanvas is null. This object does not start a frame loop.
+  const PERSONA_KEYS = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch', 'tone', 'sharp', 'cinematic'];
+  function publishFxWithoutGl() {
+    if (window.FX && window.FX.state) return;
+    let intensity = 1;
+    try {
+      const savedInt = parseFloat(localStorage.getItem('swr.fx.intensity'));
+      if (isFinite(savedInt)) intensity = Math.max(0, Math.min(1, savedInt));
+    } catch (_) {}
+    try {
+      const savedTone = parseFloat(localStorage.getItem('swr.fx.tone'));
+      if (isFinite(savedTone)) state.tone = Math.max(0, Math.min(1, savedTone));
+    } catch (_) {}
+    window.FX = {
+      state,
+      available: false,
+      FRAG_SOURCE,
+      get intensity() { return intensity; },
+      setIntensity(v) {
+        const n = typeof v === 'number' && isFinite(v) ? v : parseFloat(v);
+        if (!isFinite(n)) return intensity;
+        intensity = Math.max(0, Math.min(1, n));
+        try { localStorage.setItem('swr.fx.intensity', String(intensity)); } catch (_) {}
+        return intensity;
+      },
+      setTemp(v) { state.temp = Math.max(-1, Math.min(1, v)); },
+      setMut(v)  { state.mut  = Math.max(0, Math.min(1, v)); },
+      setAlgo(a) {
+        let n = Math.max(0, Math.min(5, Math.floor(a)));
+        const mk = window.SWR_MOTION_KILL;
+        if (mk && typeof mk.coerceMutAlgo === 'function') n = mk.coerceMutAlgo(n);
+        state.mutAlgo = n;
+      },
+      setPosterize(v) { state.posterize = Math.max(0, Math.min(1, v)); },
+      setVignette(v)  { state.vignette  = Math.max(0, Math.min(1, v)); },
+      setChroma(v)    { state.chroma    = Math.max(0, Math.min(1, v)); },
+      setGrain(v)     { state.grain     = Math.max(0, Math.min(1, v)); },
+      setSepia(v)     { state.sepia     = Math.max(0, Math.min(1, v)); },
+      setGlow(v)      { state.glow      = Math.max(0, Math.min(1, v)); },
+      setGrayscale(v) { state.grayscale = Math.max(0, Math.min(1, v)); },
+      setTone(v)      { state.tone      = Math.max(0, Math.min(1, v)); },
+      get tone()      { return state.tone; },
+      setBlur(v)      { state.blur      = Math.max(0, Math.min(1, v)); },
+      setLiquid(v)    { state.liquid    = Math.max(0, Math.min(1, v)); },
+      setPearl(v)     { state.pearl     = Math.max(0, Math.min(1, v)); },
+      setGlitch(v)    { state.glitch    = Math.max(0, Math.min(1, v)); },
+      setSharp(v)     { state.sharp     = Math.max(0, Math.min(1, v)); },
+      setCinematic(v) { state.cinematic = Math.max(0, Math.min(1, v)); },
+      setPersona(profile) {
+        if (!profile) return;
+        for (const k of PERSONA_KEYS) {
+          if (profile[k] === undefined) continue;
+          if (k === 'mutAlgo') {
+            const mk = window.SWR_MOTION_KILL;
+            state.mutAlgo = (mk && typeof mk.coerceMutAlgo === 'function')
+              ? mk.coerceMutAlgo(profile.mutAlgo) : profile.mutAlgo;
+          } else {
+            state[k] = profile[k];
+          }
+        }
+      },
+      setEnabled(on) { state.enabled = !!on; },
+      setFrameSkip() { return 1; },
+      get frameSkip() { return 1; },
+      outputCanvas: null,
+    };
+  }
+
   // ---- Init ----
   function init() {
     const stageCanvas = document.getElementById('render');
@@ -412,10 +483,22 @@
     // NB: preserveDrawingBuffer must be true for captureStream() / MediaRecorder to
     // work — otherwise the WebGL buffer is cleared after each compositor present,
     // causing black frames in headless SwiftShader (issue #75).
-    const gl = out.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true })
-           || out.getContext('experimental-webgl');
+    // The product gate (lib/webgl-feature-detect.client.js) is off unless
+    // the page asked (?webgl=1 or localStorage swrWebGL=1). Calling
+    // getContext anyway logs "WebGL not available" on every browser that
+    // has no GPU — including the ChatGPT webview — and starts a second
+    // rAF loop on the ones that do. requireWebGL returns null for both
+    // "not asked" and "asked, context refused".
+    const gate = window.SWR_WEBGL;
+    const glOpts = { premultipliedAlpha: false, preserveDrawingBuffer: true };
+    const gl = (gate && typeof gate.requireWebGL === 'function')
+      ? gate.requireWebGL(out, glOpts)
+      : (out.getContext('webgl', glOpts) || out.getContext('experimental-webgl'));
     if (!gl) {
-      console.warn('[fx-postprocess] WebGL not available; post-process disabled');
+      const asked = !gate || (typeof gate.isWebGLEnabled === 'function' && gate.isWebGLEnabled());
+      if (asked) console.warn('[fx-postprocess] WebGL not available; post-process disabled');
+      if (out.style) out.style.display = 'none';
+      publishFxWithoutGl();
       return;
     }
 
@@ -434,13 +517,17 @@
 
     const vs = compile(gl.VERTEX_SHADER, VERT);
     const fs = compile(gl.FRAGMENT_SHADER, FRAG_SOURCE);
-    if (!vs || !fs) return;
+    if (!vs || !fs) {
+      publishFxWithoutGl();
+      return;
+    }
     const prog = gl.createProgram();
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
       console.error('[fx-postprocess] program link error:', gl.getProgramInfoLog(prog));
+      publishFxWithoutGl();
       return;
     }
     gl.useProgram(prog);

@@ -140,6 +140,8 @@
     "check:responsive-overflow": "node scripts/check-responsive-overflow.mjs",
     "check:page-errors": "node scripts/check-page-errors.mjs",
     "check:pwa-sw-reload": "node scripts/check-pwa-sw-reload.mjs",
+    "check:sw-navigation-unit": "node scripts/check-sw-navigation-unit.mjs",
+    "check:fx-fallback-unit": "node scripts/check-fx-fallback-unit.mjs",
     "check:webgl-safe-uniforms": "node scripts/check-webgl-safe-uniforms.mjs",
     "check:automix-smoke": "node scripts/check-automix-smoke.mjs",
     "check:automix-arc-smoke": "node scripts/check-automix-arc-smoke.mjs",

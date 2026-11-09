@@ -78,6 +78,12 @@ const GROUPS = {
     // the page threw on every load.
     'npm run check:page-errors',
     'npm run check:pwa-sw-reload',
+    // A gateway 504 of the document used to be returned to the page even
+    // when the precached shell was sitting in the cache.
+    'npm run check:sw-navigation-unit',
+    // WebGL is off unless the page asks. The post-process pass must not
+    // warn, and must still publish window.FX, on that default path.
+    'npm run check:fx-fallback-unit',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',

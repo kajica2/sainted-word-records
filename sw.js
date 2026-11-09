@@ -3,7 +3,7 @@
 // also matches this name (as the prefix `swr-v*`) and deletes any old cache
 // when a user lands on the page with a stale version in localStorage, so
 // keeping these in sync is the contract that makes the auto-clear work.
-const CACHE_VERSION = 'swr-v5';
+const CACHE_VERSION = 'swr-v6';
 // Only paths that exist as separate files in the dist root after Vite build.
 // The engine now lives at /engine/ (rewritten to /engine.html). The 9 client
 // modules (project, mic-input, camera, timeline, trim, media-sets, share,
@@ -72,20 +72,34 @@ self.addEventListener('fetch', (e) => {
   let url; try { url = new URL(req.url); } catch (_) { return; }
   const sameOrigin = url.origin === self.location.origin;
 
-  // Navigation: network-first, fall back to cached /, fall back to offline.html, fall back to inline shell.
+  // Navigation: network-first. A thrown fetch AND a 5xx (the gateway
+  // 504 on /engine?utm_source=…) used to be handed to the page as-is,
+  // so a precached shell never got a chance. 4xx is a real answer and
+  // is returned. Anything else prefers the cached document, then the
+  // precached engine, then /, then offline.html, then the inline shell.
   if (isNavigation(req) && sameOrigin) {
     e.respondWith((async () => {
       const cache = await caches.open(CACHE_VERSION);
+      let fresh = null;
       try {
-        const fresh = await fetch(req);
-        if (fresh && fresh.ok) cache.put(req, fresh.clone());
-        return fresh;
+        fresh = await fetch(req);
       } catch (_) {
-        return (await cache.match(req))
-          || (await cache.match('/'))
-          || (await cache.match('/offline.html'))
-          || offline();
+        fresh = null;
       }
+      if (fresh && fresh.ok) {
+        cache.put(req, fresh.clone());
+        return fresh;
+      }
+      if (fresh && fresh.status < 500) return fresh;
+      const path = url.pathname;
+      const shell = (await cache.match(req, { ignoreSearch: true }))
+        || (await cache.match(path))
+        || ((path === '/engine' || path === '/engine/') ? await cache.match('/engine.html') : null)
+        || (await cache.match('/'))
+        || (await cache.match('/offline.html'));
+      if (shell) return shell;
+      if (fresh) return fresh;
+      return offline();
     })());
     return;
   }
