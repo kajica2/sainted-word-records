@@ -185,6 +185,12 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **Neon auto-start threw `Audio.load is not a function`.** The shared
+  audio core (`lib/audio.client.js`) only published `loadFile`, while the
+  start overlay on `versions/neon.html` and `neon.html` — and `swr-sets` —
+  still call `SWR.Audio.load(file)`. Neon publishes that core as
+  `SWR.Audio`, so the default song never started. `load` is now the same
+  path as `loadFile`.
 - **The engine page logged a WebGL failure, a document 504, and a long frame on every paint.** Post-process now follows the WebGL gate: with it off (the default) it does not call `getContext` and does not warn, and it still publishes `window.FX` so looks and sliders have somewhere to write. The warning stays only when the page asked for WebGL and the browser refused a context. A navigation that throws or comes back 5xx is served from the precached shell (`/engine`, `/engine.html`, `/`, `/offline.html`) instead of the gateway response. The stage palette tint is rasterised once per size and palette and blitted, rather than rebuilt as two full-canvas gradients inside every animation frame.
 - **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
