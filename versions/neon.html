@@ -1720,7 +1720,10 @@
           dt: dt,
         });
       }
-      if (window.SWR_WAVE_LINES) window.SWR_WAVE_LINES.frame(dt, A.feat, W, H);
+      // Audio top layer (SVG sheet above media / FX). Preset cycle lives in
+      // the Demo panel as Pulse · Spike · Scan · Ribbon · Off.
+      if (window.SWR_AUDIO_TOP) window.SWR_AUDIO_TOP.frame(dt, A.feat, W, H);
+      else if (window.SWR_WAVE_LINES) window.SWR_WAVE_LINES.frame(dt, A.feat, W, H);
       if (window.SWR_REMO && window.SWR_REMO.enabled) window.SWR_REMO.tick(dt);
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));

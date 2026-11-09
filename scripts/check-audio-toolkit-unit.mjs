@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Gate for tools/python-audio-toolkit — runs the synthetic selftest and
- * asserts the CLI entry points exist. Mic recording is probed with
+ * Gate for tools/python-audio-toolkit — installs core pip deps when
+ * needed, runs the synthetic selftest, and probes mic recording with
  * --env-skip so missing PyAudio does not fail CI.
  */
 import { spawnSync } from 'node:child_process';
@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const toolkit = path.join(root, 'tools/python-audio-toolkit');
 const cli = path.join(toolkit, 'swr_audio/cli.py');
+const reqs = path.join(toolkit, 'requirements.txt');
 
 function fail(msg) {
   console.error('FAIL:', msg);
@@ -49,6 +50,43 @@ const env = {
   PYTHONPATH: [toolkit, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter),
 };
 
+function hasNumpy() {
+  const probe = spawnSync(py, ['-c', 'import numpy, scipy'], {
+    cwd: root,
+    env,
+    encoding: 'utf8',
+  });
+  return probe.status === 0;
+}
+
+if (!hasNumpy()) {
+  console.log('numpy/scipy missing — installing', path.relative(root, reqs));
+  const install = spawnSync(
+    py,
+    ['-m', 'pip', 'install', '--user', '-q', '-r', reqs],
+    { cwd: root, env, encoding: 'utf8' },
+  );
+  if (install.status !== 0) {
+    console.error(install.stdout);
+    console.error(install.stderr);
+    // Fallback without --user (some CI images prefer venv / system pip).
+    const install2 = spawnSync(
+      py,
+      ['-m', 'pip', 'install', '-q', '-r', reqs],
+      { cwd: root, env, encoding: 'utf8' },
+    );
+    if (install2.status !== 0) {
+      console.error(install2.stdout);
+      console.error(install2.stderr);
+      fail('pip install of audio toolkit requirements failed');
+    }
+  }
+  if (!hasNumpy()) fail('numpy/scipy still missing after pip install');
+  pass('python deps installed');
+} else {
+  pass('python deps present');
+}
+
 const self = spawnSync(py, [cli, 'selftest', '--out-dir', 'out/audio-toolkit/selftest'], {
   cwd: root,
   env,
@@ -75,11 +113,10 @@ if (rec.status !== 0) {
   console.error(rec.stderr);
   fail('record --env-skip should exit 0 when mic is unavailable');
 }
-if (/env skip/.test(rec.stderr) || /env skip/.test(rec.stdout) || fs.existsSync('out/audio-toolkit/selftest/mic-probe.wav')) {
+if (/env skip/.test(rec.stderr) || /env skip/.test(rec.stdout) || fs.existsSync(path.join(root, 'out/audio-toolkit/selftest/mic-probe.wav'))) {
   pass('record env-skip or mic ok');
 } else {
-  // Mic recorded successfully with no skip message — also fine.
   pass('record env-skip or mic ok');
 }
 
-console.log('audio toolkit unit passed (4 checks)');
+console.log('audio toolkit unit passed (5 checks)');

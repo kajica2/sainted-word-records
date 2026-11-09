@@ -54,7 +54,7 @@
     reactorIdx: 0,
     root: null,
     aspect: 'stage',
-    wave: 'tide',
+    wave: 'pulse',
     waveStamp: 0,
     markNode: null,
     markRaf: null,
@@ -266,8 +266,12 @@
     });
   }
 
+  function audioTopApi() {
+    return window.SWR_AUDIO_TOP || window.SWR_WAVE_LINES || null;
+  }
+
   function applyWave(id) {
-    var api = window.SWR_WAVE_LINES;
+    var api = audioTopApi();
     if (!api || typeof api.setPreset !== 'function' || !api.setPreset(id)) return false;
     state.wave = id;
     state.waveStamp += 1;
@@ -697,6 +701,8 @@
     if (read) read.textContent = n.toFixed(2);
     var A = audioCore();
     if (A && A.params) A.params.sens = n;
+    var top = audioTopApi();
+    if (top && typeof top.setSens === 'function') top.setSens(n);
     invalidateRender();
     return true;
   }
@@ -987,22 +993,30 @@
     });
     secStage.appendChild(aspectBtns);
     var secWave = mk('div', 'demo-sec');
-    secWave.appendChild(mk('h3', null, 'Wave lines'));
+    secWave.appendChild(mk('h3', null, 'Audio top layer'));
     var waveGrid = mk('div', 'demo-grid');
-    var wavePresets = (window.SWR_WAVE_LINES && window.SWR_WAVE_LINES.PRESETS) || [];
+    var topApi = audioTopApi();
+    var wavePresets = (topApi && topApi.PRESETS_PUBLIC) || (topApi && topApi.PRESETS) || [];
     wavePresets.forEach(function (preset) {
       var b = mk('button', null, preset.label);
       b.type = 'button';
       b.setAttribute('data-demo-wave', preset.id);
-      regControl(b, 'wave:' + preset.id, {
-        label: 'Wave ' + preset.label,
+      b.setAttribute('data-demo-audio-top', preset.id);
+      regControl(b, 'audioTop:' + preset.id, {
+        label: 'Audio top ' + preset.label,
         invoke: function () { return applyWave(preset.id); },
       });
       b.addEventListener('click', function () { applyWave(preset.id); });
       waveGrid.appendChild(b);
     });
     secWave.appendChild(waveGrid);
+    secWave.appendChild(mk('p', 'demo-note', 'Overlay only — Pulse / Spike / Scan / Ribbon / Off. Does not change locked media layers.'));
     secStage.appendChild(secWave);
+    // Sync demo state to the live top-layer preset (may restore from localStorage).
+    if (topApi && typeof topApi.getPreset === 'function') {
+      var livePreset = topApi.getPreset();
+      if (livePreset && livePreset.id) state.wave = livePreset.id;
+    }
     paintWaveButtons();
     var sensSrc = document.getElementById('sens');
     addPaneSlider(secStage, {
@@ -1618,10 +1632,10 @@
     if (id.indexOf('slider:') === 0) {
       return { sensitivity: readSensitivity(), temperature: readTemperature() };
     }
-    if (id.indexOf('wave:') === 0) {
-      var live = window.SWR_WAVE_LINES && window.SWR_WAVE_LINES.getPreset
-        ? window.SWR_WAVE_LINES.getPreset() : null;
-      return { wave: live ? live.id : state.wave, stamp: state.waveStamp };
+    if (id.indexOf('wave:') === 0 || id.indexOf('audioTop:') === 0) {
+      var top = audioTopApi();
+      var live = top && typeof top.getPreset === 'function' ? top.getPreset() : null;
+      return { wave: live ? live.id : state.wave, stamp: state.waveStamp, audioTop: live ? live.id : state.wave };
     }
     if (id.indexOf('aspect:') === 0) {
       var canvas = stageCanvas();
