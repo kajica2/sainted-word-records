@@ -9,6 +9,7 @@ Update weekly. KPI targets are defined in `docs/plans/gtm-target-campaigns-2026-
 | — | `no-ae-tonight-2026q4` | | | | |
 | — | `render-48h-2026q4` | | | | |
 | — | `lecture-pulse-2026q4` | | | | |
+| — | `daily-arc-influencer` | | | | |
 
 ## Quick links (replace domain if needed)
 
@@ -18,3 +19,4 @@ Update weekly. KPI targets are defined in `docs/plans/gtm-target-campaigns-2026-
 | Folder alive | `https://sainted-word-records.vercel.app/engine?utm_source=tiktok&utm_medium=organic&utm_campaign=folder-alive-2026q4` |
 | No AE tonight | `https://sainted-word-records.vercel.app/make-video?utm_source=instagram&utm_medium=story&utm_campaign=no-ae-tonight-2026q4` |
 | 48h render (service) | `https://sainted-word-records.vercel.app/campaign#outreach` |
+| Daily Arc (influencer) | `https://sainted-word-records.vercel.app/tiktok?utm_source=tiktok&utm_medium=collab&utm_campaign=daily-arc-influencer` |
