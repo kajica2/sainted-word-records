@@ -461,6 +461,10 @@
      the document. -->
 <script src="/lib/engine-chrome-dock.client.js"></script>
 <script src="/client/automix-runtime.client.js"></script>
+<!-- Movie files with an empty type need this classifier. automix-composition
+     and media-store read window.SWR_MEDIA_KIND; without the script the
+     parity gate fails and a .mov dropped here is skipped. -->
+<script src="/lib/media-kind.client.js" defer></script>
 <script src="/client/automix-composition.client.js" defer></script>
   <!-- Periodic frame capture runtime + UI (Phase 1) -->
   <script src="/client/capture-runtime.client.js"></script>
