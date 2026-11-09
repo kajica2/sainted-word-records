@@ -1,5 +1,9 @@
 # Batch Video Creator — Documentation
 
+> **HTTP alternative:** for a single-song job queue over the same renderer,
+> see [`docs/RENDER-OFFLINE-API.md`](./RENDER-OFFLINE-API.md)
+> (`POST /api/render` under `npm run dev`).
+
 A CLI tool that turns a folder of audio files into audio-reactive MP4 videos, by:
 
 1. Analyzing each track with `audio-analysis-v2.js` (BPM, key, scale, chromagram, onsets)
