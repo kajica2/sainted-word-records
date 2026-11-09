@@ -84,6 +84,8 @@ const GROUPS = {
     // WebGL is off unless the page asks. The post-process pass must not
     // warn, and must still publish window.FX, on that default path.
     'npm run check:fx-fallback-unit',
+    // A .mov / .mkv with an empty File.type must still enter the library.
+    'npm run check:media-kind-unit',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
