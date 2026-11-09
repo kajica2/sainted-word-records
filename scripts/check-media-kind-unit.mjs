@@ -107,6 +107,36 @@ check('library keeps the png', types.includes('still.png:image'));
 check('library drops the text file', !types.some((t) => t.startsWith('notes.txt')));
 check('import count is the three media files', state.imported === 3, 'imported=' + state.imported);
 
+// Neon keeps its own Lib.addFiles. Loading the classifier script does
+// nothing for that importer unless the function asks it. An empty type
+// used to be skipped, and application/octet-stream used to become an image.
+const neon = readFileSync(join(ROOT, 'versions/neon.html'), 'utf8');
+const addAt = neon.indexOf('async addFiles(files)');
+const addEnd = neon.indexOf('this.render(); },', addAt);
+const addSrc = neon.slice(addAt, addEnd + 'this.render(); }'.length);
+const neonLib = { items: [], nextId: 1, _classify() {}, render() {} };
+const neonAdd = new Function('window', 'URL', 'console',
+  'return ' + addSrc.replace('async addFiles', 'async function')
+)(
+  { SWR_MEDIA_KIND: K },
+  { createObjectURL() { return 'blob:neon-test'; } },
+  { warn() {}, error() {}, log() {} },
+);
+await neonAdd.call(neonLib, [
+  file('beach-day.mov', ''),
+  file('tape.mkv', 'application/octet-stream'),
+  file('still.png', 'image/png'),
+  file('notes.txt', ''),
+  file('notes.pdf', 'application/pdf'),
+]);
+const neonTypes = neonLib.items.map((it) => it.name + ':' + it.type);
+check('neon keeps an empty-type .mov as video', neonTypes.includes('beach-day.mov:video'), neonTypes.join(', '));
+check('neon keeps an octet-stream .mkv as video', neonTypes.includes('tape.mkv:video'));
+check('neon keeps a png as an image', neonTypes.includes('still.png:image'));
+check('neon drops a text file', !neonTypes.some((t) => t.startsWith('notes.txt')));
+check('neon drops a pdf', !neonTypes.some((t) => t.startsWith('notes.pdf')));
+check('neon file dialog lists movie extensions', /accept="[^"]*\.mov[^"]*\.mkv[^"]*\.avi/.test(neon));
+
 await new Promise((r) => setTimeout(r, 30));
 if (failed) {
   console.error(failed + ' failed');

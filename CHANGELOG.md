@@ -185,7 +185,7 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
-- **Movie files never reached the mix.** A `.mov`, `.mkv` or `.avi` often arrives with an empty `File.type` (or `application/octet-stream`). Both import paths kept only `video/*` and `image/*`, so the file was skipped before it could become a layer. The kind now comes from the extension in that case, the file dialog lists those extensions, and a click on the stored movie stages it as video. Neon loads the same classifier, so a movie dropped there is not skipped.
+- **Movie files never reached the mix.** A `.mov`, `.mkv` or `.avi` often arrives with an empty `File.type` (or `application/octet-stream`). Both import paths kept only `video/*` and `image/*`, so the file was skipped before it could become a layer. The kind now comes from the extension in that case, the file dialog lists those extensions, and a click on the stored movie stages it as video. Neon's own importer uses that classifier too, so an empty-type movie dropped there becomes a video layer instead of being skipped or stored as a still.
 - **Neon auto-start threw `Audio.load is not a function`.** The shared
   audio core (`lib/audio.client.js`) only published `loadFile`, while the
   start overlay on `versions/neon.html` and `neon.html` — and `swr-sets` —

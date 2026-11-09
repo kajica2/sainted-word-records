@@ -532,7 +532,7 @@
     </header>
     <aside class="lib">
       <div class="head"><h2>Media</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;" title="Add media files">+</button><button class="tbtn" id="media-clear" style="padding:3px 8px;font-size:9px;" title="Clear this view">Clear</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
-        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" /></div>
       <div class="media-bar">
         <div class="media-tabs" role="tablist" aria-label="Media view">
           <button type="button" class="media-tab is-on" data-media-tab="library" role="tab" aria-selected="true" aria-controls="lib">Library <b class="ct" id="media-count-library">0</b></button>
@@ -834,14 +834,25 @@
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
       async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
-        for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
+        const kindOf = window.SWR_MEDIA_KIND;
+        for (const f of files) {
+          // Empty File.type and application/octet-stream are how .mov/.mkv
+          // arrive. The classifier reads the extension; a real non-media
+          // type still stays out. Without the classifier, only a real
+          // video/* or image/* type is kept — an octet-stream is not an image.
+          const typed = String((f && f.type) || '');
+          const kind = (kindOf && typeof kindOf.kind === 'function')
+            ? kindOf.kind(f)
+            : (typed.startsWith('video/') ? 'video' : (typed.startsWith('image/') ? 'image' : ''));
+          if (kind !== 'video' && kind !== 'image') continue;
+          const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
           let blobUrl = '';
           try { blobUrl = URL.createObjectURL(f); } catch (e) { console.warn('[neon-lib] createObjectURL failed', f.name, e); }
           if (typeof blobUrl !== 'string' || !blobUrl.startsWith('blob:')) {
             console.error('[neon-lib] non-blob URL for', f.name, '→', JSON.stringify(blobUrl), '— file has no usable blob URL, skipping');
             continue;
           }
-          const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
+          const it = { id: this.nextId++, name: f.name, type: kind,
             blob: f, url: blobUrl, motion: 0, luma: 0.5, hue: 0, w:0, h:0, added: Date.now(), thumb: null };
           this.items.push(it); this._classify(it); }
         this.render(); },
