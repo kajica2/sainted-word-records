@@ -58,6 +58,7 @@
   <link rel="stylesheet" href="/brandkit.css" />
   <link rel="stylesheet" href="/lib/drive-modal.css" />
   <link rel="stylesheet" href="/lib/engine-chrome-dock.css" />
+  <link rel="stylesheet" href="/client/remix-studio.css" />
   <!-- Chain view (Ozone-style mastering surface over the same engine).
        Inert unless the URL carries ?chain=1 — see lib/chain-ui.client.js.
        The script is cheap and always loaded; the stylesheet is fetched on
@@ -9358,5 +9359,7 @@
   <script src="/lib/home-link.client.js" defer></script>
   <script src="/lib/version-badge.client.js" defer></script>
   <script src="/lib/version-watcher.client.js" defer></script>
+  <!-- Opt-in Remix Studio UI; loaded after the engine modules, no startup audio work. -->
+  <script type="module" src="/client/remix-studio.client.js"></script>
 </body>
 </html>
