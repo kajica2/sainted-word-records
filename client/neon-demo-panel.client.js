@@ -1038,7 +1038,7 @@
     }
 
     var secFilter = mk('div', 'demo-sec');
-    secFilter.appendChild(mk('h3', null, 'Look filters (5–9 / T+0–9)'));
+    secFilter.appendChild(mk('h3', null, 'Look filters (keys 1–9)'));
     var gridF = mk('div', 'demo-grid');
     for (var f = 0; f <= 9; f++) {
       (function (slot) {

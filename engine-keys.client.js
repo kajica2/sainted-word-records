@@ -1467,8 +1467,6 @@
     }
     if (window.SWR_SCENES_KEYBOARD && typeof window.SWR_SCENES_KEYBOARD.helpRows === 'function') {
       out.push.apply(out, window.SWR_SCENES_KEYBOARD.helpRows());
-    } else if (window.SWR_SCENES) {
-      out.push({ keys: '1..4', label: 'scene recall (tap) · hold ~1s to save' });
     }
     if (getHost().imageLane) {
       out.push(
@@ -1491,8 +1489,7 @@
         { keys: 'Q / Shift+Q', label: 'blackout stage / restore last visibility' },
       );
     }
-    const scenesOn = !!(window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
-    if (scenesOn) {
+    if (window.SWR_SCENES_KEYBOARD) {
       out.push({ keys: '5..9', label: 'look filter slots (1..4 reserved for scenes; T+digit still works for 0..9)' });
     }
     return out;
@@ -1633,9 +1630,11 @@
       if (!action && (key === '?' || (ev.shiftKey && code === 'Slash'))) {
         action = ACTIONS.showHelp;
       }
-      // 5..9 (or 1..9 when scene pads are absent) = look filter slot N.
-      // When SWR_SCENES is mounted, bare 1..4 recall/save scenes via
-      // client/scenes-keyboard.client.js (capture phase + preventDefault).
+      // Bare 1..9 apply look-filter slots. Pages that load
+      // client/scenes-keyboard.client.js own 1..4 (capture + preventDefault);
+      // the regex is the same split for a key that still arrives here.
+      // SWR_SCENES alone is not enough — NEON mounts the scene store and
+      // not the keyboard, and 1..4 must still reach the filters.
       // Skip while look-mode or mask-mode is armed — those digit handlers
       // live further down and must win the chord (T then digit / T,T then digit).
       if (!action && !ev.shiftKey && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
@@ -1643,7 +1642,7 @@
         const lookArmed = !!(window.__swrLookModeUntil && now < window.__swrLookModeUntil);
         const maskArmed = !!(window.__swrMaskModeUntil && now < window.__swrMaskModeUntil);
         if (!lookArmed && !maskArmed) {
-          const scenesActive = !!(window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
+          const scenesActive = !!(window.SWR_SCENES_KEYBOARD && window.SWR_SCENES && typeof window.SWR_SCENES.recall === 'function');
           const filterKeyRe = scenesActive ? /^[5-9]$/ : /^[1-9]$/;
           if (filterKeyRe.test(key)) {
             const slot = parseInt(key, 10);
@@ -1867,7 +1866,7 @@
       // ---- Layers (documentation-only rows; no single action) ----
       { keys: '↑ / ↓',          label: 'select prev / next layer' },
       { keys: '0',              label: 'home — reset every layer to its original transform' },
-      { keys: '1..9',           label: 'apply look filter slot (on engine/play with scenes: 5..9 only; 1..4 = scenes)' },
+      { keys: '1..9',           label: 'apply look filter slot (5..9 only where the scene keyboard is loaded)' },
       { keys: 'G',              label: 'group media by name (media panel)', action: ACTIONS.toggleMediaGrouping },
       { keys: 'T + 1..9',       label: 'alias of 1..9 filter cycler (kept for muscle memory)' },
       { keys: 'T, T, 1..6',     label: 'mask illusions — Develop, Bloom, Ribbed, Fringe, Print, Wedge' },

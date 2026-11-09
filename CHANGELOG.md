@@ -8,6 +8,12 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **Keys 1–9 apply look filters on NEON.** The digit row was holding
+  1–4 for scene recall whenever the scene store was loaded. This page
+  loads the store and not the scene keyboard, so those four keys did
+  nothing. Bare 1–9 now call the look-filter slots. The engine and play
+  pages still give 1–4 to the scene keyboard, because that script is
+  what actually handles them.
 - **Start demo could not be clicked, and could not be repeated.** The
   start overlay (z-index 10000) sat over the demo panel, so a fresh visit
   had no way to press Start demo. The panel now sits above that overlay.
