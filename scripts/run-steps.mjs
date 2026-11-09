@@ -107,6 +107,9 @@ const GROUPS = {
     // group name. The sibling layer-retire/layer-text/layer-lifecycle
     // suites are reachable from no gate (pre-existing, not this gate's job).
     'npm run check:layer-groups-unit',
+    // Staged media must write the page snapshot on add/remap so a
+    // reload restores the same clips onto the stage.
+    'npm run check:layer-persist-unit',
     // The auto-post feed: the posts come from site-map.json's
     // `announcements` array, read from the inlined footer slice or from
     // /site-map.json, and painted into every [data-announcements]
