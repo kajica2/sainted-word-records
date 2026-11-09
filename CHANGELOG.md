@@ -8,6 +8,7 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- **Mask illusions** — six beat-driven reveals in the post-process shader (Develop, Bloom, Ribbed, Fringe, Print, Wedge). Bass, mid, and treble open the photograph. They are personas and filter-cycler slots 10–15; press T twice, then 1–6. Slots 0–9 are unchanged.
 - **Responsive overflow gate** (`check:responsive-overflow`, in the `check`
   group) — asserts that no page scrolls sideways at 390×844 or 1440×900, and
   names the element that crosses the viewport and by how much. It also

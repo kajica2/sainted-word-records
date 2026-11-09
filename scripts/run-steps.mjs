@@ -84,6 +84,9 @@ const GROUPS = {
     // WebGL is off unless the page asks. The post-process pass must not
     // warn, and must still publish window.FX, on that default path.
     'npm run check:fx-fallback-unit',
+    // Mask illusions: shader compile for mutAlgo 0..11, MASK personas,
+    // cycler slots 10..15, and a bass 0 vs 1 pixel difference.
+    'npm run check:mask-illusions',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',

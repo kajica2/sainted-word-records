@@ -61,6 +61,7 @@
 //   Shift+1..9 *       advance story chapters (FRAGMENTS / SIGNAL / …)
 //   T + 0              clear look filter (no tint, no variant change)
 //   T + 1..9           look filter (mixes tone + temp + variant)
+//   T, T, 1..6         mask illusions (Develop .. Wedge, cycler slots 10..15)
 //   Cmd+1..9 *         legacy FX palette preset (PULSE / NEON / …)
 //                        Applies a known FX configuration (temp, vignette,
 //                        glow, …) to the running engine. The page stays put;
@@ -1731,12 +1732,47 @@
       // tint/variant look, 0 clears everything back to no filter. Cheap
       // state machine stored on window.__swrLookModeUntil.
       if (!action && code === 'KeyT' && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+        // A second T while look-mode is armed opens mask illusions.
+        // Slots 0..9 stay on the first T. Masks are cycler ids 10..15.
+        if (window.__swrLookModeUntil && performance.now() < window.__swrLookModeUntil) {
+          window.__swrLookModeUntil = 0;
+          window.__swrMaskModeUntil = performance.now() + 2000;
+          if (typeof window.setStatus === 'function') {
+            window.setStatus('mask illusions: 1 Develop, 2 Bloom, 3 Ribbed, 4 Fringe, 5 Print, 6 Wedge', 'ok');
+          }
+          try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+            detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'mask-mode' }
+          })); } catch (_) {}
+          if (ev.preventDefault) ev.preventDefault();
+          return;
+        }
+        window.__swrMaskModeUntil = 0;
         window.__swrLookModeUntil = performance.now() + 2000;
         if (typeof window.setStatus === 'function') {
           window.setStatus('look-mode: press 1-9 (or 0 = no filter)', 'ok');
         }
         try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
           detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'look-mode' }
+        })); } catch (_) {}
+        if (ev.preventDefault) ev.preventDefault();
+        return;
+      }
+      if (!action && /^Digit[0-9]$/.test(code || '') && !ev.metaKey && !ev.ctrlKey && !ev.altKey
+          && window.__swrMaskModeUntil && performance.now() < window.__swrMaskModeUntil) {
+        const digit = parseInt(code.replace('Digit', ''), 10);
+        withNoRotation(function () {
+          const K = window.SWR_LOOK_FILTER_CYCLER;
+          if (digit === 0 && K && typeof K.apply === 'function') K.apply(0);
+          else if (digit >= 1 && digit <= 6) {
+            if (K && typeof K.apply === 'function') K.apply(9 + digit);
+            else if (window.MaskIllusions && typeof window.MaskIllusions.apply === 'function') {
+              window.MaskIllusions.apply(window.MaskIllusions.keys[digit - 1]);
+            }
+          }
+        });
+        window.__swrMaskModeUntil = 0;
+        try { window.dispatchEvent(new CustomEvent('swr-keys-press', {
+          detail: { key, code, mods: { shift: !!ev.shiftKey }, action: 'mask-' + digit }
         })); } catch (_) {}
         if (ev.preventDefault) ev.preventDefault();
         return;
@@ -1827,6 +1863,7 @@
       { keys: '1..9',           label: 'apply look filter slot (on engine/play with scenes: 5..9 only; 1..4 = scenes)' },
       { keys: 'G',              label: 'group media by name (media panel)', action: ACTIONS.toggleMediaGrouping },
       { keys: 'T + 1..9',       label: 'alias of 1..9 filter cycler (kept for muscle memory)' },
+      { keys: 'T, T, 1..6',     label: 'mask illusions — Develop, Bloom, Ribbed, Fringe, Print, Wedge' },
       { keys: 'L',              label: 'add a layer',                  action: ACTIONS.addLayer },
       { keys: 'D',              label: 'toggle AUTO DRIFT / manual drag', action: ACTIONS.toggleDragMode },
       { keys: 'Alt+1..6',       label: 'per-layer remap (swap one slot, others stay)', requires: 'layerRemap' },
