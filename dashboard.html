@@ -1089,7 +1089,7 @@
     }
     
     // Create layers from grouped media
-    const MAX_LAYERS = 6;
+    const MAX_LAYERS = 3;
     
     function createLayersFromGroups(groups, order) {
       const layerList = document.getElementById('layers-list');
@@ -1098,7 +1098,7 @@
       // Clear existing layers
       layerList.innerHTML = '';
       
-      // Limit to 6 layers max
+      // Limit to 3 layers max
       const limitedOrder = order.slice(0, MAX_LAYERS);
       const excess = order.length - MAX_LAYERS;
       if (excess > 0) {

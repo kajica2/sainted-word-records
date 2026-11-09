@@ -7,6 +7,9 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Changed
+- The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
+
 ### Added
 - **Offline render HTTP API** (`POST/GET /api/render`) — job queue over the
   existing `renderVariant()` Puppeteer + ffmpeg pipeline. Local / self-hosted
