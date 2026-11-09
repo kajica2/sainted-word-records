@@ -292,7 +292,7 @@ try {
 
     const inv = await runStep(meta.id + ' invoke', () => page.evaluate(function (id) {
       return window.SWR_NEON_DEMO.invokeControl(id);
-    }, meta.id));
+    }, meta.id), meta.id.indexOf('stage:') === 0 ? 45000 : 8000);
 
     if (!inv || !inv.ok) {
       bad(meta.id, inv && inv.error ? inv.error : 'invoke failed');
@@ -327,6 +327,18 @@ try {
       if (afterProbe.running) ok(meta.id, 'starts preset cycle (running=true)');
       else bad(meta.id, 'expected demo-all running');
       await runStep('demo:demoAll stop', () => page.evaluate(function () {
+        window.SWR_NEON_DEMO.invokeControl('demo:demoAll');
+      }));
+      continue;
+    }
+
+    if (meta.id === 'stage:start') {
+      if (afterProbe.cycling && afterProbe.clips > 0 && afterProbe.layers > 0 && afterProbe.playing) {
+        ok(meta.id, 'dance clips staged, song playing, presets cycling');
+      } else {
+        bad(meta.id, 'expected clips + layers + audio + cycling, got ' + JSON.stringify(afterProbe));
+      }
+      await runStep('stage:start stop', () => page.evaluate(function () {
         window.SWR_NEON_DEMO.invokeControl('demo:demoAll');
       }));
       continue;

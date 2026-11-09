@@ -197,6 +197,43 @@
   cursor: pointer;
 }
 
+#swr-neon-demo .demo-meter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 6px;
+}
+
+#swr-neon-demo .demo-meter-track {
+  flex: 1 1 0;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--panel-2, #150b22);
+  border: 1px solid var(--line, #2a1d3e);
+  overflow: hidden;
+}
+
+#swr-neon-demo .demo-meter-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--accent, #ff2e93);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+#swr-neon-demo .demo-meter-beat {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line, #2a1d3e);
+}
+
+#swr-neon-demo .demo-meter-beat.on {
+  background: var(--accent, #ff2e93);
+}
+
 #swr-neon-demo .demo-note {
   font-size: 9px;
   color: var(--muted, #8a7aa0);

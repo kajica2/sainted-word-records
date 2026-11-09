@@ -15,7 +15,18 @@
     [{ feature: 'bass', target: 'scale', scale: 1.0, ease: 'sharp' }, { feature: 'beat', target: 'opacity', scale: 0.9, ease: 'sharp' }],
   ];
 
+  var DEMO_CLIPS_PACK = 'dancer-video';
+  var DEMO_SONG_URL = '/audios/endless-tomorrow.mp3';
+  var DEMO_SONG_NAME = 'endless-tomorrow.mp3';
+  var METER_BANDS = ['bass', 'mid', 'treble', 'air'];
+  var CLASSIFY_WAIT_MS = 4000;
+  var BEAT_STEP_MIN_MS = 2000;
+
+  var hooks = { reload: function (want) { return reloadPage(want); } };
+
   var state = {
+    stage: null,
+    meterRaf: null,
     mounted: false,
     collapsed: true,
     activePreset: null,
@@ -23,6 +34,7 @@
     demoAllTimer: null,
     demoBeatRaf: null,
     lastBeatPulse: 0,
+    lastStepAt: 0,
     reactorIdx: 0,
     root: null,
   };
@@ -97,6 +109,189 @@
     var L = layers();
     if (!L) return null;
     return L.sel || L.selected || null;
+  }
+
+  function audioCore() {
+    var a = window.A || (window.SWR && window.SWR.Audio) || null;
+    return a && (typeof a.load === 'function' || typeof a.loadFile === 'function') ? a : null;
+  }
+
+  function hasSong(A) {
+    var el = A && (A.audioEl || A.el);
+    return !!(el && el.src);
+  }
+
+  function beatPulseOf(feat) {
+    if (!feat) return false;
+    var p = feat.beatPulse;
+    if (typeof p === 'boolean') return p;
+    if (typeof p === 'number') return p > 0.5;
+    return (feat.beat || 0) > 0.9;
+  }
+
+  function demoLib() {
+    return window.SWR_LIB || (window.SWR && window.SWR.Library) || window.Library || null;
+  }
+
+  function demoClipItems() {
+    var lib = demoLib();
+    if (!lib || !Array.isArray(lib.items)) return [];
+    return lib.items.filter(function (it) { return it.packId === DEMO_CLIPS_PACK; });
+  }
+
+  function webglState() {
+    var gate = window.SWR_WEBGL;
+    var asked = !!(gate && typeof gate.isWebGLEnabled === 'function' && gate.isWebGLEnabled());
+    var fx = window.FX;
+    return { asked: asked, active: asked && !!fx && fx.available !== false };
+  }
+
+  function whenClassified(items, timeoutMs) {
+    return new Promise(function (resolve) {
+      var waited = 0;
+      (function poll() {
+        var pending = items.some(function (it) { return !it.thumb; });
+        if (!pending || waited >= timeoutMs) return resolve();
+        waited += 150;
+        setTimeout(poll, 150);
+      })();
+    });
+  }
+
+  function installDemoClips() {
+    var P = window.SWR_LIBRARY_PACKS;
+    if (!P || typeof P.load !== 'function') return Promise.resolve(false);
+    return P.load(DEMO_CLIPS_PACK).then(function (res) {
+      if (!res || !res.loaded) return false;
+      return whenClassified(demoClipItems(), CLASSIFY_WAIT_MS).then(function () {
+        var L = layers();
+        if (L && typeof L.remap === 'function') L.remap();
+        invalidateRender();
+        paintStage();
+        return true;
+      });
+    }).catch(function () { return false; });
+  }
+
+  function dismissStartOverlay() {
+    var overlay = document.getElementById('swr-start');
+    if (!overlay || !overlay.classList) return;
+    overlay.classList.add('hide');
+    setTimeout(function () { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 600);
+  }
+
+  function loadDemoSong() {
+    var A = audioCore();
+    if (!A || typeof fetch !== 'function') return Promise.resolve(false);
+    return fetch(DEMO_SONG_URL).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function (blob) {
+      var file = new File([blob], DEMO_SONG_NAME, { type: blob.type || 'audio/mpeg' });
+      if (typeof A.loadFile === 'function') A.loadFile(file);
+      else A.load(file);
+      return Promise.resolve(A.play()).then(function () {
+        dismissStartOverlay();
+        paintStage();
+        return true;
+      });
+    }).catch(function () { paintStage(); return false; });
+  }
+
+  function toggleAudio() {
+    var A = audioCore();
+    if (!A) return Promise.resolve(false);
+    if (!hasSong(A)) return loadDemoSong();
+    if (A.playing) {
+      if (typeof A.pause === 'function') A.pause();
+      paintStage();
+      return Promise.resolve(true);
+    }
+    return Promise.resolve(A.play()).then(function () { paintStage(); return true; }, function () { return false; });
+  }
+
+  function startDemo() {
+    return installDemoClips().then(function (clipsOk) {
+      return loadDemoSong().then(function (songOk) {
+        applyShortcutPreset('neon');
+        if (!state.demoAllTimer && !state.demoBeatRaf) startDemoAll();
+        paintStage();
+        return clipsOk || songOk;
+      });
+    });
+  }
+
+  function toggleWebGL() {
+    var want = !webglState().asked;
+    try {
+      window.localStorage.setItem('swrWebGL', want ? '1' : '0');
+    } catch (_) {
+      return false;
+    }
+    return hooks.reload(want);
+  }
+
+  function reloadPage(want) {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('webgl', want ? '1' : '0');
+      window.location.replace(url.toString());
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function stageSummary() {
+    var A = audioCore();
+    var gl = webglState();
+    var clips = demoClipItems().length;
+    var L = layers();
+    var staged = L && Array.isArray(L.list) ? L.list.length : 0;
+    var audio = !A ? 'no audio core' : (A.playing ? 'playing' : (hasSong(A) ? 'paused' : 'no song'));
+    var fx = gl.active ? 'WebGL on' : (gl.asked ? 'WebGL unavailable' : 'WebGL off (2D)');
+    return clips + ' clips · ' + staged + ' layers · audio ' + audio + ' · ' + fx;
+  }
+
+  function paintStage() {
+    var st = state.stage;
+    if (!st) return;
+    var text = stageSummary();
+    if (st.text !== text) {
+      st.text = text;
+      st.summary.textContent = text;
+    }
+    var A = audioCore();
+    var feat = (A && A.feat) || {};
+    METER_BANDS.forEach(function (band, i) {
+      var v = Math.max(0, Math.min(1, +feat[band] || 0));
+      var bar = st.bars[i];
+      if (bar && bar.style) bar.style.transform = 'scaleX(' + v.toFixed(3) + ')';
+    });
+    if (st.beat && st.beat.classList) st.beat.classList.toggle('on', beatPulseOf(feat) || (feat.beat || 0) > 0.6);
+    var gl = webglState();
+    if (st.webgl) {
+      st.webgl.setAttribute('aria-pressed', gl.asked ? 'true' : 'false');
+      st.webgl.classList.toggle('is-active', gl.asked);
+    }
+    if (st.play) st.play.textContent = A && A.playing ? 'Pause' : 'Play';
+  }
+
+  function meterLoop() {
+    state.meterRaf = null;
+    if (!state.mounted || state.collapsed || typeof requestAnimationFrame !== 'function') return;
+    paintStage();
+    state.meterRaf = requestAnimationFrame(meterLoop);
+  }
+
+  function startMeter() {
+    if (state.meterRaf || typeof requestAnimationFrame !== 'function') return;
+    state.meterRaf = requestAnimationFrame(meterLoop);
+  }
+
+  function stopMeter() {
+    if (state.meterRaf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(state.meterRaf);
+    state.meterRaf = null;
   }
 
   function listShortcutPresets() {
@@ -269,13 +464,18 @@
       cur = window.SWR_PRESET_CYCLE.next(cur);
       applyShortcutPreset(cur);
     }
-    var useBeat = window.A && window.A.feat && typeof window.A.feat.beatPulse === 'number';
+    var A = audioCore();
+    var useBeat = !!(A && A.feat && A.playing);
     if (useBeat) {
-      state.lastBeatPulse = window.A.feat.beatPulse || 0;
+      state.lastBeatPulse = beatPulseOf(A.feat) ? 1 : 0;
       function beatLoop() {
         if (!state.demoBeatRaf) return;
-        var pulse = (window.A && window.A.feat && window.A.feat.beatPulse) || 0;
-        if (pulse > 0.5 && state.lastBeatPulse <= 0.5) step();
+        var pulse = beatPulseOf(audioCore() && audioCore().feat) ? 1 : 0;
+        var now = Date.now();
+        if (pulse && !state.lastBeatPulse && now - state.lastStepAt >= BEAT_STEP_MIN_MS) {
+          state.lastStepAt = now;
+          step();
+        }
         state.lastBeatPulse = pulse;
         state.demoBeatRaf = requestAnimationFrame(beatLoop);
       }
@@ -317,6 +517,7 @@
   function collapsePanel() {
     if (!state.root) return;
     state.collapsed = true;
+    stopMeter();
     state.root.classList.add('collapsed');
     var toggle = state.root.querySelector('.swr-neon-demo-toggle');
     if (toggle) toggle.setAttribute('aria-expanded', 'false');
@@ -344,12 +545,57 @@
           window.SWR_CHROME_DOCK.hideKeysHelp();
         }
         syncLayerControlsFromSelection();
+        startMeter();
+      } else {
+        stopMeter();
       }
     });
     root.appendChild(toggle);
 
     var body = mk('div', 'swr-neon-demo-body swr-chrome-panel');
     body.id = 'swr-neon-demo-body';
+
+    var secStage = mk('div', 'demo-sec demo-stage');
+    secStage.appendChild(mk('h3', null, 'Demo stage'));
+    var summary = mk('p', 'demo-note demo-stage-summary', '');
+    summary.setAttribute('role', 'status');
+    secStage.appendChild(summary);
+    var meter = mk('div', 'demo-meter');
+    meter.setAttribute('aria-hidden', 'true');
+    var bars = METER_BANDS.map(function (band) {
+      var track = mk('span', 'demo-meter-track');
+      track.title = band;
+      var fill = mk('i', 'demo-meter-fill');
+      track.appendChild(fill);
+      meter.appendChild(track);
+      return fill;
+    });
+    var beatDot = mk('b', 'demo-meter-beat');
+    meter.appendChild(beatDot);
+    secStage.appendChild(meter);
+    var stageBtns = mk('div', 'demo-grid');
+    function stageBtn(label, id, meta) {
+      var b = mk('button', null, label);
+      b.type = 'button';
+      regControl(b, id, { label: label, skipVerify: !!meta.skipVerify, invoke: meta.invoke });
+      b.addEventListener('click', function () {
+        var r = meta.invoke();
+        if (r && typeof r.then === 'function') r.then(paintStage, paintStage);
+        else paintStage();
+      });
+      stageBtns.appendChild(b);
+      return b;
+    }
+    stageBtn('Start demo', 'stage:start', { invoke: startDemo });
+    stageBtn('Dance clips', 'stage:clips', { invoke: installDemoClips });
+    var songBtn = stageBtn('Demo song', 'stage:song', { invoke: loadDemoSong });
+    var playBtn = stageBtn('Play', 'stage:play', { invoke: toggleAudio });
+    var glBtn = stageBtn('WebGL', 'stage:webgl', { invoke: toggleWebGL, skipVerify: true });
+    secStage.appendChild(stageBtns);
+    secStage.appendChild(mk('p', 'demo-note', 'Start demo installs the 13 dance clips, loads the demo song and cycles presets on the beat.'));
+    body.appendChild(secStage);
+    state.stage = { summary: summary, bars: bars, beat: beatDot, play: playBtn, song: songBtn, webgl: glBtn, text: null };
+    paintStage();
 
     var secPresets = mk('div', 'demo-sec');
     secPresets.appendChild(mk('h3', null, 'FX presets (1–9)'));
@@ -760,6 +1006,8 @@
 
   function unmount() {
     stopDemoAll();
+    stopMeter();
+    state.stage = null;
     if (state.root && state.root.parentNode) state.root.parentNode.removeChild(state.root);
     state.root = null;
     state.mounted = false;
@@ -777,6 +1025,13 @@
     if (!c || typeof c.invoke !== 'function') return { ok: false, error: 'unknown_control' };
     try {
       var result = c.invoke();
+      if (result && typeof result.then === 'function') {
+        return result.then(function (v) {
+          return { ok: v !== false, result: v };
+        }, function (err) {
+          return { ok: false, error: err && err.message ? err.message : String(err) };
+        });
+      }
       return { ok: result !== false, result: result };
     } catch (err) {
       return { ok: false, error: err && err.message ? err.message : String(err) };
@@ -832,6 +1087,19 @@
       if (field === 'nextReactors') return { reactors: JSON.stringify(sel.reactors || []) };
       return { layerField: field, value: sel[field] };
     }
+    if (id.indexOf('stage:') === 0) {
+      var A = audioCore();
+      var lay = layers();
+      return {
+        clips: demoClipItems().length,
+        layers: lay && Array.isArray(lay.list) ? lay.list.length : 0,
+        song: hasSong(A),
+        src: A && (A.audioEl || A.el) ? (A.audioEl || A.el).src : null,
+        playing: !!(A && A.playing),
+        cycling: !!(state.demoAllTimer || state.demoBeatRaf),
+        preset: window.__swrCurrentPreset,
+      };
+    }
     if (id === 'demo:demoAll') {
       return { running: !!(state.demoAllTimer || state.demoBeatRaf) };
     }
@@ -853,6 +1121,13 @@
     isRotationOff: isRotationOff,
     isZoomOff: isZoomOff,
     isDistortionFxOff: isDistortionFxOff,
+    installDemoClips: installDemoClips,
+    loadDemoSong: loadDemoSong,
+    startDemo: startDemo,
+    toggleWebGL: toggleWebGL,
+    webglState: webglState,
+    stageSummary: stageSummary,
+    hooks: hooks,
     listControls: listControls,
     invokeControl: invokeControl,
     readProbe: readProbe,

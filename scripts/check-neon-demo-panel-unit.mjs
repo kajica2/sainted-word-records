@@ -113,7 +113,32 @@ const document = {
   body.appendChild(inp);
 });
 
+const fetched = [];
+const storage = {};
+const demoItems = [];
+const reloads = [];
+const audioCore = {
+  playing: false,
+  audioEl: null,
+  feat: { bass: 0.4, mid: 0.2, treble: 0.1, air: 0, beat: 0, beatPulse: false },
+  loadFile: function (file) { this.audioEl = { src: 'blob:' + file.name }; this.loadedName = file.name; },
+  play: function () { this.playing = true; return Promise.resolve(); },
+  pause: function () { this.playing = false; },
+};
+const remaps = [];
+
 const window = {
+  document: document,
+  localStorage: { setItem: function (k, v) { storage[k] = v; } },
+  SWR_WEBGL: { isWebGLEnabled: function () { return storage.swrWebGL === '1'; } },
+  A: audioCore,
+  SWR_LIB: { items: demoItems },
+  SWR_LIBRARY_PACKS: {
+    load: function (id) {
+      if (!demoItems.length) for (let i = 0; i < 13; i++) demoItems.push({ packId: id, type: 'video', thumb: 'x' });
+      return Promise.resolve({ loaded: true, items: demoItems, error: null });
+    },
+  },
   document: document,
   addEventListener: function () {},
   SWR_MOTION_KILL: {
@@ -136,6 +161,8 @@ const window = {
   SWR_SCENES: { recall: function () { return true; }, startCapture: function () {}, cancelCapture: function () {} },
   SWR_AUTOMAP: {},
   Layers: {
+    list: [],
+    remap: function () { remaps.push(1); this.list = [{}, {}, {}]; },
     sel: { blend: 'screen', opacity: 1, baseScale: 1, hue: 0, contrast: 1, brightness: 1, alpha: 1, mutate: 0, reactors: [] },
     render: function () {},
   },
@@ -143,7 +170,19 @@ const window = {
 };
 window.window = window;
 
-vm.runInNewContext(source, { window: window, document: document });
+const fetchStub = function (url) {
+  fetched.push(url);
+  return Promise.resolve({ ok: true, blob: function () { return Promise.resolve({ type: 'audio/mpeg' }); } });
+};
+class FileStub { constructor(parts, name) { this.name = name; } }
+vm.runInNewContext(source, { window: window, document: document, fetch: fetchStub, File: FileStub,
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
+  setInterval: setInterval,
+  clearInterval: clearInterval,
+  requestAnimationFrame: function (fn) { return setTimeout(fn, 16); },
+  cancelAnimationFrame: function (id) { clearTimeout(id); },
+});
 
 const api = window.SWR_NEON_DEMO;
 let tests = 0;
@@ -182,5 +221,46 @@ try {
 const rogueAssign = source.match(/setAttribute\(\s*['"]data-demo-control['"]/g);
 const regCalls = source.match(/regControl\(/g) || [];
 assert(!rogueAssign || rogueAssign.length <= regCalls.length, 'data-demo-control only via regControl');
+
+assert(api.hooks && typeof api.hooks.reload === 'function', 'reload hook is replaceable');
+
+// Beat detection must accept the shared core's boolean pulse as well as a numeric envelope.
+audioCore.feat.beatPulse = true;
+assert(/function beatPulseOf/.test(source), 'beat helper exists');
+
+// Dance clips install as the demo's clips and are staged as layers.
+const remapsBefore = remaps.length;
+const installed = await api.installDemoClips();
+assert(installed === true, 'installDemoClips resolves true');
+assert(demoItems.length === 13 && demoItems.every(function (it) { return it.packId === 'dancer-video'; }), 'all 13 dance clips installed from the dancer-video pack');
+assert(remaps.length > remapsBefore && window.Layers.list.length === 3, 'clips are staged into layers');
+assert(/13 clips · 3 layers/.test(api.stageSummary()), 'stage summary reports clips and layers: ' + api.stageSummary());
+
+// Demo song loads and plays through the shared audio core.
+const songOk = await api.loadDemoSong();
+assert(songOk === true && audioCore.playing === true, 'demo song loads and plays');
+assert(fetched[0] === '/audios/endless-tomorrow.mp3' && audioCore.loadedName === 'endless-tomorrow.mp3', 'demo song comes from /audios');
+assert(/audio playing/.test(api.stageSummary()), 'summary reports audio playing');
+
+// Play toggles pause.
+const toggled = await api.invokeControl('stage:play');
+assert(toggled.ok === true && audioCore.playing === false, 'stage:play pauses a playing song');
+
+// Start demo is async and reports through invokeControl.
+audioCore.playing = false;
+const started = await api.invokeControl('stage:start');
+assert(started.ok === true, 'stage:start resolves ok');
+assert(api.getState().activePreset === 'neon', 'start demo applies the neon preset');
+const probe = api.readProbe('stage:start');
+assert(probe.cycling === true && probe.clips === 13 && probe.playing === true, 'start demo leaves clips staged, audio playing and presets cycling');
+await api.invokeControl('demo:demoAll');
+
+// WebGL toggle persists the opt-in and asks the page to reload.
+delete storage.swrWebGL;
+api.hooks.reload = function (want) { reloads.push(want); return true; };
+assert(api.webglState().asked === false, 'WebGL starts off');
+assert(api.toggleWebGL() === true && storage.swrWebGL === '1' && reloads[0] === true, 'toggle on stores swrWebGL=1 and reloads');
+assert(api.webglState().asked === true, 'WebGL reads as requested');
+assert(api.toggleWebGL() === true && storage.swrWebGL === '0' && reloads[1] === false, 'toggle off stores swrWebGL=0');
 
 console.log('NEON DEMO PANEL UNIT: ALL GREEN (' + tests + ' tests, ' + listed.length + ' controls)');

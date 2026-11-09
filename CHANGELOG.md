@@ -7,6 +7,20 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Added
+- **The NEON Demo panel installs the dance clips as the demo.** A new
+  **Demo stage** section leads the panel: **Start demo** installs the 13
+  `dancer-video` clips from the Dance Clips pack, stages them as layers
+  once they are classified, loads and plays the demo song (dismissing the
+  start overlay) and starts cycling presets. **Dance clips**, **Demo song**
+  and **Play/Pause** do each step on their own, **WebGL** toggles the
+  `?webgl=1` opt-in and reloads, and a live strip shows the bass / mid /
+  treble / air bands and the beat, with a status line reporting clips,
+  layers, audio and whether the WebGL pipeline is actually running.
+  `check:neon-demo-panel-unit`, `-verify` and `-smoke` cover it, the smoke
+  through the real button: clips decoding and advancing, audio features
+  moving, the overlay gone, WebGL reported honestly.
+
 ### Fixed
 - **Neon packs mount** — `versions/neon.html` (and the synced root `neon.html`) loaded `library-packs.client.js` but had no `#packs` host, so the Dance Clips / Dancers toolbar never painted and the Media library stayed empty. The packs strip also shrinks/scrolls inside the clipped Media panel on phone widths so loaded clips stay reachable. Gate: `check:neon-packs-mount-unit`.
 
