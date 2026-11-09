@@ -113,11 +113,9 @@
         }
       } catch (_) {}
       if (saved && saved.blob) {
-        // The record is the last song. Load it here when the engine has not
-        // yet, so the default clip cannot replace it and the element preloads.
-        if (typeof A._loadCurrentSong === 'function') {
-          try { await A._loadCurrentSong(); } catch (_) {}
-        }
+        // The record is the last song. Leave it for the boot restore.
+        // Loading it here as well replaces the element and pauses playback
+        // the moment boot restores the same song.
         return;
       }
       if (window.Library && window.Library.db) break;

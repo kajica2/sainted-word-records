@@ -185,7 +185,7 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
-- **The last song is preloaded on the next visit.** Loading a song already writes it to this browser. The next open reads that record back onto a media element that lives in the page, so the browser fetches it before Play. The default clip no longer steps in while that record is waiting.
+- **The last song is preloaded on the next visit.** Loading a song already writes it to this browser. The next open reads that record back onto a media element that lives in the page, so the browser fetches it before Play. The default clip no longer steps in while that record is waiting, and the restore runs once so it cannot interrupt playback.
 - **Neon auto-start threw `Audio.load is not a function`.** The shared
   audio core (`lib/audio.client.js`) only published `loadFile`, while the
   start overlay on `versions/neon.html` and `neon.html` — and `swr-sets` —

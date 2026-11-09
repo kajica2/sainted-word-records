@@ -517,6 +517,16 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   const restored = await pending;
   assert(restored === true, 'restore resolves once the song is back');
   assert(A.preloadedSong === 'remembered.mp3', 'a decoded song is marked preloaded', A.preloadedSong);
+  el.play();
+  const loads = el.loadCount;
+  const again = A._loadCurrentSong();
+  const during = A._loadCurrentSong();
+  assert(again === during, 'a second restore shares the one already running');
+  const restoredAgain = await again;
+  assert(restoredAgain === true, 'a second restore of the same song still reports restored');
+  assert(A.audioEl === el, 'a second restore keeps the playing element');
+  assert(!el.pauseCount, 'a second restore does not pause playback', el.pauseCount);
+  assert(el.loadCount === loads, 'a second restore does not reload the element', el.loadCount);
 }
 
 console.log(failures ? `\nMEDIA SOURCE UNIT: FAILED (${failures})` : '\nMEDIA SOURCE UNIT: PASSED');
