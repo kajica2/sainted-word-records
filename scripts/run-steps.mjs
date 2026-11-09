@@ -112,6 +112,9 @@ const GROUPS = {
     // group name. The sibling layer-retire/layer-text/layer-lifecycle
     // suites are reachable from no gate (pre-existing, not this gate's job).
     'npm run check:layer-groups-unit',
+    // Camera on a full stage: a refused add must not adopt the layer
+    // already on top, or stopping the camera deletes it.
+    'npm run check:live-layer-cap-unit',
     // The auto-post feed: the posts come from site-map.json's
     // `announcements` array, read from the inlined footer slice or from
     // /site-map.json, and painted into every [data-announcements]

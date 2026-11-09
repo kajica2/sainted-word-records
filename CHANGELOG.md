@@ -7,6 +7,9 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Changed
+- The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
+
 ### Added
 - **Mask illusions** — six beat-driven reveals in the post-process shader (Develop, Bloom, Ribbed, Fringe, Print, Wedge). Bass, mid, and treble open the photograph. They are personas and filter-cycler slots 10–15; press T twice, then 1–6. Slots 0–9 are unchanged.
 - **Responsive overflow gate** (`check:responsive-overflow`, in the `check`

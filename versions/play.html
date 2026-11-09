@@ -3144,7 +3144,7 @@
         <button class="tbtn ghost" id="toggle-cover-fullscreen" title="Toggle cover fullscreen" style="padding:4px 8px; font-size:9px;">⛶ Cover</button>
         <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
           <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
-          <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
+          <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">3</b>
           <button class="tbtn ghost" id="layer-count-inc" style="padding:4px 6px; font-size:9px;">+</button>
         </span>
       </div>
@@ -6037,15 +6037,17 @@
           const val = $('layer-count-val');
           function sync() {
             const total = Layers.list.length || 0;
-            const n = (Layers.activeCount > 0 ? Layers.activeCount : total) || 0;
+            const cap = (Layers.MAX > 0 ? Layers.MAX : 3);
+            const n = (Layers.activeCount > 0 ? Layers.activeCount : Math.min(total, cap)) || 0;
             if (val) val.textContent = String(n || '–');
             if (dec) dec.disabled = !(n > 1);
-            if (inc) inc.disabled = !(total && n < total);
+            if (inc) inc.disabled = !(total && n < total && n < cap);
           }
           function setCount(n) {
             const total = Layers.list.length || 0;
+            const cap = (Layers.MAX > 0 ? Layers.MAX : 3);
             if (!total) return;
-            const next = Math.max(1, Math.min(total, n));
+            const next = Math.max(1, Math.min(total, cap, n));
             Layers.setActiveCount(next >= total ? 0 : next);
             try { localStorage.setItem('swr.layers.active', String(next)); } catch (_) {}
             sync();
