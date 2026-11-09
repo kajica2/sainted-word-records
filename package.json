@@ -305,6 +305,12 @@
     "check:neon-audio-v3": "node scripts/check-neon-audio-v3.mjs",
     "check:root-neon-sync": "node scripts/sync-root-neon.mjs --check",
     "neon:sync": "node scripts/sync-root-neon.mjs",
+    "audio:toolkit:install": "python3 -m pip install -r tools/python-audio-toolkit/requirements.txt",
+    "audio:process": "PYTHONPATH=tools/python-audio-toolkit python3 -m swr_audio process",
+    "audio:record": "PYTHONPATH=tools/python-audio-toolkit python3 -m swr_audio record",
+    "audio:take": "PYTHONPATH=tools/python-audio-toolkit python3 -m swr_audio take",
+    "audio:overdub": "PYTHONPATH=tools/python-audio-toolkit python3 -m swr_audio overdub",
+    "check:audio-toolkit": "node scripts/check-audio-toolkit-unit.mjs",
     "prebuild": "node scripts/media-inventory.mjs && node scripts/generate-generations.mjs",
     "check:chain-view": "node scripts/check-chain-view.mjs",
     "check:command-center": "node scripts/check-command-center.mjs"

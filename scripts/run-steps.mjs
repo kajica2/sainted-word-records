@@ -359,6 +359,9 @@ const GROUPS = {
     'npm run check:neon-layer-lock-unit',
     'npm run check:neon-audio-v3',
     'npm run check:root-neon-sync',
+    // Offline Python DSP + additional-audio takes (Matin toolkit adaptation).
+    // Selftest is mic-free; record --env-skip keeps CI green without PortAudio.
+    'npm run check:audio-toolkit',
     // The bench gate's A/V sampling-depth floor: derived from the host's
     // OWN measured frame rate, so a slow machine is not asked for what it
     // cannot deliver — while a host that renders at speed but samples once
