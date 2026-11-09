@@ -202,7 +202,10 @@ check('engine.html has no second owner of the bare digit row', () => {
 });
 
 check('both digit paths in engine-keys.client.js run inside withNoRotation()', () => {
-  const bare = /if \(!action && !ev\.shiftKey[\s\S]{0,400}?withNoRotation\(function \(\) \{ applyFilterFromDigit\(slot\); \}\);/.test(KEYS_SRC);
+  // Window is wide enough for the lookArmed / maskArmed / scenesActive
+  // guards that sit between the bare-digit `if` and withNoRotation — those
+  // chords must win over bare 1..9, so the wrap cannot sit on the next line.
+  const bare = /if \(!action && !ev\.shiftKey[\s\S]{0,900}?withNoRotation\(function \(\) \{ applyFilterFromDigit\(slot\); \}\);/.test(KEYS_SRC);
   if (!bare) return 'bare 1..9 path is not wrapped in withNoRotation()';
   const tPrefix = /if \(!action && \/\^Digit\[0-9\]\$[\s\S]{0,400}?withNoRotation\(function \(\) \{[\s\S]{0,200}?SWR_LOOK_FILTER_CYCLER\.apply\(slot\)/.test(KEYS_SRC);
   if (!tPrefix) return 'T+0..9 path is not wrapped in withNoRotation()';
