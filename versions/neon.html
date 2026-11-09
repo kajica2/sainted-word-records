@@ -362,7 +362,110 @@
        and a grid/list toggle. */
     aside.lib { display: flex; flex-direction: column; overflow: hidden; }
     aside.lib > .head { flex: none; }
-    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    /* Packs must shrink inside the clipped panel. On phones aside.lib is
+       capped at 30vh; flex:none + cover tiles would push .body (the loaded
+       clip list) outside the clip and make Dance Clips unreachable. */
+    aside.lib > .packs {
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 45%;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 4.5rem; }
+    /* Opt-in curated packs (Dance Clips, Dancers, …). library-packs.client.js
+       mounts into #packs; without this mount the script loads and does nothing,
+       so neon boots with an empty library and no UI path to the shipped videos. */
+    .packs {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2, rgba(255, 255, 255, 0.02));
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .packs-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .packs-title { font-weight: 600; }
+    .packs-hint { font-style: italic; opacity: 0.55; font-size: 8px; }
+    .packs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .pack-btn {
+      background: var(--bg, #0a0a0a);
+      border: 1px solid var(--line, #222);
+      color: var(--ink, #eee);
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-radius: 2px;
+      transition: background 120ms ease, border-color 120ms ease;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pack-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--c, #888); }
+    .pack-btn.is-loaded {
+      background: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.55);
+      color: rgba(180, 240, 200, 1);
+    }
+    .pack-btn.is-error {
+      background: rgba(200, 80, 80, 0.12);
+      border-color: rgba(200, 80, 80, 0.5);
+    }
+    .pack-btn:disabled { opacity: 0.8; cursor: not-allowed; }
+    .pack-btn.has-cover {
+      position: relative;
+      min-height: 54px;
+      justify-content: flex-end;
+      padding: 5px 6px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    }
+    .pack-btn.has-cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 34%, rgba(0,0,0,0) 62%);
+      pointer-events: none;
+    }
+    .pack-btn.has-cover > * { position: relative; }
+    .pack-btn.has-cover:hover { border-color: var(--c, #888); filter: brightness(1.12); }
+    .pack-btn.has-cover.is-loaded {
+      background-color: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.7);
+    }
+    .packs-empty {
+      padding: 18px 12px;
+      text-align: center;
+      color: var(--muted, #888);
+      font-size: 10px;
+      line-height: 1.5;
+      border: 1px dashed var(--line, #333);
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+    .packs-empty div:first-child { font-size: 22px; margin-bottom: 6px; opacity: 0.7; }
+    .packs-empty-title { font-weight: 600; color: var(--ink, #ccc); margin-bottom: 2px; }
+    .packs-empty-sub { font-size: 9px; opacity: 0.7; }
     .media-bar { flex: none; display: flex; align-items: center; gap: 6px;
       padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
     .media-tabs { display: flex; gap: 4px; flex: 1; min-width: 0; }
@@ -534,6 +637,7 @@
     <aside class="lib">
       <div class="head"><h2>Media</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;" title="Add media files">+</button><button class="tbtn" id="media-clear" style="padding:3px 8px;font-size:9px;" title="Clear this view">Clear</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
         <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" /></div>
+      <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
       <div class="media-bar">
         <div class="media-tabs" role="tablist" aria-label="Media view">
           <button type="button" class="media-tab is-on" data-media-tab="library" role="tab" aria-selected="true" aria-controls="lib">Library <b class="ct" id="media-count-library">0</b></button>

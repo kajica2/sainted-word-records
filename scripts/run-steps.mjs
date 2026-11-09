@@ -89,6 +89,8 @@ const GROUPS = {
     'npm run check:mask-illusions',
     // A .mov / .mkv with an empty File.type must still enter the library.
     'npm run check:media-kind-unit',
+    // Neon must mount #packs so Dance Clips / library-packs can paint.
+    'npm run check:neon-packs-mount-unit',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
