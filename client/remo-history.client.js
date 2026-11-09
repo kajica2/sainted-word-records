@@ -16,7 +16,15 @@
     if (!cmd || typeof cmd.undo !== 'function' || typeof cmd.redo !== 'function') return;
     var now = Date.now();
     if (cmd.coalesceKey && cmd.coalesceKey === lastKey && (now - lastAt) <= COALESCE_MS && undoStack.length) {
-      undoStack[undoStack.length - 1] = cmd;
+      // Keep the earliest undo so one Undo restores the pre-burst value.
+      // Replace only the redo tip with the latest state.
+      var prev = undoStack[undoStack.length - 1];
+      undoStack[undoStack.length - 1] = {
+        label: cmd.label || prev.label,
+        coalesceKey: cmd.coalesceKey,
+        undo: prev.undo,
+        redo: cmd.redo,
+      };
     } else {
       undoStack.push(cmd);
       if (undoStack.length > MAX) undoStack.shift();

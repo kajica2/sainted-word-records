@@ -8,6 +8,12 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **Remo history and import stay usable after review findings.**
+  Empty v1/v2 imports re-seed the starter envelopes. Preset undo
+  captures the envelope id it edited. Coalesced depth edits keep the
+  earliest undo. Wire ids are stable across remove/re-add. Remo
+  scripts load in order so the panel never boots before its
+  dependencies.
 - **The NEON wave lines cover the stage, and they stay above the grade.**
   The renderer floors its drawing size at 640×360, so a smaller stage
   gave the SVG a different shape and the lines letterboxed. The sheet

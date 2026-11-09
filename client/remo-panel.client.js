@@ -135,7 +135,13 @@
     if (P()) P().restore(snap.params || {});
     if (E()) E().restore(snap.envelopes || []);
     if (W()) W().restore(snap.wires || []);
+    // A v1 migration (or an empty v2) leaves no envelopes. Seed the
+    // starter bank so preset chips and the matrix stay usable.
     var list = E() ? E().listSources() : [];
+    if (!list.length) {
+      seedStarter();
+      list = E() ? E().listSources() : [];
+    }
     state.activeId = list[0] ? list[0].id : null;
     renderBody();
     return { ok: true };
@@ -151,14 +157,23 @@
 
   function selectPreset(presetId) {
     var bus = E();
-    if (!bus || !state.activeId) return;
-    var prev = bus.snapshot().find(function (e) { return e.id === state.activeId; });
-    bus.updateSource(state.activeId, { preset: presetId, shape: null });
+    var envId = state.activeId;
+    if (!bus || !envId) return;
+    var prev = bus.snapshot().find(function (e) { return e.id === envId; });
+    bus.updateSource(envId, { preset: presetId, shape: null });
     if (H()) {
       H().push({
         label: 'preset ' + presetId,
-        undo: function () { if (prev) bus.updateSource(state.activeId, prev); renderBody(); },
-        redo: function () { bus.updateSource(state.activeId, { preset: presetId, shape: null }); renderBody(); },
+        undo: function () {
+          if (prev) bus.updateSource(envId, prev);
+          state.activeId = envId;
+          renderBody();
+        },
+        redo: function () {
+          bus.updateSource(envId, { preset: presetId, shape: null });
+          state.activeId = envId;
+          renderBody();
+        },
       });
     }
     renderBody();
@@ -169,23 +184,50 @@
     if (!store) return;
     var existing = store.findWire(sourceId, target);
     if (existing) {
+      var wireId = existing.id;
       var before = existing.depth;
-      store.updateWire(existing.id, { depth: depth });
+      store.updateWire(wireId, { depth: depth });
       if (H()) {
         H().push({
           label: 'depth',
-          coalesceKey: 'wire:depth:' + existing.id,
-          undo: function () { store.updateWire(existing.id, { depth: before }); renderBody(); },
-          redo: function () { store.updateWire(existing.id, { depth: depth }); renderBody(); },
+          coalesceKey: 'wire:depth:' + wireId,
+          undo: function () {
+            var w = store.findWire(sourceId, target);
+            if (w) store.updateWire(w.id, { depth: before });
+            renderBody();
+          },
+          redo: function () {
+            var w = store.findWire(sourceId, target);
+            if (w) store.updateWire(w.id, { depth: depth });
+            else store.addWire({ id: wireId, sourceId: sourceId, target: target, depth: depth, polarity: 'uni', curve: 'smooth', mode: 'add' });
+            renderBody();
+          },
         });
       }
     } else {
       var wire = store.addWire({ sourceId: sourceId, target: target, depth: depth, polarity: 'uni', curve: 'smooth', mode: 'add' });
       if (H() && wire) {
+        var addedId = wire.id;
+        var snap = {
+          id: addedId,
+          sourceId: sourceId,
+          target: target,
+          depth: depth,
+          polarity: 'uni',
+          curve: 'smooth',
+          mode: 'add',
+        };
         H().push({
           label: 'add wire',
-          undo: function () { store.removeWire(wire.id); renderBody(); },
-          redo: function () { store.addWire({ sourceId: sourceId, target: target, depth: depth, polarity: 'uni', curve: 'smooth', mode: 'add' }); renderBody(); },
+          undo: function () {
+            var w = store.findWire(sourceId, target);
+            if (w) store.removeWire(w.id);
+            renderBody();
+          },
+          redo: function () {
+            store.addWire(snap);
+            renderBody();
+          },
         });
       }
     }
@@ -198,6 +240,7 @@
     var existing = store.findWire(sourceId, target);
     if (!existing) return;
     var snap = {
+      id: existing.id,
       sourceId: existing.sourceId,
       target: existing.target,
       depth: existing.depth,

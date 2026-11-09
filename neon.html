@@ -2158,20 +2158,26 @@
       document.head.appendChild(s);
     }
   </script>
-  <!-- Remo Panel 2.0. Loaded only with ?env=1 so the flag-off path stays cold. -->
+  <!-- Remo Panel 2.0. Loaded only with ?env=1 so the flag-off path stays cold.
+       Scripts chain onload so the panel never boots before its dependencies. -->
   <script>
     if (/[?&]env=1/.test(location.search)) {
-      ['/client/remo-param-store.client.js',
-       '/client/remo-shapes.client.js',
-       '/client/remo-history.client.js',
-       '/client/remo-envelope-bus.client.js',
-       '/client/remo-wiring-store.client.js',
-       '/client/remo-panel.client.js'].forEach(function (src) {
+      (function loadRemo(i) {
+        var urls = [
+          '/client/remo-param-store.client.js',
+          '/client/remo-shapes.client.js',
+          '/client/remo-history.client.js',
+          '/client/remo-envelope-bus.client.js',
+          '/client/remo-wiring-store.client.js',
+          '/client/remo-panel.client.js',
+        ];
+        if (i >= urls.length) return;
         var s = document.createElement('script');
-        s.src = src;
-        s.defer = true;
+        s.src = urls[i];
+        s.onload = function () { loadRemo(i + 1); };
+        s.onerror = function () { console.warn('[remo] failed to load', urls[i]); };
         document.head.appendChild(s);
-      });
+      })(0);
     }
   </script>
 </body>

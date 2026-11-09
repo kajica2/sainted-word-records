@@ -33,11 +33,21 @@
     return out;
   }
 
+  function wireId(sourceId, target) {
+    return 'w_' + sourceId + '_' + String(target).replace(/\W+/g, '_');
+  }
+
   function addWire(spec) {
     if (!spec || !spec.sourceId || !spec.target) return null;
+    var id = spec.id || wireId(spec.sourceId, spec.target);
+    var existing = byId[id] || findWire(spec.sourceId, spec.target);
+    if (existing) {
+      updateWire(existing.id, spec);
+      return existing;
+    }
     seq += 1;
     var wire = {
-      id: 'w_' + spec.sourceId + '_' + spec.target.replace(/\W+/g, '_') + '_' + seq,
+      id: id,
       sourceId: spec.sourceId,
       target: spec.target,
       expandedTargets: expandTarget(spec.target),

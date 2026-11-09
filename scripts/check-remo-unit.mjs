@@ -171,22 +171,31 @@ P.resetModulation();
 W.applyWires();
 assert(true, 'deleting a wire mid-cycle is safe');
 
-let n = 0;
+let depth = 0.5;
+H.clear();
 H.push({
-  label: 't',
-  coalesceKey: 'k',
-  undo() { n -= 1; },
-  redo() { n += 1; },
+  label: 'depth',
+  coalesceKey: 'wire:depth:w1',
+  undo() { depth = 0.5; },
+  redo() { depth = 0.6; },
 });
 H.push({
-  label: 't2',
-  coalesceKey: 'k',
-  undo() { n -= 2; },
-  redo() { n += 2; },
+  label: 'depth',
+  coalesceKey: 'wire:depth:w1',
+  undo() { depth = 0.6; },
+  redo() { depth = 0.7; },
 });
 assert(H.canUndo(), 'history can undo');
 H.undo();
-assert(n === -2, 'coalesced undo runs latest command');
+assert(depth === 0.5, 'coalesced undo restores the pre-burst depth, got ' + depth);
+H.redo();
+assert(depth === 0.7, 'coalesced redo applies the latest depth, got ' + depth);
+
+const a = W.addWire({ sourceId: 'env_pulse', target: 'fx.hue', depth: 0.2, mode: 'add' });
+const aId = a.id;
+W.removeWire(aId);
+const b = W.addWire({ id: aId, sourceId: 'env_pulse', target: 'fx.hue', depth: 0.2, mode: 'add' });
+assert(b.id === aId, 're-adding a wire keeps a stable id');
 
 const v1 = { stage: { zoom: 1.4 }, scene: { layers: [{ opacity: 0.8, scale: 1.1, rotation: 5 }] } };
 const v2 = Panel.migrateV1toV2(v1);
@@ -198,9 +207,12 @@ assert(v2.envelopes.length === 0 && v2.wires.length === 0, 'migration leaves env
 const bad = Panel.applySnapshot({ schemaVersion: 3 });
 assert(bad.ok === false, 'schemaVersion 3 is rejected');
 
+E.clear();
 const round = Panel.applySnapshot(v2);
 assert(round.ok === true, 'v2 snapshot applies');
 assert(Math.abs(P.getBase('stage.zoom') - 1.4) < 1e-9, 'applied snapshot restores base');
+assert(E.listSources().length === 7, 'empty import re-seeds the starter envelopes');
+assert(!!E.getSource(Panel.applySnapshot && E.listSources()[0].id), 'active envelope bank is non-empty');
 
 // Frame order smoke: reset → tick → apply
 P.setBase('stage.zoom', 1);
