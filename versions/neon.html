@@ -362,8 +362,17 @@
        and a grid/list toggle. */
     aside.lib { display: flex; flex-direction: column; overflow: hidden; }
     aside.lib > .head { flex: none; }
-    aside.lib > .packs { flex: none; }
-    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    /* Packs must shrink inside the clipped panel. On phones aside.lib is
+       capped at 30vh; flex:none + cover tiles would push .body (the loaded
+       clip list) outside the clip and make Dance Clips unreachable. */
+    aside.lib > .packs {
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 45%;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 4.5rem; }
     /* Opt-in curated packs (Dance Clips, Dancers, …). library-packs.client.js
        mounts into #packs; without this mount the script loads and does nothing,
        so neon boots with an empty library and no UI path to the shipped videos. */

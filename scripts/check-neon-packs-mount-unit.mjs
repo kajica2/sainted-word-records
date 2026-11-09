@@ -27,6 +27,17 @@ for (const rel of PAGES) {
   check(`${rel} mounts #packs`, /id=["']packs["']/.test(html));
   check(`${rel} styles .pack-btn`, /\.pack-btn\s*\{/.test(html));
   check(`${rel} styles .packs-empty`, /\.packs-empty\s*\{/.test(html));
+  // Phone layout: packs must be allowed to shrink/scroll so .body stays
+  // reachable inside the clipped 30vh Media panel.
+  check(
+    `${rel} packs can shrink`,
+    /aside\.lib\s*>\s*\.packs\s*\{[^}]*flex:\s*0\s+1\s+auto/s.test(html)
+      && /aside\.lib\s*>\s*\.packs\s*\{[^}]*overflow-y:\s*auto/s.test(html),
+  );
+  check(
+    `${rel} media body keeps a floor`,
+    /aside\.lib\s*>\s*\.body\s*\{[^}]*min-height:\s*4\.5rem/s.test(html),
+  );
 }
 
 // Contract: with a #packs host present, init paints a Dance Clips button.
