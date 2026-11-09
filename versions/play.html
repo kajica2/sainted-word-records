@@ -6817,7 +6817,7 @@
       try {
         const restored = await Audio._loadCurrentSong();
         if (restored) {
-          setStatus('song restored', 'ok');
+          setStatus(Audio.preloadedSong ? 'song preloaded' : 'song restored', 'ok');
           // Auto-play if the browser allows it (user previously interacted
           // with the page in this tab) or queue for the first user gesture.
           // Without this the user reloads the engine expecting audio to
