@@ -35,3 +35,12 @@ No authentication exists in this prototype; the research page itself can be acce
 
 ## Technical fit
 Reuse root audio-analysis-v2.js (browser global API), do not modify its algorithm. Existing music-video-maker.html / make-video.html, engine-render.client.js, Vite copy-static, existing BPM and section-detection tests were inspected; renderer integration is deferred to a separate PR. No direct changes to production main. KAI SWARM: <=2 agents; <=$2/day AI API.
+
+## Stage 2 experimental composer (2026-11-10)
+- 9:16 540 × 960 canvas with three procedural identity presets.
+- Live spectral energy from Web Audio + pulse estimated from existing SWR BPM analysis (not sample-accurate beat tracking).
+- Up to 15 seconds of WebM browser recording with audio via MediaStreamDestination, where browser-supported.
+- Audio decoding, visualization and recording remain local.
+- Still missing: real image/video layers, reproducible song-section sequencing, MP4 fallback, full-song export, cross-browser export verification, and three-output workflow.
+- Manual smoke gate: load song, play/pause/seek, switch all styles, record 15-second clip with both picture and audio, then re-upload another file.
+- Run visual.test.mjs, previous BeatCanvas tests, existing BPM and section gates, full Vite build. No production merge without all gates and reviewed preview.
