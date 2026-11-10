@@ -638,20 +638,12 @@
     var sub = document.getElementById('swr-start-sub');
     var fired = false;
 
-    // Can we autoplay without a user gesture? Modern browsers
-    // (Chrome 94+, Safari 16.4+, Firefox 121+) relax autoplay for
-    // sites the user has interacted with before. The MediaSession
-    // API surfaces a "activation hint" — non-empty activation
-    // means the user has clicked/tapped/typed since the page loaded,
-    // and we can autoplay. On pages where this is true, run start()
-    // immediately and skip the overlay.
-    var canAutoplay = false;
-    try {
-      if (navigator.userActivation && navigator.userActivation.isActive) {
-        canAutoplay = true;
-      }
-    } catch (_) {}
-
+    // No autoplay. This page used to start a song on load whenever the browser
+    // hinted the user had interacted before (or an earlier visit had armed
+    // audio), so the music was often already past its first chorus by the time
+    // anyone reached for ● REC. The song is now loaded SILENTLY at 0:00 and the
+    // transport belongs to the Record button: pressing ● REC rewinds to bar 1,
+    // starts the song and starts the take (see Recorder.start).
     async function start() {
       if (fired) return;
       fired = true;
@@ -663,83 +655,57 @@
           ? await window.SWR_PICK_DEFAULT_SONG(DEFAULT_SONG)
           : null;
         if (!picked) throw new Error('no song source available');
+        if (!window.SWR || !window.SWR.Audio) throw new Error('audio engine not ready');
         var blob = picked.blob;
         var name = picked.name;
         var file = new File([blob], name, { type: blob.type || picked.type || 'audio/mpeg' });
-        if (window.SWR && window.SWR.Audio) {
-          window.SWR.Audio.load(file);
-          await window.SWR.Audio.play();
-          if (sub) {
-            var tag = picked.source === 'saved' ? 'last song · ' : 'playing · ';
-            sub.textContent = tag + name;
-          }
-        }
+        // The audio core exposes loadFile() — calling load() here threw
+        // "not a function" every time, so this overlay never actually loaded
+        // anything and always fell through to its "tap to start" hint.
+        var core = window.SWR.Audio;
+        if (typeof core.loadFile === 'function') core.loadFile(file);
+        else if (typeof core.load === 'function') core.load(file);
+        else throw new Error('audio core has no loadFile()');
+        if (sub) sub.textContent = 'loaded · ' + name + ' — press ● REC';
         succeeded = true;
       } catch (e) {
         // Failure path: leave the overlay visible so the user can
         // click again. Reset the fired flag so the click handler
         // can fire a fresh attempt. Without this, a single failed
-        // autoplay leaves the user stranded — the overlay disappears
-        // and the "tap to start" hint vanishes with it. This is the
-        // exact "media is not loading" symptom we were trying to
-        // avoid.
+        // load leaves the user stranded — the overlay disappears
+        // and the "tap to start" hint vanishes with it.
         fired = false;
         if (sub) sub.textContent = 'tap "load song" to start';
-        console.warn('swr auto-start failed:', e);
+        console.warn('swr song load failed:', e);
       }
       // Only hide + remove the overlay on success. The overlay is
-      // the manual fallback for browsers that still block autoplay;
+      // the manual fallback for browsers where the helper is blocked;
       // removing it on failure strands the user with no retry path.
       if (succeeded) {
         overlay.classList.add('hide');
         setTimeout(function(){ overlay.remove(); }, 600);
       }
     }
+    // The recorder calls the same loader when ● REC is pressed with no song.
+    window.SWR_LOAD_DEFAULT_SONG = start;
 
-    // Track a one-shot user gesture anywhere on the page to arm the
-    // audio for next time. Once armed, the overlay can autoplay.
-    document.addEventListener('pointerdown', function arm() {
-      try { localStorage.setItem('swr.audio.armed', '1'); } catch (_) {}
-    }, { once: true, capture: true });
-
-    if (canAutoplay || (function () {
-      try { return localStorage.getItem('swr.audio.armed') === '1'; }
-      catch (_) { return false; }
-    })()) {
-      // Try to autoplay immediately — if the browser blocks, the
-      // overlay stays visible (start()'s catch path) and the user
-      // can click it manually. Either way, the engine renders
-      // visual content on enter via the normal RAF loop.
-      //
-      // Wait for window.SWR_PICK_DEFAULT_SONG to be defined —
-      // last-song.js (which defines it) loads AFTER this inline
-      // script. Poll until it's there, then fire. This avoids the
-      // race where the auto-start fires before last-song.js has
-      // registered the helper.
-      function waitForPick() {
-        if (window.SWR_PICK_DEFAULT_SONG) {
+    // Load the default song as soon as the helpers exist — without playing it.
+    // last-song.js and the engine's own inline script load AFTER this block, so
+    // poll for both before the first attempt.
+    (function waitForPick() {
+      var tries = 0;
+      var iv = setInterval(function() {
+        tries++;
+        if (window.SWR_PICK_DEFAULT_SONG && window.SWR && window.SWR.Audio) {
+          clearInterval(iv);
           start();
-          return;
+        } else if (tries > 50) {  // ~5s timeout
+          // Don't fire — overlay stays as fallback.
+          clearInterval(iv);
         }
-        var tries = 0;
-        var iv = setInterval(function() {
-          tries++;
-          if (window.SWR_PICK_DEFAULT_SONG) {
-            clearInterval(iv);
-            start();
-          } else if (tries > 50) {  // ~5s timeout
-            clearInterval(iv);
-            // Don't fire — overlay stays as fallback.
-          }
-        }, 100);
-      }
-      waitForPick();
-    }
+      }, 100);
+    })();
 
-    // If the autoplay attempt didn't fire the overlay (because
-    // play() resolved), keep the overlay visible until the user
-    // explicitly hides it. The overlay remains the manual fallback
-    // for browsers that still block autoplay.
     overlay.addEventListener('click', function manualStart() {
       if (!fired) start();
     });
@@ -827,6 +793,20 @@
     // currently assigned to a layer.
     const MediaUI = { tab: 'library', view: 'grid', query: '', focusId: null };
 
+    // === IMAGE CLIP SLOT ===
+    // Stills are already clips on this page (any non-video mime becomes
+    // type:'image' and is drawn by the same drawImage path as a video),
+    // but each still used to carry its OWN aspect: `a.w/a.h` came from the
+    // file, so swapping a 4:3 photo for a 16:9 one re-framed the layer.
+    // Framing every still to one slot is what makes the picture stay put
+    // across a swap. `a.w/a.h` feed exactly one thing — the aspect at
+    // draw time — so this is the whole fix, with no canvas and no bake.
+    //
+    // on:true  → every still is framed to the slot (swapping never moves).
+    // on:false → each still keeps its own aspect (a portrait stays
+    //            portrait, at the cost of the layer re-framing on swap).
+    const IMAGE_SLOT = { on: true, w: 1280, h: 720 };
+
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
       async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
@@ -860,6 +840,10 @@
           }
           it.hue = (Math.atan2(sy/(d.length/4), sx/(d.length/4))/(Math.PI*2)+1)%1;
           it.w = src.videoWidth||src.naturalWidth; it.h = src.videoHeight||src.naturalHeight;
+          // A still is framed to the slot so a swap inside a layer never
+          // re-frames the picture (see IMAGE_SLOT). Clips keep their own
+          // dimensions — a video's aspect is part of the edit.
+          if (it.type === 'image' && IMAGE_SLOT.on) { it.w = IMAGE_SLOT.w; it.h = IMAGE_SLOT.h; }
           // thumb
           const tw=120,th=120; const tcv=document.createElement('canvas'); tcv.width=tw;tcv.height=th;
           const tcx=tcv.getContext('2d'); tcx.drawImage(src,0,0,tw,th);
@@ -1672,13 +1656,27 @@
       autoStopAt: 0,
       autoStopTimer: null,
     // SWR_REC_MP4_INTEGRATION
-      start() {
+      async start(forceFormat) {
+        // Record is the transport on this page: nothing autoplays on load, so
+        // the take begins here — load a song if there is none, rewind to the
+        // top and start the music.
+        //
+        // The rewind is also what makes "song" length work. It used to be
+        // measured as (duration - currentTime): pressing REC after the song
+        // had finished gave 0ms, no auto-stop timer was armed at all, and the
+        // take ran forever without ever producing a file. From the top the
+        // same expression is the whole song.
+        if (!A.el && typeof window.SWR_LOAD_DEFAULT_SONG === 'function') {
+          try { await window.SWR_LOAD_DEFAULT_SONG(); } catch (_) {}
+        }
         if (!A.el) { setStatus('load a song first', ''); return; }
+        try { A.seek(0); } catch (_) {}
+        try { await A.play(); } catch (_) {}
         const fpsSel = $('rec-fps') ? $('rec-fps').value : '30';
         const fps = parseInt(fpsSel, 10) || 30;
         const qualSel = $('rec-quality') ? $('rec-quality').value : 'high';
         const BITRATE = { high: 12_000_000, med: 6_000_000, low: 3_000_000 }[qualSel] || 12_000_000;
-        const formatSel = $('rec-format') ? $('rec-format').value : 'auto';
+        const formatSel = forceFormat || ($('rec-format') ? $('rec-format').value : 'auto');
         const wantMp4 = formatSel === 'mp4' || (formatSel === 'auto' && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs());
         if (wantMp4 && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs()) {
           this._wcActive = true;
@@ -1691,13 +1689,41 @@
             height: stage.height,
             fps: fps,
             videoBitsPerSecond: BITRATE,
-          }).then(() => {
-            this.recording = true;
+          });
+          // start() settles when the MP4 is FINISHED, not when the encoder is
+          // streaming — so the UI flip used to live in its .then() and never
+          // ran: the button stayed on ● REC, no auto-stop was armed, and
+          // pressing STOP hit a recorder that had never been told a take was
+          // running. Wait for 'ready' (a separate promise) instead.
+          const readyP = (window.SWR_RECORDER.ready ? window.SWR_RECORDER.ready() : Promise.resolve(true));
+          const readyTimeout = new Promise((_, rej) => setTimeout(
+            () => rej(Object.assign(new Error('encoder did not become ready in 5s'), { unsupported: true })), 5000));
+          try {
+            await Promise.race([readyP, readyTimeout]);
+          } catch (err) {
+            this._wcActive = false;
+            try { window.SWR_RECORDER.stop(); } catch (_) {}
+            if (err && err.unsupported) {
+              setStatus('WebCodecs unsupported · falling back to WebM', 'warn');
+              return this.start('webm');
+            }
+            setStatus('recorder start failed: ' + (err && err.message || err), 'err');
+            return;
+          }
+          // stop() owns the blob; a mid-take encoder error only needs to be
+          // reported, or it would surface as an unhandled rejection.
+          this._wcPending.catch((err) => {
+            if (this._wcActive) setStatus('recorder failed: ' + (err && err.message || err), 'err');
+          });
+          this.recording = true;
             this.startedAt = Date.now();
             const durSel = $('rec-dur') ? $('rec-dur').value : '0';
             let durMs = 0;
             if (durSel === 'song' && A.el && A.el.duration) {
               durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
+              // Safety net: if the playhead is already at the end (a stalled
+              // seek, a song that just finished), the take is the whole song.
+              if (durMs < 250) durMs = A.el.duration * 1000;
             } else if (durSel !== '0' && durSel !== 'manual') {
               durMs = parseInt(durSel) * 1000;
             }
@@ -1727,18 +1753,6 @@
                 setStatus('rec · MP4 · ' + el, 'live');
               }
             }, 500);
-          }).catch((err) => {
-            this._wcActive = false;
-            if (err && err.unsupported) {
-              setStatus('WebCodecs unsupported · falling back to WebM', 'warn');
-              const prev = $('rec-format') ? $('rec-format').value : formatSel;
-              if ($('rec-format')) $('rec-format').value = 'webm';
-              this.start();
-              if ($('rec-format')) $('rec-format').value = prev;
-            } else {
-              setStatus('recorder start failed: ' + (err && err.message || err), 'err');
-            }
-          });
           return;
         }
         // === MEDIA-RECORDER (WEBM) PATH — same as before ===
@@ -1774,6 +1788,9 @@
         let durMs = 0;
         if (durSel === 'song' && A.el && A.el.duration) {
           durMs = Math.max(0, (A.el.duration - A.el.currentTime) * 1000);
+          // Safety net: if the playhead is already at the end (a stalled seek,
+          // a song that just finished), the take is the whole song.
+          if (durMs < 250) durMs = A.el.duration * 1000;
         } else if (durSel !== '0' && durSel !== 'manual') {
           durMs = parseInt(durSel) * 1000;
         }
@@ -1815,7 +1832,12 @@
           $('rec').classList.remove('live');
           $('rec').textContent = '● REC';
           setStatus('finalizing MP4…', '');
-          window.SWR_RECORDER.stop().then((res) => {
+          // A hung encoder (the worker never posting 'done') used to leave
+          // this stuck on 'finalizing MP4…' forever with no file and no
+          // error. Race it so a failure is always visible.
+          const timeout = new Promise((_, rej) =>
+            setTimeout(() => rej(new Error('encoder did not finish in 20s')), 20000));
+          Promise.race([window.SWR_RECORDER.stop(), timeout]).then((res) => {
             this.chunks = [res.blob];
             this.mime = res.mime;
             this._save();
@@ -1838,19 +1860,48 @@
         }
       },
       _save() {
+        // The take is over, so the music stops with it: Record started the
+        // song, and the file and the transport end together.
+        try { A.pause(); } catch (_) {}
         const blob = new Blob(this.chunks, { type: this.mime });
-        const a = document.createElement('a');
-        const recUrl = URL.createObjectURL(blob);
-        a.href = recUrl;
+        if (!blob.size) {
+          setStatus('nothing captured - press REC while the song plays', 'err');
+          return;
+        }
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-        a.download = 'sainted-word-' + ts + '.' + ext;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        // Free the download URL once the click has been dispatched.
-        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
-        setStatus('exported · ' + ext.toUpperCase(), 'ok');
+        const name = 'sainted-word-' + ts + '.' + ext;
+        const recUrl = URL.createObjectURL(blob);
+        // First attempt: the silent anchor click. It is what most browsers
+        // save from, but Chrome blocks programmatic downloads in some
+        // profiles (and flags a second one from the same page), in which
+        // case this produces the file nowhere and tells nobody.
+        try {
+          const a = document.createElement('a');
+          a.href = recUrl;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } catch (_) {}
+        // Second attempt, always: leave a real link in the status bar. A
+        // click on it is a user gesture, so no browser can block it - and
+        // if the automatic download did work, the link is simply ignored.
+        // The URL stays alive for this, so do not revoke it here.
+        const statusEl = $('status');
+        if (statusEl) {
+          statusEl.textContent = 'saved · ' + ext.toUpperCase() + ' · ' + Math.round(blob.size / 1024) + ' KB — ';
+          const link = document.createElement('a');
+          link.href = recUrl;
+          link.download = name;
+          link.textContent = '⬇ download';
+          link.title = name;
+          link.style.cssText = 'color:inherit;text-decoration:underline;font-weight:700;cursor:pointer;';
+          statusEl.appendChild(link);
+          statusEl.appendChild(document.createTextNode(' ' + name));
+        } else {
+          setStatus('exported · ' + ext.toUpperCase(), 'ok');
+        }
       },
     };
         // Invalidate the per-layer cache whenever the page rebuilds.
@@ -1879,6 +1930,40 @@
     window.Library = Lib;
     window.Layers = Layers;
     window.setStatus = setStatus;
+
+    // ---- window.SWRImages — the image-clip surface for this page ------
+    // This is the API a patch like "images as clips" reaches for, but wired
+    // to the objects this page actually draws. A canvas-backed fake clip
+    // would NOT render here: the draw path resolves a layer's source as
+    // `a._el` (an <img> or <video>) and gates on `.complete && .naturalWidth`,
+    // which a canvas does not have — it would silently never draw.
+    //
+    // So: `addImageClips` feeds the real library (one ingest, not two), and
+    // every still comes out framed to IMAGE_SLOT. The pool IS the library:
+    // nothing needs pushing into it.
+    //
+    //   SWRImages.addImageClips(files)      → the new image assets
+    //   SWRImages.onClips(fn)               → fn(newAssets) after an add
+    //   SWRImages.slot                      → { on, w, h } (mutate .on to flip)
+    //   SWRImages.clips                     → every image asset in the library
+    //   Layers.add(SWRImages.clips[0])      → put one on the stage
+    var imageClipListeners = [];
+    window.SWRImages = {
+      slot: IMAGE_SLOT,
+      get clips() { return Lib.items.filter(function (i) { return i.type === 'image'; }); },
+      async addImageClips(files) {
+        var imgs = Array.prototype.filter.call(files || [], function (f) {
+          return f && typeof f.type === 'string' && f.type.indexOf('image/') === 0;
+        });
+        if (!imgs.length) return [];
+        var before = Lib.items.length;
+        await Lib.addFiles(imgs);
+        var added = Lib.items.slice(before);
+        imageClipListeners.forEach(function (fn) { try { fn(added); } catch (e) { console.error(e); } });
+        return added;
+      },
+      onClips(fn) { if (typeof fn === 'function') imageClipListeners.push(fn); },
+    };
     // `window.A` is the music_video.html convention the SWR_* blocks read
     // (`A.el`, `A.feat`); the engine publishes the same alias at
     // engine.html:7274. This page's A already uses that convention.
