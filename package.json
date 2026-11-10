@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Algorithmic audio-reactive video engine. Drop in a song, drop in a library of videos / GIFs / images, get a reactive layered composition.",
   "engines": {
-    "node": ">=22.0.0",
+    "node": "24.x",
     "npm": ">=10.0.0"
   },
   "scripts": {

@@ -735,6 +735,7 @@ function copyStatic() {
   ];
 
   const dirs = [
+    { src: 'beatcanvas', dst: 'beatcanvas' }, // isolated BeatCanvas feature preview
     { src: 'versions', dst: 'versions' },
     // Placeholder MP4s for the music-video-gallery and the landing page's
     // inline video tiles (landing.html:882-896, versions/music-video-gallery.html).
