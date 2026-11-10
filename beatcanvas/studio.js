@@ -1,11 +1,13 @@
 import { validateAudio, summarizeAnalysis } from './studio-core.js';
 import {setBpm,resetAudio} from './visual.js';
+import {loadWaveform,clearWaveform} from './waveform.js';
 const $ = id => document.getElementById(id);
 let audioURL = null;
 let context = null;
 $('song').addEventListener('change', async event => {
   const file = event.target.files?.[0];
   resetAudio();
+  clearWaveform();
   $('record').disabled = true;
   setBpm(0);
   if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
@@ -24,6 +26,7 @@ $('song').addEventListener('change', async event => {
     context = new Ctx();
     const pcm = await context.decodeAudioData(await file.arrayBuffer());
     const data = summarizeAnalysis(window.AudioAnalysisV2.analyzeBuffer(pcm));
+    loadWaveform(pcm);
     $('bpm').textContent = data.bpm ? String(data.bpm) : 'Unclear';
     setBpm(data.bpm);
     $('key').textContent = data.key || 'Unclear';
