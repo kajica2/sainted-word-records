@@ -2165,6 +2165,36 @@
       Layers.render = function () { try { SWR_RENDER.invalidate(); } catch (_) {} return __r(); };
     }
     window.SWR = { Audio: A, Library: Lib, Layers, Recorder, get stage() { return stage; }, get ctx() { return ctx; } };
+
+    // Seed the stage so a first visit is not a black rectangle. These are the
+    // same seven default textures engine.html ships (client/default-library),
+    // and this runs only when the page has no media of its own — anything the
+    // user loads, or anything restored from IDB, wins. Without it the canvas is
+    // empty and a take is a black file: correct, but it reads as broken.
+    (async function seedDefaultLibrary() {
+      try {
+        if (Layers.list && Layers.list.length) return;
+        if (Lib.items && Lib.items.length) return;
+        const res = await fetch('/default-library/manifest.json');
+        if (!res.ok) return;
+        const man = await res.json();
+        const urls = (man.images || []).slice(0, 4);
+        if (!urls.length) return;
+        const files = [];
+        for (const url of urls) {
+          const r = await fetch(url);
+          if (!r.ok) continue;
+          const blob = await r.blob();
+          const name = decodeURIComponent(String(url).split('/').pop());
+          files.push(new File([blob], name, { type: blob.type || 'image/webp' }));
+        }
+        if (!files.length) return;
+        await Lib.addFiles(files);
+        if (!Layers.list.length && Lib.items.length) Layers.add(Lib.items[0]);
+      } catch (e) {
+        console.warn('[neon] default library seed failed:', e && e.message);
+      }
+    })();
     // ---- Shared-module contract (engine ↔ neon parity, slice 1) ----
     // The engine gets its core globals from the shared modules —
     // lib/audio.client.js publishes window.Audio, lib/library.client.js
