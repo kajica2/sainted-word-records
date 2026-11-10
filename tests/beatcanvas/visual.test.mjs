@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {VISUAL_STYLES,EXPORT_SECONDS,visualState,validateImages,imageSequenceIndex,directorScene,DIRECTOR_MODES} from '../../beatcanvas/visual-core.js';
-test('three supported distinct styles and bounded preview export',()=>{
-  assert.deepEqual(VISUAL_STYLES,['dark-pulse','organic-motion','minimal-type']);
+test('four supported distinct styles and bounded preview export',()=>{
+  assert.deepEqual(VISUAL_STYLES,['video-strips','dark-pulse','organic-motion','minimal-type']);
   assert.equal(EXPORT_SECONDS,15);
 });
 test('visual pulse follows estimated beats',()=>{
