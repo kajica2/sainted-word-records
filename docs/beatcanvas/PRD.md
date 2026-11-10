@@ -52,3 +52,10 @@ Reuse root audio-analysis-v2.js (browser global API), do not modify its algorith
 - Still **not** a section-aware director, transition editor, full track exporter or three-asset release workflow.
 - Manual QA: add 3 images, change song, seek timeline, validate index mapping, record and inspect 15-second video/audio; ensure invalid inputs do not replace a valid set.
 - Caution: preview recording relies on real-time playback and browser MediaRecorder. Verify synchrony and cleanup on target browsers. Do not merge without completing this gate.
+
+## Stage 4: deterministic Director pacing (experimental)
+- Select Steady (4 beats per image), Kinetic (2 beats) or Slow Burn (8 beats).
+- Canvas derives current image from playback time, detected BPM, image count and pacing. Seeking restores deterministic sequence.
+- Uses a short visual entry fade; still no semantic verse/chorus detector, editor or 3-asset export.
+- Acceptance: three scene-mode tests pass; actual-browser upload, scrub, playback and WebM recording verified on Mac Chrome and Safari. Note WebM export may be unsupported on Safari.
+- Commercial go/no-go is still governed by the 20 buyer interviews; do not interpret this coding milestone as validated demand.
