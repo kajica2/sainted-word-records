@@ -1,12 +1,35 @@
-import {visualState, VISUAL_STYLES, EXPORT_SECONDS} from './visual-core.js';
+import {visualState, VISUAL_STYLES, EXPORT_SECONDS, validateImages, imageSequenceIndex} from './visual-core.js';
 const $ = id => document.getElementById(id);
 const canvas=$('visual'), ctx=canvas.getContext('2d');
 const player=$('player'), style=$('visual-style'), status=$('render-status'), record=$('record');
 let audioContext=null,analyser=null,meter=null,output=null,source=null,recording=null,mediaURL=null,bpm=0;
-const wave = new Uint8Array(1024);
+let images=[];
+let imageLoadToken=0;
+const assetInput=$('visual-assets'), assetStatus=$('asset-status');
+assetInput.addEventListener('change',async()=>{
+  const token=++imageLoadToken;
+  const files=Array.from(assetInput.files||[]);
+  const validation=validateImages(files);
+  if(!validation.ok){assetStatus.textContent=validation.error;assetInput.value='';return;}
+  assetStatus.textContent='Decoding '+files.length+' image(s) locally…';
+  const next=[];
+  try{
+    for(const file of files){
+      const bitmap=await createImageBitmap(file);
+      if(token!==imageLoadToken){bitmap.close();next.forEach(b=>b.close());return;}
+      next.push(bitmap);
+    }
+    images.forEach(b=>b.close());images=next;
+    assetStatus.textContent=images.length?images.length+' images loaded; switching every 4 beats.':'No image assets loaded; procedural visuals only.';
+  }catch(e){
+    next.forEach(b=>b.close());
+    assetStatus.textContent='Could not decode selected image(s). Previous set retained.';
+  }
+});
+window.addEventListener('pagehide',()=>{images.forEach(b=>b.close());images=[];});
 export function setBpm(value){bpm=Number(value)||0;}
 export function resetAudio(){
-  if(recording) recording.stop();
+  if(recording && recording.state!=='inactive') recording.stop();
   player.pause();
 }
 async function connect(){
@@ -28,9 +51,17 @@ function draw(t, energy){
   const state=visualState({time:t,bpm,energy,style:style.value});
   const w=canvas.width,h=canvas.height, cx=w/2,cy=h/2;
   ctx.fillStyle='#050a14';ctx.fillRect(0,0,w,h);
+  const imageIndex=imageSequenceIndex(t,bpm,images.length);
+  if(imageIndex>=0){
+    const img=images[imageIndex];
+    const scale=Math.max(w/img.width,h/img.height);
+    const iw=img.width*scale,ih=img.height*scale;
+    ctx.drawImage(img,(w-iw)/2,(h-ih)/2,iw,ih);
+    ctx.fillStyle='rgba(3,8,18,.52)';ctx.fillRect(0,0,w,h);
+  }
   if(state.style==='dark-pulse'){
     const glow=ctx.createRadialGradient(cx,cy,0,cx,cy,w*.7);
-    glow.addColorStop(0,'rgba(88,240,205,'+(0.12+state.intensity*.65)+')');glow.addColorStop(1,'#050a14');
+    glow.addColorStop(0,'rgba(88,240,205,'+(0.12+state.intensity*.65)+')');glow.addColorStop(1,'rgba(5,10,20,.40)');
     ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
     for(let i=0;i<24;i++){const a=i*Math.PI/12+t*.13,r=w*(.14+.19*state.pulse+.05*state.amount);ctx.strokeStyle='rgba(125,245,218,'+(.13+.6*state.intensity)+')';ctx.lineWidth=2+state.amount*10;ctx.beginPath();ctx.arc(cx+Math.cos(a)*r,cy+Math.sin(a)*r,30+state.intensity*125,0,Math.PI*2);ctx.stroke();}
   }else if(state.style==='organic-motion'){
