@@ -103,6 +103,14 @@
   ],
   "rewrites": [
     {
+      "source": "/beatcanvas",
+      "destination": "/beatcanvas/index.html"
+    },
+    {
+      "source": "/beatcanvas/",
+      "destination": "/beatcanvas/index.html"
+    },
+    {
       "source": "/visual-languages",
       "destination": "/versions/index.html"
     },
