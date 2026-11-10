@@ -110,6 +110,13 @@
     .tile:hover { border-color: var(--c); transform: translateY(-1px); }
     .tile.dragging { opacity: 0.4; cursor: grabbing; }
     .tile img { display: block; width: 100%; height: auto; background: #000; }
+    /* The frame binaries live in shotlist/_candidates_web/, which is
+       gitignored and never deployed — a link to one is a broken image in
+       production. The tiles keep their place in the grid and their drag
+       behaviour; the binary is simply not published. */
+    .tile-ph { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9;
+      background: linear-gradient(135deg, #120a1e, #1a0f30); border-bottom: 1px solid var(--line);
+      color: var(--muted); font-size: 10px; line-height: 1.35; text-align: center; padding: 10px; }
     .tile-meta { display: flex; align-items: center; justify-content: space-between;
       padding: 5px 8px; border-top: 1px solid var(--line); font-size: 9px;
       color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
@@ -230,14 +237,14 @@
         <h2>Distant Long Shot o <span class="session-style">Hologram Wireframe</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Distant_long_shot_o_b57ea64a-7fbe-421c-9e91-bdc0970fb8c0_0.png" data-style="hologram_wireframe" data-key="Distant_long_shot_o" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Distant_long_shot_o_b57ea64a-7fbe-421c-9e91-bdc0970fb8c0_0.png" alt="Distant Long Shot o candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Distant Long Shot o candidate 1 — frame binary not published"><span>Distant Long Shot o candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Distant_long_shot_o_b57ea64a-7fbe-421c-9e91-bdc0970fb8c0_1.png" data-style="hologram_wireframe" data-key="Distant_long_shot_o" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Distant_long_shot_o_b57ea64a-7fbe-421c-9e91-bdc0970fb8c0_1.png" alt="Distant Long Shot o candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Distant Long Shot o candidate 2 — frame binary not published"><span>Distant Long Shot o candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
@@ -250,28 +257,28 @@
         <h2>Dutch Angle Subtly  <span class="session-style">Hologram Wireframe</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_0.png" data-style="hologram_wireframe" data-key="Dutch_angle_subtly_" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_0.png" alt="Dutch Angle Subtly  candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Dutch Angle Subtly  candidate 1 — frame binary not published"><span>Dutch Angle Subtly  candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_1.png" data-style="hologram_wireframe" data-key="Dutch_angle_subtly_" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_1.png" alt="Dutch Angle Subtly  candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Dutch Angle Subtly  candidate 2 — frame binary not published"><span>Dutch Angle Subtly  candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_2.png" data-style="hologram_wireframe" data-key="Dutch_angle_subtly_" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_2.png" alt="Dutch Angle Subtly  candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Dutch Angle Subtly  candidate 3 — frame binary not published"><span>Dutch Angle Subtly  candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_3.png" data-style="hologram_wireframe" data-key="Dutch_angle_subtly_" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Dutch_angle_subtly__48251ed2-fdca-4a06-8062-134d8cea47bf_3.png" alt="Dutch Angle Subtly  candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Dutch Angle Subtly  candidate 4 — frame binary not published"><span>Dutch Angle Subtly  candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
@@ -284,28 +291,28 @@
         <h2>Extreme Close-up of <span class="session-style">Hologram Wireframe</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_0.png" data-style="hologram_wireframe" data-key="Extreme_close-up_of" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_0.png" alt="Extreme Close-up of candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Extreme Close-up of candidate 1 — frame binary not published"><span>Extreme Close-up of candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_1.png" data-style="hologram_wireframe" data-key="Extreme_close-up_of" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_1.png" alt="Extreme Close-up of candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Extreme Close-up of candidate 2 — frame binary not published"><span>Extreme Close-up of candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_2.png" data-style="hologram_wireframe" data-key="Extreme_close-up_of" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_2.png" alt="Extreme Close-up of candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Extreme Close-up of candidate 3 — frame binary not published"><span>Extreme Close-up of candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_3.png" data-style="hologram_wireframe" data-key="Extreme_close-up_of" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Extreme_close-up_of_d39f7680-d34d-4ae9-ba75-c04c72c58d63_3.png" alt="Extreme Close-up of candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Extreme Close-up of candidate 4 — frame binary not published"><span>Extreme Close-up of candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
@@ -318,28 +325,28 @@
         <h2>Final Lingering sho <span class="session-style">Hologram Wireframe</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_0.png" data-style="hologram_wireframe" data-key="Final_lingering_sho" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_0.png" alt="Final Lingering sho candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Final Lingering sho candidate 1 — frame binary not published"><span>Final Lingering sho candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_1.png" data-style="hologram_wireframe" data-key="Final_lingering_sho" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_1.png" alt="Final Lingering sho candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Final Lingering sho candidate 2 — frame binary not published"><span>Final Lingering sho candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_2.png" data-style="hologram_wireframe" data-key="Final_lingering_sho" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_2.png" alt="Final Lingering sho candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Final Lingering sho candidate 3 — frame binary not published"><span>Final Lingering sho candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_3.png" data-style="hologram_wireframe" data-key="Final_lingering_sho" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Final_lingering_sho_ace32774-3bd5-4c93-a8a3-cc20c32e02bc_3.png" alt="Final Lingering sho candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Final Lingering sho candidate 4 — frame binary not published"><span>Final Lingering sho candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
@@ -352,28 +359,28 @@
         <h2>Slow-motion Shot he <span class="session-style">Hologram Wireframe</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_0.png" data-style="hologram_wireframe" data-key="Slow-motion_shot_he" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_0.png" alt="Slow-motion Shot he candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Slow-motion Shot he candidate 1 — frame binary not published"><span>Slow-motion Shot he candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_1.png" data-style="hologram_wireframe" data-key="Slow-motion_shot_he" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_1.png" alt="Slow-motion Shot he candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Slow-motion Shot he candidate 2 — frame binary not published"><span>Slow-motion Shot he candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_2.png" data-style="hologram_wireframe" data-key="Slow-motion_shot_he" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_2.png" alt="Slow-motion Shot he candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Slow-motion Shot he candidate 3 — frame binary not published"><span>Slow-motion Shot he candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_3.png" data-style="hologram_wireframe" data-key="Slow-motion_shot_he" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Slow-motion_shot_he_752139e2-6fa0-4b1c-b4ff-1c3c31287cba_3.png" alt="Slow-motion Shot he candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Slow-motion Shot he candidate 4 — frame binary not published"><span>Slow-motion Shot he candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
@@ -386,28 +393,28 @@
         <h2>Steady Symmetrical  <span class="session-style">Hologram Wireframe</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_0.png" data-style="hologram_wireframe" data-key="Steady_symmetrical_" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_0.png" alt="Steady Symmetrical  candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Steady Symmetrical  candidate 1 — frame binary not published"><span>Steady Symmetrical  candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_1.png" data-style="hologram_wireframe" data-key="Steady_symmetrical_" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_1.png" alt="Steady Symmetrical  candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Steady Symmetrical  candidate 2 — frame binary not published"><span>Steady Symmetrical  candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_2.png" data-style="hologram_wireframe" data-key="Steady_symmetrical_" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_2.png" alt="Steady Symmetrical  candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Steady Symmetrical  candidate 3 — frame binary not published"><span>Steady Symmetrical  candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_3.png" data-style="hologram_wireframe" data-key="Steady_symmetrical_" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_texture_hologram_wireframe_Steady_symmetrical__976f7c43-1076-4fcb-94a7-931079382dcb_3.png" alt="Steady Symmetrical  candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Steady Symmetrical  candidate 4 — frame binary not published"><span>Steady Symmetrical  candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Hologram Wireframe">HOLO</span>
@@ -420,28 +427,28 @@
         <h2>Close-up of an Object That see <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_0.png" data-style="vintage_texture" data-key="Close-up_of_an_object_that_see" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_0.png" alt="Close-up of an Object That see candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Close-up of an Object That see candidate 1 — frame binary not published"><span>Close-up of an Object That see candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_1.png" data-style="vintage_texture" data-key="Close-up_of_an_object_that_see" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_1.png" alt="Close-up of an Object That see candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Close-up of an Object That see candidate 2 — frame binary not published"><span>Close-up of an Object That see candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_2.png" data-style="vintage_texture" data-key="Close-up_of_an_object_that_see" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_2.png" alt="Close-up of an Object That see candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Close-up of an Object That see candidate 3 — frame binary not published"><span>Close-up of an Object That see candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_3.png" data-style="vintage_texture" data-key="Close-up_of_an_object_that_see" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Close-up_of_an_object_that_see_48268beb-d8e5-43ea-af18-722ae0891fab_3.png" alt="Close-up of an Object That see candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Close-up of an Object That see candidate 4 — frame binary not published"><span>Close-up of an Object That see candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -454,28 +461,28 @@
         <h2>Extreme Wide Establishing Shot <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_0.png" data-style="vintage_texture" data-key="Extreme_wide_establishing_shot" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_0.png" alt="Extreme Wide Establishing Shot candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Extreme Wide Establishing Shot candidate 1 — frame binary not published"><span>Extreme Wide Establishing Shot candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_1.png" data-style="vintage_texture" data-key="Extreme_wide_establishing_shot" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_1.png" alt="Extreme Wide Establishing Shot candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Extreme Wide Establishing Shot candidate 2 — frame binary not published"><span>Extreme Wide Establishing Shot candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_2.png" data-style="vintage_texture" data-key="Extreme_wide_establishing_shot" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_2.png" alt="Extreme Wide Establishing Shot candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Extreme Wide Establishing Shot candidate 3 — frame binary not published"><span>Extreme Wide Establishing Shot candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_3.png" data-style="vintage_texture" data-key="Extreme_wide_establishing_shot" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Extreme_wide_establishing_shot_de8a788a-1e80-4657-bcf9-43680e7ff288_3.png" alt="Extreme Wide Establishing Shot candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Extreme Wide Establishing Shot candidate 4 — frame binary not published"><span>Extreme Wide Establishing Shot candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -488,28 +495,28 @@
         <h2>Long Static Shot With Minimal  <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_0.png" data-style="vintage_texture" data-key="Long_static_shot_with_minimal_" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_0.png" alt="Long Static Shot With Minimal  candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Long Static Shot With Minimal  candidate 1 — frame binary not published"><span>Long Static Shot With Minimal  candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_1.png" data-style="vintage_texture" data-key="Long_static_shot_with_minimal_" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_1.png" alt="Long Static Shot With Minimal  candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Long Static Shot With Minimal  candidate 2 — frame binary not published"><span>Long Static Shot With Minimal  candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_2.png" data-style="vintage_texture" data-key="Long_static_shot_with_minimal_" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_2.png" alt="Long Static Shot With Minimal  candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Long Static Shot With Minimal  candidate 3 — frame binary not published"><span>Long Static Shot With Minimal  candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_3.png" data-style="vintage_texture" data-key="Long_static_shot_with_minimal_" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Long_static_shot_with_minimal__72daffe8-fa2e-447c-ba3b-01b688265064_3.png" alt="Long Static Shot With Minimal  candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Long Static Shot With Minimal  candidate 4 — frame binary not published"><span>Long Static Shot With Minimal  candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -522,28 +529,28 @@
         <h2>Low-angle Shot Making a Figure <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_0.png" data-style="vintage_texture" data-key="Low-angle_shot_making_a_figure" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_0.png" alt="Low-angle Shot Making a Figure candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Low-angle Shot Making a Figure candidate 1 — frame binary not published"><span>Low-angle Shot Making a Figure candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_1.png" data-style="vintage_texture" data-key="Low-angle_shot_making_a_figure" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_1.png" alt="Low-angle Shot Making a Figure candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Low-angle Shot Making a Figure candidate 2 — frame binary not published"><span>Low-angle Shot Making a Figure candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_2.png" data-style="vintage_texture" data-key="Low-angle_shot_making_a_figure" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_2.png" alt="Low-angle Shot Making a Figure candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Low-angle Shot Making a Figure candidate 3 — frame binary not published"><span>Low-angle Shot Making a Figure candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_3.png" data-style="vintage_texture" data-key="Low-angle_shot_making_a_figure" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Low-angle_shot_making_a_figure_02132aff-b8a3-4861-aadd-4cf5e0346849_3.png" alt="Low-angle Shot Making a Figure candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Low-angle Shot Making a Figure candidate 4 — frame binary not published"><span>Low-angle Shot Making a Figure candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -556,28 +563,28 @@
         <h2>Overhead Shot Emphasizing Geom <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_0.png" data-style="vintage_texture" data-key="Overhead_shot_emphasizing_geom" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_0.png" alt="Overhead Shot Emphasizing Geom candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Overhead Shot Emphasizing Geom candidate 1 — frame binary not published"><span>Overhead Shot Emphasizing Geom candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_1.png" data-style="vintage_texture" data-key="Overhead_shot_emphasizing_geom" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_1.png" alt="Overhead Shot Emphasizing Geom candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Overhead Shot Emphasizing Geom candidate 2 — frame binary not published"><span>Overhead Shot Emphasizing Geom candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_2.png" data-style="vintage_texture" data-key="Overhead_shot_emphasizing_geom" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_2.png" alt="Overhead Shot Emphasizing Geom candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Overhead Shot Emphasizing Geom candidate 3 — frame binary not published"><span>Overhead Shot Emphasizing Geom candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_3.png" data-style="vintage_texture" data-key="Overhead_shot_emphasizing_geom" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Overhead_shot_emphasizing_geom_0e8deff2-ae75-4d89-b07a-bbed7cc4734c_3.png" alt="Overhead Shot Emphasizing Geom candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Overhead Shot Emphasizing Geom candidate 4 — frame binary not published"><span>Overhead Shot Emphasizing Geom candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -590,14 +597,14 @@
         <h2>Reverse Tracking Shot Pulling  <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Reverse_tracking_shot_pulling__cd645488-73e3-4b47-a5fa-86cd13c5a26c_2.png" data-style="vintage_texture" data-key="Reverse_tracking_shot_pulling_" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Reverse_tracking_shot_pulling__cd645488-73e3-4b47-a5fa-86cd13c5a26c_2.png" alt="Reverse Tracking Shot Pulling  candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Reverse Tracking Shot Pulling  candidate 3 — frame binary not published"><span>Reverse Tracking Shot Pulling  candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Reverse_tracking_shot_pulling__cd645488-73e3-4b47-a5fa-86cd13c5a26c_3.png" data-style="vintage_texture" data-key="Reverse_tracking_shot_pulling_" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Reverse_tracking_shot_pulling__cd645488-73e3-4b47-a5fa-86cd13c5a26c_3.png" alt="Reverse Tracking Shot Pulling  candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Reverse Tracking Shot Pulling  candidate 4 — frame binary not published"><span>Reverse Tracking Shot Pulling  candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -610,28 +617,28 @@
         <h2>Slow Tracking Shot Towards a s <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_0.png" data-style="vintage_texture" data-key="Slow_tracking_shot_towards_a_s" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_0.png" alt="Slow Tracking Shot Towards a s candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Slow Tracking Shot Towards a s candidate 1 — frame binary not published"><span>Slow Tracking Shot Towards a s candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_1.png" data-style="vintage_texture" data-key="Slow_tracking_shot_towards_a_s" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_1.png" alt="Slow Tracking Shot Towards a s candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Slow Tracking Shot Towards a s candidate 2 — frame binary not published"><span>Slow Tracking Shot Towards a s candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_2.png" data-style="vintage_texture" data-key="Slow_tracking_shot_towards_a_s" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_2.png" alt="Slow Tracking Shot Towards a s candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Slow Tracking Shot Towards a s candidate 3 — frame binary not published"><span>Slow Tracking Shot Towards a s candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_3.png" data-style="vintage_texture" data-key="Slow_tracking_shot_towards_a_s" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_tracking_shot_towards_a_s_47b7026b-d45b-4a39-bf33-30bbafc8146d_3.png" alt="Slow Tracking Shot Towards a s candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Slow Tracking Shot Towards a s candidate 4 — frame binary not published"><span>Slow Tracking Shot Towards a s candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -644,28 +651,28 @@
         <h2>Slow Zoom-in on a Characters f <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_0.png" data-style="vintage_texture" data-key="Slow_zoom-in_on_a_characters_f" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_0.png" alt="Slow Zoom-in on a Characters f candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Slow Zoom-in on a Characters f candidate 1 — frame binary not published"><span>Slow Zoom-in on a Characters f candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_1.png" data-style="vintage_texture" data-key="Slow_zoom-in_on_a_characters_f" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_1.png" alt="Slow Zoom-in on a Characters f candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Slow Zoom-in on a Characters f candidate 2 — frame binary not published"><span>Slow Zoom-in on a Characters f candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_2.png" data-style="vintage_texture" data-key="Slow_zoom-in_on_a_characters_f" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_2.png" alt="Slow Zoom-in on a Characters f candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Slow Zoom-in on a Characters f candidate 3 — frame binary not published"><span>Slow Zoom-in on a Characters f candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_3.png" data-style="vintage_texture" data-key="Slow_zoom-in_on_a_characters_f" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Slow_zoom-in_on_a_characters_f_951b546f-3384-4f54-a4f9-4f6ed61746c5_3.png" alt="Slow Zoom-in on a Characters f candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Slow Zoom-in on a Characters f candidate 4 — frame binary not published"><span>Slow Zoom-in on a Characters f candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -678,28 +685,28 @@
         <h2>Symmetrical Wide Shot of a cha <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_0.png" data-style="vintage_texture" data-key="Symmetrical_wide_shot_of_a_cha" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_0.png" alt="Symmetrical Wide Shot of a cha candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Symmetrical Wide Shot of a cha candidate 1 — frame binary not published"><span>Symmetrical Wide Shot of a cha candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_1.png" data-style="vintage_texture" data-key="Symmetrical_wide_shot_of_a_cha" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_1.png" alt="Symmetrical Wide Shot of a cha candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Symmetrical Wide Shot of a cha candidate 2 — frame binary not published"><span>Symmetrical Wide Shot of a cha candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_2.png" data-style="vintage_texture" data-key="Symmetrical_wide_shot_of_a_cha" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_2.png" alt="Symmetrical Wide Shot of a cha candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Symmetrical Wide Shot of a cha candidate 3 — frame binary not published"><span>Symmetrical Wide Shot of a cha candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_3.png" data-style="vintage_texture" data-key="Symmetrical_wide_shot_of_a_cha" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Symmetrical_wide_shot_of_a_cha_1f781dc5-43d3-4d3c-8924-dc37417ae458_3.png" alt="Symmetrical Wide Shot of a cha candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Symmetrical Wide Shot of a cha candidate 4 — frame binary not published"><span>Symmetrical Wide Shot of a cha candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -712,28 +719,28 @@
         <h2>Wide Shot With Deep Focus Capt <span class="session-style">Vintage Glitch Texture</span></h2>
         <div class="grid">
         <figure class="tile" data-file="random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_0.png" data-style="vintage_texture" data-key="Wide_shot_with_deep_focus_capt" data-idx="0" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_0.png" alt="Wide Shot With Deep Focus Capt candidate 1" />
+          <div class="tile-ph" role="img" aria-label="Wide Shot With Deep Focus Capt candidate 1 — frame binary not published"><span>Wide Shot With Deep Focus Capt candidate 1</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">1</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_1.png" data-style="vintage_texture" data-key="Wide_shot_with_deep_focus_capt" data-idx="1" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_1.png" alt="Wide Shot With Deep Focus Capt candidate 2" />
+          <div class="tile-ph" role="img" aria-label="Wide Shot With Deep Focus Capt candidate 2 — frame binary not published"><span>Wide Shot With Deep Focus Capt candidate 2</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">2</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_2.png" data-style="vintage_texture" data-key="Wide_shot_with_deep_focus_capt" data-idx="2" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_2.png" alt="Wide Shot With Deep Focus Capt candidate 3" />
+          <div class="tile-ph" role="img" aria-label="Wide Shot With Deep Focus Capt candidate 3 — frame binary not published"><span>Wide Shot With Deep Focus Capt candidate 3</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">3</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
           </figcaption>
         </figure>
         <figure class="tile" data-file="random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_3.png" data-style="vintage_texture" data-key="Wide_shot_with_deep_focus_capt" data-idx="3" draggable="true">
-          <img loading="lazy" src="_candidates_web/random_glittch_vintage_texture_Wide_shot_with_deep_focus_capt_b5a6e0c6-aaac-440a-a5e7-eaee744881fa_3.png" alt="Wide Shot With Deep Focus Capt candidate 4" />
+          <div class="tile-ph" role="img" aria-label="Wide Shot With Deep Focus Capt candidate 4 — frame binary not published"><span>Wide Shot With Deep Focus Capt candidate 4</span></div>
           <figcaption class="tile-meta">
             <span class="tile-num">4</span>
             <span class="tile-style" title="Vintage Glitch Texture">VINT</span>
@@ -789,7 +796,11 @@
           var img = document.querySelector('[data-img-slot="' + i + '"]');
           if (s.file) {
             img.classList.remove('empty');
-            img.innerHTML = '<img src="_candidates_web/' + escapeHtml(s.file) + '" alt="shot ' + (i+1) + '" />';
+            // The frame binaries are gitignored and never deployed, so a
+            // runtime <img> pointing at one is a broken image in
+            // production. The slot shows the frame's NAME instead, which
+            // is the part that travels with the shot list.
+            img.innerHTML = '<div class="tile-ph" role="img" aria-label="shot ' + (i+1) + ' — frame binary not published"><span>' + escapeHtml(s.file) + '</span></div>';
           } else {
             img.classList.add('empty');
             img.innerHTML = '';
@@ -893,12 +904,24 @@
           if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
         });
       });
-      // ---- Slot image click = open full size in new tab ----
+      // ---- Slot image click = copy the frame's name ----
+      // This used to open the full-size binary in a new tab. The binary
+      // lives in shotlist/_candidates_web/, which is gitignored and never
+      // deployed, so on the deployed site the click opened a 404. The
+      // frame's NAME is the part that is useful away from this machine,
+      // so that is what the click copies.
       document.querySelectorAll('.slot-img').forEach(function (el) {
         el.addEventListener('click', function () {
           var i = parseInt(el.dataset.imgSlot, 10);
           var s = state.slots[i];
-          if (s.file) window.open('_candidates_web/' + s.file, '_blank');
+          if (!s.file) return;
+          var name = s.file;
+          var done = function () { el.setAttribute('title', 'Copied ' + name); };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(name).then(done, function () { el.setAttribute('title', name); });
+          } else {
+            el.setAttribute('title', name);
+          }
         });
       });
       // ---- Remove buttons ----
