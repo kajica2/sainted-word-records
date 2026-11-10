@@ -1,0 +1,33 @@
+name: BeatCanvas validation
+on:
+  pull_request:
+    paths:
+      - 'beatcanvas/**'
+      - 'tests/beatcanvas/**'
+      - 'docs/beatcanvas/**'
+      - 'vite.config.js'
+      - 'vercel.json'
+      - '.github/workflows/beatcanvas.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node --test tests/beatcanvas/beatcanvas.test.mjs
+      - run: npm run check:bpm-unit
+      - run: npm run check:section-detector-unit
+      - run: npm run build
+      - name: Check BeatCanvas output
+        run: |
+          test -f dist/beatcanvas/index.html
+          test -f dist/beatcanvas/studio.js
+          test -f dist/beatcanvas/research.html
