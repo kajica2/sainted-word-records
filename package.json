@@ -195,6 +195,7 @@
     "check:spit-live-smoke": "node scripts/check-spit-live-smoke.mjs",
     "check:tiktok-unit": "node scripts/check-tiktok-unit.mjs",
     "check:tiktok-smoke": "node scripts/check-tiktok-smoke.mjs",
+    "build:color-tales-characters": "python3 scripts/build-color-tales-characters.py",
     "check:color-tales-unit": "node scripts/check-color-tales-unit.mjs",
     "check:color-tales-smoke": "node scripts/check-color-tales-smoke.mjs",
     "check:glyphs-layers-unit": "node scripts/check-glyphs-layers-unit.mjs",

@@ -34,6 +34,25 @@ async function main() {
     });
     assert(shellList.includes('color-tales-record.client.js'), 'SW shell lists recorder module');
     assert(shellList.includes('color-tales.css'), 'SW shell lists stylesheet');
+    assert(shellList.includes('characters.webp'), 'SW shell lists characters.webp');
+    assert(shellList.includes('default-pages.bundle.js'), 'SW shell lists default pages bundle');
+
+    const defaults = await page.evaluate(() => ({
+      count: window.SWR_COLOR_TALES?.pages?.length ?? 0,
+      firstTitle: window.SWR_COLOR_TALES?.pages?.[0]?.[0] ?? '',
+      artLen: document.querySelector('#ct-art')?.innerHTML?.length ?? 0,
+      hasSvg: !!document.querySelector('#ct-art svg'),
+    }));
+    assert(defaults.count === 4, `four default coloring pages (got ${defaults.count})`);
+    assert(defaults.firstTitle.includes('Girl'), `first page is girl-a (${defaults.firstTitle})`);
+    const titles = await page.evaluate(() =>
+      (window.SWR_COLOR_TALES?.pages ?? []).map((p) => p[0]),
+    );
+    const dropped = ['chef', 'sitting cat (B)', 'cat face (A)'];
+    for (const needle of dropped) {
+      assert(!titles.some((t) => t.toLowerCase().includes(needle.toLowerCase())), `${needle} not shipped`);
+    }
+    assert(defaults.hasSvg && defaults.artLen > 100, 'default page loads refined SVG art');
 
     await page.evaluate(() => {
       const svg = (id, fill) =>
