@@ -1,9 +1,13 @@
 import { validateAudio, summarizeAnalysis } from './studio-core.js';
+import {setBpm,resetAudio} from './visual.js';
 const $ = id => document.getElementById(id);
 let audioURL = null;
 let context = null;
 $('song').addEventListener('change', async event => {
   const file = event.target.files?.[0];
+  resetAudio();
+  $('record').disabled = true;
+  setBpm(0);
   if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
   $('player').hidden = true;
   ['bpm','key','duration','onsets'].forEach(id => $(id).textContent = '—');
@@ -21,6 +25,7 @@ $('song').addEventListener('change', async event => {
     const pcm = await context.decodeAudioData(await file.arrayBuffer());
     const data = summarizeAnalysis(window.AudioAnalysisV2.analyzeBuffer(pcm));
     $('bpm').textContent = data.bpm ? String(data.bpm) : 'Unclear';
+    setBpm(data.bpm);
     $('key').textContent = data.key || 'Unclear';
     $('duration').textContent = data.duration;
     $('onsets').textContent = String(data.onsets);
@@ -28,6 +33,7 @@ $('song').addEventListener('change', async event => {
     audioURL = URL.createObjectURL(file);
     $('player').src = audioURL;
     $('player').hidden = false;
+    $('record').disabled = false;
     $('status').textContent = 'Analysis completed. Estimates may be unreliable for free-tempo music.';
   } catch (err) {
     $('status').textContent = 'Analysis failed: ' + (err?.message || 'Unsupported audio file');
