@@ -296,7 +296,11 @@ jobs:
   # only, and it pushes the re-pinned baseline back to it.
   a11y-baseline-refresh:
     name: re-pin the a11y baseline (one-shot)
-    if: github.ref == 'refs/heads/feat/neon-preset-transitions-20261110'
+    # The branch is tested through a pull request, so github.ref is
+    # refs/pull/<n>/merge — the source branch is github.head_ref.
+    if: >-
+      github.ref == 'refs/heads/feat/neon-preset-transitions-20261110' ||
+      github.head_ref == 'feat/neon-preset-transitions-20261110'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -305,7 +309,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Set up Node
