@@ -90,6 +90,15 @@
           "value": "public, max-age=2592000, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/color-tales/sw-color-tales.js",
+      "headers": [
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -684,6 +693,126 @@
       "destination": "/share-view.html"
     },
     {
+      "source": "/engine",
+      "destination": "/engine.html"
+    },
+    {
+      "source": "/engine/",
+      "destination": "/engine.html"
+    },
+    {
+      "source": "/versions.html",
+      "destination": "/versions.html"
+    },
+    {
+      "source": "/versions.html/",
+      "destination": "/versions.html"
+    },
+    {
+      "source": "/marketplace",
+      "destination": "/marketplace.html"
+    },
+    {
+      "source": "/marketplace/",
+      "destination": "/marketplace.html"
+    },
+    {
+      "source": "/personas",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/",
+      "destination": "/personas.html"
+    },
+    {
+      "source": "/personas/v",
+      "destination": "/personas/v/index.html"
+    },
+    {
+      "source": "/personas/v/",
+      "destination": "/personas/v/index.html"
+    },
+    {
+      "source": "/packs",
+      "destination": "/packs.html"
+    },
+    {
+      "source": "/packs/",
+      "destination": "/packs.html"
+    },
+    {
+      "source": "/intro",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/intro/",
+      "destination": "/intro.html"
+    },
+    {
+      "source": "/tutorial-30s",
+      "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/tutorial-30s/",
+      "destination": "/tutorial-30s.html"
+    },
+    {
+      "source": "/interactive-howto",
+      "destination": "/interactive-howto.html"
+    },
+    {
+      "source": "/interactive-howto/",
+      "destination": "/interactive-howto.html"
+    },
+    {
+      "source": "/changelog",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/changelog/",
+      "destination": "/changelog.html"
+    },
+    {
+      "source": "/status",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/status/",
+      "destination": "/status.html"
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/about/",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/portfolio/",
+      "destination": "/portfolio.html"
+    },
+    {
+      "source": "/press",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/press/",
+      "destination": "/press.html"
+    },
+    {
+      "source": "/campaign",
+      "destination": "/campaign.html"
+    },
+    {
+      "source": "/campaign/",
+      "destination": "/campaign.html"
+    },
+    {
       "source": "/legal/privacy.html",
       "destination": "/legal/privacy.html"
     },
@@ -746,6 +875,14 @@
     {
       "source": "/preset-editor/",
       "destination": "/preset-editor.html"
+    },
+    {
+      "source": "/color-tales",
+      "destination": "/color-tales.html"
+    },
+    {
+      "source": "/color-tales/",
+      "destination": "/color-tales.html"
     },
     {
       "source": "/bench",
@@ -1284,10 +1421,6 @@
       "destination": "/auth/verify.html"
     },
     {
-      "source": "/campaign",
-      "destination": "/campaign.html"
-    },
-    {
       "source": "/contact-sheet",
       "destination": "/contact-sheet.html"
     },
@@ -1565,6 +1698,14 @@
     },
     {
       "source": "/auth/google/",
+      "destination": "/auth/google-callback.html"
+    },
+    {
+      "source": "/auth/google-callback",
+      "destination": "/auth/google-callback.html"
+    },
+    {
+      "source": "/auth/google-callback/",
       "destination": "/auth/google-callback.html"
     },
     {

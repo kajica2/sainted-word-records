@@ -3033,7 +3033,7 @@
         <button class="tbtn ghost" data-clear="songs" title="Clear only the saved song — keeps your library assets and bundled songs" style="padding:4px 8px; font-size:9px;">Clear song</button>
         <button class="tbtn ghost" id="library-hygiene" title="Scan for stale library items (missing blobs, corrupted entries) and remove them. Curated library re-seeds on reload." style="padding:4px 8px; font-size:9px;">HYGIENE</button>
         <button class="tbtn ghost" id="add-assets" style="padding:4px 8px; font-size:9px;">+ Add</button>
-        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" />
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" />
         <button class="tbtn ghost" id="add-folder" title="Pick a folder — engine pulls every image/video recursively" style="padding:4px 8px; font-size:9px;">+ Folder</button>
         <input type="file" id="folder-input" webkitdirectory multiple style="display:none;" />
         <div id="import-progress" class="import-progress" hidden>
@@ -3078,7 +3078,7 @@
           <div class="swr-user-media-head">
             <span class="swr-user-media-title">My Media</span>
             <input type="file" id="swr-user-media-input" multiple
-                   accept="image/*,video/*"
+                   accept="image/*,video/*,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp"
                    class="swr-user-media-input"
                    title="Add images or videos to your library" />
             <label for="swr-user-media-input" class="tbtn ghost swr-user-media-add">+ Add</label>
@@ -3305,7 +3305,14 @@
         // inline wire-up (it needs the extra addMedia/deleteAll handling), so
         // the converter lives here too, kept in the same shape.
         function mediaItemToLayerAsset(item) {
-          var isVideo = !!(item.mime && item.mime.indexOf('video/') === 0);
+          // A stored .mov can have an empty mime. The extension is the kind.
+          var K = window.SWR_MEDIA_KIND;
+          var kind = (K && typeof K.kind === 'function')
+            ? K.kind({ type: item.mime || '', name: item.name || '' })
+            : '';
+          var isVideo = kind
+            ? kind === 'video'
+            : !!(item.mime && item.mime.indexOf('video/') === 0);
           var url;
           try { url = URL.createObjectURL(item.blob); } catch (e) { url = null; }
           if (!url) return null;
@@ -3569,7 +3576,7 @@
         <button class="tbtn ghost" id="open-drive" title="Import from Google Drive (audio, video, image)" style="padding:4px 8px; font-size:9px;">📁 Drive</button>
         <span id="layer-count" style="display:inline-flex;align-items:center;gap:3px;" title="How many layers draw — counted from the top (the featured clip stays)">
           <button class="tbtn ghost" id="layer-count-dec" style="padding:4px 6px; font-size:9px;">−</button>
-          <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">6</b>
+          <b id="layer-count-val" style="font:9px 'Space Mono',monospace;min-width:12px;text-align:center;">3</b>
           <button class="tbtn ghost" id="layer-count-inc" style="padding:4px 6px; font-size:9px;">+</button>
         </span>
       </div>
@@ -3695,6 +3702,12 @@
           <option value="3">kaleido</option>
           <option value="4">ripple</option>
           <option value="5">noise</option>
+          <option value="6">develop</option>
+          <option value="7">bloom</option>
+          <option value="8">ribbed</option>
+          <option value="9">fringe</option>
+          <option value="10">print</option>
+          <option value="11">wedge</option>
         </select>
       </span>
       <span class="separator"></span>
@@ -3786,6 +3799,14 @@
           <option value="morphafracture">MORPHA · FRACTURE</option>
           <option value="morphavoid">MORPHA · VOID</option>
           <option value="morphaecho">MORPHA · ECHO</option>
+          <optgroup label="Mask illusions" title="A moving mask, not a new image. Bass, mid, and treble reveal different parts.">
+            <option value="maskThreshold">Develop</option>
+            <option value="maskGooey">Bloom</option>
+            <option value="maskSlit">Ribbed</option>
+            <option value="maskChromaBand">Fringe</option>
+            <option value="maskHalftone">Print</option>
+            <option value="maskKaleido">Wedge</option>
+          </optgroup>
           <option value="trainstage1">TRAIN · STAGE 1</option>
           <option value="trainstage2">TRAIN · STAGE 2</option>
           <option value="trainstage3">TRAIN · STAGE 3</option>
@@ -4035,8 +4056,10 @@
   <script src="/lib/audio.client.js" defer></script>
   <!-- One bloodstream for the composition's motion: energy / pulse / tide / flow. -->
   <script src="/lib/swr-life.client.js" defer></script>
+  <script src="/lib/media-kind.client.js" defer></script>
   <script src="/lib/library.client.js" defer></script>
   <script src="/lib/layers.client.js" defer></script>
+  <script src="/client/image-layer-styles.client.js" defer></script>
   <script src="/lib/image-lane.client.js" defer></script>
   <script src="/client/image-lane-panel.client.js" defer></script>
   <!-- A video loaded as the song becomes a layer, sharing the song's own
@@ -4047,6 +4070,7 @@
   <script src="/client/library-sheet.client.js" defer></script>
   <script src="/client/layer-audio-algos.client.js" defer></script>
   <script src="/client/look-filter-cycler.client.js" defer></script>
+  <script src="/lib/mask-illusions.client.js" defer></script>
   <script src="/lib/look-variant.client.js" defer></script>
   <script src="/client/debug-overlay.client.js" defer></script>
   <script src="/client/midi-alias.client.js" defer></script>
@@ -5504,30 +5528,51 @@
           }
         },
         drawPaletteOverlay(cx) {
-        // Soft vignette + palette tint based on centroid
-        const c = Audio.feat.centroid;
+        // Soft vignette + palette tint. The gradients are a full-canvas
+        // raster; building them inside the frame loop is what makes a
+        // software canvas report dozens of slow requestAnimationFrame
+        // handlers. Rasterise once per size and palette, then blit.
         const w = cx.canvas.width, h = cx.canvas.height;
-        const grad = cx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w, h) * 0.7);
-        const palette = $('palette').value;
-        const colors = {
-          neon:  ['rgba(255, 61, 146, 0.18)', 'rgba(0, 229, 255, 0.10)'],
-          solar: ['rgba(255, 210, 74, 0.18)', 'rgba(255, 122, 61, 0.10)'],
-          ocean: ['rgba(0, 229, 255, 0.16)', 'rgba(80, 0, 255, 0.10)'],
-          mono:  ['rgba(255, 255, 255, 0.10)', 'rgba(0, 0, 0, 0.20)'],
-        }[palette];
-        grad.addColorStop(0, colors[0]);
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        if (w < 2 || h < 2) return;
+        const paletteEl = $('palette');
+        const palette = (paletteEl && paletteEl.value) || 'neon';
+        const key = w + 'x' + h + ':' + palette;
+        if (this._palKey !== key) {
+          const bw = Math.max(2, Math.round(w / 2));
+          const bh = Math.max(2, Math.round(h / 2));
+          const tint = document.createElement('canvas');
+          tint.width = bw;
+          tint.height = bh;
+          const tcx = tint.getContext('2d');
+          const colors = {
+            neon:  'rgba(255, 61, 146, 0.18)',
+            solar: 'rgba(255, 210, 74, 0.18)',
+            ocean: 'rgba(0, 229, 255, 0.16)',
+            mono:  'rgba(255, 255, 255, 0.10)',
+          };
+          const grad = tcx.createRadialGradient(bw / 2, bh / 2, 0, bw / 2, bh / 2, Math.max(bw, bh) * 0.7);
+          grad.addColorStop(0, colors[palette] || colors.neon);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          tcx.fillStyle = grad;
+          tcx.fillRect(0, 0, bw, bh);
+          const vig = document.createElement('canvas');
+          vig.width = bw;
+          vig.height = bh;
+          const vcx = vig.getContext('2d');
+          const vg = vcx.createRadialGradient(bw / 2, bh / 2, Math.max(bw, bh) * 0.3, bw / 2, bh / 2, Math.max(bw, bh) * 0.75);
+          vg.addColorStop(0, 'rgba(0,0,0,0)');
+          vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+          vcx.fillStyle = vg;
+          vcx.fillRect(0, 0, bw, bh);
+          this._palKey = key;
+          this._palTint = tint;
+          this._palVig = vig;
+        }
         cx.save();
         cx.globalCompositeOperation = 'screen';
-        cx.fillStyle = grad;
-        cx.fillRect(0, 0, w, h);
-        // subtle vignette
-        const vg = cx.createRadialGradient(w/2, h/2, Math.max(w, h) * 0.3, w/2, h/2, Math.max(w, h) * 0.75);
-        vg.addColorStop(0, 'rgba(0,0,0,0)');
-        vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+        cx.drawImage(this._palTint, 0, 0, w, h);
         cx.globalCompositeOperation = 'multiply';
-        cx.fillStyle = vg;
-        cx.fillRect(0, 0, w, h);
+        cx.drawImage(this._palVig, 0, 0, w, h);
         cx.restore();
       },
       drawFlash(cx) {
@@ -6567,6 +6612,15 @@
         // directory tree at once. The browser flattens every file into the
         // FileList with webkitRelativePath set to the relative path under
         // the chosen root.
+        // Movies often arrive with an empty File.type. The shared
+        // classifier reads the extension; the MIME check is the fallback
+        // when that script has not loaded.
+        const isVisualFile = (f) => {
+          const K = window.SWR_MEDIA_KIND;
+          if (K && typeof K.kind === 'function') return !!K.kind(f);
+          const type = (f && f.type) || '';
+          return type.startsWith('video/') || type.startsWith('image/');
+        };
         const folderInput = $('folder-input');
         const folderBtn = $('add-folder');
         if (folderBtn && folderInput) {
@@ -6577,7 +6631,7 @@
             // Filter to image/video MIME types up front so the import
             // progress badge reports accurate totals (skip text files,
             // .DS_Store, etc. that webkitdirectory drags along).
-            const wanted = files.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+            const wanted = files.filter(isVisualFile);
             if (wanted.length === 0) {
               console.warn('[folder-import] no image/video files in selected folder');
               setStatus('no media in folder', 'warn');
@@ -6635,7 +6689,7 @@
             }
           }
           if (all.length === 0) return;
-          const wanted = all.filter(f => f.type.startsWith('video/') || f.type.startsWith('image/'));
+          const wanted = all.filter(isVisualFile);
           if (wanted.length === 0) {
             console.warn('[folder-drop] no image/video files in dropped folder');
             return;
@@ -6810,16 +6864,18 @@
             // Hidden layers do not draw, so the stepper counts the
             // visible stack only.
             const total = Layers.visibleList().length || 0;
-            const n = (Layers.activeCount > 0 ? Layers.activeCount : total) || 0;
+            const cap = (Layers.MAX > 0 ? Layers.MAX : 3);
+            const n = (Layers.activeCount > 0 ? Layers.activeCount : Math.min(total, cap)) || 0;
             if (val) val.textContent = String(n || '–');
             if (dec) dec.disabled = !(n > 1);
-            if (inc) inc.disabled = !(total && n < total);
+            if (inc) inc.disabled = !(total && n < total && n < cap);
           }
           function setCount(n) {
             if (!window.Layers) return;
             const total = Layers.visibleList().length || 0;
+            const cap = (Layers.MAX > 0 ? Layers.MAX : 3);
             if (!total) return;
-            const next = Math.max(1, Math.min(total, n));
+            const next = Math.max(1, Math.min(total, cap, n));
             Layers.setActiveCount(next >= total ? 0 : next);
             try { localStorage.setItem('swr.layers.active', String(next)); } catch (_) {}
             sync();
@@ -7627,7 +7683,7 @@
       try {
         const restored = await Audio._loadCurrentSong();
         if (restored) {
-          setStatus('song restored', 'ok');
+          setStatus(Audio.preloadedSong ? 'song preloaded' : 'song restored', 'ok');
           // Auto-play if the browser allows it (user previously interacted
           // with the page in this tab) or queue for the first user gesture.
           // Without this the user reloads the engine expecting audio to

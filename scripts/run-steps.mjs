@@ -81,6 +81,19 @@ const GROUPS = {
     // the page threw on every load.
     'npm run check:page-errors',
     'npm run check:pwa-sw-reload',
+    // A gateway 504 of the document used to be returned to the page even
+    // when the precached shell was sitting in the cache.
+    'npm run check:sw-navigation-unit',
+    // WebGL is off unless the page asks. The post-process pass must not
+    // warn, and must still publish window.FX, on that default path.
+    'npm run check:fx-fallback-unit',
+    // Mask illusions: shader compile for mutAlgo 0..11, MASK personas,
+    // cycler slots 10..15, and a bass 0 vs 1 pixel difference.
+    'npm run check:mask-illusions',
+    // A .mov / .mkv with an empty File.type must still enter the library.
+    'npm run check:media-kind-unit',
+    // Neon must mount #packs so Dance Clips / library-packs can paint.
+    'npm run check:neon-packs-mount-unit',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
@@ -90,6 +103,8 @@ const GROUPS = {
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
     'npm run check:neon-demo-panel-unit',
+    'npm run check:wave-lines-unit',
+    'npm run check:remo-unit',
     'npm run check:neon-demo-panel-verify',
     'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',
@@ -104,6 +119,12 @@ const GROUPS = {
     // group name. The sibling layer-retire/layer-text/layer-lifecycle
     // suites are reachable from no gate (pre-existing, not this gate's job).
     'npm run check:layer-groups-unit',
+    // Staged media must write the page snapshot on add/remap so a
+    // reload restores the same clips onto the stage.
+    'npm run check:layer-persist-unit',
+    // Camera on a full stage: a refused add must not adopt the layer
+    // already on top, or stopping the camera deletes it.
+    'npm run check:live-layer-cap-unit',
     // The auto-post feed: the posts come from site-map.json's
     // `announcements` array, read from the inlined footer slice or from
     // /site-map.json, and painted into every [data-announcements]
@@ -144,10 +165,12 @@ const GROUPS = {
     // classifyStill hue/luma, persona motion strip, blocked CSS filters.
     'npm run check:jpg-engine-unit',
     'npm run check:image-lane-unit',
+    'npm run check:image-layer-styles-unit',
     'npm run check:automix-image-lane-unit',
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
+    'npm run check:recent-media-unit',
     // A video loaded as the song becomes a layer that shares the song's own
     // <video> element, so the picture and the sound are one clock. The unit
     // pins the module's decisions (a video song adds one songBound layer
@@ -235,6 +258,9 @@ const GROUPS = {
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
     'npm run check:invite-api-smoke',
+    // Offline / full-song render HTTP API (local Chrome+ffmpeg job queue;
+    // Vercel always 503). Dry-run worker — no Puppeteer in the gate.
+    'npm run check:render-offline-api-unit',
     'npm run check:pt-unit',
     'npm run check:zip-reader-unit',
     'npm run check:slots-unit',
@@ -280,6 +306,7 @@ const GROUPS = {
     'npm run check:directors-unit',
     'npm run check:spit-live-unit',
     'npm run check:tiktok-unit',
+    'npm run check:color-tales-unit',
     'npm run check:glyphs-layers-unit',
     'npm run check:glyph-forge-unit',
     'npm run check:camera-enhance-unit',
@@ -334,8 +361,12 @@ const GROUPS = {
     // pins the five-band envelope and the transient/tempo bounds. Both read
     // versions/neon.html as source — no browser, no build.
     'npm run check:neon-v2-phase1',
+    'npm run check:neon-layer-lock-unit',
     'npm run check:neon-audio-v3',
     'npm run check:root-neon-sync',
+    // Offline Python DSP + additional-audio takes (Matin toolkit adaptation).
+    // Selftest is mic-free; record --env-skip keeps CI green without PortAudio.
+    'npm run check:audio-toolkit',
     // The bench gate's A/V sampling-depth floor: derived from the host's
     // OWN measured frame rate, so a slow machine is not asked for what it
     // cannot deliver — while a host that renders at speed but samples once
@@ -461,6 +492,7 @@ const GROUPS = {
     'npm run check:live-input',
     'npm run check:spit-live-smoke',
     'npm run check:tiktok-smoke',
+    'npm run check:color-tales-smoke',
     'npm run check:camera-enhance-smoke',
     // Needs a built dist/ (ensureDist builds when stale): asserts every
     // vercel.json rewrite, every root-relative link in a shipped page, and

@@ -73,6 +73,9 @@ function copyDirRecursive(src, dst) {
     // Skip _archive/ directory — gitignored experimental pages (see
     // scripts/archive-pages.mjs).
     if (f === '_archive') continue;
+    // Local Python CLI (tools/python-audio-toolkit) — not a browser asset.
+    // Shipping it only burns the dist size budget for no runtime gain.
+    if (f === 'python-audio-toolkit') continue;
     // Legacy: copyDirRecursive is not used for data/ anymore (allowlist copy).
     if (f === 'invite-store') continue;
     const sp = join(src, f);
@@ -816,6 +819,7 @@ function copyStatic() {
     // Engine pages reference /client/visualizer-controller.js (and possibly
     // other shared client scripts added later). Ship the whole directory.
     { src: 'client', dst: 'client' },
+    { src: 'color-tales', dst: 'color-tales' },
     // Vendored browser-side libraries (no CDN at runtime)
     { src: 'client/vendor', dst: 'client/vendor' },
     // Artist pages (artists/<slug>.html + artists/index.html +

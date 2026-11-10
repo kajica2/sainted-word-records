@@ -88,6 +88,53 @@ const moved = IL.migrateFromVideoStack();
 check(moved === 1 && sb.Layers.list.length === 1, 'migrate moves one image off video stack');
 check(IL.list.length === 1 && IL.list[0].pos.rot === 0, 'migrated layer clears rotation');
 
+console.log('image-lane: stepStill survives depth reorder');
+{
+  const sbStep = loadSandbox();
+  const lane = sbStep.SWR_IMAGE_LANE;
+  const a = { id: 's1', type: 'image', mime: 'image/png', name: 'a.png' };
+  const b = { id: 's2', type: 'image', mime: 'image/png', name: 'b.png' };
+  const c = { id: 's3', type: 'image', mime: 'image/png', name: 'c.png' };
+  lane.list = [];
+  const la = lane.add(a);
+  const lb = lane.add(b);
+  const lc = lane.add(c);
+  lane.select(la);
+  // Depth-style swap reorders the lane mid-stepStill; selection must follow
+  // the target layer object, not the pre-swap index.
+  sbStep.SWR_IMAGE_STYLES = {
+    swap(layer, asset) {
+      const i = lane.list.indexOf(layer);
+      if (i >= 0 && i < lane.list.length - 1) {
+        const tmp = lane.list[i];
+        lane.list[i] = lane.list[i + 1];
+        lane.list[i + 1] = tmp;
+      }
+      layer.asset = asset;
+      return true;
+    },
+  };
+  let safetyCalls = [];
+  const realKill = sbStep.SWR_MOTION_KILL;
+  sbStep.SWR_MOTION_KILL = Object.assign({}, realKill || {}, {
+    applyImageAutomixReactors(layer, slot) {
+      safetyCalls.push({ layer: layer, slot: slot });
+    },
+    isImageAsset(asset) {
+      return !!(asset && asset.type === 'image');
+    },
+  });
+  const ok = lane.stepStill(1);
+  check(ok === true, 'stepStill returns true after depth reorder');
+  check(lane.selected === lb, 'stepStill selects next still by identity after reorder');
+  check(la.asset === b, 'stepStill crossfades current layer onto next still asset');
+  check(safetyCalls.length === 1 && safetyCalls[0].layer === la,
+    'applyImageSafety targets the layer that received the still');
+  check(safetyCalls[0] && safetyCalls[0].slot === lane.list.indexOf(la),
+    'applyImageSafety uses the post-reorder slot of that layer');
+  void lc;
+}
+
 console.log('image-lane: automix shouldRun when lane has stills');
 const amSrc = fs.readFileSync(path.join(ROOT, 'client/automix-image-mode.client.js'), 'utf8');
 check(amSrc.includes('hasImageLaneStills'), 'automix image mode checks image lane');

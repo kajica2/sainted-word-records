@@ -7,7 +7,118 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Fixed
+- **Remo history and import stay usable after review findings.**
+  Empty v1/v2 imports re-seed the starter envelopes. Preset undo
+  captures the envelope id it edited. Coalesced depth edits keep the
+  earliest undo. Wire ids are stable across remove/re-add. Remo
+  scripts load in order so the panel never boots before its
+  dependencies.
+- **The NEON wave lines cover the stage, and they stay above the grade.**
+  The renderer floors its drawing size at 640×360, so a smaller stage
+  gave the SVG a different shape and the lines letterboxed. The sheet
+  now stretches to the stage. The FX canvas uses the same stacking
+  level and is inserted later, so it was painting over the lines; the
+  sheet now sits one level above it.
+- **Keys 1–9 apply look filters on NEON.** The digit row was holding
+  1–4 for scene recall whenever the scene store was loaded. This page
+  loads the store and not the scene keyboard, so those four keys did
+  nothing. Bare 1–9 now call the look-filter slots. The engine and play
+  pages still give 1–4 to the scene keyboard, because that script is
+  what actually handles them.
+- **Start demo could not be clicked, and could not be repeated.** The
+  start overlay (z-index 10000) sat over the demo panel, so a fresh visit
+  had no way to press Start demo. The panel now sits above that overlay.
+  Clearing the library left the pack loader believing the dance clips
+  were still loaded, so Start demo reported success and installed
+  nothing. It drops that cache when the clips are gone and installs them
+  again. A clip touched before it had a persist id also vanished from
+  Recent after a reload; the time is now found by name and copied onto
+  the id.
+
 ### Added
+- **Image layer swap styles (Fade · Depth · Move · Mask).** Stills can
+  leave via opacity dissolve, stack reordering, flow slide + Ken Burns
+  drift, or a mask-illusion dissolve. Demo panel section on NEON;
+  automix image mode and the image lane honour the active style.
+  `SWR_RENDER.imageEvolve` is restored (pan always; zoom respects the
+  motion kill-switch). Gate: `npm run check:image-layer-styles-unit`.
+- **NEON audio top layer (Phase A+B).** The SVG sheet is a dedicated
+  reactive overlay (`SWR_AUDIO_TOP`): public presets Pulse · Spike ·
+  Scan · Ribbon · Off, Demo panel section rename, sensitivity coupling,
+  multi-band mixes, Spike onset decay, Pulse beat-snap, and opacity
+  breathe from RMS. Tide / Ripple / Stack remain available internally.
+  Media layers stay untouched.
+- **Python audio toolkit for enhanced DSP and additional takes.**
+  `tools/python-audio-toolkit/` adapts
+  [Matin-python/Python-Audio-Processing-Toolkit](https://github.com/Matin-python/Python-Audio-Processing-Toolkit)
+  into a callable CLI: `process` (FFT / spectrogram / onsets / BPM),
+  `record` (fixed or VAD mic takes), `take` (file → take without a mic),
+  and `overdub` (mix a take onto a song for Media Source external audio).
+  Gate: `npm run check:audio-toolkit`. Docs: `docs/AUDIO-TOOLKIT.md`.
+- **NEON layer lock holds position as well as media.** Locking a layer
+  freezes its resting place on the stage (no reactor or narrative
+  x/y/scale/rot motion) and still keeps its media through remap,
+  assign, detach, remove, the layer scheduler, and automix image swaps.
+  The stage refuses a fourth layer. The demo panel’s Selected layer
+  section exposes the same lock.
+- **Remo Panel 2.0 (flagged `?env=1`) — wired envelopes on NEON.**
+  A parameter registry, envelope bus (seven presets + LUT), wiring
+  store, undo history, and ENV / MATRIX UI load only when the flag is
+  on. Snapshots use `schemaVersion: 2` with a v1 migration. Without
+  the flag the page is unchanged.
+- **NEON has a top layer of moving SVG wave lines.** The sheet sits
+  above the picture and redraws every frame from audio features. The
+  Demo panel’s Audio top layer row switches the public presets. CSS
+  animation stays off; the motion is the path.
+- **The NEON Demo panel has Sensitivity and Temperature sliders.**
+  Sensitivity writes the page sensitivity control and `A.params.sens`.
+  Temperature writes the grade temperature (`#temp` and `FX.setTemp`,
+  −1 to +1). Both show a live number and stay in step with the footer.
+- **The NEON Demo panel sets the stage aspect and animates an SVG mark.**
+  Fill, 16:9, 9:16, 1:1 and 4:5 letterbox `#render` inside the stage, and
+  each library tile takes the clip's own ratio once its dimensions are
+  known, with a chip that names the nearest of those frames (the dance
+  clips read 16:9). The mark beside that readout is an SVG whose scale
+  pulses on a heartbeat. It is drawn by updating the SVG transform,
+  because the motion switch turns CSS animation off.
+- **The media panel has a Recent folder.** Clips that were just added or
+  just assigned to a layer collect under a `recent` header at the top of
+  the library (`client/recent-media.client.js`), newest first, capped at
+  12, and they are not listed again below it. The times are remembered in
+  this browser, so a reload puts the same clips back in the folder. The
+  name-grouping rule the automix pool uses is unchanged.
+- **The NEON Demo panel has audio presets.** Punch, Club, Soft and Tight
+  set sensitivity, beat gate and decay on the page sliders and on the
+  shared audio core, so a preset changes how the layers react, not only
+  the numbers on screen.
+- **The NEON Demo panel installs the dance clips as the demo.** A new
+  **Demo stage** section leads the panel: **Start demo** installs the 13
+  `dancer-video` clips from the Dance Clips pack, stages them as layers
+  once they are classified, loads and plays the demo song (dismissing the
+  start overlay) and starts cycling presets. **Dance clips**, **Demo song**
+  and **Play/Pause** do each step on their own, **WebGL** toggles the
+  `?webgl=1` opt-in and reloads, and a live strip shows the bass / mid /
+  treble / air bands and the beat, with a status line reporting clips,
+  layers, audio and whether the WebGL pipeline is actually running.
+  `check:neon-demo-panel-unit`, `-verify` and `-smoke` cover it, the smoke
+  through the real button: clips decoding and advancing, audio features
+  moving, the overlay gone, WebGL reported honestly.
+
+### Fixed
+- **Neon packs mount** — `versions/neon.html` (and the synced root `neon.html`) loaded `library-packs.client.js` but had no `#packs` host, so the Dance Clips / Dancers toolbar never painted and the Media library stayed empty. The packs strip also shrinks/scrolls inside the clipped Media panel on phone widths so loaded clips stay reachable. Gate: `check:neon-packs-mount-unit`.
+
+### Changed
+- The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
+
+### Added
+- **Mask illusions** — six beat-driven reveals in the post-process shader (Develop, Bloom, Ribbed, Fringe, Print, Wedge). Bass, mid, and treble open the photograph. They are personas and filter-cycler slots 10–15; press T twice, then 1–6. Slots 0–9 are unchanged.
+- **Offline render HTTP API** (`POST/GET /api/render`) — job queue over the
+  existing `renderVariant()` Puppeteer + ffmpeg pipeline. Local / self-hosted
+  Node only (`npm run dev`); Vercel serverless returns
+  `503 offline_render_unavailable`. Auth via `SWR_RENDER_SECRET` or a session
+  cookie. Docs: `docs/RENDER-OFFLINE-API.md`. Gate:
+  `check:render-offline-api-unit` (dry-run worker, in the `check` group).
 - **Responsive overflow gate** (`check:responsive-overflow`, in the `check`
   group) — asserts that no page scrolls sideways at 390×844 or 1440×900, and
   names the element that crosses the viewport and by how much. It also
@@ -185,6 +296,17 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
+- **Staged media did not come back after a reload.** Dropping or clicking a clip onto the stage filled the library, but the page snapshot was only written when a control changed — so the next visit restored an empty stage. Adding, remapping, or reordering layers now writes the stack, and the existing restore path puts those clips back. Typed text layers keep their kind and string in the same snapshot.
+- **Movie files never reached the mix.** A `.mov`, `.mkv` or `.avi` often arrives with an empty `File.type` (or `application/octet-stream`). Both import paths kept only `video/*` and `image/*`, so the file was skipped before it could become a layer. The kind now comes from the extension in that case, the file dialog lists those extensions, and a click on the stored movie stages it as video. Neon's own importer uses that classifier too, so an empty-type movie dropped there becomes a video layer instead of being skipped or stored as a still.
+- **The last song is preloaded on the next visit.** Loading a song already writes it to this browser. The next open reads that record back onto a media element that lives in the page, so the browser fetches it before Play. The default clip no longer steps in while that record is waiting, and the restore runs once so it cannot interrupt playback.
+- **The NEON demo verify named a stalled control.** A control that stopped delivering animation frames used to sit until Puppeteer's 180s protocol timeout, and the log said `verify run` with no id. Each step now has a Node-side deadline that names the control, and the frame wait itself fails after 5s when the page is still alive but frames never arrive. The run after `layer:baseScale` was the one that hung (`layer:blend`).
+- **Neon auto-start threw `Audio.load is not a function`.** The shared
+  audio core (`lib/audio.client.js`) only published `loadFile`, while the
+  start overlay on `versions/neon.html` and `neon.html` — and `swr-sets` —
+  still call `SWR.Audio.load(file)`. Neon publishes that core as
+  `SWR.Audio`, so the default song never started. `load` is now the same
+  path as `loadFile`.
+- **The engine page logged a WebGL failure, a document 504, and a long frame on every paint.** Post-process now follows the WebGL gate: with it off (the default) it does not call `getContext` and does not warn, and it still publishes `window.FX` so looks and sliders have somewhere to write. The warning stays only when the page asked for WebGL and the browser refused a context. A navigation that throws or comes back 5xx is served from the precached shell (`/engine`, `/engine.html`, `/`, `/offline.html`) instead of the gateway response. The stage palette tint is rasterised once per size and palette and blitted, rather than rebuilt as two full-canvas gradients inside every animation frame.
 - **The shot list showed 60 broken images.** `shotlist/index.html` linked
   its frame binaries in `shotlist/_candidates_web/` — a directory that is
   gitignored and never deployed, so every one of them was a 404 in
@@ -248,8 +370,7 @@ once it hits 1.0.
   still running is not a budget, it is a cancellation. The ceiling went
   again, to 240: the same group takes ten minutes on this machine and
   120+ minutes on a loaded GitHub runner, and a job killed at 145 minutes
-  with every gate green has proved nothing.
-- **Five more pages scrolled sideways, and one threw on every load.** The
+  with every gate green has proved nothing.- **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —
   and found five more real defects. Four were the class cycle 2 already

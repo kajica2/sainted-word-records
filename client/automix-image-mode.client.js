@@ -188,12 +188,17 @@
     var list = layers();
     if (!list.length) return false;
     var layer = list[0];
-    if (!layer || !mk().isImageAsset(layer.asset)) return false;
+    if (!layer || layer.locked || !mk().isImageAsset(layer.asset)) return false;
     var curId = layer.asset && layer.asset.id;
     var candidates = imgs.filter(function (it) { return it.id !== curId; });
     if (!candidates.length) return false;
     var pick = candidates[Math.floor(Math.random() * candidates.length)];
-    if (global.SWR_TIMING && typeof global.SWR_TIMING.crossfade === 'function') {
+    if (global.SWR_IMAGE_STYLES && typeof global.SWR_IMAGE_STYLES.swap === 'function') {
+      global.SWR_IMAGE_STYLES.swap(layer, pick, {
+        fadeOutMs: crossfadeMs.out,
+        fadeInMs: crossfadeMs.in,
+      });
+    } else if (global.SWR_TIMING && typeof global.SWR_TIMING.crossfade === 'function') {
       global.SWR_TIMING.attach(layer);
       global.SWR_TIMING.crossfade(layer, pick, {
         fadeOutMs: crossfadeMs.out,

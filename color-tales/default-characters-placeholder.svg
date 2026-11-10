@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550" width="900" height="550">
+  <title>Color Tales placeholder characters</title>
+  <desc>Placeholder art until characters.webp is added to the repo.</desc>
+  <rect width="900" height="550" fill="#fffdf5"/>
+  <text x="450" y="48" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#486050">Placeholder character sheet</text>
+  <text x="450" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#7c8879">Replace with color-tales/characters.webp when available</text>
+  <g fill="none" stroke="#2a3d36" stroke-width="3">
+    <rect x="80" y="120" width="200" height="280" rx="12"/>
+    <rect x="350" y="120" width="200" height="280" rx="12"/>
+    <rect x="620" y="120" width="200" height="280" rx="12"/>
+    <circle cx="180" cy="220" r="55"/>
+    <circle cx="450" cy="220" r="55"/>
+    <circle cx="720" cy="220" r="55"/>
+    <path d="M120 380 Q180 320 240 380"/>
+    <path d="M390 380 Q450 320 510 380"/>
+    <path d="M660 380 Q720 320 780 380"/>
+  </g>
+  <g fill="#a4b68e" opacity="0.35">
+    <ellipse cx="180" cy="300" rx="70" ry="40"/>
+    <ellipse cx="450" cy="300" rx="70" ry="40"/>
+    <ellipse cx="720" cy="300" rx="70" ry="40"/>
+  </g>
+</svg>

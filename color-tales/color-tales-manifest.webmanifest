@@ -1,0 +1,14 @@
+{
+  "name": "Color Tales Studio",
+  "short_name": "Color Tales",
+  "description": "Upload images, choose colors, add music, record and save coloring videos — offline after first visit.",
+  "start_url": "/color-tales/",
+  "scope": "/color-tales/",
+  "display": "standalone",
+  "background_color": "#f7f5ed",
+  "theme_color": "#355a43",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -95,16 +95,25 @@
     .li img, .li video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .li .tag { position: absolute; top: 2px; left: 2px; font-size: 7px; padding: 1px 3px; background: var(--m);
       color: #000; border-radius: 1px; letter-spacing: 0.08em; }
+    .li .ratio { position: absolute; top: 2px; right: 2px; font-size: 7px; padding: 1px 3px;
+      background: rgba(0,0,0,0.72); color: var(--c); border-radius: 1px; letter-spacing: 0.06em; }
     .li .nm { position: absolute; bottom: 0; left: 0; right: 0; padding: 1px 3px; font-size: 7px; color: #fff;
       background: linear-gradient(transparent, rgba(0,0,0,0.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #layers { display: flex; flex-direction: column; gap: 4px; }
     .l { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
     .l.sel { border-color: var(--m); box-shadow: 0 0 0 1px var(--m); }
+    .l.locked { border-color: rgba(255,180,84,0.5); }
     .l .lh { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
     .l .lh .n { font-size: 9px; color: var(--muted); width: 14px; }
     .l .lh .nm { flex: 1; font-size: 10px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .l .lh .lk { background: none; border: 1px solid var(--line); color: var(--muted); cursor: pointer;
+      font-size: 10px; padding: 0 5px; border-radius: 2px; line-height: 1.4; }
+    .l .lh .lk:hover { color: var(--ink); border-color: var(--ink); }
+    .l .lh .lk.on { color: #ffb454; border-color: #ffb454; }
     .l .lh .x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 2px; }
     .l .lh .x:hover { color: var(--m); }
+    .l.locked .r input, .l.locked .r select { pointer-events: none; opacity: 0.45; }
+    .l.locked .lh .chg, .l.locked .lh .x { opacity: 0.35; cursor: not-allowed; }
     .l .r { display: grid; grid-template-columns: 36px 1fr; gap: 4px; align-items: center; margin-top: 2px; }
     .l .r label { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
     .l .r select, .l .r input { background: var(--bg); border: 1px solid var(--line); color: var(--ink);
@@ -362,7 +371,110 @@
        and a grid/list toggle. */
     aside.lib { display: flex; flex-direction: column; overflow: hidden; }
     aside.lib > .head { flex: none; }
-    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+    /* Packs must shrink inside the clipped panel. On phones aside.lib is
+       capped at 30vh; flex:none + cover tiles would push .body (the loaded
+       clip list) outside the clip and make Dance Clips unreachable. */
+    aside.lib > .packs {
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 45%;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+    aside.lib > .body { flex: 1 1 auto; overflow-y: auto; min-height: 4.5rem; }
+    /* Opt-in curated packs (Dance Clips, Dancers, …). library-packs.client.js
+       mounts into #packs; without this mount the script loads and does nothing,
+       so neon boots with an empty library and no UI path to the shipped videos. */
+    .packs {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2, rgba(255, 255, 255, 0.02));
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .packs-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .packs-title { font-weight: 600; }
+    .packs-hint { font-style: italic; opacity: 0.55; font-size: 8px; }
+    .packs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+    .pack-btn {
+      background: var(--bg, #0a0a0a);
+      border: 1px solid var(--line, #222);
+      color: var(--ink, #eee);
+      padding: 6px 4px;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      border-radius: 2px;
+      transition: background 120ms ease, border-color 120ms ease;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pack-btn:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--c, #888); }
+    .pack-btn.is-loaded {
+      background: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.55);
+      color: rgba(180, 240, 200, 1);
+    }
+    .pack-btn.is-error {
+      background: rgba(200, 80, 80, 0.12);
+      border-color: rgba(200, 80, 80, 0.5);
+    }
+    .pack-btn:disabled { opacity: 0.8; cursor: not-allowed; }
+    .pack-btn.has-cover {
+      position: relative;
+      min-height: 54px;
+      justify-content: flex-end;
+      padding: 5px 6px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    }
+    .pack-btn.has-cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 34%, rgba(0,0,0,0) 62%);
+      pointer-events: none;
+    }
+    .pack-btn.has-cover > * { position: relative; }
+    .pack-btn.has-cover:hover { border-color: var(--c, #888); filter: brightness(1.12); }
+    .pack-btn.has-cover.is-loaded {
+      background-color: rgba(80, 200, 120, 0.15);
+      border-color: rgba(80, 200, 120, 0.7);
+    }
+    .packs-empty {
+      padding: 18px 12px;
+      text-align: center;
+      color: var(--muted, #888);
+      font-size: 10px;
+      line-height: 1.5;
+      border: 1px dashed var(--line, #333);
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+    .packs-empty div:first-child { font-size: 22px; margin-bottom: 6px; opacity: 0.7; }
+    .packs-empty-title { font-weight: 600; color: var(--ink, #ccc); margin-bottom: 2px; }
+    .packs-empty-sub { font-size: 9px; opacity: 0.7; }
     .media-bar { flex: none; display: flex; align-items: center; gap: 6px;
       padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
     .media-tabs { display: flex; gap: 4px; flex: 1; min-width: 0; }
@@ -389,6 +501,7 @@
     .li-group .gname { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .li-group .gcount { color: var(--c); font-size: 8px; margin-left: auto; flex: none; }
     .li-group.is-graphics .gname { color: var(--c); }
+    .li-group.is-recent .gname { color: var(--m); letter-spacing: .14em; text-transform: uppercase; }
     .li-group .grule { flex: 1; height: 1px; background: var(--line); }
     .media-search { flex: none; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); }
     .media-search input { width: 100%; background: var(--bg); border: 1px solid var(--line);
@@ -413,7 +526,7 @@
     #lib.list { display: flex; flex-direction: column; gap: 2px; }
     #lib.list .li { display: flex; align-items: center; gap: 5px; aspect-ratio: auto; padding: 3px 4px; }
     #lib.list .li img, #lib.list .li video { width: 26px; height: 26px; border-radius: 2px; flex: none; }
-    #lib.list .li .tag, #lib.list .li .badge { position: static; flex: none; }
+    #lib.list .li .tag, #lib.list .li .badge, #lib.list .li .ratio { position: static; flex: none; }
     #lib.list .li .nm { position: static; flex: 1; background: none; color: var(--ink);
       padding: 0; font-size: 9px; }
     #lib.list .li .rm { position: static; opacity: 1; flex: none; }
@@ -460,6 +573,10 @@
      the document. -->
 <script src="/lib/engine-chrome-dock.client.js"></script>
 <script src="../client/automix-runtime.client.js"></script>
+<!-- Movie files with an empty type need this classifier. automix-composition
+     and media-store read window.SWR_MEDIA_KIND; without the script the
+     parity gate fails and a .mov dropped here is skipped. -->
+<script src="../lib/media-kind.client.js" defer></script>
 <script src="../client/automix-composition.client.js" defer></script>
   <!-- Periodic frame capture runtime + UI (Phase 1) -->
   <script src="../client/capture-runtime.client.js"></script>
@@ -474,6 +591,9 @@
 <script src="../engine-lfo-panel.client.js"></script>
 <script src="../engine-automap.client.js"></script>
 <script src="../engine-settings.client.js"></script>
+<script src="../personas.js"></script>
+<script src="../lib/mask-illusions.client.js"></script>
+<script src="../client/image-layer-styles.client.js"></script>
 <script src="../engine-keys.client.js"></script>
 <script src="../project.client.js"></script>
 <script src="../layer-scheduler.client.js"></script>
@@ -527,7 +647,8 @@
     </header>
     <aside class="lib">
       <div class="head"><h2>Media</h2><button class="tbtn" id="add" style="padding:3px 8px;font-size:9px;" title="Add media files">+</button><button class="tbtn" id="media-clear" style="padding:3px 8px;font-size:9px;" title="Clear this view">Clear</button><button class="tbtn" id="reset-state" style="padding:3px 8px;font-size:9px;" title="Reset local state (built-ins re-seed on next visit)">↺</button>
-        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif" /></div>
+        <input type="file" id="asset-input" multiple accept="video/*,image/*,image/gif,.mp4,.m4v,.webm,.mov,.mkv,.avi,.ogv,.mpg,.mpeg,.jpg,.jpeg,.png,.gif,.webp,.avif,.bmp" /></div>
+      <div class="packs" id="packs" aria-label="Opt-in library packs"></div>
       <div class="media-bar">
         <div class="media-tabs" role="tablist" aria-label="Media view">
           <button type="button" class="media-tab is-on" data-media-tab="library" role="tab" aria-selected="true" aria-controls="lib">Library <b class="ct" id="media-count-library">0</b></button>
@@ -735,6 +856,7 @@
   <script src="../lib/webgl-feature-detect.client.js"></script>
   <script src="../client/look-filter-cycler.client.js"></script>
   <script src="../client/media-grouping.client.js"></script>
+  <script src="../client/recent-media.client.js"></script>
   <script src="../client/targeting.client.js"></script>
   <script src="../client/variant-switcher.client.js"></script>
   <script src="../engine-3d.client.js"></script>
@@ -809,16 +931,28 @@
     // === LIBRARY ===
     const Lib = { items: [], nextId: 1,
       async addFiles(files) { const seen = new Set(this.items.map(i=>i.name+':'+i.blob?.size));
-        for (const f of files) { if (!f.type) continue; const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
+        const kindOf = window.SWR_MEDIA_KIND;
+        for (const f of files) {
+          // Empty File.type and application/octet-stream are how .mov/.mkv
+          // arrive. The classifier reads the extension; a real non-media
+          // type still stays out. Without the classifier, only a real
+          // video/* or image/* type is kept — an octet-stream is not an image.
+          const typed = String((f && f.type) || '');
+          const kind = (kindOf && typeof kindOf.kind === 'function')
+            ? kindOf.kind(f)
+            : (typed.startsWith('video/') ? 'video' : (typed.startsWith('image/') ? 'image' : ''));
+          if (kind !== 'video' && kind !== 'image') continue;
+          const k=f.name+':'+f.size; if (seen.has(k)) continue; seen.add(k);
           let blobUrl = '';
           try { blobUrl = URL.createObjectURL(f); } catch (e) { console.warn('[neon-lib] createObjectURL failed', f.name, e); }
           if (typeof blobUrl !== 'string' || !blobUrl.startsWith('blob:')) {
             console.error('[neon-lib] non-blob URL for', f.name, '→', JSON.stringify(blobUrl), '— file has no usable blob URL, skipping');
             continue;
           }
-          const it = { id: this.nextId++, name: f.name, type: f.type.startsWith('video/')?'video':'image',
+          const it = { id: this.nextId++, name: f.name, type: kind,
             blob: f, url: blobUrl, motion: 0, luma: 0.5, hue: 0, w:0, h:0, added: Date.now(), thumb: null };
-          this.items.push(it); this._classify(it); }
+          this.items.push(it); this._classify(it);
+          if (window.SWR_RECENT_MEDIA) window.SWR_RECENT_MEDIA.touch(it); }
         this.render(); },
       _classify(it) {
         const c = document.createElement('canvas'); c.width=32; c.height=32; const cx=c.getContext('2d');
@@ -948,11 +1082,24 @@
           d.className = 'li' + (it.id === MediaUI.focusId ? ' is-focus' : '');
           d.dataset.id = String(it.id);
           d.title = it.name;
+          // The tile's box is the clip's own ratio once we know it, so a
+          // 16:9 dance clip is not cropped into the square the grid used
+          // for every item. List view stays a row; the chip still names it.
+          const aw = +it.w || 0, ah = +it.h || 0;
+          if (aw > 0 && ah > 0 && !el.classList.contains('list')) d.style.aspectRatio = (aw / ah).toFixed(4);
           // The type chip and the × button.
           const tag = document.createElement('span');
           tag.className = 'tag';
           tag.textContent = it.type === 'video' ? 'V' : 'I';
           d.appendChild(tag);
+          if (aw > 0 && ah > 0) {
+            const ratio = document.createElement('span');
+            ratio.className = 'ratio';
+            const named = window.SWR_NEON_DEMO && window.SWR_NEON_DEMO.labelAspect
+              ? window.SWR_NEON_DEMO.labelAspect(aw, ah) : null;
+            ratio.textContent = named || ((aw / ah).toFixed(2) + ':1');
+            d.appendChild(ratio);
+          }
           const rm = document.createElement('span');
           rm.className = 'rm';
           rm.dataset.id = String(it.id);
@@ -988,6 +1135,7 @@
           d.addEventListener('click', (e) => {
             // Don't fire "add to layer" if the click was on a button.
             if (e.target.closest('.rm, .asg')) return;
+            if (window.SWR_RECENT_MEDIA) window.SWR_RECENT_MEDIA.touch(it);
             Layers.add(it);
           });
           return d;
@@ -995,7 +1143,7 @@
         // Group headers: the group name, a rule, and the item count.
         const buildGroupHeader = (g) => {
           const h = document.createElement('div');
-          h.className = 'li-group' + (g.kind === 'graphics' ? ' is-graphics' : '');
+          h.className = 'li-group' + (g.kind === 'graphics' ? ' is-graphics' : '') + (g.kind === 'recent' ? ' is-recent' : '');
           const name = document.createElement('span');
           name.className = 'gname';
           name.textContent = g.label;
@@ -1009,16 +1157,27 @@
           h.appendChild(count);
           return h;
         };
+        // Recent is its own folder, painted first. Those items leave the
+        // groups below so a clip is not listed twice. groupItems() itself
+        // is unchanged — automix still groups the full list by name.
+        const recentApi = window.SWR_RECENT_MEDIA;
+        const recent = recentApi ? recentApi.pick(list, recentApi.LIMIT) : [];
+        const recentIds = new Set(recent.map(it => it.id));
+        const rest = recent.length ? list.filter(it => !recentIds.has(it.id)) : list;
+        if (recent.length) {
+          el.appendChild(buildGroupHeader({ label: 'recent', kind: 'recent', items: recent }));
+          for (const it of recent) el.appendChild(buildItem(it));
+        }
         const grouping = window.SWR_MEDIA_GROUPING_UI && window.SWR_MEDIA_GROUPING_UI.isOn()
           && window.SWR_MEDIA_GROUPING;
         if (grouping) {
-          const groups = grouping.groupItems(list);
+          const groups = grouping.groupItems(rest);
           for (const g of groups) {
             el.appendChild(buildGroupHeader(g));
             for (const it of g.items) el.appendChild(buildItem(it));
           }
         } else {
-          for (const it of list) el.appendChild(buildItem(it));
+          for (const it of rest) el.appendChild(buildItem(it));
         }
         // Wire the × buttons. Done after innerHTML so we attach listeners
         // to the live DOM nodes (innerHTML-replaced elements lose their
@@ -1057,6 +1216,7 @@
             const id = parseInt(btn.getAttribute('data-id'), 10);
             const it = this.items.find(x => x.id === id);
             if (!it) return;
+            if (window.SWR_RECENT_MEDIA) window.SWR_RECENT_MEDIA.touch(it);
             const target = ($('media-assign-target') || {}).value || 'new';
             if (target === 'new') {
               Layers.assign(it, null);
@@ -1075,8 +1235,16 @@
 
 
     // === LAYERS ===
-    const Layers = { list: [], sel: null,
-      add(it) { const i=this.list.length;
+    // Hard cap: three layers on stage. A locked layer keeps its media and
+    // controls through remap / automix / remove, and holds its resting
+    // place on the stage (no reactor / narrative motion) until unlocked.
+    const Layers = { list: [], sel: null, MAX: 3,
+      add(it) {
+        if (this.list.length >= this.MAX) {
+          if (typeof setStatus === 'function') setStatus('3 layers max', 'warn');
+          return null;
+        }
+        const i=this.list.length;
         const presets = [
           [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
           [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
@@ -1086,17 +1254,35 @@
           [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
         ];
         const l = { id:'L'+(i+1), asset: it, mediaId: it ? it.id : null, blend:(__shuffle_once('neon',['screen','lighter','difference','overlay','multiply','screen']))[i%6],
-          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1, reactors: presets[i%presets.length] };
-        this.list.push(l); this.render(); this.sel = l; },
+          opacity: 1, baseScale: [1.2, 0.8, 1.5, 0.6, 2.0, 0.5][i%6], hue:0, brightness:1, contrast:1,
+          alpha:1, mutate:0, locked: false, reactors: presets[i%presets.length] };
+        this.list.push(l); this.render(); this.sel = l;
+        return l;
+      },
+      toggleLock(l) {
+        if (!l) return false;
+        l.locked = !l.locked;
+        this.render();
+        if (typeof setStatus === 'function') {
+          setStatus(l.locked ? 'layer locked in place' : 'layer unlocked', 'ok');
+        }
+        return !!l.locked;
+      },
       // Point a layer at an asset. `layerIndex` is the layer's POSITION
       // in this.list; null/'new' appends a new layer (the old "click a
       // card to add it" path). An index replaces that layer's media in
       // place, keeping its blend/opacity/controls.
       assign(it, layerIndex) {
         if (!it) return false;
-        if (layerIndex == null || layerIndex === 'new') { this.add(it); return true; }
+        if (layerIndex == null || layerIndex === 'new') {
+          return !!this.add(it);
+        }
         const l = this.list[Number(layerIndex)];
-        if (!l) { this.add(it); return true; }
+        if (!l) { return !!this.add(it); }
+        if (l.locked) {
+          if (typeof setStatus === 'function') setStatus('unlock to change media', 'warn');
+          return false;
+        }
         l.asset = it; l.mediaId = it.id;
         this.sel = l;
         this.render();
@@ -1114,21 +1300,34 @@
         }
         return m;
       },
-      // Unassign every layer's media but keep the layer rows (and their
-      // blend/opacity settings) in place.
+      // Unassign every unlocked layer's media but keep the layer rows
+      // (and their blend/opacity settings) in place. Locked layers keep
+      // their media.
       detachAll() {
         let n = 0;
-        for (const l of this.list) { if (l.asset) { l.asset = null; l.mediaId = null; n++; } }
+        for (const l of this.list) {
+          if (l.locked) continue;
+          if (l.asset) { l.asset = null; l.mediaId = null; n++; }
+        }
         if (n) {
           this.render();
           try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
         }
         return n;
       },
-      rm(id) { this.list = this.list.filter(l => l.id !== id); this.render(); },
+      rm(id) {
+        const hit = this.list.find(l => l.id === id);
+        if (hit && hit.locked) {
+          if (typeof setStatus === 'function') setStatus('unlock to remove', 'warn');
+          return false;
+        }
+        this.list = this.list.filter(l => l.id !== id);
+        this.render();
+        return true;
+      },
       cleanupForAsset(it) {
         const before = this.list.length;
-        this.list = this.list.filter(l => l.asset !== it);
+        this.list = this.list.filter(l => l.asset !== it || l.locked);
         if (this.list.length !== before) {
           this.render();
           try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
@@ -1137,11 +1336,13 @@
       render() {
         const el = $('layers'); el.innerHTML = '';
         for (let i=0;i<this.list.length;i++) {
-          const l = this.list[i]; const d = document.createElement('div'); d.className='l'+(this.sel===l?' sel':'');
+          const l = this.list[i];
+          const d = document.createElement('div');
+          d.className='l'+(this.sel===l?' sel':'')+(l.locked?' locked':'');
           const react = l.reactors.map(r=>`${r.feature}→${r.target}×${r.scale.toFixed(2)}`).join(' · ');
           // Control rows carry no user data, so they stay on innerHTML.
           d.innerHTML = `<div class="react">${react}</div><div class="r"><label>blend</label><select><option>source-over</option><option>screen</option><option>lighter</option><option>multiply</option><option>overlay</option><option>difference</option><option>soft-light</option></select></div><div class="r"><label>op</label><input type="range" min="0" max="1" step="0.01" /></div><div class="r"><label>sc</label><input type="range" min="0.1" max="3" step="0.01" /></div><div class="r"><label>hue</label><input type="range" min="-180" max="180" step="1" /></div><div class="r"><label>ct</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>br</label><input type="range" min="0.1" max="2.5" step="0.01" /></div><div class="r"><label>α</label><input type="range" min="0" max="1.5" step="0.01" /></div><div class="r"><label>mt</label><input type="range" min="0" max="1" step="0.01" /></div>`;
-          // Header: index, thumbnail, short name, "change media" button.
+          // Header: index, thumbnail, short name, lock, "change media", remove.
           // The name is written with textContent — the file name is
           // user-controlled and would otherwise be an injection vector.
           const lh = document.createElement('div'); lh.className = 'lh';
@@ -1159,34 +1360,48 @@
           nm.textContent = l.asset ? l.asset.name : '(empty)';
           nm.title = l.asset ? l.asset.name : 'no media assigned';
           lh.appendChild(nm);
+          const lk = document.createElement('button');
+          lk.type = 'button'; lk.className = 'lk' + (l.locked ? ' on' : '');
+          lk.textContent = l.locked ? '⚿' : '🔓';
+          lk.title = l.locked
+            ? 'Unlock — edits, motion, remap, and automix can change this layer again'
+            : 'Lock in place — hold position; keep media through remap / automix / remove';
+          lk.setAttribute('aria-pressed', l.locked ? 'true' : 'false');
+          lk.setAttribute('aria-label', l.locked ? 'Unlock layer position' : 'Lock layer in place');
+          lh.appendChild(lk);
           const chg = document.createElement('button');
           chg.type = 'button'; chg.className = 'chg'; chg.textContent = 'Change';
-          chg.title = 'Change this layer’s media';
+          chg.title = l.locked ? 'Unlock to change media' : 'Change this layer’s media';
+          chg.disabled = !!l.locked;
           lh.appendChild(chg);
           const x = document.createElement('button');
-          x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.title = 'Remove layer';
+          x.type = 'button'; x.className = 'x'; x.textContent = '×';
+          x.title = l.locked ? 'Unlock to remove' : 'Remove layer';
+          x.disabled = !!l.locked;
           lh.appendChild(x);
           d.insertBefore(lh, d.firstChild);
           d.querySelector('select').value = l.blend;
-          for (const inp of d.querySelectorAll('input[type=range]')) {
-            const k = ['opacity','baseScale','hue'][+inp.parentElement.querySelector('label').textContent.charCodeAt(0)%3];
-            // simpler: by order
-          }
           const ins = d.querySelectorAll('input[type=range]');
           ins[0].value = l.opacity; ins[1].value = l.baseScale; ins[2].value = l.hue;
           ins[3].value = l.contrast; ins[4].value = l.brightness; ins[5].value = l.alpha; ins[6].value = l.mutate;
-          d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
-          ins[0].addEventListener('input', e => l.opacity = +e.target.value);
-          ins[1].addEventListener('input', e => l.baseScale = +e.target.value);
-          ins[2].addEventListener('input', e => l.hue = +e.target.value);
-          ins[3].addEventListener('input', e => l.contrast = +e.target.value);
-          ins[4].addEventListener('input', e => l.brightness = +e.target.value);
-          ins[5].addEventListener('input', e => l.alpha = +e.target.value);
-          ins[6].addEventListener('input', e => l.mutate = +e.target.value);
+          if (!l.locked) {
+            d.querySelector('select').addEventListener('change', e => l.blend = e.target.value);
+            ins[0].addEventListener('input', e => l.opacity = +e.target.value);
+            ins[1].addEventListener('input', e => l.baseScale = +e.target.value);
+            ins[2].addEventListener('input', e => l.hue = +e.target.value);
+            ins[3].addEventListener('input', e => l.contrast = +e.target.value);
+            ins[4].addEventListener('input', e => l.brightness = +e.target.value);
+            ins[5].addEventListener('input', e => l.alpha = +e.target.value);
+            ins[6].addEventListener('input', e => l.mutate = +e.target.value);
+          } else {
+            d.querySelector('select').disabled = true;
+            for (const inp of ins) inp.disabled = true;
+          }
+          lk.addEventListener('click', e => { e.stopPropagation(); this.toggleLock(l); });
           x.addEventListener('click', e => { e.stopPropagation(); this.rm(l.id); });
           chg.addEventListener('click', e => {
             e.stopPropagation();
-            if (!l.asset) return;
+            if (l.locked || !l.asset) return;
             // Open this asset in the Media panel and pre-target it, so
             // the next Assign replaces THIS layer's media.
             MediaUI.focusId = l.asset.id;
@@ -1212,6 +1427,7 @@
       remap() {
         if (!Lib.items.length) return;
         const f = A.feat; const sens = A.params.sens;
+        const max = this.MAX || 3;
         const roles = [
           { want:'motion', weight: 0.6 + f.bass * sens },
           { want:'mid',    weight: 0.4 + f.mid * sens },
@@ -1219,7 +1435,7 @@
           { want:'hue',    weight: 0.2 + f.air * sens },
           { want:'motion', weight: 0.5 + f.rms * sens * 2 },
           { want:'motion', weight: 0.7 + f.onset * sens * 3 },
-        ];
+        ].slice(0, max);
         const scored = Lib.items.map(it => {
           const sc = {};
           sc.motion = (it.motion)*0.7 + (1 - Math.abs(it.luma-0.5)*2)*0.3;
@@ -1231,7 +1447,11 @@
         // Pick from top-N candidates randomly so each remap = fresh look
         const topN = 2 + (Math.floor(_rnd()*2)); // 2 or 3
         const used = new Set();
-        const assignments = roles.map(r => {
+        const prev = this.list.slice();
+        for (const pl of prev) {
+          if (pl.locked && pl.asset && pl.asset.id != null) used.add(pl.asset.id);
+        }
+        function pickForRole(r) {
           const cands = [];
           for (const s of scored) { if (used.has(s.it.id)) continue;
             cands.push({ it: s.it, v: s.sc[r.want] * r.weight }); }
@@ -1244,26 +1464,38 @@
           for (const c of pool) { r2 -= Math.max(c.v, 0.01); if (r2 <= 0) { pick = c; break; } }
           used.add(pick.it.id);
           return pick.it;
-        });
-        this.list = [];
-        for (let i=0;i<assignments.length;i++) {
-          if (!assignments[i]) continue;
-          const it = assignments[i];
-          const presets = [
-            [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
-            [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
-            [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
-            [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
-            [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
-            [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
-          ];
-          this.list.push({
-            id:'L'+(i+1), asset: it, mediaId: it.id, blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
+        }
+        const presets = [
+          [ { feature:'bass',target:'scale',scale:0.7,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.6,ease:'sharp'} ],
+          [ { feature:'mid',target:'hue',scale:200,ease:'smooth'}, { feature:'rms',target:'scale',scale:0.4,ease:'soft'} ],
+          [ { feature:'treble',target:'rot',scale:3,ease:'smooth'}, { feature:'air',target:'y',scale:80,ease:'smooth'} ],
+          [ { feature:'rms',target:'scale',scale:0.8,ease:'soft'}, { feature:'onset',target:'brightness',scale:0.8,ease:'sharp'} ],
+          [ { feature:'centroid',target:'hue',scale:300,ease:'smooth'}, { feature:'treble',target:'scale',scale:0.5,ease:'soft'} ],
+          [ { feature:'bass',target:'scale',scale:1.0,ease:'sharp'}, { feature:'beat',target:'opacity',scale:0.9,ease:'sharp'} ],
+        ];
+        const next = [];
+        for (let i = 0; i < max; i++) {
+          if (prev[i] && prev[i].locked) {
+            next.push(prev[i]);
+            continue;
+          }
+          const it = pickForRole(roles[i] || roles[roles.length - 1]);
+          if (!it) continue;
+          next.push({
+            id: (prev[i] && prev[i].id) || ('L'+(i+1)),
+            asset: it, mediaId: it.id,
+            blend:['screen','lighter','difference','overlay','multiply','screen'][i%6],
             opacity:1, baseScale:[1.2,0.8,1.5,0.6,2.0,0.5][i%6], hue:0, brightness:1, contrast:1,
-          alpha:1, mutate:0,
+            alpha:1, mutate:0, locked: false,
             reactors: presets[i%presets.length]
           });
         }
+        // Keep any locked layers that sat past the fill window (should not
+        // happen under MAX=3, but do not drop a lock).
+        for (const pl of prev) {
+          if (pl.locked && next.indexOf(pl) < 0 && next.length < max) next.push(pl);
+        }
+        this.list = next;
         this.render();
       }
     };
@@ -1297,6 +1529,18 @@
       // The narrative drift bias below reads `sens` directly, so this page
       // keeps the local the old applyR used to declare.
       const sens = A.params.sens;
+      // Position lock: a locked layer holds its resting place on the stage.
+      // Grade (hue / brightness / contrast / opacity) still comes from the
+      // layer's authored values; reactors and narrative drift that would
+      // move it (x / y / scale / rot) stay off until unlocked.
+      if (l.locked) {
+        out.x = Number.isFinite(l.x) ? l.x : 0;
+        out.y = Number.isFinite(l.y) ? l.y : 0;
+        out.scale = Number.isFinite(l.baseScale) ? l.baseScale : 1;
+        out.rot = 0;
+        out._v = "0";
+        return out;
+      }
       // Master transformations toggle (swr-tx-master, the pause glyph): when
       // the user has muted all audio reactors globally, skip the reactor loop
       // and return the static baseScale/opacity/hue/etc. shape. Per-layer
@@ -1337,7 +1581,7 @@
       out._v = "0";
       return out;
     }
-    function drawLayer(l) {
+    function drawLayer(l, rIn, drawCtx) {
       const a = l.asset; if (!a) return;
       // Some uploaded files produce a non-blob url (legacy browser behavior
       // where URL.createObjectURL(null) returns the literal string "null",
@@ -1374,10 +1618,16 @@
       }
       if (a.type==='video' && src.readyState<2) return;
       if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
-      const r = SWR_RENDER.imageEvolve(l, applyR(l));
-      ctx.save();
-      ctx.globalCompositeOperation = l.blend || 'screen';
-      ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
+      // Prefer the reactive result SWR_RENDER.frame already evolved (Ken Burns
+      // + flow offsets). Recomputing here would double-advance the kb clock.
+      const r = rIn || SWR_RENDER.imageEvolve(l, applyR(l));
+      // Composite onto the live stage so authored blend modes stack across
+      // layers. SWR_RENDER.frame's offscreen blit is source-over, so drawing
+      // only into drawCtx would flatten every layer to source-over.
+      const g = ctx;
+      g.save();
+      g.globalCompositeOperation = l.blend || 'screen';
+      g.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;
       let dw, dh;
@@ -1389,12 +1639,12 @@
       if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
       const rotDeg = l.rotationEnabled === true ? r.rot : 0;
       if (Math.abs(rotDeg) > 0.5) {
-        ctx.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(ctx, rotDeg * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+        g.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(g, rotDeg * Math.PI/180); g.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
-        ctx.drawImage(src, dx, dy, dw, dh);
+        g.drawImage(src, dx, dy, dw, dh);
       }
-      ctx.filter = 'none';
-      ctx.restore();
+      g.filter = 'none';
+      g.restore();
     }
     function drawFx() {
       // scanline
@@ -1461,6 +1711,11 @@
           dt: dt,
         });
       }
+      // Audio top layer (SVG sheet above media / FX). Preset cycle lives in
+      // the Demo panel as Pulse · Spike · Scan · Ribbon · Off.
+      if (window.SWR_AUDIO_TOP) window.SWR_AUDIO_TOP.frame(dt, A.feat, W, H);
+      else if (window.SWR_WAVE_LINES) window.SWR_WAVE_LINES.frame(dt, A.feat, W, H);
+      if (window.SWR_REMO && window.SWR_REMO.enabled) window.SWR_REMO.tick(dt);
       SWR_RENDER.setBackground('#000');
       const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
       const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
@@ -2008,6 +2263,9 @@
     // makes the contract real on both pages.
     window.Audio = A;
     window.Library = Lib;
+    // Probe hook: resolveTransform is applyR — used by the lock gate and
+    // by headless checks that a locked layer holds its resting place.
+    Layers.resolveTransform = applyR;
     window.Layers = Layers;
     window.setStatus = setStatus;
 
@@ -2156,6 +2414,7 @@
     <script src="/lib/version-badge.client.js" defer></script>
   <script src="/client/looks-menu.client.js" defer></script>
   <script src="/client/look-filter-cycler.client.js" defer></script>
+  <script src="/client/wave-lines.client.js" defer></script>
   <script src="/client/neon-demo-panel.client.js" defer></script>
 <script src="/lib/version-watcher.client.js" defer></script>
   <!-- Visual debugger. Nothing is fetched unless ?swrdebug=1 asks for it,
@@ -2166,6 +2425,28 @@
       s.src = '/client/engine-debugger.client.js';
       s.defer = true;
       document.head.appendChild(s);
+    }
+  </script>
+  <!-- Remo Panel 2.0. Loaded only with ?env=1 so the flag-off path stays cold.
+       Scripts chain onload so the panel never boots before its dependencies. -->
+  <script>
+    if (/[?&]env=1/.test(location.search)) {
+      (function loadRemo(i) {
+        var urls = [
+          '/client/remo-param-store.client.js',
+          '/client/remo-shapes.client.js',
+          '/client/remo-history.client.js',
+          '/client/remo-envelope-bus.client.js',
+          '/client/remo-wiring-store.client.js',
+          '/client/remo-panel.client.js',
+        ];
+        if (i >= urls.length) return;
+        var s = document.createElement('script');
+        s.src = urls[i];
+        s.onload = function () { loadRemo(i + 1); };
+        s.onerror = function () { console.warn('[remo] failed to load', urls[i]); };
+        document.head.appendChild(s);
+      })(0);
     }
   </script>
 </body>
