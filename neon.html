@@ -1944,8 +1944,33 @@
             height: stage.height,
             fps: fps,
             videoBitsPerSecond: BITRATE,
-          }).then(() => {
-            this.recording = true;
+          });
+          // start() settles when the MP4 is FINISHED, not when the encoder is
+          // streaming — so the UI flip used to live in its .then() and never
+          // ran: the button stayed on ● REC, no auto-stop was armed, and
+          // pressing STOP hit a recorder that had never been told a take was
+          // running. Wait for 'ready' (a separate promise) instead.
+          const readyP = (window.SWR_RECORDER.ready ? window.SWR_RECORDER.ready() : Promise.resolve(true));
+          const readyTimeout = new Promise((_, rej) => setTimeout(
+            () => rej(Object.assign(new Error('encoder did not become ready in 5s'), { unsupported: true })), 5000));
+          try {
+            await Promise.race([readyP, readyTimeout]);
+          } catch (err) {
+            this._wcActive = false;
+            try { window.SWR_RECORDER.stop(); } catch (_) {}
+            if (err && err.unsupported) {
+              setStatus('WebCodecs unsupported · falling back to WebM', 'warn');
+              return this.start('webm');
+            }
+            setStatus('recorder start failed: ' + (err && err.message || err), 'err');
+            return;
+          }
+          // stop() owns the blob; a mid-take encoder error only needs to be
+          // reported, or it would surface as an unhandled rejection.
+          this._wcPending.catch((err) => {
+            if (this._wcActive) setStatus('recorder failed: ' + (err && err.message || err), 'err');
+          });
+          this.recording = true;
             this.startedAt = Date.now();
             const durSel = $('rec-dur') ? $('rec-dur').value : '0';
             let durMs = 0;
@@ -1983,20 +2008,6 @@
                 setStatus('rec · MP4 · ' + el, 'live');
               }
             }, 500);
-          }).catch((err) => {
-            this._wcActive = false;
-            if (err && err.unsupported) {
-              setStatus('WebCodecs unsupported · falling back to WebM', 'warn');
-              // Pass the format explicitly. Mutating the <select> and calling
-              // this.start() un-awaited stopped working once start() became
-              // async: it suspends on `await A.play()` before reading
-              // $('rec-format'), so it picks up the restored "auto" value,
-              // re-enters the WebCodecs branch and recurses forever.
-              this.start('webm');
-            } else {
-              setStatus('recorder start failed: ' + (err && err.message || err), 'err');
-            }
-          });
           return;
         }
         // === MEDIA-RECORDER (WEBM) PATH — same as before ===
@@ -2076,7 +2087,12 @@
           $('rec').classList.remove('live');
           $('rec').textContent = '● REC';
           setStatus('finalizing MP4…', '');
-          window.SWR_RECORDER.stop().then((res) => {
+          // A hung encoder (the worker never posting 'done') used to leave
+          // this stuck on 'finalizing MP4…' forever with no file and no
+          // error. Race it so a failure is always visible.
+          const timeout = new Promise((_, rej) =>
+            setTimeout(() => rej(new Error('encoder did not finish in 20s')), 20000));
+          Promise.race([window.SWR_RECORDER.stop(), timeout]).then((res) => {
             this.chunks = [res.blob];
             this.mime = res.mime;
             this._save();
@@ -2103,18 +2119,44 @@
         // song, and the file and the transport end together.
         try { A.pause(); } catch (_) {}
         const blob = new Blob(this.chunks, { type: this.mime });
-        const a = document.createElement('a');
-        const recUrl = URL.createObjectURL(blob);
-        a.href = recUrl;
+        if (!blob.size) {
+          setStatus('nothing captured - press REC while the song plays', 'err');
+          return;
+        }
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         const ext = this.mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-        a.download = 'sainted-word-' + ts + '.' + ext;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        // Free the download URL once the click has been dispatched.
-        setTimeout(() => { try { URL.revokeObjectURL(recUrl); } catch (_) {} }, 1000);
-        setStatus('exported · ' + ext.toUpperCase(), 'ok');
+        const name = 'sainted-word-' + ts + '.' + ext;
+        const recUrl = URL.createObjectURL(blob);
+        // First attempt: the silent anchor click. It is what most browsers
+        // save from, but Chrome blocks programmatic downloads in some
+        // profiles (and flags a second one from the same page), in which
+        // case this produces the file nowhere and tells nobody.
+        try {
+          const a = document.createElement('a');
+          a.href = recUrl;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } catch (_) {}
+        // Second attempt, always: leave a real link in the status bar. A
+        // click on it is a user gesture, so no browser can block it - and
+        // if the automatic download did work, the link is simply ignored.
+        // The URL stays alive for this, so do not revoke it here.
+        const statusEl = $('status');
+        if (statusEl) {
+          statusEl.textContent = 'saved · ' + ext.toUpperCase() + ' · ' + Math.round(blob.size / 1024) + ' KB — ';
+          const link = document.createElement('a');
+          link.href = recUrl;
+          link.download = name;
+          link.textContent = '⬇ download';
+          link.title = name;
+          link.style.cssText = 'color:inherit;text-decoration:underline;font-weight:700;cursor:pointer;';
+          statusEl.appendChild(link);
+          statusEl.appendChild(document.createTextNode(' ' + name));
+        } else {
+          setStatus('exported · ' + ext.toUpperCase(), 'ok');
+        }
       },
     };
         // Invalidate the per-layer cache whenever the page rebuilds.
