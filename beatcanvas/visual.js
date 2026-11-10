@@ -1,4 +1,5 @@
 import {visualState, VISUAL_STYLES, EXPORT_SECONDS, validateImages, imageSequenceIndex, directorScene, DIRECTOR_MODES} from './visual-core.js';
+import {drawVideoStrips,syncBackgroundVideo} from './video-background.js';
 const $ = id => document.getElementById(id);
 const canvas=$('visual'), ctx=canvas.getContext('2d');
 const player=$('player'), style=$('visual-style'), status=$('render-status'), record=$('record');
@@ -21,7 +22,7 @@ assetInput.addEventListener('change',async()=>{
       next.push(bitmap);
     }
     images.forEach(b=>b.close());images=next;
-    assetStatus.textContent=images.length?images.length+' images loaded; switching every 4 beats.':'No image assets loaded; procedural visuals only.';
+    assetStatus.textContent=images.length?images.length+' images loaded · 35% foreground motion.':'No image assets loaded; procedural visuals only.';
   }catch(e){
     next.forEach(b=>b.close());
     assetStatus.textContent='Could not decode selected image(s). Previous set retained.';
@@ -52,6 +53,31 @@ function draw(t, energy){
   const state=visualState({time:t,bpm,energy,style:style.value});
   const w=canvas.width,h=canvas.height, cx=w/2,cy=h/2;
   ctx.fillStyle='#050a14';ctx.fillRect(0,0,w,h);
+  if(state.style==='video-strips'){
+    drawVideoStrips(ctx,w,h,t,state.amount);
+    const scene=directorScene(t,bpm,images.length,director.value);
+    if(scene.index>=0){
+      const img=images[scene.index], motion=.35;
+      const pulse=state.pulse*motion*.13;
+      const zoom=1.12+pulse;
+      const cover=Math.min(w/img.width,h/img.height)*zoom;
+      const iw=img.width*cover,ih=img.height*cover;
+      const dx=Math.sin(t*.47)*w*.055*motion;
+      const dy=Math.cos(t*.39)*h*.045*motion;
+      ctx.save();
+      ctx.shadowColor='rgba(0,0,0,.65)';ctx.shadowBlur=34;ctx.shadowOffsetY=14;
+      ctx.drawImage(img,(w-iw)/2+dx,(h-ih)/2+dy,iw,ih);
+      ctx.restore();
+      sceneStatus.textContent='Foreground '+(scene.index+1)+' of '+images.length+' · '+scene.beatsPerScene+' beats per image';
+    }else{
+      ctx.beginPath();ctx.arc(cx,cy,85+state.pulse*22,0,Math.PI*2);
+      ctx.fillStyle='rgba(116,234,212,.4)';ctx.fill();
+      sceneStatus.textContent='Add a foreground image for layer 2.';
+    }
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='24px system-ui';
+    ctx.fillText('BEATCANVAS',cx,h-46);
+    return;
+  }
   const scene=directorScene(t,bpm,images.length,director.value);
   const imageIndex=scene.index;
   if(images.length) sceneStatus.textContent='Image '+(imageIndex+1)+' of '+images.length+' · '+scene.beatsPerScene+' beats per scene';
@@ -86,6 +112,7 @@ function tick(){
     const count=Math.min(100,meter.length);
     for(let i=0;i<count;i++)energy+=meter[i]/255/count;
   }
+  syncBackgroundVideo();
   draw(player.currentTime||0,energy);
   requestAnimationFrame(tick);
 }
