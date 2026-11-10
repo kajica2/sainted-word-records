@@ -23,10 +23,12 @@
   ];
   var STYLE_IDS = STYLES.map(function (s) { return s.id; });
   var MASK_KEYS = ['maskThreshold', 'maskGooey', 'maskSlit', 'maskChromaBand', 'maskHalftone', 'maskKaleido'];
+  var PERSONA_KEYS = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch', 'tone', 'sharp', 'cinematic'];
 
   var state = {
     style: loadStyle(),
-    _maskRestore: null,
+    _maskTimer: null,
+    _maskToken: 0,
   };
 
   function loadStyle() {
@@ -70,31 +72,57 @@
     return global.Layers || (global.SWR && global.SWR.Layers) || null;
   }
 
+  function imageLaneApi() {
+    return global.SWR_IMAGE_LANE || global.ImageLane || null;
+  }
+
+  /** Prefer the list that actually owns this layer (video stack or image lane). */
+  function ownerList(layer) {
+    var lane = imageLaneApi();
+    if (lane && Array.isArray(lane.list) && lane.list.indexOf(layer) >= 0) {
+      return { api: lane, list: lane.list, kind: 'lane' };
+    }
+    var L = layersApi();
+    if (L && Array.isArray(L.list) && L.list.indexOf(layer) >= 0) {
+      return { api: L, list: L.list, kind: 'layers' };
+    }
+    // Fallback: if the layer carries the image-lane mark, use the lane even
+    // when identity differs (cloned/adopted records).
+    if (lane && Array.isArray(lane.list) && layer && layer._imageLane) {
+      var byId = -1;
+      for (var i = 0; i < lane.list.length; i++) {
+        if (lane.list[i] && layer.id && lane.list[i].id === layer.id) { byId = i; break; }
+      }
+      if (byId >= 0) return { api: lane, list: lane.list, kind: 'lane', indexHint: byId };
+    }
+    return null;
+  }
+
   /** Move layer one step toward the top of the draw stack (end of list). */
   function swapDepth(layer) {
-    var L = layersApi();
-    if (!L || !Array.isArray(L.list) || !layer) return false;
-    if (layer.locked) return false;
-    var i = L.list.indexOf(layer);
+    if (!layer || layer.locked) return false;
+    var owner = ownerList(layer);
+    if (!owner) return false;
+    var list = owner.list;
+    var i = typeof owner.indexHint === 'number' ? owner.indexHint : list.indexOf(layer);
     if (i < 0) return false;
-    if (i >= L.list.length - 1) {
+    if (list.length < 2) return false;
+    if (i >= list.length - 1) {
       // Already top — rotate under the next-to-top so depth still changes.
-      if (L.list.length < 2) return false;
-      var top = L.list.pop();
-      L.list.splice(L.list.length - 1, 0, top);
+      var top = list.pop();
+      list.splice(list.length - 1, 0, top);
     } else {
-      var next = L.list[i + 1];
-      L.list[i + 1] = layer;
-      L.list[i] = next;
+      var next = list[i + 1];
+      list[i + 1] = list[i];
+      list[i] = next;
     }
-    // Keep z fields consistent for pages that sort by z.
-    for (var z = 0; z < L.list.length; z++) {
-      if (L.list[z]) L.list[z].z = z;
+    for (var z = 0; z < list.length; z++) {
+      if (list[z]) list[z].z = z;
     }
-    if (typeof L.render === 'function') L.render();
+    if (owner.api && typeof owner.api.render === 'function') owner.api.render();
     try {
       global.dispatchEvent(new CustomEvent('swr:image-depth-swap', {
-        detail: { layerId: layer.id },
+        detail: { layerId: layer.id, stack: owner.kind },
       }));
     } catch (_) {}
     return true;
@@ -106,11 +134,12 @@
     layer._flowY = 0;
     layer._flowAmp = 0;
     layer._flowUntil = 0;
+    layer._flowFrom = 0;
     layer._flowOffX = 0;
     layer._flowOffY = 0;
   }
 
-  function seedFlow(layer, newAsset, ampScale) {
+  function seedFlow(layer, newAsset, ampScale, windowMs) {
     var key = String((newAsset && (newAsset.name || newAsset.url)) || (layer && layer.id) || 'flow');
     var h = 2166136261;
     for (var i = 0; i < key.length; i++) {
@@ -122,32 +151,35 @@
       var LP = global.SWR_LIFE;
       if (LP && LP.__loaded) kick = Math.min(1, LP.pulse);
     } catch (_) {}
+    var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     layer._flowX = (h & 1) ? 1 : -1;
     layer._flowY = ((h >> 1) & 1) ? 0.35 : -0.35;
     layer._flowAmp = (ampScale == null ? 0.085 : ampScale) * (0.75 + 0.5 * kick);
+    layer._flowFrom = now;
+    layer._flowUntil = now + (windowMs != null ? windowMs : 700);
   }
 
   /**
    * Draw-path helper: while a move-style flow window is open, offset the
-   * photo. Returns { x, y } deltas in CSS pixels (0 when idle).
+   * photo. Time-based ease (not opacity) so a layer that settles at
+   * opacity < 1 does not keep a residual slide until the window expires.
    */
   function flowOffset(layer, W, H) {
     if (!layer || !layer._flowUntil) return { x: 0, y: 0 };
     var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    if (now > layer._flowUntil) {
+    if (now >= layer._flowUntil) {
       clearFlow(layer);
       return { x: 0, y: 0 };
     }
-    var cur = typeof layer._currentOpacity === 'number' ? layer._currentOpacity : 1;
-    var target = typeof layer._targetOpacity === 'number' ? layer._targetOpacity : 1;
-    // Outgoing (target 0): ease toward edge; incoming (target > 0): ease from opposite edge.
-    var leaving = target < 0.5;
-    var e = leaving ? (1 - Math.max(0, Math.min(1, cur))) : Math.max(0, Math.min(1, 1 - cur));
+    var from = layer._flowFrom || (layer._flowUntil - 700);
+    var dur = Math.max(1, layer._flowUntil - from);
+    var t = Math.max(0, Math.min(1, (now - from) / dur));
+    // Rise then fall: peak mid-window, land at 0 when the window ends.
+    var e = Math.sin(Math.PI * t);
     var ampX = (layer._flowAmp || 0.085) * (W || 1280);
     var ampY = (layer._flowAmp || 0.085) * (H || 720) * 0.55;
-    var dir = leaving ? 1 : -1;
-    var ox = dir * (layer._flowX || 1) * ampX * e;
-    var oy = dir * (layer._flowY || 0) * ampY * e;
+    var ox = (layer._flowX || 1) * ampX * e;
+    var oy = (layer._flowY || 0) * ampY * e;
     layer._flowOffX = ox;
     layer._flowOffY = oy;
     return { x: ox, y: oy };
@@ -163,21 +195,70 @@
     return MASK_KEYS[h % MASK_KEYS.length];
   }
 
-  function applyMaskIllusion(layer) {
+  function snapshotFx() {
+    var snap = { personaKey: null, profile: null };
+    try {
+      if (global.Personas && typeof global.Personas.current === 'function') {
+        snap.personaKey = global.Personas.current();
+      }
+    } catch (_) {}
+    try {
+      var fx = global.FX;
+      var st = fx && fx.state;
+      if (st) {
+        snap.profile = {};
+        for (var i = 0; i < PERSONA_KEYS.length; i++) {
+          var k = PERSONA_KEYS[i];
+          if (st[k] !== undefined) snap.profile[k] = st[k];
+        }
+      }
+    } catch (_) {}
+    return snap;
+  }
+
+  function restoreFx(snap) {
+    if (!snap) return;
+    try {
+      if (snap.personaKey && snap.personaKey !== 'off'
+          && global.Personas && typeof global.Personas.apply === 'function'
+          && global.Personas.PERSONAS && global.Personas.PERSONAS[snap.personaKey]
+          && !MASK_KEYS.some(function (m) { return m === snap.personaKey; })) {
+        // Prefer restoring a named non-mask persona so UI stays in sync.
+        global.Personas.apply(snap.personaKey);
+        return;
+      }
+    } catch (_) {}
+    try {
+      if (snap.profile && global.FX && typeof global.FX.setPersona === 'function') {
+        global.FX.setPersona(snap.profile);
+      }
+      if (global.Personas && typeof global.Personas.apply === 'function' && snap.personaKey === 'off') {
+        global.Personas.apply('off');
+      }
+    } catch (_) {}
+  }
+
+  function applyMaskIllusion(layer, restoreAfterMs) {
     var name = pickMaskKey(layer);
-    state._maskRestore = {
-      at: Date.now(),
-      name: name,
-    };
+    var snap = snapshotFx();
+    state._maskToken += 1;
+    var token = state._maskToken;
+    if (state._maskTimer) {
+      try { clearTimeout(state._maskTimer); } catch (_) {}
+      state._maskTimer = null;
+    }
     if (global.MaskIllusions && typeof global.MaskIllusions.apply === 'function') {
       global.MaskIllusions.apply(name);
-      return name;
-    }
-    if (global.Personas && typeof global.Personas.apply === 'function') {
+    } else if (global.Personas && typeof global.Personas.apply === 'function') {
       global.Personas.apply(name);
-      return name;
     }
-    return null;
+    var wait = Math.max(200, restoreAfterMs || 900);
+    state._maskTimer = setTimeout(function () {
+      if (token !== state._maskToken) return;
+      restoreFx(snap);
+      state._maskTimer = null;
+    }, wait);
+    return name;
   }
 
   function defaultMs(styleId) {
@@ -200,13 +281,14 @@
     var ms = defaultMs(styleId);
     if (opts.fadeOutMs != null) ms.out = opts.fadeOutMs;
     if (opts.fadeInMs != null) ms.in = opts.fadeInMs;
+    var windowMs = ms.out + ms.in + 80;
 
     if (styleId === 'depth' || opts.depth) {
       swapDepth(layer);
     }
 
     if (styleId === 'mask') {
-      applyMaskIllusion(layer);
+      applyMaskIllusion(layer, windowMs);
     }
 
     var T = global.SWR_TIMING;
@@ -222,19 +304,15 @@
         return !!ok;
       }
       if (styleId === 'move') {
-        seedFlow(layer, newAsset, 0.12);
+        seedFlow(layer, newAsset, 0.12, windowMs);
       }
       var okMove = T.crossfade(layer, newAsset, { fadeOutMs: ms.out, fadeInMs: ms.in });
-      if (styleId === 'move' && layer._flowAmp) {
-        // Stretch the flow window across both fade legs.
-        layer._flowUntil = (typeof performance !== 'undefined' && performance.now
-          ? performance.now() : Date.now()) + ms.out + ms.in + 80;
+      if (styleId === 'move') {
+        // Re-assert the time window after crossfade's own flow seed.
+        seedFlow(layer, newAsset, 0.12, windowMs);
       }
       if (styleId === 'mask') {
-        // Soft flow under the mask so the dissolve is not a hard cut.
-        layer._flowAmp = (layer._flowAmp || 0.085) * 0.55;
-        layer._flowUntil = (typeof performance !== 'undefined' && performance.now
-          ? performance.now() : Date.now()) + ms.out + ms.in + 80;
+        seedFlow(layer, newAsset, 0.085 * 0.55, windowMs);
       }
       return !!okMove;
     }
@@ -260,5 +338,7 @@
     flowOffset: flowOffset,
     clearFlow: clearFlow,
     applyMaskIllusion: applyMaskIllusion,
+    _snapshotFx: snapshotFx,
+    _restoreFx: restoreFx,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
