@@ -31,3 +31,8 @@ jobs:
           test -f dist/beatcanvas/index.html
           test -f dist/beatcanvas/studio.js
           test -f dist/beatcanvas/research.html
+          test -f dist/audios/pulse.mp3
+      - name: Install Chromium for MP3 browser smoke
+        run: npx puppeteer browsers install chrome
+      - name: Real MP3 and WebM smoke
+        run: node tests/beatcanvas/mp3-browser-smoke.mjs
