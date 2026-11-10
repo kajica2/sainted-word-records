@@ -1950,11 +1950,41 @@
         const qualSel = $('rec-quality') ? $('rec-quality').value : 'high';
         const BITRATE = { high: 12_000_000, med: 6_000_000, low: 3_000_000 }[qualSel] || 12_000_000;
         const formatSel = forceFormat || ($('rec-format') ? $('rec-format').value : 'auto');
+        // The stage carries a CSS grade (saturate/contrast/brightness). CSS
+        // filters are display-only: captureStream() and VideoFrame both read
+        // the RAW canvas pixels, so the file used to come out ungraded - flat,
+        // visibly different contrast from what is on screen. Mirror the stage
+        // into an offscreen canvas with the same filter baked in and capture
+        // that instead, so the export matches the picture.
+        let captureSource = stage;
+        try {
+          const cssFilter = getComputedStyle(stage).filter;
+          if (cssFilter && cssFilter !== 'none') {
+            const mirror = document.createElement('canvas');
+            mirror.width = stage.width;
+            mirror.height = stage.height;
+            const mctx = mirror.getContext('2d');
+            mctx.filter = cssFilter;
+            this._pumpOn = true;
+            const pump = () => {
+              if (!this._pumpOn) return;
+              try { mctx.drawImage(stage, 0, 0); } catch (_) {}
+              this._pumpRaf = requestAnimationFrame(pump);
+            };
+            this._pumpRaf = requestAnimationFrame(pump);
+            captureSource = mirror;
+          }
+        } catch (_) {}
+        this._captureSource = captureSource;
+        this._stopPump = () => {
+          this._pumpOn = false;
+          if (this._pumpRaf) { cancelAnimationFrame(this._pumpRaf); this._pumpRaf = 0; }
+        };
         const wantMp4 = formatSel === 'mp4' || (formatSel === 'auto' && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs());
         if (wantMp4 && window.SWR_RECORDER && window.SWR_RECORDER.canUseWebCodecs && window.SWR_RECORDER.canUseWebCodecs()) {
           this._wcActive = true;
           this._wcPending = window.SWR_RECORDER.start({
-            canvas: stage,
+            canvas: captureSource,
             audioSource: A.analyser,
             audioSampleRate: A.ctx ? A.ctx.sampleRate : 0,
             audioNumberOfChannels: 2,
@@ -2029,7 +2059,7 @@
           return;
         }
         // === MEDIA-RECORDER (WEBM) PATH — same as before ===
-        const vstream = stage.captureStream(fps);
+        const vstream = captureSource.captureStream(fps);
         const dest = A.ctx.createMediaStreamDestination();
         this.mediaDest = dest;
         try { A.analyser.disconnect(dest); } catch {}
@@ -2097,6 +2127,7 @@
         // SWR_REC_IMPROVED_v2
       },
       stop() {
+        try { if (this._stopPump) this._stopPump(); } catch (_) {}
         if (this._wcActive) {
           if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
           if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
