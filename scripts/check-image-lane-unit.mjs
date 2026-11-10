@@ -114,10 +114,24 @@ console.log('image-lane: stepStill survives depth reorder');
       return true;
     },
   };
+  let safetyCalls = [];
+  const realKill = sbStep.SWR_MOTION_KILL;
+  sbStep.SWR_MOTION_KILL = Object.assign({}, realKill || {}, {
+    applyImageAutomixReactors(layer, slot) {
+      safetyCalls.push({ layer: layer, slot: slot });
+    },
+    isImageAsset(asset) {
+      return !!(asset && asset.type === 'image');
+    },
+  });
   const ok = lane.stepStill(1);
   check(ok === true, 'stepStill returns true after depth reorder');
   check(lane.selected === lb, 'stepStill selects next still by identity after reorder');
   check(la.asset === b, 'stepStill crossfades current layer onto next still asset');
+  check(safetyCalls.length === 1 && safetyCalls[0].layer === la,
+    'applyImageSafety targets the layer that received the still');
+  check(safetyCalls[0] && safetyCalls[0].slot === lane.list.indexOf(la),
+    'applyImageSafety uses the post-reorder slot of that layer');
   void lc;
 }
 
