@@ -357,6 +357,54 @@
     return false;
   }
 
+  function readSlideshowMusicDrive() {
+    var api = slideshowApi();
+    if (api && typeof api.getMusicDrive === 'function') return !!api.getMusicDrive();
+    return false;
+  }
+
+  function writeSlideshowMusicDrive(on) {
+    var api = slideshowApi();
+    if (!api || typeof api.setMusicDrive !== 'function') return false;
+    var v = api.setMusicDrive(!!on);
+    paintSlideshowMusic();
+    return v;
+  }
+
+  function readSlideshowMusicSpeed() {
+    var api = slideshowApi();
+    if (api && typeof api.getMusicSpeed === 'function') {
+      var n = api.getMusicSpeed();
+      return Number.isFinite(+n) ? +n : 1;
+    }
+    return 1;
+  }
+
+  function writeSlideshowMusicSpeed(v) {
+    var api = slideshowApi();
+    if (!api || typeof api.setMusicSpeed !== 'function') return 1;
+    var n = api.setMusicSpeed(v);
+    paintSlideshowMusic();
+    return n;
+  }
+
+  function paintSlideshowMusic() {
+    if (!state.root) return;
+    var drive = readSlideshowMusicDrive();
+    var toggle = state.root.querySelector('#demo-slideshow-music-drive');
+    if (toggle) toggle.checked = !!drive;
+    var range = state.root.querySelector('#demo-slideshow-music-speed');
+    var read = state.root.querySelector('#demo-slideshow-music-speed-v');
+    var speed = readSlideshowMusicSpeed();
+    if (range) {
+      range.value = String(speed);
+      range.disabled = !drive;
+    }
+    if (read) read.textContent = speed.toFixed(2);
+    var row = state.root.querySelector('[data-demo-slideshow-music-speed-row]');
+    if (row) row.style.opacity = drive ? '1' : '0.45';
+  }
+
   function paintImageStyleButtons() {
     if (!state.root || !state.root.querySelectorAll) return;
     state.root.querySelectorAll('[data-demo-image-style]').forEach(function (btn) {
@@ -1308,13 +1356,59 @@
     var slideStatus = mk('p', 'demo-note', '');
     slideStatus.id = 'demo-slideshow-status';
     secSlide.appendChild(slideStatus);
-    secSlide.appendChild(mk('p', 'demo-note', 'One cue per line: duration_ms | text | still#. Clocks like 0:12 work. ← / → step stills when the image lane has photos.'));
+
+    // Music sensitivity — toggleable: when on, cue dwell shrinks with
+    // audio energy × speed so stills progress forward with the song.
+    var musicRow = mk('div', 'demo-row');
+    var musicLab = mk('label', null, 'Music drive');
+    musicLab.setAttribute('for', 'demo-slideshow-music-drive');
+    musicLab.title = 'When on, stills advance faster as the music gets louder';
+    var musicToggle = document.createElement('input');
+    musicToggle.type = 'checkbox';
+    musicToggle.id = 'demo-slideshow-music-drive';
+    musicToggle.checked = readSlideshowMusicDrive();
+    musicToggle.title = 'Kick / energy opens the next still sooner';
+    musicToggle.setAttribute('aria-label', 'Music drive for slideshow stills');
+    regControl(musicToggle, 'slideshow:musicDrive', {
+      label: 'Slideshow music drive',
+      invoke: function () {
+        return writeSlideshowMusicDrive(!readSlideshowMusicDrive());
+      },
+    });
+    musicToggle.addEventListener('change', function () {
+      writeSlideshowMusicDrive(!!musicToggle.checked);
+    });
+    musicRow.appendChild(musicLab);
+    musicRow.appendChild(musicToggle);
+    secSlide.appendChild(musicRow);
+
+    var speedMin = (slideApi && slideApi.MIN_MUSIC_SPEED) || 0.25;
+    var speedMax = (slideApi && slideApi.MAX_MUSIC_SPEED) || 4;
+    addPaneSlider(secSlide, {
+      domId: 'demo-slideshow-music-speed',
+      control: 'slideshow:musicSpeed',
+      label: 'Still speed',
+      min: String(speedMin),
+      max: String(speedMax),
+      step: '0.05',
+      read: readSlideshowMusicSpeed,
+      write: writeSlideshowMusicSpeed,
+      format: function (v) { return Number.isFinite(+v) ? (+v).toFixed(2) : '—'; },
+    });
+    var speedRow = secSlide.querySelector('#demo-slideshow-music-speed');
+    if (speedRow && speedRow.parentElement) {
+      speedRow.parentElement.setAttribute('data-demo-slideshow-music-speed-row', '1');
+    }
+
+    secSlide.appendChild(mk('p', 'demo-note', 'One cue per line: duration_ms | text | still#. Clocks like 0:12 work. ← / → step stills when the image lane has photos. Music drive (toggle) scales how quickly stills progress with the song.'));
     secStage.appendChild(secSlide);
     paintSlideshowStatus();
+    paintSlideshowMusic();
     try {
       window.addEventListener('swr:slideshow-cue', paintSlideshowStatus);
       window.addEventListener('swr:slideshow-play', paintSlideshowStatus);
       window.addEventListener('swr:slideshow-stop', paintSlideshowStatus);
+      window.addEventListener('swr:slideshow-music', paintSlideshowMusic);
     } catch (_) {}
 
     var sensSrc = document.getElementById('sens');

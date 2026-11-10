@@ -21,6 +21,10 @@ function check(cond, msg) {
 
 function boot(extra) {
   const store = Object.create(null);
+  if (extra && extra._storeSeed && typeof extra._storeSeed === 'object') {
+    Object.assign(store, extra._storeSeed);
+    delete extra._storeSeed;
+  }
   const events = [];
   const timers = [];
   let now = 1000;
@@ -249,6 +253,73 @@ console.log('slideshow-script: load during play stops timer');
     'stale timer does not advance after load');
 }
 
+console.log('slideshow-script: music drive / still speed');
+{
+  const env = boot({ A: { feat: { rms: 0, beat: 0, bass: 0 } } });
+  check(env.api.getMusicDrive() === false, 'music drive defaults off');
+  check(env.api.getMusicSpeed() === 1, 'music speed defaults to 1');
+  check(env.api.effectiveDuration(4000) === 4000, 'drive off keeps authored dwell');
+
+  check(env.api.setMusicDrive(true) === true, 'setMusicDrive on');
+  check(env.api.getState().musicDrive === true, 'getState carries musicDrive');
+  // rate = 1 * (0.45 + 0) = 0.45 → wait = 4000/0.45 ≈ 8889, clamped by MAX_MS
+  const quiet = env.api.effectiveDuration(4000);
+  check(quiet > 4000, 'quiet energy at speed 1 lengthens dwell (rate < 1)');
+
+  env.api.setMusicSpeed(2);
+  // rate = 2 * 0.45 = 0.9 → wait ≈ 4444
+  const sped = env.api.effectiveDuration(4000);
+  check(sped < quiet && sped > 4000, 'higher speed shortens quiet dwell vs speed 1');
+
+  env.api.setMusicSpeed(3);
+}
+{
+  const env = boot({ A: { feat: { rms: 1, beat: 0.8, bass: 0.9 } } });
+  env.api.setMusicDrive(true);
+  env.api.setMusicSpeed(3);
+  // rate = 3 * (0.45 + 0.55*1) = 3 → wait = 4000/3 ≈ 1333
+  const loud = env.api.effectiveDuration(4000);
+  check(loud < 2000, 'loud energy + speed 3 shortens dwell below half');
+  check(loud >= 200, 'dwell never drops below MIN_MS');
+
+  const persisted = JSON.parse(env.store['swr.slideshowMusic.v1']);
+  check(persisted.drive === true && persisted.speed === 3, 'music prefs persist to localStorage');
+  check(env.events.some((e) => e.type === 'swr:slideshow-music'), 'music change fires event');
+
+  check(env.api.setMusicSpeed(99) === 4, 'music speed clamps to MAX');
+  check(env.api.setMusicSpeed(0) === 0.25, 'music speed clamps to MIN');
+  check(env.api.setMusicDrive(false) === false, 'drive can toggle off');
+  check(env.api.effectiveDuration(4000) === 4000, 'drive off ignores feat again');
+}
+
+console.log('slideshow-script: music prefs restore from localStorage');
+{
+  const env = boot({
+    _storeSeed: {
+      'swr.slideshowMusic.v1': JSON.stringify({ drive: true, speed: 2.5 }),
+    },
+  });
+  check(env.api.getMusicDrive() === true, 'restoreMusic reads drive');
+  check(env.api.getMusicSpeed() === 2.5, 'restoreMusic reads speed');
+}
+
+console.log('slideshow-script: music drive advances cues sooner while playing');
+{
+  const env = boot({ A: { feat: { rms: 1, beat: 1, bass: 1 } } });
+  env.lane.add({ id: 's1', type: 'image', name: 'one.png' });
+  env.lane.add({ id: 's2', type: 'image', name: 'two.png' });
+  env.api.setMusicDrive(true);
+  env.api.setMusicSpeed(2);
+  // base 2000 → rate = 2 * (0.45+0.55*1) = 2 → wait 1000
+  env.api.load('2000 | first\n2000 | second');
+  check(env.api.play() === true, 'play with music drive');
+  env.tick(900);
+  check(env.api.getState().index === 0, 'still on first cue before shortened dwell');
+  env.tick(200);
+  check(env.api.getState().index === 1, 'advances after music-scaled dwell');
+  env.api.stop();
+}
+
 console.log('slideshow-script: neon wiring');
 {
   const neon = fs.readFileSync(path.join(ROOT, 'versions/neon.html'), 'utf8');
@@ -262,6 +333,10 @@ console.log('slideshow-script: neon wiring');
   check(demo.includes('Slideshow script'), 'demo panel exposes slideshow section');
   check(demo.includes('slideshow:play') && demo.includes('demo-slideshow-script'),
     'demo panel registers play + textarea');
+  check(demo.includes('slideshow:musicDrive') && demo.includes('slideshow:musicSpeed'),
+    'demo panel exposes music drive toggle + still speed slider');
+  check(demo.includes('demo-slideshow-music-drive') && demo.includes('demo-slideshow-music-speed'),
+    'demo panel mounts music drive DOM ids');
 
   const keys = fs.readFileSync(path.join(ROOT, 'engine-keys.client.js'), 'utf8');
   check(keys.includes('laneHasStills') && /ArrowLeft[\s\S]*imageLanePrevStill/.test(keys),

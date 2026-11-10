@@ -12,9 +12,12 @@
   if (global.SWR_SLIDESHOW) return;
 
   var LS_KEY = 'swr.slideshowScript.v1';
+  var MUSIC_LS = 'swr.slideshowMusic.v1';
   var DEFAULT_MS = 3000;
   var MIN_MS = 200;
   var MAX_MS = 120000;
+  var MIN_MUSIC_SPEED = 0.25;
+  var MAX_MUSIC_SPEED = 4;
 
   var state = {
     cues: [],
@@ -25,6 +28,10 @@
     caption: '',
     startedAt: 0,
     cueUntil: 0,
+    // When musicDrive is on, cue dwell shrinks with audio energy × musicSpeed.
+    // Off (default) keeps authored cue durations unchanged.
+    musicDrive: false,
+    musicSpeed: 1,
   };
 
   function lane() {
@@ -44,6 +51,80 @@
   function clampMs(n) {
     if (!Number.isFinite(n)) return DEFAULT_MS;
     return Math.max(MIN_MS, Math.min(MAX_MS, Math.round(n)));
+  }
+
+  function clampMusicSpeed(n) {
+    var v = typeof n === 'number' && isFinite(n) ? n : parseFloat(n);
+    if (!isFinite(v)) return 1;
+    return Math.max(MIN_MUSIC_SPEED, Math.min(MAX_MUSIC_SPEED, v));
+  }
+
+  function persistMusic() {
+    try {
+      if (!global.localStorage) return;
+      global.localStorage.setItem(MUSIC_LS, JSON.stringify({
+        drive: !!state.musicDrive,
+        speed: state.musicSpeed,
+      }));
+    } catch (_) {}
+  }
+
+  function restoreMusic() {
+    try {
+      var raw = global.localStorage && global.localStorage.getItem(MUSIC_LS);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      if (typeof parsed.drive === 'boolean') state.musicDrive = parsed.drive;
+      if (parsed.speed != null) state.musicSpeed = clampMusicSpeed(parsed.speed);
+    } catch (_) {}
+  }
+
+  function audioFeat() {
+    var A = global.A || (global.SWR && global.SWR.Audio) || null;
+    return (A && A.feat) || null;
+  }
+
+  /**
+   * Map cue duration → wall-clock wait. With music drive off, returns the
+   * authored dwell. With drive on, louder / higher speed → shorter wait
+   * (stills progress forward faster with the music).
+   */
+  function effectiveDuration(baseMs) {
+    var base = clampMs(baseMs);
+    if (!state.musicDrive) return base;
+    var feat = audioFeat();
+    var energy = 0;
+    if (feat) {
+      var rms = Number(feat.rms) || 0;
+      var beat = Number(feat.beat) || 0;
+      var bass = Number(feat.bass) || 0;
+      energy = Math.max(0, Math.min(1, Math.max(rms, beat, bass * 0.85)));
+    }
+    var rate = Math.max(0.2, state.musicSpeed * (0.45 + 0.55 * energy));
+    return clampMs(base / rate);
+  }
+
+  function setMusicDrive(on) {
+    state.musicDrive = !!on;
+    persistMusic();
+    try {
+      global.dispatchEvent(new CustomEvent('swr:slideshow-music', {
+        detail: { drive: state.musicDrive, speed: state.musicSpeed },
+      }));
+    } catch (_) {}
+    return state.musicDrive;
+  }
+
+  function setMusicSpeed(v) {
+    state.musicSpeed = clampMusicSpeed(v);
+    persistMusic();
+    try {
+      global.dispatchEvent(new CustomEvent('swr:slideshow-music', {
+        detail: { drive: state.musicDrive, speed: state.musicSpeed },
+      }));
+    } catch (_) {}
+    return state.musicSpeed;
   }
 
   /**
@@ -293,8 +374,9 @@
       stop();
       return;
     }
+    var waitMs = effectiveDuration(cue.durationMs);
     var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    state.cueUntil = now + cue.durationMs;
+    state.cueUntil = now + waitMs;
     state.timer = setTimeout(function () {
       state.timer = null;
       if (!state.playing) return;
@@ -306,7 +388,7 @@
       state.index += 1;
       showCue(state.cues[state.index]);
       scheduleNext();
-    }, cue.durationMs);
+    }, waitMs);
   }
 
   function load(text, opts) {
@@ -427,9 +509,12 @@
       caption: state.caption,
       raw: state.raw,
       cues: state.cues.slice(),
+      musicDrive: !!state.musicDrive,
+      musicSpeed: state.musicSpeed,
     };
   }
 
+  restoreMusic();
   restoreSaved();
 
   global.SWR_SLIDESHOW = {
@@ -443,6 +528,13 @@
     prev: function () { return advanceStill(-1); },
     next: function () { return advanceStill(1); },
     getState: getState,
+    getMusicDrive: function () { return !!state.musicDrive; },
+    setMusicDrive: setMusicDrive,
+    getMusicSpeed: function () { return state.musicSpeed; },
+    setMusicSpeed: setMusicSpeed,
+    effectiveDuration: effectiveDuration,
+    MIN_MUSIC_SPEED: MIN_MUSIC_SPEED,
+    MAX_MUSIC_SPEED: MAX_MUSIC_SPEED,
     DEFAULT_SCRIPT: [
       '# duration_ms | caption | optional still (1-based or name)',
       '2500 | NEON · SWR',
