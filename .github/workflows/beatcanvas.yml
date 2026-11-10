@@ -22,7 +22,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: node --test tests/beatcanvas/beatcanvas.test.mjs
+      - run: node --test tests/beatcanvas/*.test.mjs
       - run: npm run check:bpm-unit
       - run: npm run check:section-detector-unit
       - run: npm run build
