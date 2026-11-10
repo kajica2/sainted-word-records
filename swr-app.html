@@ -9155,6 +9155,24 @@
         return INTRO_DURATION_MS + sum + OUTRO_DURATION_MS;
       }
 
+      // Snapshot the user's own preset/duration before music-video mode starts
+      // swapping presets, and fix the total length HERE.
+      //
+      // These two used to be declared ~250 lines below, right before the
+      // setTimeout that uses them — which meant startRecording() threw
+      // ReferenceError (temporal dead zone) on the first read of
+      // totalRecordMs, after mediaRecorder.start() had already been called and
+      // BEFORE the auto-stop timer was armed. The recorder then ran forever,
+      // onstop never fired, no blob was built and nothing downloaded. Declare
+      // them above their first use, and keep the snapshot above the preset
+      // switching in the blit loop.
+      const restorePresetAfterRecord = (state.export.mode === 'musicvideo')
+        ? { preset: state.preset, duration: state.export.duration }
+        : null;
+      const totalRecordMs = (state.export.mode === 'musicvideo')
+        ? totalMVDurationMs()
+        : state.export.duration * 1000;
+
       function drawIntroCard() {
         recCtx.fillStyle = '#000';
         recCtx.fillRect(0, 0, dims.w, dims.h);
@@ -9412,17 +9430,6 @@
       const modeLabel = state.export.mode === 'musicvideo' ? 'Music Video' : 'Loop';
       showToast(`${modeLabel} ${state.export.format} ${totalSec}s @ ${state.export.fps}fps · ${state.export.bitrate}Mbps · ${fmt}`);
       // Natural end after the picked duration
-      // P3.1 — restore the user's original preset + duration after recording.
-// We snapshot both at the start of startRecording and put them back in
-// the onstop handler below.
-const restorePresetAfterRecord = (state.export.mode === 'musicvideo')
-  ? { preset: state.preset, duration: state.export.duration }
-  : null;
-
-// P3.1 — total recording duration depends on mode
-const totalRecordMs = (state.export.mode === 'musicvideo')
-  ? totalMVDurationMs()
-  : state.export.duration * 1000;
 recordTimer = setTimeout(() => {
   if (mediaRecorder && mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
