@@ -236,6 +236,34 @@ check('mask swap applies then restores FX', () => {
   }
 });
 
+check('overlapping mask swaps keep the original restore snapshot', () => {
+  const { sandbox, personaCalls, fxState, flush, setNow } = runStyles();
+  const layer = { id: 'L1', asset: { id: 'old', type: 'image', name: 'a.png' } };
+  const next = { id: 'new', type: 'image', name: 'b.png' };
+  const next2 = { id: 'new2', type: 'image', name: 'c.png' };
+  const beforeMut = fxState.mut;
+  const beforeAlgo = fxState.mutAlgo;
+  const S = sandbox.SWR_IMAGE_STYLES;
+  S.setStyle('mask');
+  sandbox.MaskIllusions.apply = function () {
+    fxState.mut = 0.95;
+    fxState.mutAlgo = 7;
+  };
+  assert.equal(S.swap(layer, next), true);
+  setNow(1200);
+  // Second swap mid-window must not adopt the active mask as the restore target.
+  assert.equal(S.swap(layer, next2), true);
+  assert.equal(fxState.mutAlgo, 7);
+  flush(1200 + 2000);
+  // Restore must target the pre-mask persona/FX, never the mid-window mask.
+  assert.ok(personaCalls.indexOf('neon') >= 0 || (
+    fxState.mut === beforeMut && fxState.mutAlgo === beforeAlgo
+  ));
+  assert.ok(personaCalls.indexOf('maskThreshold') < 0
+    || personaCalls[personaCalls.length - 1] === 'neon'
+    || personaCalls[personaCalls.length - 1] === 'off');
+});
+
 check('depth swap reorders then crossfades', () => {
   const { sandbox, layers, crossfadeCalls } = runStyles();
   const a = { id: 'L1', asset: { id: 'old', type: 'image', name: 'a.png' } };

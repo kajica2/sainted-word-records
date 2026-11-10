@@ -29,6 +29,7 @@
     style: loadStyle(),
     _maskTimer: null,
     _maskToken: 0,
+    _maskRestore: null,
   };
 
   function loadStyle() {
@@ -240,7 +241,9 @@
 
   function applyMaskIllusion(layer, restoreAfterMs) {
     var name = pickMaskKey(layer);
-    var snap = snapshotFx();
+    // Keep the ORIGINAL pre-mask snapshot across overlapping Mask swaps so a
+    // second dissolve mid-window cannot restore the active mask forever.
+    if (!state._maskRestore) state._maskRestore = snapshotFx();
     state._maskToken += 1;
     var token = state._maskToken;
     if (state._maskTimer) {
@@ -255,7 +258,8 @@
     var wait = Math.max(200, restoreAfterMs || 900);
     state._maskTimer = setTimeout(function () {
       if (token !== state._maskToken) return;
-      restoreFx(snap);
+      restoreFx(state._maskRestore);
+      state._maskRestore = null;
       state._maskTimer = null;
     }, wait);
     return name;

@@ -1637,7 +1637,10 @@
       // Prefer the reactive result SWR_RENDER.frame already evolved (Ken Burns
       // + flow offsets). Recomputing here would double-advance the kb clock.
       const r = rIn || SWR_RENDER.imageEvolve(l, applyR(l));
-      const g = drawCtx || ctx;
+      // Composite onto the live stage so authored blend modes stack across
+      // layers. SWR_RENDER.frame's offscreen blit is source-over, so drawing
+      // only into drawCtx would flatten every layer to source-over.
+      const g = ctx;
       g.save();
       g.globalCompositeOperation = l.blend || 'screen';
       g.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
