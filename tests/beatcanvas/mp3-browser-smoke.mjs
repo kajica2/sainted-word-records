@@ -75,7 +75,17 @@ try{
     const input=document.getElementById('background-video');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));
   });
   await page.waitForFunction(()=>document.getElementById('background-video-status').textContent.includes('Video ready'),{timeout:20000});
-  await page.select('#visual-style','video-strips');
+  // Add a real foreground PNG as the second composited layer.
+  await page.evaluate(async()=>{
+    const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;
+    const ctx=canvas.getContext('2d');ctx.fillStyle='#00eacb';ctx.fillRect(0,0,128,128);
+    const blob=await new Promise(ok=>canvas.toBlob(ok,'image/png'));
+    const dt=new DataTransfer();dt.items.add(new File([blob],'foreground.png',{type:'image/png'}));
+    const input=document.getElementById('visual-assets');
+    input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  await page.waitForFunction(()=>document.getElementById('asset-status').textContent.includes('1 images loaded'),{timeout:10000});
+    await page.select('#visual-style','video-strips');
   await page.$eval('#player',el=>{el.currentTime=Math.min(1,el.duration||1);el.dispatchEvent(new Event('seeked'));});
   const layer=await page.evaluate(()=>{
     const canvas=document.getElementById('visual');
@@ -83,6 +93,7 @@ try{
     return {status:document.getElementById('background-video-status').textContent,pixel:[...image]};
   });
   assert.match(layer.status,/Video ready/,'video layer never decoded');
+  assert.match(await page.$eval('#asset-status',e=>e.textContent),/1 images loaded/,'foreground image never decoded');
   assert.ok(layer.pixel[3]>0,'layered preview has no pixels');
   
   await page.select('#visual-style','organic-motion');
