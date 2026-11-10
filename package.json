@@ -317,7 +317,8 @@
     "check:audio-toolkit": "node scripts/check-audio-toolkit-unit.mjs",
     "prebuild": "node scripts/media-inventory.mjs && node scripts/generate-generations.mjs",
     "check:chain-view": "node scripts/check-chain-view.mjs",
-    "check:command-center": "node scripts/check-command-center.mjs"
+    "check:command-center": "node scripts/check-command-center.mjs",
+    "verify:neon-image-clip": "node scripts/check-neon-image-clip.mjs"
   },
   "devDependencies": {
     "axe-core": "^4.14.0",

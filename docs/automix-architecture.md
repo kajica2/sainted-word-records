@@ -8,14 +8,15 @@ are folded in below.*
 
 | File | Role |
 |---|---|
-| `client/automix-runtime.client.js` | L1 runtime: bootstrap, config, UI wiring, tick orchestration, modulator layer chain, glide clock |
-| `client/automix-arc.client.js` | L3 macro song arc: 3–5 deterministic acts from full-song analysis |
-| `client/automix-composition.client.js` | Micro clip-cutting profiles per act; couples the arc to the layer scheduler |
-| `client/automix-session-store.client.js` | L4 cross-song novelty memory (last 5 songs' anchors) |
+| `client/automix-runtime.client.js` | L1 runtime: bootstrap, config (the ONE parser — `_config()`), UI wiring, tick orchestration, modulator layer chain, glide clock, `_arcGlidePreset` |
+| `client/automix-arc.client.js` | L3 macro song arc: 3–5 deterministic acts from full-song analysis; `ACT_FAMILY` transition selection; `shapeActProgress` glide shaping |
+| `client/automix-composition.client.js` | Micro clip-cutting profiles per act; `setProfiles` / `getProfiles` / `currentAct` / `isArcOnly`; the persona + variant profile data maps |
+| `client/automix-session-store.client.js` | L4 cross-song novelty memory + soft preference (`swr.automix.session.v2`) |
+| `client/automix-image-mode.client.js` | Still-image lane; `dwellFloorMs()` follows the composition profile of the current act |
 | `client/automix.client.js` | Mix engine (`SWR_AUTOMIX`): coords, drift, section tick, presets, tuning |
 | `client/preset-anchor-map.client.js` | `SWR_ANCHOR_MAP` — the 2-D anchor space the arc walks |
 | `client/last-mix-store.client.js` | `SWR_LAST_MIX` — persisted "last session" blend (optional) |
-| `engine-transitions.client.js` | `window.SWRTransitions` — 28-transition vocabulary (integration target, see §Integration) |
+| `engine-transitions.client.js` | `window.SWRTransitions` — 28-transition vocabulary; fired from the arc's tick, filtered by the motion kill-switch (see §Integration) |
 
 Plan of record for the evolution stack lives in the session artifact
 `automix-evolution-plan.md`.
@@ -416,24 +417,43 @@ and the raw `_TRANSITIONS` catalog (28 named transitions, each tagged with a
 wipe, and a `kind`: `css` | `fx`). It emits `document` `swr-tx:fire` and records
 a targeting signal on every fire.
 
-**The wiring** is a listener on `swr-automix-glide`:
+**The wiring is the arc's own tick — there is exactly one fire site.**
+`client/automix-arc.client.js` fires the transition when its tick crosses an act
+boundary (`fireActTransition`), so the transition and the act are decided by the
+same sample and cannot disagree:
 
 ```js
-window.addEventListener('swr-automix-glide', function (ev) {
-  if (ev.detail.actIndex === lastIdx) return;      // only on act change
-  lastIdx = ev.detail.actIndex;
-  const fam = { intro: 'fade', lift: 'wipe', peak: 'distortion',
-                breakdown: 'brightness', outro: 'fade' }[ev.detail.actName];
-  const names = window.SWRTransitions.list()
-    .filter(t => t.family === fam).map(t => t.name);
-  window.SWRTransitions.fire(names[actIndex % names.length], { _src: 'automix-arc' });
-});
+// inner-automix-arc.client.js — the ONLY place a transition is fired
+var name = pickTransition(warmth, intensity, cue, actName); // cue → family → proxy
+if (name) window.SWRTransitions.fire(name, { _src: 'automix-arc' });
 ```
 
-This is the single highest-value integration: it makes the *transition* between
-clips land on the act boundary, not just the cut cadence. Note the file header's
-current status: the module is loaded but has **no engine.html wiring yet** —
-engine integration is the follow-up.
+Selection order, highest first:
+
+1. **The section cue** — a confident detector boundary (`≥ 0.5`) votes for the
+   `subtle` or `dynamic` vocabulary. It is **one-shot**: the next act transition
+   consumes it, so four boundaries in one section cannot stack four votes.
+2. **The act family** — `ACT_FAMILY` maps the act to a family: `intro → fade`,
+   `lift → wipe`, `peak → distortion`, `breakdown → brightness`,
+   `outro → fade`. Candidate names are read from the live
+   `SWRTransitions._TRANSITIONS` catalog, never from a hardcoded list, so a
+   rename or removal in the catalog cannot make the arc fire a name that no
+   longer exists.
+3. **The warmth/intensity proxy** — the pre-P1 behaviour, kept as the fallback
+   for an act with no family (and for a catalog with no match).
+
+The **motion kill-switch has the final say**: the candidate pool is passed to
+`SWRTransitions.pickAllowedTransition(pool)`, which returns ONE permitted name
+(or none). A transition the user switched off is therefore never fired, and the
+arc reports what actually fired rather than what it asked for.
+
+**Do not add a second listener on `swr-automix-glide` that fires a transition.**
+The earlier version of this document recommended exactly that; it would double-fire
+at every act boundary (one from the tick, one from the listener), and the two
+would not agree on which act they were in. The glide event is for *within-act*
+motion (the composition's cadence envelope, the runtime's 1 s preset ramp) — it
+is not a boundary signal.
+
 
 ### `targeting.rules.json` — persona-driven composition profiles
 
@@ -491,39 +511,58 @@ then follows the act's colour grade.
 
 ## Improvement Roadmap
 
-### Easy (1–2 hours)
+### Shipped — the composition contract (P1–P6)
 
-* **Expose composition profile selection to the UI.**
-  Add a `#automix-composition` `<select>` (or debug-panel rows) that writes into
-  a new `SWR_AUTOMIX_COMPOSITION.setProfiles(partial)`; persist to
-  `localStorage`. Acceptance: changing the peak window in the UI changes the
-  next act's `swr-composition-change` payload.
-* **Add an "arc-only" mode (macro structure without clip composition).**
-  A config flag `arcOnly: true` that makes `automix-composition`'s listeners
-  early-return while the `arc` layer still drives `_fxOverride`. Acceptance: with
-  the flag on, FX state still moves ≥ 0.3 per act but `SWR_LAYER_SCHEDULER`
-  config is untouched.
-* **Integrate engine-transitions auto-fire between acts.**
-  Add the `swr-automix-glide` listener above to `engine.html` (or a small
-  `client/automix-transitions.client.js` bridge) mapping act → transition
-  family. Acceptance: `verify-transitions.mjs` still green and a new smoke
-  asserts one `swr-tx:fire` with `_src:'automix-arc'` per act boundary.
+These were roadmap items; they are now implemented and gated. They are listed
+here because the *shape* of each is the contract a future change has to keep.
 
-### Medium (1–2 days)
+* **Composition profile selection is an API, not a UI.** `setProfiles(partial)`
+  is the one writer: it merges an act → `{minSeconds, maxSeconds}` window into
+  the live table and outranks the context maps. `getProfiles()` hands back the
+  same live object. A UI (a `<select>` or debug rows) can be built on top
+  without touching the module; no page ships one yet, and the API does not
+  require it.
+* **`arcOnly: true`** (a field on the variant's automix config) turns the clip
+  composition off while the arc keeps driving `_fxOverride`. The composition
+  early-returns from BOTH scheduler writes — the act-change cut and the
+  within-act cadence envelope — so `SWR_LAYER_SCHEDULER` is untouched
+  (`setConfig`, `setProgress` and `swapNow` all stay out of it) and the picture
+  still moves.
+* **Act → transition family auto-fire** lives in the arc's tick (see
+  §Integration). One fire site, one `_src: 'automix-arc'` per act boundary,
+  filtered by the motion kill-switch.
+* **Persona and variant composition profiles are DATA.** `PERSONA_PROFILES`
+  and `VARIANT_PROFILES` in `client/automix-composition.client.js` map an id to
+  a partial profile; the composition recomposes base → variant → persona →
+  explicit, so a variant/persona change needs no event and leaves no stale
+  override behind. The tables live with the composition layer rather than in
+  `targeting/rules.json`: they are cut-rhythm product decisions, not part of the
+  persona ontology that `targeting-pipeline` generates.
+* **Act-aware glide shaping.** `SWR_AUTOMIX_ARC.shapeActProgress(actName, p)`
+  is a pure, monotone 0→1 map: the intro eases in, the lift rises steadily, the
+  peak holds its baseline for the first quarter and then releases, the
+  breakdown releases early, the outro eases out. Every curve keeps
+  `f(0) = 0` and `f(1) = 1`, so act boundaries stay continuous and the glide
+  still lands exactly on the next baseline. An unknown act is linear.
+* **Session soft preference.** `swr.automix.session.v2` carries `prefs` next to
+  the novelty songs (a v1 payload is migrated on first read). `prefer(id)`
+  counts a keep, capped per anchor and bounded in table size; the signals are
+  the runtime's EXISTING `swr-automix-tick` / `-freeze` / `-save` / `-lock`
+  events, so no runtime method was added. The session layer asks
+  `pickPreferred(neighbours, recent)` — a preference can only choose an
+  *unused* neighbour, so novelty still wins.
+* **Image dwell follows the composition.** `SWR_AUTOMIX_IMAGE.dwellFloorMs()`
+  reads the current act's `minSeconds` from `getProfiles()` and converts it to
+  milliseconds, clamped up to `MIN_DWELL_FLOOR_MS` (400 ms — a very fast profile
+  must not strobe the stills). The clarity caps are a separate contract and do
+  not move.
 
-* **Persona-specific composition profiles via targeting.**
-  Bridge `SWR_TARGETING.persona()` → profile overrides; ship the mapping as data
-  in `targeting/rules.json`. Acceptance: two different personas produce
-  different `PROFILES.peak` windows on the same song, verified headless.
-* **Variant-specific composition via variant-switcher.**
-  Key profile overrides off `SWR_VARIANTS.current()` and re-apply on
-  activation. Acceptance: grid and film differ in cut cadence at the same act;
-  deactivating restores the default.
-* **Per-act FX preset interpolation along the arc.**
-  Today `_arcGlidePreset` lerps only to the *next act's* baseline. Add a
-  curve-shaping option (ease-in on `lift`, hold-then-release on `peak`) as a new
-  field on the `arc` layer's output. Acceptance: displacement contract still
-  green; new unit test pins the shaped curve.
+### Still open
+
+* **A visible composition control.** The API exists; nothing renders a
+  `<select>` for it. Do it as a surface over `setProfiles`, not as a second
+  writer.
+
 
 ### Hard (1+ week)
 
@@ -570,7 +609,11 @@ runtime regression — plus cross-surface and per-variant suites.
   rather than waiting in realtime (the runtime derives the act from
   `el.currentTime` on the 1 s glide clock, so a seek selects the same act the
   song would have reached, and covers *every* act deterministically), then
-  requires consecutive acts to differ by ≥ 0.3 on at least one pipeline field.
+  requires consecutive acts to differ by ≥ 0.25 on at least one pipeline field
+  (`DISPLACEMENT_MIN` — the arc builder's own `ARC_MIN_DISPLACEMENT`, not the
+  0.3 the realtime verifier uses: seek-sampled baselines land slightly below
+  what the offline arc promised, and 0.25 is the bar that measures the
+  regression rather than the sampling).
   It asserts only *consecutive* pairs — the final act's wrap back to the first
   baseline is deliberate drift, so asserting it would be a false failure. This
   is the gate for the bug class that shipped silently three times (arc not
@@ -587,7 +630,7 @@ runtime regression — plus cross-surface and per-variant suites.
 
 **Cross-surface and per-variant:**
 
-* `verify-automix-cross-surface.mjs` — 77 checks across three tiers: full
+* `verify-automix-cross-surface.mjs` — 89 checks across three tiers: full
   (engine + 5 core variants), min (17 artistic), off (echo-manifold opt-out).
 * `verify:{engine,neon,film,grid,smoke,hallucination}-automix`,
   `verify:dashboard-automix`, `verify:dashboard-automix-integration`,
@@ -606,15 +649,21 @@ Run everything with `npm run check` (fast) and `npm run check:full` (CI gate).
 
 **Known issues / deferred work**
 
-* **`engine-transitions.client.js` is not wired into `engine.html`.** Its own
-  header states the module-only pass; the act→transition auto-fire is the
-  integration follow-up (Easy roadmap item). Until then the transition
-  vocabulary and the arc do not talk.
+* **`engine-transitions.client.js` is wired — through the arc, not a listener.**
+  The act→transition fire happens in the arc's tick (`fireActTransition`) and is
+  filtered by the motion kill-switch; there is deliberately no second fire path
+  (see §Integration). What is still missing is coverage of the *fired* name
+  against the on-screen transition in a browser: the unit pins the choice, and
+  `verify:transitions` pins the catalog, but nothing asserts end-to-end that the
+  transition the arc picked actually ran.
 * **No numeric novelty score.** L4 novelty is bounded-window eviction only —
   fine for "don't repeat last night's anchors", insufficient for the
   style-transfer roadmap item. The store has no timestamps *used* for decay
   (`ts` is written but `recent()` ignores age), so a song played yesterday and
-  one played a minute ago weigh the same until evicted.
+  one played a minute ago weigh the same until evicted. The `prefs` table is a
+  soft prior over anchors the user KEPT, not a novelty score: it can only break
+  a tie among unused neighbours, and it never ranks an anchor the user has not
+  kept.
 * **`analyzeElement` hard-codes `/audio-analysis-v2.js`.** The absolute path is
   deliberate (relative `../` 404s on nested routes), but it couples the arc to a
   root-relative asset and to a global `AudioAnalysisV2`.
