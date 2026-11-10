@@ -51,6 +51,12 @@ check('engine-keys binds Q / I / sensitivity / beat-gate', () => {
     return 'missing sensitivity/beat-gate actions';
   }
   if (!/stillStepPreferred/.test(KEYS_SRC)) return 'missing stillStepPreferred routing';
+  if (!/laneHasStills/.test(KEYS_SRC)) return 'missing laneHasStills helper';
+  if (!/ArrowLeft[\s\S]*imageLanePrevStill/.test(KEYS_SRC)) return 'missing ArrowLeft still step';
+  if (!/ArrowRight[\s\S]*imageLaneNextStill/.test(KEYS_SRC)) return 'missing ArrowRight still step';
+  if (!/SWR_SLIDESHOW[\s\S]*advanceStill/.test(KEYS_SRC)) {
+    return 'stepImageStill should prefer SWR_SLIDESHOW.advanceStill';
+  }
   if (!/reapplyBlackoutIfActive/.test(KEYS_SRC)) return 'missing blackout reapply';
   return true;
 });

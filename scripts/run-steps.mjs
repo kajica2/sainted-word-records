@@ -163,6 +163,7 @@ const GROUPS = {
     'npm run check:jpg-engine-unit',
     'npm run check:image-lane-unit',
     'npm run check:image-layer-styles-unit',
+    'npm run check:slideshow-script-unit',
     'npm run check:automix-image-lane-unit',
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.

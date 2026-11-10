@@ -594,6 +594,9 @@
 <script src="../personas.js"></script>
 <script src="../lib/mask-illusions.client.js"></script>
 <script src="../client/image-layer-styles.client.js"></script>
+<script src="../lib/image-lane.client.js"></script>
+<script src="../client/image-lane-panel.client.js"></script>
+<script src="../client/slideshow-script.client.js"></script>
 <script src="../engine-keys.client.js"></script>
 <script src="../project.client.js"></script>
 <script src="../layer-scheduler.client.js"></script>
@@ -682,6 +685,28 @@
     </section>
     <aside class="layers">
       <div class="head"><h2>Layers</h2><button class="tbtn" id="remap" style="padding:3px 8px;font-size:9px;">RE-MAP</button></div>
+      <div id="image-lane-panel" style="border-bottom:1px solid var(--line);padding:6px 8px;background:var(--panel-2);">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);">Stills</span>
+          <button type="button" class="tbtn ghost" id="image-lane-visible" style="padding:2px 6px;font-size:9px;">Hide</button>
+          <label style="font-size:9px;color:var(--muted);margin-left:auto;">Order
+            <select id="image-lane-order" style="font-size:9px;margin-left:2px;">
+              <option value="above" selected>above video</option>
+              <option value="below">below video</option>
+            </select>
+          </label>
+          <label style="font-size:9px;color:var(--muted);">Blend
+            <select id="image-lane-blend" style="font-size:9px;margin-left:2px;">
+              <option value="source-over" selected>source-over</option>
+              <option value="screen">screen</option>
+              <option value="lighter">lighter</option>
+              <option value="multiply">multiply</option>
+            </select>
+          </label>
+        </div>
+        <label style="font-size:9px;color:var(--muted);">Opacity <input type="range" id="image-lane-opacity" min="0" max="1" step="0.05" value="1" style="width:56px;vertical-align:middle;" /> <b id="image-lane-opacity-v">1.00</b></label>
+        <div id="image-lane-list"></div>
+      </div>
       <div class="body"><div id="layers"></div></div>
     </aside>
     <!-- iPhone safe-area: this panel is position:absolute with NO positioned
@@ -1256,6 +1281,12 @@
     // place on the stage (no reactor / narrative motion) until unlocked.
     const Layers = { list: [], sel: null, MAX: 3,
       add(it) {
+        // Stills go to the dedicated image lane (slideshow + arrow keys).
+        if (it && it.type === 'image' && window.SWR_IMAGE_LANE && typeof window.SWR_IMAGE_LANE.add === 'function') {
+          window.SWR_IMAGE_LANE.add(it);
+          try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+          return null;
+        }
         if (this.list.length >= this.MAX) {
           if (typeof setStatus === 'function') setStatus('3 layers max', 'warn');
           return null;
@@ -1309,21 +1340,32 @@
       // "used" tab and the "Used in N layers" badge.
       usedBy() {
         const m = new Map();
-        for (const l of this.list) {
+        const count = (l) => {
           const id = l.mediaId != null ? l.mediaId : (l.asset ? l.asset.id : null);
-          if (id == null) continue;
+          if (id == null) return;
           m.set(id, (m.get(id) || 0) + 1);
+        };
+        for (const l of this.list) count(l);
+        // Stills live on the image lane — count them too so the Media
+        // "used" tab stays honest after Layers.add routes images there.
+        const lane = window.SWR_IMAGE_LANE;
+        if (lane && Array.isArray(lane.list)) {
+          for (const l of lane.list) count(l);
         }
         return m;
       },
       // Unassign every unlocked layer's media but keep the layer rows
       // (and their blend/opacity settings) in place. Locked layers keep
-      // their media.
+      // their media. Also clears the image lane (stills have no lock).
       detachAll() {
         let n = 0;
         for (const l of this.list) {
           if (l.locked) continue;
           if (l.asset) { l.asset = null; l.mediaId = null; n++; }
+        }
+        const lane = window.SWR_IMAGE_LANE;
+        if (lane && typeof lane.clear === 'function') {
+          n += lane.clear() || 0;
         }
         if (n) {
           this.render();
@@ -1347,6 +1389,12 @@
         if (this.list.length !== before) {
           this.render();
           try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+        // Image stills no longer sit on Layers.list — drop them from the
+        // lane too, or a Media delete leaves the photo on stage.
+        const lane = window.SWR_IMAGE_LANE;
+        if (lane && typeof lane.removeByAsset === 'function') {
+          try { lane.removeByAsset(it); } catch (_) {}
         }
       },
       render() {
@@ -1733,9 +1781,33 @@
       else if (window.SWR_WAVE_LINES) window.SWR_WAVE_LINES.frame(dt, A.feat, W, H);
       if (window.SWR_REMO && window.SWR_REMO.enabled) window.SWR_REMO.tick(dt);
       SWR_RENDER.setBackground('#000');
-      const __render_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
-      const __render_drawLayer = (l, r, c) => drawLayer(l, r, c, W, H);
-      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, drawMeter] });
+      const __video_layers = (typeof sorted !== 'undefined' ? sorted : Layers.list.slice().sort((a,b) => (a.z||0) - (b.z||0)));
+      const __lane = window.SWR_IMAGE_LANE;
+      const __stills = (__lane && __lane.visible && typeof __lane.visibleList === 'function')
+        ? __lane.visibleList().slice().sort((a,b) => (a.z||0) - (b.z||0))
+        : [];
+      const __render_layers = (__lane && __lane.stackOrder === 'below')
+        ? __stills.concat(__video_layers)
+        : __video_layers.concat(__stills);
+      const __render_drawLayer = (l, r, c) => {
+        if (l && l._imageLane && __lane) {
+          const prevBlend = l.blend;
+          const prevAlpha = l.alpha;
+          if (__lane.blend) l.blend = __lane.blend;
+          const laneOp = (__lane.opacity != null) ? __lane.opacity : 1;
+          l.alpha = (typeof prevAlpha === 'number' ? prevAlpha : 1) * laneOp;
+          try { drawLayer(l, r, c); }
+          finally { l.blend = prevBlend; l.alpha = prevAlpha; }
+          return;
+        }
+        drawLayer(l, r, c);
+      };
+      const __drawCaption = () => {
+        if (window.SWR_SLIDESHOW && typeof window.SWR_SLIDESHOW.draw === 'function') {
+          window.SWR_SLIDESHOW.draw(ctx, W, H);
+        }
+      };
+      SWR_RENDER.frame(stage, ctx, __render_layers, applyR, __render_drawLayer, { extraDraws: [drawFx, __drawCaption, drawMeter] });
       $('flash').style.opacity = A.feat.beat > 0.3 ? String(A.feat.beat*0.4) : '0';
       requestAnimationFrame(loop);
     }
@@ -1906,7 +1978,14 @@
         filePrefix:  '../library/',
         phase1Count: 8,
         doneFlag:    'swr-manifest-loaded',
-        onReady:     function () { try { Layers.remap(); } catch (_) {} },
+        onReady:     function () {
+          try { Layers.remap(); } catch (_) {}
+          try {
+            if (window.SWR_IMAGE_LANE && typeof window.SWR_IMAGE_LANE.migrateFromVideoStack === 'function') {
+              window.SWR_IMAGE_LANE.migrateFromVideoStack();
+            }
+          } catch (_) {}
+        },
       });
     }
     if (document.readyState === 'loading') {

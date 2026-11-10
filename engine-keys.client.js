@@ -737,12 +737,12 @@
       action: function () { flipImageLaneOrder(); },
     },
     imageLanePrevStill: {
-      keys: ',',
+      keys: '← / ,',
       label: 'previous still (image lane / JPG)',
       action: function () { stepImageStill(-1); },
     },
     imageLaneNextStill: {
-      keys: '.',
+      keys: '→ / .',
       label: 'next still (image lane / JPG)',
       action: function () { stepImageStill(+1); },
     },
@@ -965,10 +965,15 @@
     return !!(L && selectedOf(L));
   }
 
+  function laneHasStills() {
+    const lane = window.SWR_IMAGE_LANE;
+    return !!(lane && Array.isArray(lane.list) && lane.list.length
+      && typeof lane.stepStill === 'function');
+  }
+
   function stillStepPreferred() {
     if (getHost().jpgSurface) return true;
-    const lane = window.SWR_IMAGE_LANE;
-    if (!lane || !lane.list || !lane.list.length) return false;
+    if (!laneHasStills()) return false;
     if (videoLayerSelected()) return false;
     return true;
   }
@@ -1155,6 +1160,15 @@
     const J = window.SWR_JPG;
     if (J && typeof J.stepStill === 'function') {
       if (J.stepStill(delta)) flashReadout(delta < 0 ? 'previous still' : 'next still');
+      return;
+    }
+    // Prefer the slideshow focuser when present: after a cue hides other
+    // lane stills, ImageLane.stepStill would swap assets onto hidden
+    // layers and scramble numbered cue targets. advanceStill only
+    // re-focuses (hide/show) and leaves each layer's asset alone.
+    const SS = window.SWR_SLIDESHOW;
+    if (SS && typeof SS.advanceStill === 'function' && laneHasStills()) {
+      if (SS.advanceStill(delta)) flashReadout(delta < 0 ? 'previous still' : 'next still');
       return;
     }
     const lane = window.SWR_IMAGE_LANE;
@@ -1587,8 +1601,18 @@
         case 'KeyU':            if (ev.shiftKey) action = ACTIONS.actionsRunAutoMap; break;
         case 'ArrowUp':         action = ev.shiftKey ? ACTIONS.nudgeLayerUp : ACTIONS.selectPrev; ev.preventDefault(); break;
         case 'ArrowDown':       action = ev.shiftKey ? ACTIONS.nudgeLayerDown : ACTIONS.selectNext; ev.preventDefault(); break;
-        case 'ArrowLeft':       action = ev.shiftKey ? ACTIONS.nudgeLayerLeft : null; ev.preventDefault(); break;
-        case 'ArrowRight':      action = ev.shiftKey ? ACTIONS.nudgeLayerRight : null; ev.preventDefault(); break;
+        case 'ArrowLeft':
+          if (ev.shiftKey) action = ACTIONS.nudgeLayerLeft;
+          else if (laneHasStills()) action = ACTIONS.imageLanePrevStill;
+          else action = null;
+          ev.preventDefault();
+          break;
+        case 'ArrowRight':
+          if (ev.shiftKey) action = ACTIONS.nudgeLayerRight;
+          else if (laneHasStills()) action = ACTIONS.imageLaneNextStill;
+          else action = null;
+          ev.preventDefault();
+          break;
         // Page navigation across the demo variants. actionAllowed() drops
         // these on non-variant pages (see the `variants` host flag), so the
         // handler stays inert everywhere else.

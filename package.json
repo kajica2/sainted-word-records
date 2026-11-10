@@ -93,6 +93,7 @@
     "check:jpg-engine-unit": "node scripts/check-jpg-engine-unit.mjs",
     "check:image-lane-unit": "node scripts/check-image-lane-unit.mjs",
     "check:image-layer-styles-unit": "node scripts/check-image-layer-styles-unit.mjs",
+    "check:slideshow-script-unit": "node scripts/check-slideshow-script-unit.mjs",
     "check:automix-image-lane-unit": "node scripts/check-automix-image-lane-unit.mjs",
     "check:shortcuts-movie-unit": "node scripts/check-shortcuts-movie-unit.mjs",
     "check:composer-client-unit": "node scripts/check-composer-client-unit.mjs",

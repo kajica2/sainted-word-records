@@ -149,8 +149,32 @@ check(engineHtml.includes('SWR_IMAGE_LANE') || engineHtml.includes('drawStack'),
 check(playHtml.includes('image-lane.client.js'), 'play.html loads image-lane');
 check(playHtml.includes('image-lane-panel'), 'play.html mounts stills lane UI');
 
+const neonHtml = fs.readFileSync(path.join(ROOT, 'versions/neon.html'), 'utf8');
+check(neonHtml.includes('image-lane.client.js'), 'neon.html loads image-lane');
+check(neonHtml.includes('image-lane-panel'), 'neon.html mounts stills lane UI');
+check(neonHtml.includes('SWR_IMAGE_LANE'), 'neon render/add uses image lane');
+check(neonHtml.includes('removeByAsset'), 'neon cleanupForAsset drops lane stills');
+check(neonHtml.includes('lane.clear'), 'neon detachAll clears image lane');
+
+console.log('image-lane: removeByAsset / clear');
+{
+  const sb = loadSandbox();
+  const lane = sb.SWR_IMAGE_LANE;
+  const a = { id: 'img-a', type: 'image', name: 'a.png' };
+  const b = { id: 'img-b', type: 'image', name: 'b.png' };
+  lane.add(a);
+  lane.add(b);
+  check(lane.removeByAsset(a) === 1, 'removeByAsset removes one still');
+  check(lane.list.length === 1 && lane.list[0].asset === b, 'remaining still is b');
+  check(lane.clear() === 1, 'clear empties lane');
+  check(lane.list.length === 0 && lane.selected == null, 'lane empty after clear');
+}
+
 const projSrc = fs.readFileSync(path.join(ROOT, 'project.js'), 'utf8');
 check(projSrc.includes('imageLane'), 'project save/load carries imageLane');
+const projClient = fs.readFileSync(path.join(ROOT, 'project.client.js'), 'utf8');
+check(projClient.includes('imageLane'), 'project.client.js serializes imageLane');
+check(projClient.includes('restoreFromJSON'), 'project.client.js restores imageLane');
 
 const mkSrc = fs.readFileSync(KILL, 'utf8');
 check(mkSrc.includes('SWR_IMAGE_LANE') && mkSrc.includes('sanitizeAllLayerStacks'),
