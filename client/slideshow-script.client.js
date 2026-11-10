@@ -31,10 +31,6 @@
     return global.SWR_IMAGE_LANE || null;
   }
 
-  function stylesApi() {
-    return global.SWR_IMAGE_STYLES || null;
-  }
-
   function libraryItems() {
     if (global.SWR_LIB && Array.isArray(global.SWR_LIB.items)) return global.SWR_LIB.items;
     if (global.Library && Array.isArray(global.Library.items)) return global.Library.items;
