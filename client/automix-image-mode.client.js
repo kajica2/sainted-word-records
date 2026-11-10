@@ -193,7 +193,12 @@
     var candidates = imgs.filter(function (it) { return it.id !== curId; });
     if (!candidates.length) return false;
     var pick = candidates[Math.floor(Math.random() * candidates.length)];
-    if (global.SWR_TIMING && typeof global.SWR_TIMING.crossfade === 'function') {
+    if (global.SWR_IMAGE_STYLES && typeof global.SWR_IMAGE_STYLES.swap === 'function') {
+      global.SWR_IMAGE_STYLES.swap(layer, pick, {
+        fadeOutMs: crossfadeMs.out,
+        fadeInMs: crossfadeMs.in,
+      });
+    } else if (global.SWR_TIMING && typeof global.SWR_TIMING.crossfade === 'function') {
       global.SWR_TIMING.attach(layer);
       global.SWR_TIMING.crossfade(layer, pick, {
         fadeOutMs: crossfadeMs.out,

@@ -56,6 +56,7 @@
     aspect: 'stage',
     wave: 'pulse',
     waveStamp: 0,
+    imageStyle: 'fade',
     markNode: null,
     markRaf: null,
   };
@@ -278,6 +279,57 @@
     paintWaveButtons();
     invalidateRender();
     return true;
+  }
+
+  function imageStylesApi() {
+    return window.SWR_IMAGE_STYLES || null;
+  }
+
+  function paintImageStyleButtons() {
+    if (!state.root || !state.root.querySelectorAll) return;
+    state.root.querySelectorAll('[data-demo-image-style]').forEach(function (btn) {
+      var on = btn.getAttribute('data-demo-image-style') === state.imageStyle;
+      if (btn.classList) btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function applyImageStyle(id) {
+    var api = imageStylesApi();
+    if (!api || typeof api.setStyle !== 'function') return false;
+    var s = api.setStyle(id);
+    state.imageStyle = (s && s.id) || id;
+    paintImageStyleButtons();
+    invalidateRender();
+    return true;
+  }
+
+  function swapImageDepth() {
+    var api = imageStylesApi();
+    var sel = selectedLayer();
+    if (!api || !sel) return false;
+    return !!api.swapDepth(sel);
+  }
+
+  function swapNextImage() {
+    var api = imageStylesApi();
+    var Lib = window.Library || (window.SWR && window.SWR.Library);
+    var sel = selectedLayer();
+    if (!api || !sel || !Lib || !Lib.items) return false;
+    if (sel.locked) {
+      var L = layers();
+      if (L && typeof L.toggleLock === 'function') L.toggleLock(sel);
+      else sel.locked = false;
+    }
+    var imgs = Lib.items.filter(function (it) {
+      return it && it.type === 'image' && it !== sel.asset;
+    });
+    if (!imgs.length) {
+      imgs = Lib.items.filter(function (it) { return it && it !== sel.asset; });
+    }
+    if (!imgs.length) return false;
+    var pick = imgs[Math.floor(Math.random() * imgs.length)];
+    return !!api.swap(sel, pick);
   }
 
   function paintAspectButtons() {
@@ -1018,6 +1070,55 @@
       if (livePreset && livePreset.id) state.wave = livePreset.id;
     }
     paintWaveButtons();
+
+    var secImg = mk('div', 'demo-sec');
+    secImg.appendChild(mk('h3', null, 'Image swap styles'));
+    var imgGrid = mk('div', 'demo-grid');
+    var imgApi = imageStylesApi();
+    var imgStyles = (imgApi && imgApi.STYLES) || [
+      { id: 'fade', label: 'Fade' },
+      { id: 'depth', label: 'Depth' },
+      { id: 'move', label: 'Move' },
+      { id: 'mask', label: 'Mask' },
+    ];
+    if (imgApi && typeof imgApi.getStyle === 'function') {
+      var liveImg = imgApi.getStyle();
+      if (liveImg && liveImg.id) state.imageStyle = liveImg.id;
+    }
+    imgStyles.forEach(function (preset) {
+      var b = mk('button', null, preset.label);
+      b.type = 'button';
+      b.setAttribute('data-demo-image-style', preset.id);
+      b.title = preset.hint || preset.label;
+      regControl(b, 'imageStyle:' + preset.id, {
+        label: 'Image style ' + preset.label,
+        invoke: function () { return applyImageStyle(preset.id); },
+      });
+      b.addEventListener('click', function () { applyImageStyle(preset.id); });
+      imgGrid.appendChild(b);
+    });
+    secImg.appendChild(imgGrid);
+    var imgActs = mk('div', 'demo-grid');
+    var depthBtn = mk('button', null, 'Swap depth');
+    depthBtn.type = 'button';
+    regControl(depthBtn, 'image:depthSwap', {
+      label: 'Swap image depth',
+      invoke: function () { return swapImageDepth(); },
+    });
+    depthBtn.addEventListener('click', function () { swapImageDepth(); });
+    imgActs.appendChild(depthBtn);
+    var swapBtn = mk('button', null, 'Swap media');
+    swapBtn.type = 'button';
+    regControl(swapBtn, 'image:swapMedia', {
+      label: 'Swap image media with style',
+      invoke: function () { return swapNextImage(); },
+    });
+    swapBtn.addEventListener('click', function () { swapNextImage(); });
+    imgActs.appendChild(swapBtn);
+    secImg.appendChild(imgActs);
+    secImg.appendChild(mk('p', 'demo-note', 'Fade · Depth · Move · Mask — how stills leave when media swaps. Depth also reorders the stack.'));
+    secStage.appendChild(secImg);
+    paintImageStyleButtons();
     var sensSrc = document.getElementById('sens');
     addPaneSlider(secStage, {
       domId: 'demo-sensitivity',

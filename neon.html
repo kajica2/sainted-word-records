@@ -594,6 +594,7 @@
 <script src="/engine-settings.client.js"></script>
 <script src="/personas.js"></script>
 <script src="/lib/mask-illusions.client.js"></script>
+<script src="/client/image-layer-styles.client.js"></script>
 <script src="/engine-keys.client.js"></script>
 <script src="/project.client.js"></script>
 <script src="/layer-scheduler.client.js"></script>
@@ -1597,7 +1598,7 @@
       out._v = "0";
       return out;
     }
-    function drawLayer(l) {
+    function drawLayer(l, rIn, drawCtx) {
       const a = l.asset; if (!a) return;
       // Some uploaded files produce a non-blob url (legacy browser behavior
       // where URL.createObjectURL(null) returns the literal string "null",
@@ -1634,10 +1635,13 @@
       }
       if (a.type==='video' && src.readyState<2) return;
       if (a.type==='image' && (!a._el.complete || !a._el.naturalWidth)) return;
-      const r = SWR_RENDER.imageEvolve(l, applyR(l));
-      ctx.save();
-      ctx.globalCompositeOperation = l.blend || 'screen';
-      ctx.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
+      // Prefer the reactive result SWR_RENDER.frame already evolved (Ken Burns
+      // + flow offsets). Recomputing here would double-advance the kb clock.
+      const r = rIn || SWR_RENDER.imageEvolve(l, applyR(l));
+      const g = drawCtx || ctx;
+      g.save();
+      g.globalCompositeOperation = l.blend || 'screen';
+      g.globalAlpha = clamp(r.opacity * (l.alpha ?? 1), 0, 1);
       const ar = (a.w||src.naturalWidth||src.videoWidth||1) / (a.h||src.naturalHeight||src.videoHeight||1);
       const car = W/H;
       let dw, dh;
@@ -1649,12 +1653,12 @@
       if (window.SWR_GRADE && window.SWR_GRADE.set) window.SWR_GRADE.set(0, r.hue, r.brightness, r.contrast, 1.2 + r.contrast*0.4);
       const rotDeg = l.rotationEnabled === true ? r.rot : 0;
       if (Math.abs(rotDeg) > 0.5) {
-        ctx.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(ctx, rotDeg * Math.PI/180); ctx.drawImage(src, -dw/2, -dh/2, dw, dh);
+        g.translate(W/2, H/2); SWR_MOTION_KILL.gateRotate(g, rotDeg * Math.PI/180); g.drawImage(src, -dw/2, -dh/2, dw, dh);
       } else {
-        ctx.drawImage(src, dx, dy, dw, dh);
+        g.drawImage(src, dx, dy, dw, dh);
       }
-      ctx.filter = 'none';
-      ctx.restore();
+      g.filter = 'none';
+      g.restore();
     }
     function drawFx() {
       // scanline
