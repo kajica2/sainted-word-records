@@ -28,3 +28,12 @@ export function imageSequenceIndex(time,bpm,count) {
   const tempo=Number.isFinite(bpm)&&bpm>0?bpm:90;
   return Math.floor(t*tempo/(60*BEATS_PER_IMAGE))%count;
 }
+
+export const DIRECTOR_MODES = Object.freeze(['steady','kinetic','slow-burn']);
+export function directorScene(time,bpm,count,mode='steady') {
+  if (!Number.isInteger(count) || count<=0) return {index:-1,progress:0,beatsPerScene:4};
+  const factor=mode==='kinetic'?2:mode==='slow-burn'?8:4;
+  const tempo=Number.isFinite(bpm)&&bpm>0?bpm:90;
+  const position=Math.max(0,Number.isFinite(time)?time:0)*tempo/(60*factor);
+  return {index:Math.floor(position)%count,progress:position%1,beatsPerScene:factor};
+}
