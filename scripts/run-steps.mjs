@@ -60,6 +60,7 @@ const GROUPS = {
     'npm run check:section-detector-unit',
     'npm run check:automix-arc-unit',
     'npm run check:automix-session-unit',
+    'npm run check:preset-transition-unit',
     'npm run check:posterize-curve',
     'npm run check:contract',
     'npm run check:ver-picker',

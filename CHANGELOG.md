@@ -8,6 +8,12 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **A still no longer drifts while it is being swapped.** The ambient
+  Ken Burns pan and zoom kept running through the dissolve, so a
+  picture that moved while it faded read as a glitch rather than as a
+  transition. The motion is switched off for the length of the swap
+  (`SWR_RENDER.isSwapping`), and the swap's own slide — the Move style's
+  flow — is untouched. Gate: `npm run check:preset-transition-unit`.
 - **Remo history and import stay usable after review findings.**
   Empty v1/v2 imports re-seed the starter envelopes. Preset undo
   captures the envelope id it edited. Coalesced depth edits keep the
@@ -37,6 +43,15 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **A preset change glides instead of cutting.** Picking a grade or an
+  FX preset wrote the sixteen grade uniforms in one frame, so the
+  picture jumped from one look to the next. `SWR_PRESET_TRANSITION.morph()`
+  runs the very same apply and then eases the grade from what was on
+  screen into the new one over 420 ms. It is interruptible, it yields to
+  a slider the user is dragging, and the applied value stays the final
+  state, so the recorder and the export path still read the new grade.
+  The looks menu, the demo panel's preset rows and the command centre
+  all go through it. Gate: `npm run check:preset-transition-unit`.
 - **Image layer swap styles (Fade · Depth · Move · Mask).** Stills can
   leave via opacity dissolve, stack reordering, flow slide + Ken Burns
   drift, or a mask-illusion dissolve. Demo panel section on NEON;
