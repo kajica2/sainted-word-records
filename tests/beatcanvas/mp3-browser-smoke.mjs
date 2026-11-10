@@ -57,6 +57,34 @@ try{
   assert.ok(wave.colorPixels>20,'waveform missing cyan/magenta peaks');
   assert.equal(wave.lineWidth,'1px','playback line should be exactly 1 CSS pixel');
   assert.match(wave.status,/Cyan.*Magenta/,'waveform was not populated by audio analysis');
+  // Generate a real local WebM in Chromium; exercise upload, decoding, layered preview, and master-clock seeking.
+  await page.evaluate(async()=>{
+    const canvas=document.createElement('canvas');canvas.width=160;canvas.height=280;
+    const c=canvas.getContext('2d');c.fillStyle='#e31a42';c.fillRect(0,0,160,280);
+    const stream=canvas.captureStream(24);
+    const mime=['video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));
+    if(!mime)throw Error('Chromium cannot encode test WebM');
+    const rec=new MediaRecorder(stream,{mimeType:mime}),chunks=[];
+    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    const finished=new Promise(resolve=>rec.onstop=resolve);
+    rec.start(100);
+    await new Promise(resolve=>setTimeout(resolve,650));
+    rec.stop();await finished;stream.getTracks().forEach(t=>t.stop());
+    const file=new File([new Blob(chunks,{type:mime})],'background.webm',{type:'video/webm'});
+    const dt=new DataTransfer();dt.items.add(file);
+    const input=document.getElementById('background-video');input.files=dt.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  await page.waitForFunction(()=>document.getElementById('background-video-status').textContent.includes('Video ready'),{timeout:20000});
+  await page.select('#visual-style','video-strips');
+  await page.$eval('#player',el=>{el.currentTime=Math.min(1,el.duration||1);el.dispatchEvent(new Event('seeked'));});
+  const layer=await page.evaluate(()=>{
+    const canvas=document.getElementById('visual');
+    const image=canvas.getContext('2d').getImageData(canvas.width/4,canvas.height/4,1,1).data;
+    return {status:document.getElementById('background-video-status').textContent,pixel:[...image]};
+  });
+  assert.match(layer.status,/Video ready/,'video layer never decoded');
+  assert.ok(layer.pixel[3]>0,'layered preview has no pixels');
+  
   await page.select('#visual-style','organic-motion');
   await page.select('#director-mode','kinetic');
   await page.click('#record');
