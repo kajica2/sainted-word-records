@@ -37,6 +37,12 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **Image layer swap styles (Fade · Depth · Move · Mask).** Stills can
+  leave via opacity dissolve, stack reordering, flow slide + Ken Burns
+  drift, or a mask-illusion dissolve. Demo panel section on NEON;
+  automix image mode and the image lane honour the active style.
+  `SWR_RENDER.imageEvolve` is restored (pan always; zoom respects the
+  motion kill-switch). Gate: `npm run check:image-layer-styles-unit`.
 - **NEON audio top layer (Phase A+B).** The SVG sheet is a dedicated
   reactive overlay (`SWR_AUDIO_TOP`): public presets Pulse · Spike ·
   Scan · Ribbon · Off, Demo panel section rename, sensitivity coupling,

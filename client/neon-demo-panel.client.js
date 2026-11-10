@@ -56,6 +56,7 @@
     aspect: 'stage',
     wave: 'pulse',
     waveStamp: 0,
+    imageStyle: 'fade',
     markNode: null,
     markRaf: null,
   };
@@ -278,6 +279,111 @@
     paintWaveButtons();
     invalidateRender();
     return true;
+  }
+
+  function imageStylesApi() {
+    return window.SWR_IMAGE_STYLES || null;
+  }
+
+  function paintImageStyleButtons() {
+    if (!state.root || !state.root.querySelectorAll) return;
+    state.root.querySelectorAll('[data-demo-image-style]').forEach(function (btn) {
+      var on = btn.getAttribute('data-demo-image-style') === state.imageStyle;
+      if (btn.classList) btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function applyImageStyle(id) {
+    var api = imageStylesApi();
+    if (!api || typeof api.setStyle !== 'function') return false;
+    var s = api.setStyle(id);
+    state.imageStyle = (s && s.id) || id;
+    paintImageStyleButtons();
+    invalidateRender();
+    return true;
+  }
+
+  /**
+   * Image depth/media controls can run before stage:clips in the verify
+   * suite (controls are alphabetical). Seed the dance pack + remap so
+   * there is a selected layer and a multi-layer stack to act on.
+   */
+  function ensureImageLayersReady(minLayers) {
+    minLayers = minLayers == null ? 1 : minLayers;
+    var L = layers();
+    var Lib = window.Library || (window.SWR && window.SWR.Library);
+    var haveItems = !!(Lib && Array.isArray(Lib.items) && Lib.items.length);
+    var haveLayers = !!(L && Array.isArray(L.list) && L.list.length >= minLayers);
+    var chain = Promise.resolve(true);
+    if (!haveItems || !haveLayers) {
+      chain = installDemoClips().then(function () {
+        L = layers();
+        Lib = window.Library || (window.SWR && window.SWR.Library);
+        if (L && typeof L.remap === 'function' && Lib && Lib.items && Lib.items.length) {
+          try { L.remap(); } catch (_) {}
+        }
+        // Remap needs audio features + items; if still short, add directly.
+        L = layers();
+        Lib = window.Library || (window.SWR && window.SWR.Library);
+        if (L && typeof L.add === 'function' && Lib && Array.isArray(Lib.items)) {
+          var i = 0;
+          while (L.list.length < minLayers && i < Lib.items.length) {
+            var it = Lib.items[i++];
+            var used = L.list.some(function (l) { return l && l.asset === it; });
+            if (used) continue;
+            try { L.add(it); } catch (_) { break; }
+          }
+        }
+        return true;
+      });
+    }
+    return chain.then(function () {
+      L = layers();
+      if (!L || !Array.isArray(L.list) || !L.list.length) return null;
+      var sel = L.sel || L.selected;
+      if (!sel || L.list.indexOf(sel) < 0) {
+        sel = null;
+        for (var j = 0; j < L.list.length; j++) {
+          if (L.list[j] && !L.list[j].locked) { sel = L.list[j]; break; }
+        }
+        if (!sel) sel = L.list[0];
+        L.sel = sel;
+      }
+      if (sel && sel.locked) {
+        if (typeof L.toggleLock === 'function') L.toggleLock(sel);
+        else sel.locked = false;
+      }
+      return sel;
+    });
+  }
+
+  function swapImageDepth() {
+    var api = imageStylesApi();
+    if (!api || typeof api.swapDepth !== 'function') return false;
+    return ensureImageLayersReady(2).then(function (sel) {
+      if (!sel) return false;
+      return !!api.swapDepth(sel);
+    });
+  }
+
+  function swapNextImage() {
+    var api = imageStylesApi();
+    if (!api || typeof api.swap !== 'function') return false;
+    return ensureImageLayersReady(1).then(function (sel) {
+      if (!sel) return false;
+      var Lib = window.Library || (window.SWR && window.SWR.Library);
+      if (!Lib || !Array.isArray(Lib.items) || !Lib.items.length) return false;
+      var imgs = Lib.items.filter(function (it) {
+        return it && it.type === 'image' && it !== sel.asset;
+      });
+      if (!imgs.length) {
+        imgs = Lib.items.filter(function (it) { return it && it !== sel.asset; });
+      }
+      if (!imgs.length) return false;
+      var pick = imgs[Math.floor(Math.random() * imgs.length)];
+      return !!api.swap(sel, pick);
+    });
   }
 
   function paintAspectButtons() {
@@ -1018,6 +1124,55 @@
       if (livePreset && livePreset.id) state.wave = livePreset.id;
     }
     paintWaveButtons();
+
+    var secImg = mk('div', 'demo-sec');
+    secImg.appendChild(mk('h3', null, 'Image swap styles'));
+    var imgGrid = mk('div', 'demo-grid');
+    var imgApi = imageStylesApi();
+    var imgStyles = (imgApi && imgApi.STYLES) || [
+      { id: 'fade', label: 'Fade' },
+      { id: 'depth', label: 'Depth' },
+      { id: 'move', label: 'Move' },
+      { id: 'mask', label: 'Mask' },
+    ];
+    if (imgApi && typeof imgApi.getStyle === 'function') {
+      var liveImg = imgApi.getStyle();
+      if (liveImg && liveImg.id) state.imageStyle = liveImg.id;
+    }
+    imgStyles.forEach(function (preset) {
+      var b = mk('button', null, preset.label);
+      b.type = 'button';
+      b.setAttribute('data-demo-image-style', preset.id);
+      b.title = preset.hint || preset.label;
+      regControl(b, 'imageStyle:' + preset.id, {
+        label: 'Image style ' + preset.label,
+        invoke: function () { return applyImageStyle(preset.id); },
+      });
+      b.addEventListener('click', function () { applyImageStyle(preset.id); });
+      imgGrid.appendChild(b);
+    });
+    secImg.appendChild(imgGrid);
+    var imgActs = mk('div', 'demo-grid');
+    var depthBtn = mk('button', null, 'Swap depth');
+    depthBtn.type = 'button';
+    regControl(depthBtn, 'image:depthSwap', {
+      label: 'Swap image depth',
+      invoke: function () { return swapImageDepth(); },
+    });
+    depthBtn.addEventListener('click', function () { swapImageDepth(); });
+    imgActs.appendChild(depthBtn);
+    var swapBtn = mk('button', null, 'Swap media');
+    swapBtn.type = 'button';
+    regControl(swapBtn, 'image:swapMedia', {
+      label: 'Swap image media with style',
+      invoke: function () { return swapNextImage(); },
+    });
+    swapBtn.addEventListener('click', function () { swapNextImage(); });
+    imgActs.appendChild(swapBtn);
+    secImg.appendChild(imgActs);
+    secImg.appendChild(mk('p', 'demo-note', 'Fade · Depth · Move · Mask — how stills leave when media swaps. Depth also reorders the stack.'));
+    secStage.appendChild(secImg);
+    paintImageStyleButtons();
     var sensSrc = document.getElementById('sens');
     addPaneSlider(secStage, {
       domId: 'demo-sensitivity',

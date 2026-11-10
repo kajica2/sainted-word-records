@@ -310,9 +310,14 @@ try {
     }, meta.id));
     const beforePx = await runStep(meta.id + ' pixels:before', () => samplePixels());
 
+    // image:* may install the dance pack + remap before acting (verify
+    // walks controls alphabetically, so these run before stage:clips).
+    const invBudget = (meta.id.indexOf('stage:') === 0 || meta.id.indexOf('image:') === 0)
+      ? 45000
+      : 8000;
     const inv = await runStep(meta.id + ' invoke', () => page.evaluate(function (id) {
       return window.SWR_NEON_DEMO.invokeControl(id);
-    }, meta.id), meta.id.indexOf('stage:') === 0 ? 45000 : 8000);
+    }, meta.id), invBudget);
 
     if (!inv || !inv.ok) {
       bad(meta.id, inv && inv.error ? inv.error : 'invoke failed');

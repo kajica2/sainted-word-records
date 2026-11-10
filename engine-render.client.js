@@ -354,6 +354,7 @@
     opts = opts || {};
     const bg = opts.bgColor || state.bgColor;
     if (state.dirty) fit(stage);
+    state._stage = stage;
 
     // Clear in device pixels (ctx may have a transform from last frame).
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -402,7 +403,10 @@
     for (let i = 0; i < layers.length; i++) {
       try {
         const l = layers[i];
-        let r = applyR(l);
+        // Seeded Ken Burns (and move/mask flow offsets) for stills — see
+        // imageEvolve(). Applied before the fade stepper so opacity eases
+        // on the drifted transform.
+        let r = imageEvolve(l, applyR(l));
         // Fade stepper: if a crossfade is in flight and currentOpacity has
         // crossed below the midpoint threshold, swap the asset under the
         // curtain. The fade continues drawing the new asset at rising
@@ -635,10 +639,54 @@
     return { blend: layer.__swrSafeBlend || SAFE_OVER_DARK[0], degenerate: true };
   }
 
-  // imageEvolve: apply seeded Ken Burns drift to image layers (stub for now)
-  function imageEvolve(layer, r) {
-    // TODO: implement seeded Ken Burns for image layers
-    return r;
+  // Image evolution — stills drift like video layers play. A seeded Ken Burns
+  // (pan always; zoom only when SWR_MOTION_KILL allows it) applied to every
+  // image layer's reactive result. The clock accumulates only while the song
+  // plays, so a paused song freezes photos exactly like it pauses a video.
+  // Phase is a name hash — stacked photos never drift in lockstep.
+  function imageEvolve(l, r) {
+    const a = l && l.asset;
+    if (!a || a.type !== 'image' || !r) return r;
+    // Locked layers keep their resting place (NEON position lock).
+    if (l.locked) return r;
+    const now = performance.now();
+    const playing = !!(window.SWR && window.SWR.Audio && window.SWR.Audio.playing);
+    if (playing) {
+      a._kbT = (a._kbT || 0) + (now - (a._kbLast == null ? now : a._kbLast)) / 1000;
+    }
+    a._kbLast = now;
+    if (a._kbSeed == null) {
+      const key = String(a.name || a.url || 'img');
+      let h = 2166136261;
+      for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = (h * 16777619) >>> 0; }
+      a._kbSeed = (h % 6283) / 1000; // 0..≈2π
+    }
+    const ph = a._kbSeed;
+    const tt = a._kbT || 0;
+    const zoomOk = !(window.SWR_MOTION_KILL
+      && typeof window.SWR_MOTION_KILL.isZoomGloballyEnabled === 'function'
+      && !window.SWR_MOTION_KILL.isZoomGloballyEnabled());
+    const z = zoomOk ? (1 + 0.045 * (0.5 + 0.5 * Math.sin(tt * 0.10 + ph))) : 1;
+    const px = 0.020 * Math.sin(tt * 0.061 + ph * 1.7);
+    const py = 0.014 * Math.cos(tt * 0.083 + ph * 2.3);
+    const sw = state.cssW || (state._stage && state._stage.width) || 1280;
+    const sh = state.cssH || (state._stage && state._stage.height) || 720;
+    // Move-style flow dissolve offsets (engine-timing / image-layer-styles).
+    let fx = 0;
+    let fy = 0;
+    if (window.SWR_IMAGE_STYLES && typeof window.SWR_IMAGE_STYLES.flowOffset === 'function') {
+      const off = window.SWR_IMAGE_STYLES.flowOffset(l, sw, sh);
+      fx = off.x || 0;
+      fy = off.y || 0;
+    } else if (l._flowUntil && performance.now() <= l._flowUntil) {
+      fx = l._flowOffX || 0;
+      fy = l._flowOffY || 0;
+    }
+    return Object.assign({}, r, {
+      scale: (r.scale || 1) * z,
+      x: (r.x || 0) + px * sw + fx,
+      y: (r.y || 0) + py * sh + fy,
+    });
   }
 
   window.SWR_RENDER = {
