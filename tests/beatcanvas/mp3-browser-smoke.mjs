@@ -43,6 +43,20 @@ try{
   const status=await page.$eval('#status',e=>e.textContent);
   assert.match(status,/Analysis completed/, 'MP3 failed to analyze: '+status);
   assert.equal(await page.$eval('#record',e=>e.disabled),false);
+  const wave=await page.evaluate(()=>{
+    const canvas=document.getElementById('waveform');
+    const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+    let colorPixels=0;
+    for(let i=0;i<pixels.length;i+=4){
+      const r=pixels[i],g=pixels[i+1],b=pixels[i+2];
+      if((b>r+25&&b>g)||(r>g+40&&b>g+20)) colorPixels++;
+    }
+    const line=document.querySelector('.wave-playhead');
+    return {colorPixels,lineWidth:getComputedStyle(line).width,status:document.getElementById('wave-status').textContent};
+  });
+  assert.ok(wave.colorPixels>20,'waveform missing cyan/magenta peaks');
+  assert.equal(wave.lineWidth,'1px','playback line should be exactly 1 CSS pixel');
+  assert.match(wave.status,/Cyan.*Magenta/,'waveform was not populated by audio analysis');
   await page.select('#visual-style','organic-motion');
   await page.select('#director-mode','kinetic');
   await page.click('#record');
