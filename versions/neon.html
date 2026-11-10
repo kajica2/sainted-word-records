@@ -1703,22 +1703,23 @@
         // that instead, so the export matches the picture.
         let captureSource = stage;
         try {
-          const cssFilter = getComputedStyle(stage).filter;
-          if (cssFilter && cssFilter !== 'none') {
-            const mirror = document.createElement('canvas');
-            mirror.width = stage.width;
-            mirror.height = stage.height;
-            const mctx = mirror.getContext('2d');
-            mctx.filter = cssFilter;
-            this._pumpOn = true;
-            const pump = () => {
-              if (!this._pumpOn) return;
-              try { mctx.drawImage(stage, 0, 0); } catch (_) {}
-              this._pumpRaf = requestAnimationFrame(pump);
-            };
+          const mirror = document.createElement('canvas');
+          mirror.width = stage.width;
+          mirror.height = stage.height;
+          const mctx = mirror.getContext('2d');
+          this._pumpOn = true;
+          const pump = () => {
+            if (!this._pumpOn) return;
+            try {
+              // Re-read every frame: the grade is applied and dropped by the
+              // FX loop, so a snapshot taken once at REC would miss it.
+              mctx.filter = getComputedStyle(stage).filter || 'none';
+              mctx.drawImage(stage, 0, 0);
+            } catch (_) {}
             this._pumpRaf = requestAnimationFrame(pump);
-            captureSource = mirror;
-          }
+          };
+          this._pumpRaf = requestAnimationFrame(pump);
+          captureSource = mirror;
         } catch (_) {}
         this._captureSource = captureSource;
         this._stopPump = () => {
