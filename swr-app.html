@@ -5521,9 +5521,9 @@
         return;
       }
       showToast(`Imported ${count} file${count === 1 ? '' : 's'}.`);
-      // Close the modal once files land
+      // Close the modal once files land. Importing does not start playback:
+      // Record is the transport, so the take begins when the user says so.
       dismissOnboarding();
-      setTimeout(() => { autoplayRandomTrack().catch(() => {}); }, 0);
     }
 
     /* ============================================================
@@ -8890,12 +8890,6 @@
       'aurora.mp3','bachdrop.mp3','baroque.mp3','chrome.mp3','eclipse.mp3','endless-tomorrow.mp3','film.mp3','fractal.mp3','gallery.mp3','glitch.mp3','grid.mp3','hallucination.mp3','kraft.mp3','mosaic.mp3','neon.mp3'
     ];
 
-    function showUnmuteHint(text) {
-      try {
-        showToast(text || 'Tap to unmute');
-      } catch (e) {}
-    }
-
     async function loadDemoAudioTrack(url, name) {
       try {
         const res = await fetch(url);
@@ -8922,46 +8916,60 @@
       } catch (e) { return null; }
     }
 
-    async function autoplayRandomTrack() {
-      const tracks = state.audioTracks.items || [];
-      let trackId = null;
-      if (tracks.length) {
-        trackId = tracks[Math.floor(Math.random() * tracks.length)].id;
-      } else {
-        const pick = DEMO_AUDIO_TRACKS[Math.floor(Math.random() * DEMO_AUDIO_TRACKS.length)];
-        trackId = await loadDemoAudioTrack('/audios/' + pick, pick);
+    // (The old autoplayRandomTrack() lived here. It started a random library
+    // track on page load and after an import, which is exactly the behaviour
+    // this app no longer wants: Record is the transport now, and playback
+    // starts in ensurePlaybackFromStart().)
+
+    // Record IS the transport. Nothing autoplays any more, so pressing Record
+    // rewinds to the top of the song and starts playback: every take is
+    // aligned with bar 1, and nothing is captured before the music starts.
+    //
+    // Returns false when there is nothing to play, so the caller can refuse
+    // the take instead of recording a black rectangle in silence. The library
+    // keeps track NAMES across reloads but not their audio bytes (there is no
+    // IndexedDB behind audioBlobCache), so a restored track needs a re-import
+    // and cannot be played on demand — the bundled demo stands in, and the
+    // toast says why.
+    async function ensurePlaybackFromStart() {
+      if (!audioEl.currentSrc) {
+        const items = state.audioTracks.items || [];
+        const current = items.find(t => t.id === state.audioTracks.currentTrackId && audioBlobCache[t.id]);
+        const withBytes = items.find(t => audioBlobCache[t.id]);
+        const track = current || withBytes;
+        if (track) {
+          loadTrackIntoTransport(track);
+          await new Promise(r => setTimeout(r, 40));
+        } else {
+          const pick = DEMO_AUDIO_TRACKS[0];
+          const id = await loadDemoAudioTrack('/audios/' + pick, pick);
+          const demo = id && state.audioTracks.items.find(t => t.id === id);
+          if (!demo || !audioBlobCache[demo.id]) {
+            showToast('No audio to record. Import a song, then press Record.');
+            return false;
+          }
+          loadTrackIntoTransport(demo);
+          await new Promise(r => setTimeout(r, 40));
+          showToast(`Recording the demo track "${demo.name}" — import your song to record that.`);
+        }
       }
-      if (!trackId) return;
-      const track = state.audioTracks.items.find(t => t.id === trackId);
-      if (!track) return;
-      const blobUrl = audioBlobCache[track.id];
-      if (!blobUrl) return;
-      detachMic();
-      state.audioTracks.items.forEach(t => t.hasBytes = false);
-      if (track) track.hasBytes = true;
-      audioEl.src = blobUrl;
-      state.audio.src = blobUrl;
-      state.audio.loaded = true;
-      state.audio.name = track.name;
-      state.audioTracks.currentTrackId = track.id;
-      renderAudioList();
-      try {
-        attachMediaElement();
-      } catch (e) {}
+      try { audioEl.currentTime = 0; } catch (e) {}
       try {
         await audioEl.play();
-        showUnmuteHint('Playing "' + track.name + '"');
         state.audio.playing = true;
+        setPlayIcon(true);
+        return true;
       } catch (e) {
+        // The click that got us here is the gesture, so this normally plays.
+        // A muted start still records a moving picture.
         try {
           audioEl.muted = true;
           await audioEl.play();
           audioEl.muted = false;
-          showUnmuteHint('Playing "' + track.name + '" (muted — tap for sound)');
           state.audio.playing = true;
-        } catch (e2) {
-          showUnmuteHint('Tap to play "' + track.name + '"');
-        }
+          setPlayIcon(true);
+          return true;
+        } catch (e2) { return false; }
       }
     }
 
@@ -9109,7 +9117,7 @@
     let recordingStream = null;
     let recordingMime = '';
 
-    function startRecording() {
+    async function startRecording() {
       // P1.1: real MediaRecorder capture. We use the stage canvas
       // (not the hero canvas) so the recorded output matches what the
       // user sees in the workspace. The captureStream respects the
@@ -9124,6 +9132,12 @@
         showToast('No supported video codec found. Try Chrome.');
         return;
       }
+      // Record starts the take: rewind the song to the top and play it here.
+      // Nothing autoplays on load, so this is the only place playback begins.
+      // If there is nothing playable the helper has already said why, and we
+      // refuse the take rather than record a black rectangle in silence.
+      const started = await ensurePlaybackFromStart().catch(() => false);
+      if (!started) return;
       // Build a recording canvas at the picked aspect ratio. We composite
       // the live stage canvas into this rect each frame via requestAnimationFrame.
       const dims = recordingDims();
@@ -9377,6 +9391,11 @@
       };
       mediaRecorder.onstop = () => {
         stopBlit = true;
+        // The take is over, so the music stops with it. Record starts playback
+        // and stopping ends it, which keeps the transport and the file in step.
+        try { audioEl.pause(); } catch (e) {}
+        state.audio.playing = false;
+        try { setPlayIcon(false); } catch (e) {}
         const blob = new Blob(recordedBlobs, { type: recordingMime });
         const url = URL.createObjectURL(blob);
         const ext = recordingMime.includes('mp4') ? 'mp4' : 'webm';
@@ -9673,16 +9692,9 @@ recordTimer = setTimeout(() => {
       }
     })();
 
-  // Try to autoplay a random track on every page load (gesture after onboarding
-  // is handled in dismiss). Browsers block audible autoplay without gesture;
-  // we fall back to muted-start + unmute hint.
-  if (document.readyState === 'complete') {
-    setTimeout(() => { autoplayRandomTrack().catch(() => {}); }, 120);
-  } else {
-    window.addEventListener('load', () => {
-      setTimeout(() => { autoplayRandomTrack().catch(() => {}); }, 120);
-    });
-  }
+  // No autoplay. Record is the transport: pressing it rewinds to the top of
+  // the song and starts playback (see ensurePlaybackFromStart), so nothing
+  // ever starts making noise or moves the picture before the user asks.
   </script>
   <!-- swr-app ships its own keymap + help overlay (t/T, m/M, ?, /, z, c, s,
        brackets). Opt out of the sitewide layer so the two cannot fight; this
