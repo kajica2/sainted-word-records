@@ -144,37 +144,52 @@
     return null;
   }
 
+  /**
+   * Slideshow shows ONE still at a time. Selecting a lower layer while
+   * higher opaque stills stay visible would leave the cue covering
+   * nothing on stage — hide every other lane layer and select the focus.
+   */
+  function focusLaneStill(layer) {
+    var L = lane();
+    if (!L || !layer || !Array.isArray(L.list) || !L.list.length) return false;
+    for (var i = 0; i < L.list.length; i++) {
+      if (!L.list[i]) continue;
+      L.list[i].hidden = L.list[i] !== layer;
+    }
+    if (typeof L.select === 'function') L.select(layer);
+    if (typeof L.render === 'function') L.render();
+    try {
+      if (global.SWR_RENDER && typeof global.SWR_RENDER.invalidate === 'function') {
+        global.SWR_RENDER.invalidate();
+      }
+    } catch (_) {}
+    return true;
+  }
+
+  function findLaneLayer(asset) {
+    var L = lane();
+    if (!L || !asset || !Array.isArray(L.list)) return null;
+    for (var i = 0; i < L.list.length; i++) {
+      var layer = L.list[i];
+      if (layer && layer.asset && (layer.asset === asset || layer.asset.id === asset.id)) {
+        return layer;
+      }
+    }
+    return null;
+  }
+
   function applyStill(asset) {
     if (!asset) return false;
     var L = lane();
     if (L && typeof L.add === 'function') {
-      // Prefer stepping within the lane when the asset is already there.
-      if (Array.isArray(L.list) && L.list.length) {
-        for (var i = 0; i < L.list.length; i++) {
-          var layer = L.list[i];
-          if (layer && layer.asset && (layer.asset === asset || layer.asset.id === asset.id)) {
-            if (typeof L.select === 'function') L.select(layer);
-            var styles = stylesApi();
-            var cur = L.selected || L.list[0];
-            if (cur && cur.asset !== asset) {
-              if (styles && typeof styles.swap === 'function') styles.swap(cur, asset);
-              else if (typeof L.stepStill === 'function') {
-                // Fall through to index jump via asset replace + style.
-                if (styles && typeof styles.swap === 'function') styles.swap(cur, asset);
-                else cur.asset = asset;
-              } else {
-                cur.asset = asset;
-              }
-            }
-            return true;
-          }
-        }
-        // Asset not in lane yet — add it.
-        L.add(asset);
-        return true;
-      }
-      L.add(asset);
-      return true;
+      var existing = findLaneLayer(asset);
+      if (existing) return focusLaneStill(existing);
+      var added = L.add(asset);
+      if (added) return focusLaneStill(added);
+      // add() may return null when the asset was refused; try again by id.
+      existing = findLaneLayer(asset);
+      if (existing) return focusLaneStill(existing);
+      return false;
     }
     var Layers = global.Layers;
     if (Layers && typeof Layers.add === 'function') {
@@ -186,26 +201,32 @@
 
   function advanceStill(delta) {
     var L = lane();
-    if (L && typeof L.stepStill === 'function' && L.list && L.list.length) {
-      return !!L.stepStill(delta);
+    if (L && Array.isArray(L.list) && L.list.length) {
+      var cur = L.selected || null;
+      if (!cur) {
+        for (var hi = 0; hi < L.list.length; hi++) {
+          if (L.list[hi] && !L.list[hi].hidden) { cur = L.list[hi]; break; }
+        }
+      }
+      if (!cur) cur = L.list[0];
+      var idx = L.list.indexOf(cur);
+      if (idx < 0) idx = 0;
+      var next = L.list[(idx + (delta < 0 ? -1 : 1) + L.list.length) % L.list.length];
+      return focusLaneStill(next);
     }
     var assets = stillAssets();
     if (assets.length < 2) return false;
-    var cur = focusLayer();
-    var curAsset = cur && cur.asset;
-    var idx = 0;
-    for (var i = 0; i < assets.length; i++) {
-      if (curAsset && (assets[i] === curAsset || assets[i].id === curAsset.id)) {
-        idx = i;
+    var focus = focusLayer();
+    var curAsset = focus && focus.asset;
+    var i = 0;
+    for (var a = 0; a < assets.length; a++) {
+      if (curAsset && (assets[a] === curAsset || assets[a].id === curAsset.id)) {
+        i = a;
         break;
       }
     }
-    var next = assets[(idx + (delta < 0 ? -1 : 1) + assets.length) % assets.length];
-    var styles = stylesApi();
-    if (cur && styles && typeof styles.swap === 'function') {
-      return !!styles.swap(cur, next);
-    }
-    return applyStill(next);
+    var nextAsset = assets[(i + (delta < 0 ? -1 : 1) + assets.length) % assets.length];
+    return applyStill(nextAsset);
   }
 
   function showCue(cue) {
@@ -269,6 +290,9 @@
 
   function load(text, opts) {
     opts = opts || {};
+    // Replacing cues mid-play would leave the old timer armed against the
+    // new list — stop first so Load never auto-advances on a stale deadline.
+    stop({ keepCaption: false, silent: true });
     var raw = String(text == null ? '' : text);
     state.raw = raw;
     state.cues = parse(raw);

@@ -1341,21 +1341,32 @@
       // "used" tab and the "Used in N layers" badge.
       usedBy() {
         const m = new Map();
-        for (const l of this.list) {
+        const count = (l) => {
           const id = l.mediaId != null ? l.mediaId : (l.asset ? l.asset.id : null);
-          if (id == null) continue;
+          if (id == null) return;
           m.set(id, (m.get(id) || 0) + 1);
+        };
+        for (const l of this.list) count(l);
+        // Stills live on the image lane — count them too so the Media
+        // "used" tab stays honest after Layers.add routes images there.
+        const lane = window.SWR_IMAGE_LANE;
+        if (lane && Array.isArray(lane.list)) {
+          for (const l of lane.list) count(l);
         }
         return m;
       },
       // Unassign every unlocked layer's media but keep the layer rows
       // (and their blend/opacity settings) in place. Locked layers keep
-      // their media.
+      // their media. Also clears the image lane (stills have no lock).
       detachAll() {
         let n = 0;
         for (const l of this.list) {
           if (l.locked) continue;
           if (l.asset) { l.asset = null; l.mediaId = null; n++; }
+        }
+        const lane = window.SWR_IMAGE_LANE;
+        if (lane && typeof lane.clear === 'function') {
+          n += lane.clear() || 0;
         }
         if (n) {
           this.render();
@@ -1379,6 +1390,12 @@
         if (this.list.length !== before) {
           this.render();
           try { window.SWR_RENDER && window.SWR_RENDER.invalidate && window.SWR_RENDER.invalidate(); } catch (_) {}
+        }
+        // Image stills no longer sit on Layers.list — drop them from the
+        // lane too, or a Media delete leaves the photo on stage.
+        const lane = window.SWR_IMAGE_LANE;
+        if (lane && typeof lane.removeByAsset === 'function') {
+          try { lane.removeByAsset(it); } catch (_) {}
         }
       },
       render() {

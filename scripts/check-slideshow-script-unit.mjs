@@ -29,12 +29,13 @@ function boot(extra) {
     list: laneList,
     selected: null,
     add(asset) {
-      const layer = { id: 'I' + (laneList.length + 1), asset, _imageLane: true };
+      const layer = { id: 'I' + (laneList.length + 1), asset, _imageLane: true, hidden: false };
       laneList.push(layer);
       this.selected = layer;
       return layer;
     },
     select(layer) { this.selected = layer; },
+    render() {},
     stepStill(delta) {
       if (!laneList.length) return false;
       const cur = this.selected || laneList[0];
@@ -189,7 +190,11 @@ console.log('slideshow-script: advanceStill + draw');
   env.lane.selected = env.lane.list[0];
   check(env.api.advanceStill(1) === true, 'advanceStill steps forward');
   check(env.lane.selected === env.lane.list[1], 'lane selection moved forward');
+  check(env.lane.list[0].hidden === true && env.lane.list[1].hidden === false,
+    'advanceStill hides non-focused opaque stills');
   check(env.api.prev() === true && env.lane.selected === env.lane.list[0], 'prev wraps/steps back');
+  check(env.lane.list[0].hidden === false && env.lane.list[1].hidden === true,
+    'prev focuses the previous still alone');
 
   const calls = [];
   const ctx = {
@@ -206,6 +211,23 @@ console.log('slideshow-script: advanceStill + draw');
   check(calls.includes('fillText:NEON CAPTION'), 'draw writes caption text');
   env.api.stop();
   check(env.api.draw(ctx, 1280, 720) === false, 'draw is a no-op without caption');
+}
+
+console.log('slideshow-script: load during play stops timer');
+{
+  const env = boot();
+  env.lane.add({ id: 's1', type: 'image', name: 'one.png' });
+  env.lane.add({ id: 's2', type: 'image', name: 'two.png' });
+  env.api.load('5000 | first\n5000 | second');
+  check(env.api.play() === true, 'long cues start playing');
+  check(env.api.getState().playing === true, 'playing before reload');
+  env.api.load('400 | replaced');
+  const st = env.api.getState();
+  check(st.playing === false, 'load stops playback');
+  check(st.total === 1 && st.cues[0].text === 'replaced', 'load replaces cues');
+  env.tick(6000);
+  check(env.api.getState().playing === false && env.api.getState().index === -1,
+    'stale timer does not advance after load');
 }
 
 console.log('slideshow-script: neon wiring');

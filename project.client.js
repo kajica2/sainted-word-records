@@ -119,6 +119,12 @@
     try { return G.getState(); } catch { return null; }
   }
 
+  function imageLaneToJSON() {
+    const IL = window.SWR_IMAGE_LANE;
+    if (!IL || typeof IL.toJSON !== 'function') return null;
+    try { return IL.toJSON(); } catch (_) { return null; }
+  }
+
   function serialize() {
     const SWR = getSWR();
     if (!SWR || !SWR.Layers) {
@@ -130,6 +136,7 @@
       version: SCHEMA_VERSION,
       createdAt: new Date().toISOString(),
       layers: SWR.Layers.list.map(layerToJSON),
+      imageLane: imageLaneToJSON(),
       library: SWR.Library && Array.isArray(SWR.Library.items)
                 ? libraryToJSON(SWR.Library.items) : [],
       audio: audioToJSON(),
@@ -226,15 +233,32 @@
     }
     try { if (typeof SWR.Layers.render === 'function') SWR.Layers.render(); }
     catch (e) { console.warn('[project] layers.render failed', e); }
+    // Neon (and other variants) park stills on SWR_IMAGE_LANE — restore
+    // that stack too, or every saved photo layer is dropped on load.
+    const IL = window.SWR_IMAGE_LANE;
+    if (IL && typeof IL.restoreFromJSON === 'function') {
+      try {
+        const byName = new Map();
+        if (SWR.Library && Array.isArray(SWR.Library.items)) {
+          for (const it of SWR.Library.items) {
+            if (it && it.name) byName.set(it.name, it);
+          }
+        }
+        IL.restoreFromJSON(project.imageLane || null, byId, byName);
+      } catch (e) {
+        console.warn('[project] imageLane restore failed', e);
+      }
+    }
     try { if (window.LayerScheduler && window.LayerScheduler.refresh)
             window.LayerScheduler.refresh(); } catch {}
     if (project.timing && window.SWR_TIMING && typeof window.SWR_TIMING.setDefaults === 'function') {
       try { window.SWR_TIMING.setDefaults(project.timing); } catch {}
     }
+    const laneN = IL && Array.isArray(IL.list) ? IL.list.length : 0;
     window.dispatchEvent(new CustomEvent('swr-project-applied', {
-      detail: { layers: SWR.Layers.list.length, missing },
+      detail: { layers: SWR.Layers.list.length, imageLane: laneN, missing },
     }));
-    return { applied: SWR.Layers.list.length, missing };
+    return { applied: SWR.Layers.list.length, imageLane: laneN, missing };
   }
 
   function save(filename) {
