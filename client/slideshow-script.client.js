@@ -229,6 +229,21 @@
     return applyStill(nextAsset);
   }
 
+  function seedLaneFromLibrary() {
+    var L = lane();
+    if (!L || typeof L.add !== 'function') return false;
+    if (Array.isArray(L.list) && L.list.length) return true;
+    var lib = libraryItems().filter(function (it) {
+      return it && it.type === 'image';
+    });
+    if (!lib.length) return false;
+    for (var i = 0; i < lib.length; i++) {
+      L.add(lib[i]);
+    }
+    if (L.list.length) focusLaneStill(L.list[0]);
+    return L.list.length > 0;
+  }
+
   function showCue(cue) {
     state.caption = cue && cue.text ? String(cue.text) : '';
     var assets = stillAssets();
@@ -237,8 +252,18 @@
       if (hit) applyStill(hit);
       else advanceStill(1);
     } else if (cue) {
-      // Default: step forward on every cue after the first.
+      // Default: step forward on every cue after the first. The opening
+      // cue still needs a photo — focus the first lane still (seeded
+      // from the library when the lane was empty at play()).
       if (state.index > 0) advanceStill(1);
+      else {
+        var L0 = lane();
+        if (L0 && L0.list && L0.list.length) {
+          focusLaneStill(L0.selected || L0.list[0]);
+        } else if (assets[0]) {
+          applyStill(assets[0]);
+        }
+      }
     }
     try {
       global.dispatchEvent(new CustomEvent('swr:slideshow-cue', {
@@ -320,6 +345,11 @@
       status('slideshow: add stills first', 'warn');
       return false;
     }
+    // Library stills with an empty lane used to play captions only on the
+    // first cue, then add a single still on the second and get stuck.
+    // Seed the whole library into the lane up front so numbered cues and
+    // arrows have a real stack.
+    seedLaneFromLibrary();
     stop({ keepCaption: true, silent: true });
     state.playing = true;
     state.index = 0;

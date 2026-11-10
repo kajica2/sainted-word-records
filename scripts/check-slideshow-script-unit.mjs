@@ -175,10 +175,29 @@ console.log('slideshow-script: refuse play without stills / without cues');
 console.log('slideshow-script: library stills when lane empty');
 {
   const env = boot();
-  // Empty lane → stillAssets falls back to Library images.
+  // Empty lane → seed every library still, then focus the cue target.
   check(env.api.load('500 | hi | dancer-b') && env.api.play() === true,
     'play works from library stills when lane empty');
-  check(env.lane.list.length >= 1, 'resolving a library still adds it to the lane');
+  check(env.lane.list.length === 2, 'play seeds all library stills into the lane');
+  check(env.lane.selected && env.lane.selected.asset
+    && env.lane.selected.asset.name === 'dancer-b.png',
+    'first cue focuses the named still');
+  check(env.lane.list.filter(function (l) { return !l.hidden; }).length === 1,
+    'only the focused still is visible after seeding');
+  env.api.stop();
+}
+
+console.log('slideshow-script: first cue shows a photo with empty still token');
+{
+  const env = boot();
+  env.api.load('400 | open\n400 | next');
+  check(env.api.play() === true, 'play with bare captions seeds lane');
+  check(env.lane.list.length === 2, 'both library stills seeded');
+  check(env.lane.selected === env.lane.list[0] && env.lane.list[0].hidden === false,
+    'opening cue focuses the first still');
+  env.tick(450);
+  check(env.api.getState().index === 1 && env.lane.selected === env.lane.list[1],
+    'second cue advances to the next still');
   env.api.stop();
 }
 
@@ -247,6 +266,8 @@ console.log('slideshow-script: neon wiring');
   const keys = fs.readFileSync(path.join(ROOT, 'engine-keys.client.js'), 'utf8');
   check(keys.includes('laneHasStills') && /ArrowLeft[\s\S]*imageLanePrevStill/.test(keys),
     'arrow keys step image-lane stills');
+  check(/SWR_SLIDESHOW[\s\S]*advanceStill/.test(keys),
+    'stepImageStill prefers slideshow advanceStill over lane.stepStill');
 }
 
 if (failures === 0) {

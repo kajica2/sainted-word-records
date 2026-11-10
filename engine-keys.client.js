@@ -1162,6 +1162,15 @@
       if (J.stepStill(delta)) flashReadout(delta < 0 ? 'previous still' : 'next still');
       return;
     }
+    // Prefer the slideshow focuser when present: after a cue hides other
+    // lane stills, ImageLane.stepStill would swap assets onto hidden
+    // layers and scramble numbered cue targets. advanceStill only
+    // re-focuses (hide/show) and leaves each layer's asset alone.
+    const SS = window.SWR_SLIDESHOW;
+    if (SS && typeof SS.advanceStill === 'function' && laneHasStills()) {
+      if (SS.advanceStill(delta)) flashReadout(delta < 0 ? 'previous still' : 'next still');
+      return;
+    }
     const lane = window.SWR_IMAGE_LANE;
     if (lane && typeof lane.stepStill === 'function') {
       if (lane.stepStill(delta)) flashReadout(delta < 0 ? 'previous still' : 'next still');
