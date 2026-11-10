@@ -194,9 +194,17 @@ try {
     return c && c.width > 16 && c.height > 16;
   }, { timeout: 45000, polling: 200 });
 
+  // Neon routes type:'image' into SWR_IMAGE_LANE (slideshow stills), so a
+  // still-only seed never grows Layers.list — and layer:* demo controls
+  // select L.list[0]. Seed a still into the lane AND a non-image clip on
+  // the video stack so both image-style and layer controls have a target.
   await page.evaluate(async function () {
     var L = window.Layers;
-    if (!L || (L.list && L.list.length)) return;
+    if (!L) return;
+    var lane = window.SWR_IMAGE_LANE;
+    var hasStill = !!(lane && lane.list && lane.list.length);
+    var hasVideo = !!(L.list && L.list.length);
+    if (hasStill && hasVideo) return;
     try {
       var res = await fetch('/default-library/holo-0.webp');
       if (!res.ok) return;
@@ -205,22 +213,50 @@ try {
       var img = new Image();
       img.src = url;
       await img.decode();
-      var item = {
-        id: 'verify-holo',
-        type: 'image',
-        name: 'verify-holo.webp',
-        url: url,
-        thumb: url,
-        w: img.naturalWidth || 64,
-        h: img.naturalHeight || 64,
-      };
-      if (window.Lib && window.Lib.items) window.Lib.items.push(item);
-      L.add(item);
+      if (!hasStill) {
+        var still = {
+          id: 'verify-holo',
+          type: 'image',
+          name: 'verify-holo.webp',
+          url: url,
+          thumb: url,
+          w: img.naturalWidth || 64,
+          h: img.naturalHeight || 64,
+        };
+        if (window.Lib && window.Lib.items) window.Lib.items.push(still);
+        L.add(still);
+      }
+      if (!L.list || !L.list.length) {
+        var canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        var cctx = canvas.getContext('2d');
+        if (cctx) {
+          cctx.fillStyle = '#336699';
+          cctx.fillRect(0, 0, 64, 64);
+        }
+        var clip = {
+          id: 'verify-clip',
+          type: 'video',
+          name: 'verify-clip',
+          url: url,
+          thumb: url,
+          _el: canvas,
+          w: 64,
+          h: 64,
+        };
+        if (window.Lib && window.Lib.items) window.Lib.items.push(clip);
+        L.add(clip);
+      }
     } catch (_) {}
   });
 
   await page.waitForFunction(function () {
-    return window.Layers && window.Layers.list && window.Layers.list.length > 0;
+    var L = window.Layers;
+    var lane = window.SWR_IMAGE_LANE;
+    var hasVideo = !!(L && L.list && L.list.length > 0);
+    var hasStill = !!(lane && lane.list && lane.list.length > 0);
+    return hasVideo && (hasStill || !lane);
   }, { timeout: 30000, polling: 300 });
 
   await page.evaluate(function () {
