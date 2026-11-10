@@ -37,6 +37,11 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **NEON slideshow script + image lane.** Still images on `/versions/neon`
+  land in the dedicated image lane (same Stills panel as the engine). The
+  Demo panel takes a pasteable cue script (`duration_ms | text | still#`),
+  plays captions over the stage, and ← / → step stills when the lane has
+  photos. Gate: `check:slideshow-script-unit`.
 - **Image layer swap styles (Fade · Depth · Move · Mask).** Stills can
   leave via opacity dissolve, stack reordering, flow slide + Ken Burns
   drift, or a mask-illusion dissolve. Demo panel section on NEON;

@@ -149,6 +149,11 @@ check(engineHtml.includes('SWR_IMAGE_LANE') || engineHtml.includes('drawStack'),
 check(playHtml.includes('image-lane.client.js'), 'play.html loads image-lane');
 check(playHtml.includes('image-lane-panel'), 'play.html mounts stills lane UI');
 
+const neonHtml = fs.readFileSync(path.join(ROOT, 'versions/neon.html'), 'utf8');
+check(neonHtml.includes('image-lane.client.js'), 'neon.html loads image-lane');
+check(neonHtml.includes('image-lane-panel'), 'neon.html mounts stills lane UI');
+check(neonHtml.includes('SWR_IMAGE_LANE'), 'neon render/add uses image lane');
+
 const projSrc = fs.readFileSync(path.join(ROOT, 'project.js'), 'utf8');
 check(projSrc.includes('imageLane'), 'project save/load carries imageLane');
 

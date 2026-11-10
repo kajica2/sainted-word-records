@@ -285,6 +285,78 @@
     return window.SWR_IMAGE_STYLES || null;
   }
 
+  function slideshowApi() {
+    return window.SWR_SLIDESHOW || null;
+  }
+
+  function paintSlideshowStatus() {
+    var el = state.root && state.root.querySelector
+      ? state.root.querySelector('#demo-slideshow-status')
+      : document.getElementById('demo-slideshow-status');
+    var playBtn = state.root && state.root.querySelector
+      ? state.root.querySelector('#demo-slideshow-play')
+      : document.getElementById('demo-slideshow-play');
+    var api = slideshowApi();
+    var st = api && typeof api.getState === 'function' ? api.getState() : null;
+    if (el) {
+      if (!st || !st.total) {
+        el.textContent = 'No cues loaded yet.';
+      } else if (st.playing) {
+        el.textContent = 'Playing cue ' + (st.index + 1) + ' / ' + st.total
+          + (st.caption ? (' — ' + st.caption) : '');
+      } else {
+        el.textContent = st.total + ' cue' + (st.total === 1 ? '' : 's') + ' ready'
+          + (st.caption ? (' · last: ' + st.caption) : '');
+      }
+    }
+    if (playBtn) {
+      playBtn.textContent = (st && st.playing) ? 'Playing…' : 'Play';
+      playBtn.disabled = !!(st && st.playing);
+    }
+  }
+
+  function loadSlideshowScript(raw) {
+    var api = slideshowApi();
+    if (!api || typeof api.load !== 'function') return false;
+    var cues = api.load(raw);
+    paintSlideshowStatus();
+    return Array.isArray(cues) ? cues.length : 0;
+  }
+
+  function playSlideshow(raw) {
+    var api = slideshowApi();
+    if (!api) return false;
+    if (typeof api.load === 'function') api.load(raw);
+    var ok = typeof api.play === 'function' ? !!api.play() : false;
+    paintSlideshowStatus();
+    return ok;
+  }
+
+  function stopSlideshow() {
+    var api = slideshowApi();
+    if (!api || typeof api.stop !== 'function') return false;
+    api.stop();
+    paintSlideshowStatus();
+    return true;
+  }
+
+  function stepSlideshowStill(delta) {
+    var api = slideshowApi();
+    if (api && typeof api.advanceStill === 'function') {
+      var ok = !!api.advanceStill(delta);
+      paintSlideshowStatus();
+      invalidateRender();
+      return ok;
+    }
+    var lane = window.SWR_IMAGE_LANE;
+    if (lane && typeof lane.stepStill === 'function') {
+      var stepped = !!lane.stepStill(delta);
+      invalidateRender();
+      return stepped;
+    }
+    return false;
+  }
+
   function paintImageStyleButtons() {
     if (!state.root || !state.root.querySelectorAll) return;
     state.root.querySelectorAll('[data-demo-image-style]').forEach(function (btn) {
@@ -1173,6 +1245,78 @@
     secImg.appendChild(mk('p', 'demo-note', 'Fade · Depth · Move · Mask — how stills leave when media swaps. Depth also reorders the stack.'));
     secStage.appendChild(secImg);
     paintImageStyleButtons();
+
+    var secSlide = mk('div', 'demo-sec');
+    secSlide.appendChild(mk('h3', null, 'Slideshow script'));
+    var slideTa = document.createElement('textarea');
+    slideTa.id = 'demo-slideshow-script';
+    slideTa.setAttribute('aria-label', 'Slideshow script');
+    slideTa.rows = 7;
+    slideTa.spellcheck = false;
+    slideTa.placeholder = 'duration_ms | caption | optional still';
+    slideTa.style.cssText = 'width:100%;box-sizing:border-box;min-height:7.5em;margin:0 0 6px;padding:8px;font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;resize:vertical;';
+    var slideApi = slideshowApi();
+    var savedSlide = slideApi && typeof slideApi.getState === 'function' ? slideApi.getState() : null;
+    slideTa.value = (savedSlide && savedSlide.raw) || (slideApi && slideApi.DEFAULT_SCRIPT) || '';
+    secSlide.appendChild(slideTa);
+    var slideActs = mk('div', 'demo-grid');
+    var slideLoad = mk('button', null, 'Load');
+    slideLoad.type = 'button';
+    slideLoad.title = 'Parse and keep the script (does not play)';
+    regControl(slideLoad, 'slideshow:load', {
+      label: 'Load slideshow script',
+      invoke: function () { return loadSlideshowScript(slideTa.value); },
+    });
+    slideLoad.addEventListener('click', function () { loadSlideshowScript(slideTa.value); });
+    slideActs.appendChild(slideLoad);
+    var slidePlay = mk('button', null, 'Play');
+    slidePlay.type = 'button';
+    slidePlay.id = 'demo-slideshow-play';
+    regControl(slidePlay, 'slideshow:play', {
+      label: 'Play slideshow script',
+      invoke: function () { return playSlideshow(slideTa.value); },
+    });
+    slidePlay.addEventListener('click', function () { playSlideshow(slideTa.value); });
+    slideActs.appendChild(slidePlay);
+    var slideStop = mk('button', null, 'Stop');
+    slideStop.type = 'button';
+    regControl(slideStop, 'slideshow:stop', {
+      label: 'Stop slideshow',
+      invoke: function () { return stopSlideshow(); },
+    });
+    slideStop.addEventListener('click', function () { stopSlideshow(); });
+    slideActs.appendChild(slideStop);
+    var slidePrev = mk('button', null, '← Still');
+    slidePrev.type = 'button';
+    slidePrev.title = 'Previous still (also ←)';
+    regControl(slidePrev, 'slideshow:prev', {
+      label: 'Previous still',
+      invoke: function () { return stepSlideshowStill(-1); },
+    });
+    slidePrev.addEventListener('click', function () { stepSlideshowStill(-1); });
+    slideActs.appendChild(slidePrev);
+    var slideNext = mk('button', null, 'Still →');
+    slideNext.type = 'button';
+    slideNext.title = 'Next still (also →)';
+    regControl(slideNext, 'slideshow:next', {
+      label: 'Next still',
+      invoke: function () { return stepSlideshowStill(1); },
+    });
+    slideNext.addEventListener('click', function () { stepSlideshowStill(1); });
+    slideActs.appendChild(slideNext);
+    secSlide.appendChild(slideActs);
+    var slideStatus = mk('p', 'demo-note', '');
+    slideStatus.id = 'demo-slideshow-status';
+    secSlide.appendChild(slideStatus);
+    secSlide.appendChild(mk('p', 'demo-note', 'One cue per line: duration_ms | text | still#. Clocks like 0:12 work. ← / → step stills when the image lane has photos.'));
+    secStage.appendChild(secSlide);
+    paintSlideshowStatus();
+    try {
+      window.addEventListener('swr:slideshow-cue', paintSlideshowStatus);
+      window.addEventListener('swr:slideshow-play', paintSlideshowStatus);
+      window.addEventListener('swr:slideshow-stop', paintSlideshowStatus);
+    } catch (_) {}
+
     var sensSrc = document.getElementById('sens');
     addPaneSlider(secStage, {
       domId: 'demo-sensitivity',
