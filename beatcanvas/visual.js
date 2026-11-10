@@ -1,4 +1,4 @@
-import {visualState, VISUAL_STYLES, EXPORT_SECONDS, validateImages, imageSequenceIndex} from './visual-core.js';
+import {visualState, VISUAL_STYLES, EXPORT_SECONDS, validateImages, imageSequenceIndex, directorScene, DIRECTOR_MODES} from './visual-core.js';
 const $ = id => document.getElementById(id);
 const canvas=$('visual'), ctx=canvas.getContext('2d');
 const player=$('player'), style=$('visual-style'), status=$('render-status'), record=$('record');
@@ -6,6 +6,7 @@ let audioContext=null,analyser=null,meter=null,output=null,source=null,recording
 let images=[];
 let imageLoadToken=0;
 const assetInput=$('visual-assets'), assetStatus=$('asset-status');
+const director=$('director-mode'), sceneStatus=$('scene-status');
 assetInput.addEventListener('change',async()=>{
   const token=++imageLoadToken;
   const files=Array.from(assetInput.files||[]);
@@ -51,12 +52,17 @@ function draw(t, energy){
   const state=visualState({time:t,bpm,energy,style:style.value});
   const w=canvas.width,h=canvas.height, cx=w/2,cy=h/2;
   ctx.fillStyle='#050a14';ctx.fillRect(0,0,w,h);
-  const imageIndex=imageSequenceIndex(t,bpm,images.length);
+  const scene=directorScene(t,bpm,images.length,director.value);
+  const imageIndex=scene.index;
+  if(images.length) sceneStatus.textContent='Image '+(imageIndex+1)+' of '+images.length+' · '+scene.beatsPerScene+' beats per scene';
   if(imageIndex>=0){
     const img=images[imageIndex];
     const scale=Math.max(w/img.width,h/img.height);
     const iw=img.width*scale,ih=img.height*scale;
     ctx.drawImage(img,(w-iw)/2,(h-ih)/2,iw,ih);
+    // Subtle fade at the start of each scene, deterministic when seeking.
+    const entry=Math.min(1,scene.progress*8);
+    ctx.fillStyle='rgba(5,10,20,'+(0.22*(1-entry))+')';ctx.fillRect(0,0,w,h);
     ctx.fillStyle='rgba(3,8,18,.52)';ctx.fillRect(0,0,w,h);
   }
   if(state.style==='dark-pulse'){
@@ -86,6 +92,7 @@ function tick(){
 requestAnimationFrame(tick);
 player.addEventListener('play',()=>connect().catch(e=>status.textContent=e.message));
 style.addEventListener('change',()=>{if(!VISUAL_STYLES.includes(style.value))style.value=VISUAL_STYLES[0];});
+director.addEventListener('change',()=>{if(!DIRECTOR_MODES.includes(director.value))director.value='steady';});
 record.addEventListener('click',async()=>{
   if(recording||!player.src)return;
   if(!canvas.captureStream||!window.MediaRecorder){status.textContent='Recording is unsupported in this browser.';return;}
