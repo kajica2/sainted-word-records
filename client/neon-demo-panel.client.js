@@ -304,32 +304,86 @@
     return true;
   }
 
+  /**
+   * Image depth/media controls can run before stage:clips in the verify
+   * suite (controls are alphabetical). Seed the dance pack + remap so
+   * there is a selected layer and a multi-layer stack to act on.
+   */
+  function ensureImageLayersReady(minLayers) {
+    minLayers = minLayers == null ? 1 : minLayers;
+    var L = layers();
+    var Lib = window.Library || (window.SWR && window.SWR.Library);
+    var haveItems = !!(Lib && Array.isArray(Lib.items) && Lib.items.length);
+    var haveLayers = !!(L && Array.isArray(L.list) && L.list.length >= minLayers);
+    var chain = Promise.resolve(true);
+    if (!haveItems || !haveLayers) {
+      chain = installDemoClips().then(function () {
+        L = layers();
+        Lib = window.Library || (window.SWR && window.SWR.Library);
+        if (L && typeof L.remap === 'function' && Lib && Lib.items && Lib.items.length) {
+          try { L.remap(); } catch (_) {}
+        }
+        // Remap needs audio features + items; if still short, add directly.
+        L = layers();
+        Lib = window.Library || (window.SWR && window.SWR.Library);
+        if (L && typeof L.add === 'function' && Lib && Array.isArray(Lib.items)) {
+          var i = 0;
+          while (L.list.length < minLayers && i < Lib.items.length) {
+            var it = Lib.items[i++];
+            var used = L.list.some(function (l) { return l && l.asset === it; });
+            if (used) continue;
+            try { L.add(it); } catch (_) { break; }
+          }
+        }
+        return true;
+      });
+    }
+    return chain.then(function () {
+      L = layers();
+      if (!L || !Array.isArray(L.list) || !L.list.length) return null;
+      var sel = L.sel || L.selected;
+      if (!sel || L.list.indexOf(sel) < 0) {
+        sel = null;
+        for (var j = 0; j < L.list.length; j++) {
+          if (L.list[j] && !L.list[j].locked) { sel = L.list[j]; break; }
+        }
+        if (!sel) sel = L.list[0];
+        L.sel = sel;
+      }
+      if (sel && sel.locked) {
+        if (typeof L.toggleLock === 'function') L.toggleLock(sel);
+        else sel.locked = false;
+      }
+      return sel;
+    });
+  }
+
   function swapImageDepth() {
     var api = imageStylesApi();
-    var sel = selectedLayer();
-    if (!api || !sel) return false;
-    return !!api.swapDepth(sel);
+    if (!api || typeof api.swapDepth !== 'function') return false;
+    return ensureImageLayersReady(2).then(function (sel) {
+      if (!sel) return false;
+      return !!api.swapDepth(sel);
+    });
   }
 
   function swapNextImage() {
     var api = imageStylesApi();
-    var Lib = window.Library || (window.SWR && window.SWR.Library);
-    var sel = selectedLayer();
-    if (!api || !sel || !Lib || !Lib.items) return false;
-    if (sel.locked) {
-      var L = layers();
-      if (L && typeof L.toggleLock === 'function') L.toggleLock(sel);
-      else sel.locked = false;
-    }
-    var imgs = Lib.items.filter(function (it) {
-      return it && it.type === 'image' && it !== sel.asset;
+    if (!api || typeof api.swap !== 'function') return false;
+    return ensureImageLayersReady(1).then(function (sel) {
+      if (!sel) return false;
+      var Lib = window.Library || (window.SWR && window.SWR.Library);
+      if (!Lib || !Array.isArray(Lib.items) || !Lib.items.length) return false;
+      var imgs = Lib.items.filter(function (it) {
+        return it && it.type === 'image' && it !== sel.asset;
+      });
+      if (!imgs.length) {
+        imgs = Lib.items.filter(function (it) { return it && it !== sel.asset; });
+      }
+      if (!imgs.length) return false;
+      var pick = imgs[Math.floor(Math.random() * imgs.length)];
+      return !!api.swap(sel, pick);
     });
-    if (!imgs.length) {
-      imgs = Lib.items.filter(function (it) { return it && it !== sel.asset; });
-    }
-    if (!imgs.length) return false;
-    var pick = imgs[Math.floor(Math.random() * imgs.length)];
-    return !!api.swap(sel, pick);
   }
 
   function paintAspectButtons() {
