@@ -44,3 +44,11 @@ Reuse root audio-analysis-v2.js (browser global API), do not modify its algorith
 - Still missing: real image/video layers, reproducible song-section sequencing, MP4 fallback, full-song export, cross-browser export verification, and three-output workflow.
 - Manual smoke gate: load song, play/pause/seek, switch all styles, record 15-second clip with both picture and audio, then re-upload another file.
 - Run visual.test.mjs, previous BeatCanvas tests, existing BPM and section gates, full Vite build. No production merge without all gates and reviewed preview.
+
+## Stage 3 image-sequencing spike
+- Optional local PNG/JPEG/WebP batch (up to 12 images, 12 MB/image), decoded as ImageBitmap and held only in memory.
+- Deterministic image selection every four detected beats, looping throughout the preview and short recording. When BPM is unclear use 90 BPM as a clearly documented timing fallback.
+- Cover-fit images below procedural FX; no raw asset upload, server persistence or image export.
+- Still **not** a section-aware director, transition editor, full track exporter or three-asset release workflow.
+- Manual QA: add 3 images, change song, seek timeline, validate index mapping, record and inspect 15-second video/audio; ensure invalid inputs do not replace a valid set.
+- Caution: preview recording relies on real-time playback and browser MediaRecorder. Verify synchrony and cleanup on target browsers. Do not merge without completing this gate.
