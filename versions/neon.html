@@ -1671,6 +1671,25 @@
         if (!A.el) { setStatus('load a song first', ''); return; }
         try { A.seek(0); } catch (_) {}
         try { await A.play(); } catch (_) {}
+        // The AudioContext is born suspended and only resumes inside a real
+        // gesture. The silent load at page start is not one, so the graph could
+        // sit suspended while the element plays perfectly: the clock advances,
+        // the analyser reads zero and the room stays quiet. REC is a gesture -
+        // resume here, and re-assert the output chain in case the graph was
+        // rebuilt under us (a duplicate connect() is a no-op in WebAudio).
+        try {
+          if (!A.ctx && typeof A.unlock === 'function') A.unlock();
+          if (A.ctx) {
+            if (A.ctx.state !== 'running') await A.ctx.resume();
+            if (A.analyser && A.gain) {
+              A.analyser.connect(A.gain);
+              A.gain.connect(A.ctx.destination);
+            }
+          }
+        } catch (_) {}
+        if (A.ctx && A.ctx.state !== 'running') {
+          setStatus('sound is blocked - click anywhere, then press REC again', 'warn');
+        }
         const fpsSel = $('rec-fps') ? $('rec-fps').value : '30';
         const fps = parseInt(fpsSel, 10) || 30;
         const qualSel = $('rec-quality') ? $('rec-quality').value : 'high';
