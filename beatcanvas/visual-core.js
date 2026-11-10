@@ -1,5 +1,5 @@
 // Deterministic, dependency-free animation parameters; no file or network access.
-export const VISUAL_STYLES = Object.freeze(['dark-pulse', 'organic-motion', 'minimal-type']);
+export const VISUAL_STYLES = Object.freeze(['video-strips', 'dark-pulse', 'organic-motion', 'minimal-type']);
 export const EXPORT_SECONDS = 15;
 export function visualState({time=0,bpm=0,energy=0,style='dark-pulse'}={}) {
   const speed = Number.isFinite(bpm) && bpm > 0 ? bpm / 60 : 0.6;
