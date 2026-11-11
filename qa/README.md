@@ -82,5 +82,71 @@ server; the configured default is the production-shaped one.
 3. Add semantic visual baselines and multi-agent review with explicit approval before changes.
 4. Add dedicated worker leases, checkpointing and durable retries for always-on operation. A GitHub Action on PRs is not an always-on service.
 
+## The route table
+
+`swarm.config.json` carries 148 routes. They were derived from the site's
+own `vercel.json` rewrites — every source that resolves to a shipped page
+— and then checked against the deployed site: a route enters the table
+only if the preview and production answer it the same way.
+
+**The preview must apply the rewrites, or the table measures the wrong
+document.** `vite preview` resolves `/atlas` on its own, because Vite's
+static middleware finds `dist/atlas.html` for the path `/atlas` — but it
+answers `/play` with the HOME PAGE, because the real file is
+`dist/versions/play.html` and nothing rewrites the path to reach it.
+Twenty-six of the 148 routes were therefore measuring the home page
+instead of the page they name. The fix is in `vite.config.js`: the
+`dev-vercel-rewrites` plugin now hooks `configurePreviewServer` as well as
+`configureServer`, so the preview answers the same routes production
+does.
+
+The runner now proves it on every run: it reads the home page's title
+first, and any route that answers with that title is a **soft 404** — a
+200 that is not the page — and is reported as a high-severity finding.
+
+## Accessibility
+
+`qa/a11y.mjs` is the one place axe-core is invoked, and `scripts/check-a11y.mjs`
+is the gate that uses it. The gate compares the per-rule instance counts
+against `qa/a11y-baseline.json` and fails when any rule's count rises. A
+count that falls is reported but is not a failure — it means the baseline
+should be lowered with `--update-baseline` once the fix has landed.
+
+The baseline stores the counts, the pages that carry each rule, and one
+example element per rule: a count with no location is not a work item.
+
+axe-core is a devDependency on purpose. A gate that fetches its tool from
+a CDN is a gate that fails when the network fails, and it cannot tell "the
+page has a contrast problem" from "fonts.googleapis.com was slow today".
+
+Three rules the gate follows because each one was learned the hard way:
+
+- **It uses Puppeteer**, the browser the CI runner installs. Playwright's
+  browser is not installed there, and a gate that depends on a tool the
+  runner does not ship makes that tool's install a gate for every PR.
+- **It pins the colour scheme.** `lib/nav.client.js` takes the theme from
+  the OS preference, so the same build renders a different palette on a
+  dark-mode machine and on a runner with no preference. The counts are a
+  claim about the palette, not about the code: the same commit measured
+  3425 contrast instances on a dark-mode Mac and 4546 on CI, and the
+  gate failed against its own baseline. Light is the tokens' documented
+  default, so that is what is measured.
+- **It binds an ephemeral port.** A fixed port is a shared global: a
+  stale server left by an earlier run would answer this run's readiness
+  poll, and the gate would report the stale server's pages as its own.
+  The port is CHOSEN by asking the OS for a free one and handed to
+  vite — not parsed out of vite's output. Parsing the log worked
+  locally and failed on CI, where nothing in the captured stdout
+  matched: a readiness poll that depends on a log line's format is a
+  readiness poll that breaks when the tool changes how it logs.
+- **A route it could not measure is a failure, not a skip.** A gate that
+  silently measures nothing reports clean, and "no rule regressed" over
+  zero pages is the shape of a false green.
+
+The baseline is taken in the gate's own browser. Chromium versions render
+differently — the same build measured with Playwright's Chromium and
+Puppeteer's Chromium gives 4804 contrast instances and 3425 — so a
+baseline taken in a different browser is a baseline of a different site.
+
 ## Required merge gates
 Green existing CI, new QA evidence inspected, no unauthorized production side effects, human review. No auto-merge.

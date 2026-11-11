@@ -680,7 +680,17 @@
     var VP = window.VersionsPresets;
     if (!VP || !pageKey) return false;
     if (VP.setPresetOverride) VP.setPresetOverride(pageKey);
-    var ok = VP.applyPreset && VP.applyPreset(pageKey);
+    // The preset's grade GLIDES into place instead of cutting to it.
+    // morph() runs the same applyPreset() and then eases the FX state from
+    // the grade that was on screen into the new one; without the transition
+    // module the preset still applies, just instantly.
+    var T = window.SWR_PRESET_TRANSITION;
+    var ok;
+    if (T && typeof T.morph === 'function') {
+      ok = T.morph(function () { return VP.applyPreset && VP.applyPreset(pageKey); });
+    } else {
+      ok = VP.applyPreset && VP.applyPreset(pageKey);
+    }
     if (ok === false) return false;
     window.__swrCurrentPreset = pageKey;
     if (window.SWR_PRESET_PICK && typeof window.SWR_PRESET_PICK.save === 'function') {

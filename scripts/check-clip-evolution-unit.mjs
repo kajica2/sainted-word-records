@@ -87,7 +87,7 @@ function makeComposition(opts) {
     CustomEvent: function (type, opts) { this.type = type; this.detail = opts && opts.detail; },
     URL: opts.url || { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} },
     window: {
-      addEventListener: (t, fn) => { (listeners[t] = listeners[t] || []).push(fn); },
+      addEventListener: (t, fn) => { (listeners[t] || (listeners[t] = [])).push(fn); },
       // auto-populate runs when the stage is empty; `add` must exist for the
       // media-pool path (mediaWraps) to be reached.
       SWR: { Layers: { list: opts.layers || [], add: () => {} } },
@@ -100,6 +100,18 @@ function makeComposition(opts) {
     },
     document: { dispatchEvent: () => {} },
   };
+  // The runtime owns the config; the composition reads it (never parses it).
+  if (opts.runtimeConfig !== undefined) {
+    sb.window.SWR_AUTOMIX_RUNTIME = { _config: () => opts.runtimeConfig };
+  }
+  // Targeting classifies the session into a persona; the variant switcher
+  // holds the active visual language. Both are optional surfaces.
+  if (opts.persona) {
+    sb.window.SWR_TARGETING = { persona: () => opts.persona };
+  }
+  if (opts.variant) {
+    sb.window.SWR_VARIANTS = { current: () => opts.variant };
+  }
   sb.self = sb;
   vm.createContext(sb);
   vm.runInContext(compSrc, sb);
@@ -254,6 +266,86 @@ check('14. composition: missing scheduler degrades to no-op', () => {
   sb.self = sb;
   vm.createContext(sb);
   vm.runInContext(compSrc, sb); // must not throw without SWR_LAYER_SCHEDULER
+});
+
+// ---- Composition: setProfiles / arcOnly / context profile maps ----------
+//
+// These lock the Phase-2 + Phase-3 contracts:
+//   - setProfiles(partial) overrides the applied cut window
+//   - getProfiles() exposes the LIVE profile map (the image lane reads it)
+//   - arcOnly leaves the scheduler untouched (the arc still drives FX)
+//   - the persona/variant maps are DATA and they differ on peak
+
+check('26. composition: setProfiles changes the applied cut window', () => {
+  const c = makeComposition();
+  const C = c.win.SWR_AUTOMIX_COMPOSITION;
+  assert(typeof C.setProfiles === 'function', 'setProfiles is not exposed');
+  C.setProfiles({ peak: { minSeconds: 1.5, maxSeconds: 3 } });
+  c.dispatch('swr-automix-glide', { actIndex: 1, actName: 'peak', actProgress: 0 });
+  assert(c.sched.configs.length === 1, 'the peak act did not apply a profile');
+  assert(c.sched.configs[0].minSeconds === 1.5 && c.sched.configs[0].maxSeconds === 3,
+    'setProfiles did not change the applied window: ' + JSON.stringify(c.sched.configs[0]));
+});
+
+check('27. composition: getProfiles exposes the live profile map', () => {
+  const c = makeComposition();
+  const C = c.win.SWR_AUTOMIX_COMPOSITION;
+  assert(typeof C.getProfiles === 'function', 'getProfiles is not exposed');
+  const before = C.getProfiles();
+  assert(before && before.peak && typeof before.peak.minSeconds === 'number',
+    'getProfiles returned no peak profile');
+  C.setProfiles({ peak: { minSeconds: 1.25, maxSeconds: 2.5 } });
+  assert(C.getProfiles().peak.minSeconds === 1.25,
+    'getProfiles did not reflect setProfiles');
+});
+
+check('28. composition: arcOnly leaves the scheduler untouched', () => {
+  const c = makeComposition({ runtimeConfig: { arcOnly: true } });
+  c.dispatch('swr-automix-glide', { actIndex: 0, actName: 'intro', actProgress: 0 });
+  assert(c.sched.configs.length === 0, 'arcOnly still configured the scheduler');
+  assert(c.sched.swapNows === 0, 'arcOnly still cut the clip');
+});
+
+check('29. composition: without arcOnly the scheduler IS configured', () => {
+  const c = makeComposition({ runtimeConfig: { arcOnly: false } });
+  c.dispatch('swr-automix-glide', { actIndex: 0, actName: 'intro', actProgress: 0 });
+  assert(c.sched.configs.length === 1, 'the scheduler was not configured');
+});
+
+check('29b. composition: arcOnly also freezes the within-act window', () => {
+  const c = makeComposition({ runtimeConfig: { arcOnly: true } });
+  // A second glide inside the SAME act reaches the cadence-envelope path,
+  // which is a separate scheduler write from the act-change cut.
+  c.dispatch('swr-automix-glide', { actIndex: 0, actName: 'intro', actProgress: 0 });
+  c.dispatch('swr-automix-glide', { actIndex: 0, actName: 'intro', actProgress: 0.5 });
+  assert(c.sched.progress.length === 0, 'arcOnly still moved the within-act window');
+  assert(c.sched.configs.length === 0, 'arcOnly still configured the scheduler');
+  assert(c.sched.swapNows === 0, 'arcOnly still cut the clip');
+});
+
+check('30. composition: two personas differ on peak', () => {
+  const a = makeComposition({ persona: 'live-vj' });
+  const b = makeComposition({ persona: 'anchor-curator' });
+  const pa = a.win.SWR_AUTOMIX_COMPOSITION.getProfiles().peak;
+  const pb = b.win.SWR_AUTOMIX_COMPOSITION.getProfiles().peak;
+  assert(pa.minSeconds !== pb.minSeconds,
+    `live-vj (${pa.minSeconds}) and anchor-curator (${pb.minSeconds}) agree on peak`);
+});
+
+check('31. composition: two variants differ on peak', () => {
+  const a = makeComposition({ variant: 'grid' });
+  const b = makeComposition({ variant: 'film' });
+  const pa = a.win.SWR_AUTOMIX_COMPOSITION.getProfiles().peak;
+  const pb = b.win.SWR_AUTOMIX_COMPOSITION.getProfiles().peak;
+  assert(pa.minSeconds !== pb.minSeconds,
+    `grid (${pa.minSeconds}) and film (${pb.minSeconds}) agree on peak`);
+});
+
+check('32. composition: an unknown persona or variant keeps the base profiles', () => {
+  const c = makeComposition({ persona: 'not-a-persona', variant: 'not-a-variant' });
+  const p = c.win.SWR_AUTOMIX_COMPOSITION.getProfiles().peak;
+  assert(p.minSeconds === 2.5 && p.maxSeconds === 5,
+    'unknown context changed the base peak profile: ' + JSON.stringify(p));
 });
 
 // ---- Envelope follower (lib/swr-natural.client.js) -----------------------

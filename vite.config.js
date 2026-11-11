@@ -383,6 +383,21 @@ function devVercelRewrites() {
   let routes = [];
   let root = process.cwd();
 
+  // One middleware, used by the dev server AND the preview server: the
+  // two must answer the same routes, or a measurement taken against one
+  // of them does not describe the other.
+  const rewriteMiddleware = (req, _res, next) => {
+    const rawUrl = req.url || '/';
+    const pathname = decodeURIComponent(rawUrl.split('?')[0]);
+    const hit = routes.find((r) => r.source === pathname);
+    if (!hit) return next();
+
+    const query = rawUrl.includes('?') ? '?' + rawUrl.split('?').slice(1).join('?') : '';
+    req.url = hit.destination + query;
+    process.stderr.write(`[dev-rewrites] ${pathname} -> ${hit.destination}\n`);
+    next();
+  };
+
   return {
     name: 'dev-vercel-rewrites',
     apply: 'serve',
@@ -410,17 +425,23 @@ function devVercelRewrites() {
       process.stderr.write(`[dev-rewrites] ${routes.length} vercel.json rewrite(s) active in dev\n`);
     },
     configureServer(server) {
-      server.middlewares.use((req, _res, next) => {
-        const rawUrl = req.url || '/';
-        const pathname = decodeURIComponent(rawUrl.split('?')[0]);
-        const hit = routes.find((r) => r.source === pathname);
-        if (!hit) return next();
-
-        const query = rawUrl.includes('?') ? '?' + rawUrl.split('?').slice(1).join('?') : '';
-        req.url = hit.destination + query;
-        process.stderr.write(`[dev-rewrites] ${pathname} -> ${hit.destination}\n`);
-        next();
-      });
+      server.middlewares.use(rewriteMiddleware);
+    },
+    // The PREVIEW server needs the same rewrites as the dev server, and for
+    // a sharper reason: the QA surface measures the built site through it.
+    //
+    // Without this, `vite preview` resolves `/atlas` (because Vite's
+    // static middleware finds `dist/atlas.html`) but answers `/play` with
+    // the HOME PAGE — the real file is `dist/versions/play.html`, and
+    // nothing rewrites the path to reach it. Twenty-six of the QA
+    // surface's routes were silently measuring the home page instead of
+    // the page they name, which is how a surface can report 148 routes
+    // while covering 122 pages.
+    //
+    // A rewrite here does the same thing production does: the pathname is
+    // rewritten in place and the served bytes are the destination file's.
+    configurePreviewServer(server) {
+      server.middlewares.use(rewriteMiddleware);
     },
   };
 }

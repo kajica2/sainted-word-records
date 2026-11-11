@@ -8,6 +8,12 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **A still no longer drifts while it is being swapped.** The ambient
+  Ken Burns pan and zoom kept running through the dissolve, so a
+  picture that moved while it faded read as a glitch rather than as a
+  transition. The motion is switched off for the length of the swap
+  (`SWR_RENDER.isSwapping`), and the swap's own slide — the Move style's
+  flow — is untouched. Gate: `npm run check:preset-transition-unit`.
 - **Remo history and import stay usable after review findings.**
   Empty v1/v2 imports re-seed the starter envelopes. Preset undo
   captures the envelope id it edited. Coalesced depth edits keep the
@@ -37,6 +43,15 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **A preset change glides instead of cutting.** Picking a grade or an
+  FX preset wrote the sixteen grade uniforms in one frame, so the
+  picture jumped from one look to the next. `SWR_PRESET_TRANSITION.morph()`
+  runs the very same apply and then eases the grade from what was on
+  screen into the new one over 420 ms. It is interruptible, it yields to
+  a slider the user is dragging, and the applied value stays the final
+  state, so the recorder and the export path still read the new grade.
+  The looks menu, the demo panel's preset rows and the command centre
+  all go through it. Gate: `npm run check:preset-transition-unit`.
 - **Image layer swap styles (Fade · Depth · Move · Mask).** Stills can
   leave via opacity dissolve, stack reordering, flow slide + Ken Burns
   drift, or a mask-illusion dissolve. Demo panel section on NEON;
@@ -307,7 +322,70 @@ once it hits 1.0.
   `SWR.Audio`, so the default song never started. `load` is now the same
   path as `loadFile`.
 - **The engine page logged a WebGL failure, a document 504, and a long frame on every paint.** Post-process now follows the WebGL gate: with it off (the default) it does not call `getContext` and does not warn, and it still publishes `window.FX` so looks and sliders have somewhere to write. The warning stays only when the page asked for WebGL and the browser refused a context. A navigation that throws or comes back 5xx is served from the precached shell (`/engine`, `/engine.html`, `/`, `/offline.html`) instead of the gateway response. The stage palette tint is rasterised once per size and palette and blitted, rather than rebuilt as two full-canvas gradients inside every animation frame.
-- **Five more pages scrolled sideways, and one threw on every load.** The
+- **The shot list showed 60 broken images.** `shotlist/index.html` linked
+  its frame binaries in `shotlist/_candidates_web/` — a directory that is
+  gitignored and never deployed, so every one of them was a 404 in
+  production. The page said as much in its own copy and linked them
+  anyway. The tiles keep their place in the grid and their drag
+  behaviour, and show the frame's name instead; the slot preview does the
+  same, and a click copies the name rather than opening a file that is
+  not there.
+- **`check:dist-links` never checked a bare relative reference.** Its
+  pattern only matched `./`-prefixed paths, so `src="_candidates_web/x.png"`
+  — a dead link — looked healthy to it. It now checks bare relative media
+  references as well, resolving each from every path the page is served
+  at. The old shotlist page fails that check with all 61 of its dead
+  references named.
+- **The version pill pushed the "Open editor" button 514px off the edge.**
+  Twenty-two links in a flex row that could not shrink, with the
+  overflow handling applied only below 1100px — which is exactly where it
+  was not needed. The pill scrolls now, at every width, and is focusable
+  so it can be scrolled from the keyboard.
+- **The QA preview was measuring the home page for 26 of its 148 routes.**
+  `vite preview` resolves `/atlas` on its own — Vite's static middleware
+  finds `dist/atlas.html` for the path `/atlas` — but it answered `/play`
+  with the home page, because the real file is `dist/versions/play.html`
+  and nothing rewrote the path to reach it. Twenty-six routes were
+  silently measuring the wrong document, so a surface that reported 148
+  routes was covering 122 pages. `vite.config.js`'s `dev-vercel-rewrites`
+  plugin now hooks `configurePreviewServer` as well as `configureServer`,
+  so the preview answers the same routes production does — all eleven
+  spot-checked routes now serve their own page, matching production's
+  titles exactly. The runner reads the home page's title first and
+  reports any route that answers with it as a **soft 404**, so the class
+  cannot come back unnoticed.
+- **Accessibility had no gate at all.** axe-core is now a devDependency
+  (the site never loads it; only the tools do), `qa/a11y.mjs` is the one
+  place it is invoked, and `scripts/check-a11y.mjs` compares the
+  per-rule instance counts against a committed baseline. A rule that
+  regresses fails the gate; a rule that improves is reported so the
+  baseline can be lowered. The baseline stores the counts, the pages that
+  carry each rule, and one example element per rule — a count with no
+  location is not a work item. The gate uses **Puppeteer**, the browser
+  the CI runner installs — a gate that needs a browser nobody installed is
+  a gate that fails on CI and nowhere else — and it binds an **ephemeral
+  port** — chosen by asking the OS for a free one, not parsed out of
+  vite's log — so a stale server from an earlier run can never answer
+  its  readiness poll. A route it could not measure is a failure, not a skip:
+  a gate that silently measures nothing reports clean. The gate also
+  **pins the palette and the font stack**: `lib/nav.client.js` takes the
+  theme from the OS preference, so the same build rendered a different
+  palette on a dark-mode machine and on a runner with no preference —
+  3425 contrast instances against 4546, and the gate failed against its
+  own baseline. The theme is now set on the document before the
+  measurement, and the font stack is pinned to a metric-compatible pair,
+  so neither an OS preference nor a font CDN can move the count. Every
+  wait in the gate is bounded — the webfont wait included, because
+  `document.fonts.ready` never settles when a font request hangs — and the
+  gate has a global ceiling, because a gate that can hang hangs CI for
+  the runner's six-hour limit and tells you nothing about the code. The CI
+  job's own ceiling went from 90 minutes to 150: the check group grew to
+  140 steps and the job was being killed at 92 minutes, mid-group, with
+  every gate before it green. A timeout that fires while the work is
+  still running is not a budget, it is a cancellation. The ceiling went
+  again, to 240: the same group takes ten minutes on this machine and
+  120+ minutes on a loaded GitHub runner, and a job killed at 145 minutes
+  with every gate green has proved nothing.- **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —
   and found five more real defects. Four were the class cycle 2 already

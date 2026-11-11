@@ -644,6 +644,24 @@
   // image layer's reactive result. The clock accumulates only while the song
   // plays, so a paused song freezes photos exactly like it pauses a video.
   // Phase is a name hash — stacked photos never drift in lockstep.
+  // A layer is "swapping" while a crossfade is in flight: the fade-out
+  // phase (engine-timing still holds _swapPending) and the fade back in
+  // (the opacity is still travelling toward its target).
+  //
+  // While that is true the ambient Ken Burns motion is switched off. A
+  // still that drifts and zooms while it dissolves reads as a glitch, not
+  // as a transition — the picture should hold its pose and let the swap do
+  // the moving. The swap's OWN motion (the Move style's slide) is a
+  // separate offset and stays: that is the style, not the drift.
+  function isSwapping(l) {
+    if (!l) return false;
+    if (l._swapPending) return true;
+    if (typeof l._currentOpacity === 'number' && typeof l._targetOpacity === 'number') {
+      return Math.abs(l._currentOpacity - l._targetOpacity) > 1e-3;
+    }
+    return false;
+  }
+
   function imageEvolve(l, r) {
     const a = l && l.asset;
     if (!a || a.type !== 'image' || !r) return r;
@@ -666,9 +684,11 @@
     const zoomOk = !(window.SWR_MOTION_KILL
       && typeof window.SWR_MOTION_KILL.isZoomGloballyEnabled === 'function'
       && !window.SWR_MOTION_KILL.isZoomGloballyEnabled());
-    const z = zoomOk ? (1 + 0.045 * (0.5 + 0.5 * Math.sin(tt * 0.10 + ph))) : 1;
-    const px = 0.020 * Math.sin(tt * 0.061 + ph * 1.7);
-    const py = 0.014 * Math.cos(tt * 0.083 + ph * 2.3);
+    // No drift, no zoom, while the still is being swapped.
+    const swapping = isSwapping(l);
+    const z = (zoomOk && !swapping) ? (1 + 0.045 * (0.5 + 0.5 * Math.sin(tt * 0.10 + ph))) : 1;
+    const px = swapping ? 0 : 0.020 * Math.sin(tt * 0.061 + ph * 1.7);
+    const py = swapping ? 0 : 0.014 * Math.cos(tt * 0.083 + ph * 2.3);
     const sw = state.cssW || (state._stage && state._stage.width) || 1280;
     const sh = state.cssH || (state._stage && state._stage.height) || 720;
     // Move-style flow dissolve offsets (engine-timing / image-layer-styles).
@@ -693,6 +713,7 @@
     fit, frame, invalidate, setBackground, setDprCap, setAutoDpr, devicePixelRatio,
     resolveBlend, backdropIsEmpty, DEGENERATE_ON_DARK, SAFE_OVER_DARK,
     imageEvolve,
+    isSwapping,
     // DPR-ratchet introspection + control. isAutoDprLowStale() answers the
     // testable question "is the persisted lower bound older than 30 days?";
     // clearAutoDprLow() is the "Reset DPR" action the UI control calls.

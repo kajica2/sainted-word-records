@@ -202,7 +202,18 @@
     // setPersona reads only the fields it knows, so the full entry is safe
     // to hand over and keeps versions-presets.js the only place a grade is
     // defined.
-    window.FX.setPersona(preset);
+    //
+    // The grade GLIDES rather than snaps. SWR_PRESET_TRANSITION.morph runs
+    // the very same setPersona() call and then eases the state from the
+    // grade that was on screen into the new one; without it the picture
+    // cut from one look to the next. The module is optional — on a page
+    // that does not load it, the grade still applies, just instantly.
+    const T = window.SWR_PRESET_TRANSITION;
+    if (T && typeof T.morph === 'function') {
+      T.morph(() => window.FX.setPersona(preset));
+    } else {
+      window.FX.setPersona(preset);
+    }
     mirrorIntoSliders(preset);
     return true;
   }

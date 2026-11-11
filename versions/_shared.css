@@ -90,6 +90,15 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* Version selector pill */
 .versions {
   display: flex; align-items: center; gap: 2px;
+  /* The pill holds 22 links. It is a flex item, so its default
+     `min-width: auto` floors it at min-content — which is wider than the
+     whole bar, and the "Open editor" button was pushed 514px off the
+     right edge at 1440px. The bar scrolls the pill instead of losing
+     the button. The old rule did this only below 1100px, which is
+     exactly where it was NOT needed. */
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
   padding: 3px;
   background: var(--bg-panel, #F4F4F0);
   border: 1px solid var(--line, #E8E2D8);
