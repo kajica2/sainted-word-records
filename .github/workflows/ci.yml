@@ -89,9 +89,20 @@ jobs:
     # runner looks like when the machine is busy. A ceiling that only
     # fits a fast day is a ceiling that fires on a slow one, and a job
     # killed at 145 minutes with every gate green has proved nothing.
-    # 240 is twice the worst observed duration; GitHub's own maximum is
-    # 360.
-    timeout-minutes: 240
+    #
+    # 240 was not enough either. On 2026-11-11 the group was killed at
+    # the 240-minute mark, still inside the check step, and a check that
+    # ends CANCELLED cannot be merged at all — admin override refuses a
+    # cancelled required check, so a slow runner could not merge the
+    # work. The surface grew when main came in (the NEON demo panel
+    # brings ~100 more controls for the demo-panel gate to walk), and
+    # the group's cost grew with it.
+    #
+    # 360 is GitHub's own maximum for a job, so this is the last notch
+    # on the dial. The real fix for a group this slow is to split it
+    # across parallel jobs; until then the ceiling has to fit a slow
+    # day, not a fast one.
+    timeout-minutes: 360
     steps:
       - name: Checkout
         uses: actions/checkout@v4
