@@ -89,7 +89,7 @@ const CSS_BLOCK = `
 // page body (just before the <script src="./last-song.js"> tag).
 function buildOverlay(defaultSong) {
   return `
-  <div id="swr-start" role="button" aria-label="Start Sainted Word Records">
+  <div id="swr-start" role="button">
     <div class="box">
       <div class="arrow">▶</div>
       <div class="label">Drop a song</div>

@@ -77,6 +77,13 @@ const GROUPS = {
     // Accessibility: no rule may regress against the committed baseline.
     // The baseline counts can only go down — every fix lowers them.
     'npm run check:a11y',
+    // The accessible-name rule (WCAG 2.5.3) on the SOURCE. The a11y gate
+    // above measures the built site, but it reports counts and it needs a
+    // browser, so it cannot tell "this element's name broke" from "the
+    // measurement was noisy". This one asserts the rule directly, on the
+    // two element families the site ships, and holds a census of the rest
+    // against a baseline it may only shrink.
+    'npm run check:a11y-names-unit',
     // A page must load without a JavaScript error. /engine-personas read
     // `currentPalette` while it was still in its temporal dead zone, and
     // the page threw on every load.

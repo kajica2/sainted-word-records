@@ -8,6 +8,35 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **Two controls now say the same thing to a screen reader as they do to
+  the eye (WCAG 2.5.3, "Label in Name").** An element's accessible name
+  has to CONTAIN the text the user can see; when it does not, the two
+  disagree and someone using a screen reader is told something that is
+  not on the page. The version badge showed "v2026.10.13.1" but named
+  itself "App version 2026.10.13.1, link to changelog" — on every one of
+  the 148 pages that load it. The drop-a-song overlay showed "Drop a
+  song" (and, on the two music-video pages, a sentence more) but named
+  itself "Start Sainted Word Records" / "Drop a song to begin". The badge
+  now leads its name with the text on screen, and the overlay has no
+  name of its own: it takes its name from what it shows, which is
+  exactly what the rule asks for. Measured in a real browser, before and
+  after, on the same pages: `/versions/music_video` went from two
+  `label-content-name-mismatch` violations to none, and `/engine` from
+  one to none.
+- **The audio toolkit gate no longer depends on the runner image's Python.**
+  The gate installs `numpy<2.1`, `scipy<1.15` and `matplotlib<3.10` and
+  then runs the toolkit's own selftest. On 2026-11-17 it failed with
+  "pip install of audio toolkit requirements failed", and the real cause
+  was nine minutes further up the log: pip had no wheel for Python 3.14
+  and fell back to building scipy from source, and the source build
+  needs OpenBLAS, which the image does not have. The runner had rolled
+  from ubuntu-24.04 (Python 3.12) to ubuntu-26.04 (Python 3.14) three
+  days earlier. The pins are deliberate — the requirements file says they
+  are there "so CI / local Python 3.12 installs stay reliable" — so CI now
+  pins the interpreter to 3.12 instead of inheriting whatever the image
+  ships. The gate also reports the interpreter it ran on, and a failed
+  install now names its cause instead of leaving it buried in a build
+  log. Gate: `npm run check:audio-toolkit`.
 - **One unreadable system reading no longer takes the control centre down.**
   `GET /api/control-centre?action=status` reads the serving instance's
   cores, load, memory, disk and uptime, and every one of those readings
@@ -81,6 +110,18 @@ once it hits 1.0.
   the id.
 
 ### Added
+- **A gate for the accessible-name rule that runs on the source, in
+  seconds, without a browser.** The accessibility gate measures the built
+  site and compares per-rule counts against a baseline, so it reports a
+  number and not a place — a regression of one element on one page is
+  indistinguishable from its own noise — and it cannot run on a
+  contributor's machine at all. `npm run check:a11y-names-unit` asserts
+  the rule directly on the two element families the site ships (the
+  version badge and every drop-a-song overlay), and holds a census of
+  every other labelled element against `qa/a11y-names-baseline.json` — a
+  baseline it may only shrink. The census starts at the 72 offenders
+  that predate the gate, every one of them listed, so the backlog is
+  visible and cannot grow.
 - **A preset change glides instead of cutting.** Picking a grade or an
   FX preset wrote the sixteen grade uniforms in one frame, so the
   picture jumped from one look to the next. `SWR_PRESET_TRANSITION.morph()`
