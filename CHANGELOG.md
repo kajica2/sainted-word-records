@@ -8,6 +8,17 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **One unreadable system reading no longer takes the control centre down.**
+  `GET /api/control-centre?action=status` reads the serving instance's
+  cores, load, memory, disk and uptime, and every one of those readings
+  can be refused by a restricted host — the uptime reading needs a sysctl
+  a sandbox does not grant. A refusal there rejected the whole request,
+  so a public status read answered 500 instead of status. Each reading is
+  now taken on its own (`uptimeUnavailable` says the uptime was not
+  readable), and each of the three sources of the status card stands
+  alone: one that cannot answer reports its own failure instead of
+  taking the other two down with it. Gate:
+  `npm run check:security-gates-unit`.
 - **Start demo no longer throws away the stage you built.** Start demo
   called `Layers.remap()`, which replaces the whole stack. That is right
   for an empty stage and wrong for a performer who had already staged a
