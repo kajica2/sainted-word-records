@@ -309,10 +309,37 @@ no listening socket behind (diffed before/after with `lsof`).
   them (axe only counts what is visible at measurement time, and most of
   these are behind a panel). The gate now holds them at 72 so the
   backlog cannot grow; working it down is the next piece of work.
-- **The a11y baseline is still 268.** The fix will lower the measured
-  count well under it, and the gate says "the baseline can be lowered"
-  rather than failing — but re-pinning needs a measurement, and the
-  measurement has a ±4 wobble on this runner (see Cause 4). Re-pin
-  against a run whose log is in hand, and re-pin to a value that leaves
-  the noise band covered.
+- **The a11y baseline is still 268, on purpose.** The fixed tree measured on
+  the runner (run 44028901345, head `dd67693c`):
+
+  ```
+  ▼ label-content-name-mismatch: 132 (baseline 268, -136, tolerance 2) on 22 pages
+  Accessibility gate: 3/3 checks passed
+  ```
+
+  268 → 132 on 118 pages → 22. The badge and the overlay are out of the
+  count, and the rule that could wobble upwards now cannot.
+
+  Re-pinning it would change the gate's behaviour **not at all**: the
+  tolerance is `max(2, floor(was * 0.002))`, an absolute floor of two
+  instances, and 2 × 0.002 = 0.26 is still 2 at a baseline of 268 and
+  still 2 at 132. The only differences would be the `▼` marker and the
+  "the baseline can be lowered" note.
+
+  The rules whose counts DID move are noise-dominated, and re-pinning
+  those down to one run's values would turn a passing gate into a
+  failing one:
+
+  | Rule | This run | Another run | Baseline | Tolerance |
+  |---|---|---|---|---|
+  | color-contrast | 4548 | 4566 | 4561 | 9 |
+  | landmark-one-main | 4 | 8 | 8 | 2 |
+  | page-has-heading-one | 4 | 8 | 8 | 2 |
+
+  A 4566 contrast count against a 4548 baseline is +18 against a
+  tolerance of 9 — a failure. An 8-vs-4 landmark count is +4 against a
+  tolerance of 2 — also a failure. So the baseline stays where it is,
+  as the safe ceiling for the noisy rules and a harmless ceiling for the
+  clean one. Lowering it belongs in a dedicated pass, against a settled
+  measurement, with the tolerance made proportional first.
 
