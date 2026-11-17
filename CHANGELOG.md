@@ -8,6 +8,33 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **Start demo no longer throws away the stage you built.** Start demo
+  called `Layers.remap()`, which replaces the whole stack. That is right
+  for an empty stage and wrong for a performer who had already staged a
+  layer: their layer disappeared when they pressed a button labelled "Start
+  demo". The demo now fills the slots that are empty — a row holding no
+  media, and the stack up to the three-layer cap — and leaves every
+  occupied slot exactly as it was. Remapping is still one click away.
+- **A dance pack that lost clips is refilled.** The pack loader treats
+  "already loaded" as success: it hands back its cached count and does not
+  re-add the files. A pack that lost some of its files (four of the
+  thirteen dance clips deleted) therefore still read as loaded, and Start
+  demo fetched nothing — the missing clips were never coming back. The
+  loader now answers how many files a complete pack holds
+  (`SWR_LIBRARY_PACKS.expectedCount`), and the demo drops and reloads a
+  pack that is short. A complete pack is never thrown away, and the layers
+  that pointed at a reloaded clip are re-pointed at the new item (matched
+  by name and size, the rule the Recent folder uses).
+- **The audio preset is remembered without losing the knobs.** Punch, Club,
+  Soft and Tight wrote `sens` / `gate` / `decay` for the session only, so a
+  reload could not show which preset was active. The preset id now lives in
+  the same page snapshot as the knobs it wrote, and the panel restores it
+  on the next visit: the buttons paint the preset and the audio core
+  matches. The restore waits for the page state to land on the controls
+  first — writing earlier saved the default knob values over the
+  performer's own — and if the knobs were moved away from the preset
+  afterwards, the knobs win and the stored preset id is dropped. A preset
+  that is no longer on screen is not the active preset.
 - **A still no longer drifts while it is being swapped.** The ambient
   Ken Burns pan and zoom kept running through the dissolve, so a
   picture that moved while it faded read as a glitch rather than as a

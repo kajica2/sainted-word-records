@@ -134,7 +134,18 @@
   // failures). Ordering by likelihood removes the wasted request instead of
   // filtering the error.
   const MANIFEST_CANDIDATES = ['/packs/manifest.json', '/library/manifest.json'];
+  // The manifest is asked for several times per page (the pack load, the
+  // covers, the toolbar). It is a build artefact — it does not change under
+  // a running page — so it is fetched once and kept. A failed fetch is NOT
+  // kept: the next caller retries, so a page that loaded before the network
+  // came up still recovers.
+  let manifestPromise = null;
   async function fetchManifest() {
+    if (manifestPromise) return manifestPromise;
+    manifestPromise = _fetchManifest().catch(err => { manifestPromise = null; throw err; });
+    return manifestPromise;
+  }
+  async function _fetchManifest() {
     let lastErr = null;
     for (const url of MANIFEST_CANDIDATES) {
       let r;
@@ -150,6 +161,28 @@
       return m;
     }
     throw lastErr || new Error('no manifest');
+  }
+
+  // How many files a COMPLETE pack holds, according to the manifest.
+  //
+  // The loader treats "already loaded" as success: load() returns without
+  // re-adding the files. So a pack that lost some of its files (the user
+  // deleted four of the thirteen dance clips) still reads as loaded, and
+  // nothing would fetch the missing ones again. A caller that repairs a pack
+  // compares what is in the library against this count.
+  //
+  // null means "unknown" — the manifest was unreachable, or the pack is not
+  // in it. Unknown is not zero: it must never be read as "the pack is empty".
+  async function expectedCount(id) {
+    const pack = PACKS.find((p) => p.id === id);
+    if (!pack) return null;
+    try {
+      const m = await fetchManifest();
+      const files = (m.packs && m.packs[pack.packKey]) || [];
+      return files.length ? files.length : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   function fileSizeOrNull(url) {
@@ -527,6 +560,7 @@
     unload,
     toggle,
     loaded,
+    expectedCount,
     state: stateOf,
     init,
   };

@@ -357,6 +357,17 @@ try {
       continue;
     }
 
+    if (meta.id === 'stage:clips') {
+      // The control installs the dance clips. When they are already
+      // installed, installing them again changes nothing — and that is the
+      // right answer: unloading a complete pack would throw away the very
+      // items the demo is here to keep. The gate asserts the outcome (the
+      // clips are on the stage), not that something moved.
+      if (afterProbe.clips > 0) ok(meta.id, 'dance clips installed (' + afterProbe.clips + ')');
+      else bad(meta.id, 'expected the dance clips on the stage, got ' + JSON.stringify(afterProbe));
+      continue;
+    }
+
     if (meta.id === 'stage:start') {
       if (afterProbe.cycling && afterProbe.clips > 0 && afterProbe.layers > 0 && afterProbe.playing) {
         ok(meta.id, 'dance clips staged, song playing, presets cycling');
