@@ -118,6 +118,37 @@ jobs:
           node-version: '24'
           cache: 'npm'
 
+      - name: Set up Python (the audio toolkit gate installs pip deps)
+        # The runner's OWN python3 is not a choice CI can make: the image
+        # ships whatever it ships, and it moves. On 2026-11-17 the runner
+        # rolled from ubuntu-24.04 (python 3.12) to ubuntu-26.04 (python
+        # 3.14), and check:audio-toolkit went red with
+        #   "pip install of audio toolkit requirements failed"
+        # whose cause was in the middle of a scipy BUILD:
+        #   "ERROR: Dependency \"OpenBLAS\" not found (tried pkg-config and cmake)"
+        #
+        # The reason is not the missing OpenBLAS. It is that
+        # tools/python-audio-toolkit/requirements.txt pins
+        #   numpy>=1.26,<2.1   scipy>=1.11,<1.15   matplotlib>=3.8,<3.10
+        # and NONE of those three publishes a cp314 wheel — verified with
+        # `pip download --only-binary=:all: --python-version 3.14`, which
+        # finds no matching distribution for any of them. pip therefore
+        # fell back to building scipy from source, and a source build
+        # needs OpenBLAS, which the image does not have. The build took
+        # 8m49s before failing.
+        #
+        # The pins are deliberate ("so CI / local Python 3.12 installs stay
+        # reliable" — the requirements file says so) and they are the right
+        # pins for the DSP stack this toolkit uses. So the interpreter is
+        # what gets pinned, not the requirements: 3.12 has a wheel for all
+        # three, and it is the version the requirements were written for.
+        # Pinning it here makes the gate's outcome a property of this
+        # repository instead of a property of the runner image's release
+        # cadence.
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         run: npm ci
 

@@ -50,6 +50,22 @@ const env = {
   PYTHONPATH: [toolkit, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter),
 };
 
+// The interpreter's version is part of the gate's REPORT, because it is
+// part of the gate's OUTCOME. The pinned requirements (numpy<2.1,
+// scipy<1.15, matplotlib<3.10) publish wheels for CPython 3.9-3.12 and
+// NOT for 3.13+. On an interpreter with no wheel, pip builds from source,
+// and a source build of scipy needs OpenBLAS — which is why a failure here
+// once read "pip install of audio toolkit requirements failed" and took
+// nine minutes to reach the real cause. Saying the version up front makes
+// the next occurrence legible in one line.
+const version = spawnSync(py, ['-c', 'import sys; print("%d.%d" % sys.version_info[:2])'], {
+  cwd: root,
+  env,
+  encoding: 'utf8',
+});
+const pyVersion = version.status === 0 ? String(version.stdout).trim() : 'unknown';
+console.log(`python: ${pyVersion} (${py})`);
+
 function hasNumpy() {
   const probe = spawnSync(py, ['-c', 'import numpy, scipy'], {
     cwd: root,
@@ -78,6 +94,19 @@ if (!hasNumpy()) {
     if (install2.status !== 0) {
       console.error(install2.stdout);
       console.error(install2.stderr);
+      // The failure mode that matters most here is NOT "pip is broken" but
+      // "this interpreter has no wheel for the pinned requirements, so pip
+      // built from source and the build system could not find a BLAS".
+      // Name that, because it is the difference between a five-minute fix
+      // (use an interpreter the pins support) and an afternoon of
+      // reinstalling system libraries.
+      console.error('');
+      console.error(`FAIL: pip could not install ${path.relative(root, reqs)} on Python ${pyVersion}.`);
+      console.error('The requirements pin numpy<2.1, scipy<1.15 and matplotlib<3.10,');
+      console.error('which publish wheels for CPython 3.9-3.12 but NOT for 3.13+.');
+      console.error('On an interpreter without a wheel, pip builds from source and the');
+      console.error('scipy build fails with "Dependency \\"OpenBLAS\\" not found".');
+      console.error('Fix: run this gate on Python 3.12 (CI pins it with actions/setup-python).');
       fail('pip install of audio toolkit requirements failed');
     }
   }
