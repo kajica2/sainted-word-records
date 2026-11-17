@@ -25,6 +25,13 @@ name: a11y A/B (one-shot)
 #      pages and elements, that is a real, locatable change.
 #
 # It writes nothing outside the run's own workspace.
+#
+# NOTE ON THE TOOLS: both scripts live on THIS branch only, and the job
+# checks out other commits to measure them — a checkout removes the scripts
+# from the working tree. They are therefore copied to /tmp before the first
+# checkout and restored into scripts/ after each one. The MEASUREMENT must
+# be the same instrument on both sides of the comparison, so the instrument
+# is carried with it.
 
 'on':
   push:
@@ -55,9 +62,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Carry the measurement tools out of the working tree
+        run: |
+          mkdir -p /tmp/a11y-tools
+          cp scripts/a11y-snapshot.mjs scripts/a11y-diff.mjs /tmp/a11y-tools/
+          ls -l /tmp/a11y-tools/
+
       - name: Measure the branch head, twice
         run: |
           git checkout -f origin/feat/neon-preset-transitions-20261110
+          cp /tmp/a11y-tools/*.mjs scripts/
           npm run build
           node scripts/a11y-snapshot.mjs --out /tmp/head-1.json
           node scripts/a11y-snapshot.mjs --out /tmp/head-2.json
@@ -65,25 +79,25 @@ jobs:
       - name: Measure the commit before the demo-panel work
         run: |
           git checkout -f 464c416a
+          cp /tmp/a11y-tools/*.mjs scripts/
           npm run build
-          # The snapshot script is new on the branch, so it is restored from
-          # the branch after the checkout — the MEASUREMENT must be the same
-          # instrument on both sides of the comparison.
-          git checkout origin/feat/neon-preset-transitions-20261110 -- scripts/a11y-snapshot.mjs scripts/a11y-diff.mjs
           node scripts/a11y-snapshot.mjs --out /tmp/prev.json
 
       - name: Diff — head against itself (the control)
         run: |
+          cp /tmp/a11y-tools/*.mjs scripts/
           echo '=================== head-1 vs head-2 (same commit, same runner)'
           node scripts/a11y-diff.mjs /tmp/head-1.json /tmp/head-2.json
 
       - name: Diff — head against the commit before the demo-panel work
         run: |
+          cp /tmp/a11y-tools/*.mjs scripts/
           echo '=================== head-1 vs prev (the actual question)'
           node scripts/a11y-diff.mjs /tmp/prev.json /tmp/head-1.json
 
       - name: Diff — the rule the gate complained about
         run: |
+          cp /tmp/a11y-tools/*.mjs scripts/
           echo '=================== label-content-name-mismatch, head vs prev'
           node scripts/a11y-diff.mjs /tmp/prev.json /tmp/head-1.json --rule label-content-name-mismatch
 
