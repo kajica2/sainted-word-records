@@ -1,0 +1,96 @@
+name: a11y A/B (one-shot)
+
+# ONE-SHOT — measurement only. No baseline is written by this workflow.
+#
+# WHY
+# ---
+# The accessibility gate reported label-content-name-mismatch 268 -> 272 on
+# the branch head, while the same gate on the commit before the demo-panel
+# work measured exactly 268 (the baseline). The gate's own comment records
+# that two runs of the SAME build differed by two contrast instances, so a
+# total of +4 does not yet say whether the demo-panel commits changed the
+# accessibility of the site, or whether the measurement wobbled.
+#
+# A total cannot answer that: 148 pages summed into one number cannot tell a
+# real change on two pages from the same wobble spread thinly over 148. So
+# this workflow measures the PER-PAGE counts (scripts/a11y-snapshot.mjs) and
+# diffs them (scripts/a11y-diff.mjs), on the same runner, in the same job:
+#
+#   1. the head, TWICE   -> if the two head snapshots differ, the
+#                           measurement itself is the wobble, and the +4 is
+#                           noise. (This is the control.)
+#   2. the commit before the demo-panel work, ONCE -> diffed against the
+#      head. If the per-page diff is empty, the demo-panel commits changed
+#      nothing about accessibility and the +4 is noise. If the diff names
+#      pages and elements, that is a real, locatable change.
+#
+# It writes nothing outside the run's own workspace.
+
+'on':
+  push:
+    branches:
+      - ci/a11y-ab-20261117
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ab:
+    name: measure head twice and the commit before, and diff per page
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Measure the branch head, twice
+        run: |
+          git checkout -f origin/feat/neon-preset-transitions-20261110
+          npm run build
+          node scripts/a11y-snapshot.mjs --out /tmp/head-1.json
+          node scripts/a11y-snapshot.mjs --out /tmp/head-2.json
+
+      - name: Measure the commit before the demo-panel work
+        run: |
+          git checkout -f 464c416a
+          npm run build
+          # The snapshot script is new on the branch, so it is restored from
+          # the branch after the checkout — the MEASUREMENT must be the same
+          # instrument on both sides of the comparison.
+          git checkout origin/feat/neon-preset-transitions-20261110 -- scripts/a11y-snapshot.mjs scripts/a11y-diff.mjs
+          node scripts/a11y-snapshot.mjs --out /tmp/prev.json
+
+      - name: Diff — head against itself (the control)
+        run: |
+          echo '=================== head-1 vs head-2 (same commit, same runner)'
+          node scripts/a11y-diff.mjs /tmp/head-1.json /tmp/head-2.json
+
+      - name: Diff — head against the commit before the demo-panel work
+        run: |
+          echo '=================== head-1 vs prev (the actual question)'
+          node scripts/a11y-diff.mjs /tmp/prev.json /tmp/head-1.json
+
+      - name: Diff — the rule the gate complained about
+        run: |
+          echo '=================== label-content-name-mismatch, head vs prev'
+          node scripts/a11y-diff.mjs /tmp/prev.json /tmp/head-1.json --rule label-content-name-mismatch
+
+      - name: Upload the snapshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-snapshots
+          path: /tmp/head-1.json
+          retention-days: 7
