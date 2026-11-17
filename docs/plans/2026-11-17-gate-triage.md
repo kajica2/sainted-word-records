@@ -149,9 +149,27 @@ evidence:
    the commits touched nothing those rules look at. That is the
    signature of the measurement, not of the code.
 
-The measurement races. The `#swr-start` overlay removes itself 600 ms
-after it is hidden, and the gate measures 700 ms after the fonts settle —
-so whether the overlay is still in the DOM when axe runs is a coin flip.
+### What the wobble actually is
+
+Three runs of essentially the same tree, on the same runner image:
+
+| Run | Head | label-content-name-mismatch | landmark-one-main | Outcome |
+|---|---|---|---|---|
+| 42954229132 | 464c416a | 268 (+0) | 8 | **cancelled** — hung six hours at this gate |
+| 44009031322 | 563df4bf | **272 (+4)** | 4 | gate FAILED, run continued to the audio gate |
+| 44019674722 | 8df5c438 | 268 (+0) | 8 | gate PASSED, then hung — cancelled by the next push |
+
+So the count wobbles between 268 and 272, and the two rules that move
+together are `label-content-name-mismatch` and `landmark-one-main` /
+`page-has-heading-one` — and the four pages that differ are the
+music-video family. One condition explains all of them: **the page had
+not finished settling when axe ran.** The `#swr-start` overlay removes
+itself 600 ms after it is hidden, and the gate measures 700 ms after the
+fonts settle; a page that is still settling is measured with the overlay
+still in the DOM and with its `<main>`/`<h1>` not yet injected. The
+overlay adds one violation, the missing landmark adds another, and four
+pages settling late is +4.
+
 At the gate's exact timing, on `/versions/music_video`, the old build had
 `startPresent: true` with two `label-content-name-mismatch` violations
 (`#swr-start`, `#swr-version-badge`) and the new build had
@@ -189,8 +207,9 @@ Measured in a real browser, before and after, on the same pages:
 | `/neon` | 0 | 0 |
 
 Because the overlay no longer contributes a violation whether or not it
-is still in the DOM, the race that produced the +4 cannot produce it
-again.
+is still in the DOM, **the rule that could wobble upwards can no longer
+wobble upwards at all.** The landmark and `<h1>` wobble remains, but it
+only ever moves DOWN, and a lower count never fails the gate.
 
 ### The gate that keeps it fixed
 
@@ -204,6 +223,75 @@ is visible and cannot grow. It runs in seconds and needs no browser,
 which is the gap the browser-measuring gate leaves: that gate reports a
 count and not a place.
 
+## Cause 5 — the accessibility gate hangs CI for six hours (FIXED)
+
+This is the one that explains everything else, and it was hiding in
+plain sight in the logs.
+
+**The gate never exits when it PASSES.** `scripts/check-a11y.mjs` spawns
+`npx vite preview` to serve the built site, and at the end it had:
+
+```js
+if (checks.some(c => !c.ok)) process.exit(1);
+console.log('OK');
+```
+
+On failure it exits. On success it falls off the end of the script — and
+the spawned preview server keeps node's event loop alive, so node never
+exits, so the `process.on('exit')` handler that would kill the server
+never fires either. `run-steps.mjs` waits for the step, so the whole
+`check:full` group waits, so the job waits, until the six-hour job
+timeout kills it.
+
+The proof is in the logs of two runs that were treated as "green":
+
+```
+2026-11-11T03:46:36Z Accessibility gate: 3/3 checks passed
+2026-11-11T03:46:36Z OK
+2026-11-11T09:40:03Z ##[error]The operation was canceled.        ← 5h53m later
+2026-11-11T09:40:04Z Terminate orphan process: pid (13154) (npm run check:a11y)
+```
+
+Run 42954229132 — the "reference green run" every comparison in this
+document is measured against — has conclusion **`cancelled`**, not
+`success`. It sat in `npm run check:a11y` for the full six-hour budget
+with every gate before it green.
+
+**The irony worth recording: the gate FAILING is what let CI finish.**
+On 2026-11-17 the gate went red on the four-instance wobble above, the
+failure called `process.exit(1)`, and the group sailed on to the
+audio-toolkit gate in minutes. The moment the a11y gate passed, the run
+stopped. Every "CI is just slow today" observation in this repo's
+history has this shape: a red gate let the run finish, a green one did
+not.
+
+### The fix
+
+- The server is spawned as its own **process group** and killed as a
+  group. `npx` spawns vite and vite spawns esbuild; a SIGTERM to npx
+  alone left the grandchildren running, and their inherited stderr pipe
+  is what held the parent's event loop open. `stopServer()` now signals
+  the group, waits, and escalates to SIGKILL.
+- The gate **exits explicitly on both paths**, and sets `process.exitCode`
+  rather than calling `process.exit()`, so stdout flushes properly — the
+  gate prints a line per rule, and a truncated log cannot be read.
+- The step has a **25-minute wall-clock budget** in `run-steps.mjs`, so a
+  gate that hangs again fails in minutes instead of taking the job's
+  budget with it. A timeout that fires while the work is still running is
+  a cancellation, not a verdict — but a cancellation at 25 minutes is
+  survivable and one at 360 is not.
+
+Verified locally without a browser, by reproducing the gate's exact
+spawn/kill/exit shape:
+
+| Shape | Result |
+|---|---|
+| the old one | prints `OK`, then **hangs** until killed (exit 124) |
+| the new one | prints `OK`, then exits on its own in 4.5 s (exit 0) |
+
+And with the real gate: it exits in 0.4 s instead of hanging, and leaves
+no listening socket behind (diffed before/after with `lsof`).
+
 ## Still open
 
 - **Plan item 3 — the Recent folder on `/engine`.** `engine.html` loads
@@ -212,3 +300,19 @@ count and not a place.
   See `docs/plans/2026-11-09-neon-demo-followups.md`.
 - **The browser gates on this host.** Not a repo problem, but it means
   the browser-driven half of the suite is unproven here. CI runs it.
+- **The 72-element accessible-name backlog.** The census in
+  `qa/a11y-names-baseline.json` lists every labelled element in the
+  shipped pages whose accessible name drops its visible text: icon
+  buttons like `← ver` named "Previous version", `×` named "Dismiss",
+  the `preset-editor` panel's glyph buttons. They are pre-existing, they
+  are real WCAG 2.5.3 violations, and the browser gate does not flag
+  them (axe only counts what is visible at measurement time, and most of
+  these are behind a panel). The gate now holds them at 72 so the
+  backlog cannot grow; working it down is the next piece of work.
+- **The a11y baseline is still 268.** The fix will lower the measured
+  count well under it, and the gate says "the baseline can be lowered"
+  rather than failing — but re-pinning needs a measurement, and the
+  measurement has a ±4 wobble on this runner (see Cause 4). Re-pin
+  against a run whose log is in hand, and re-pin to a value that leaves
+  the noise band covered.
+

@@ -8,6 +8,22 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **The accessibility gate no longer hangs CI for six hours when it
+  passes.** The gate spawns `npx vite preview` to serve the built site,
+  and it used to exit only on FAILURE — on success it fell off the end
+  of the script. The spawned server kept node's event loop alive, so
+  node never exited, so the `process.on('exit')` handler that would
+  kill the server never fired either. The group that spawned the gate
+  then waited forever, and the job sat there until its six-hour timeout
+  killed it: a cancelled run and a red PR, with every gate before it
+  green. The irony worth recording is that **the gate failing is what
+  let CI finish** — a failure calls `process.exit(1)`, a success did
+  not. The server is now spawned as its own process group and killed as
+  a group (`npx` spawns vite, vite spawns esbuild, and a signal to npx
+  alone left the grandchildren alive with their stderr pipe still open),
+  and the gate exits explicitly on both paths. The step also has a
+  25-minute wall-clock budget, so a gate that hangs again fails in
+  minutes instead of taking the whole job's budget with it.
 - **Two controls now say the same thing to a screen reader as they do to
   the eye (WCAG 2.5.3, "Label in Name").** An element's accessible name
   has to CONTAIN the text the user can see; when it does not, the two

@@ -91,6 +91,13 @@ async function startServer() {
     let stderr = '';
     const proc = spawn('npx', ['vite', 'preview', '--port', String(port), '--host', '127.0.0.1', '--outDir', 'dist'], {
       cwd: ROOT, stdio: ['ignore', 'ignore', 'pipe'],
+      // The server leads its own PROCESS GROUP. `npx` spawns vite, and
+      // vite spawns esbuild: signalling npx alone leaves the
+      // grandchildren running, and their inherited stderr pipe keeps
+      // THIS process's event loop alive — so the gate printed its result
+      // and then hung until the job's six-hour timeout killed it. A
+      // process group can be killed as a unit.
+      detached: true,
     });
     // vite's own complaints are the only useful thing if it refuses to
     // start, so they are kept — and shown, not swallowed.
@@ -98,11 +105,11 @@ async function startServer() {
     // The server must die with THIS process on EVERY exit path — a gate
     // that failed early used to leave it running, and the next run on the
     // same fixed port then polled the STALE server.
-    process.on('exit', () => { try { proc.kill('SIGTERM'); } catch { /* already gone */ } });
+    process.on('exit', () => { try { process.kill(-proc.pid, 'SIGTERM'); } catch { /* already gone */ } });
     // vite spawns esbuild; killing the parent alone can leave the port
     // held, and the NEXT run on this fixed port would then measure the
     // STALE server.
-    proc.on('exit', () => { try { proc.kill('SIGKILL'); } catch { /* already gone */ } });
+    proc.on('exit', () => { try { process.kill(-proc.pid, 'SIGKILL'); } catch { /* already gone */ } });
     const start = Date.now();
     const tick = () => {
       http.get(`${base}/`, (res) => {
@@ -117,6 +124,31 @@ async function startServer() {
     };
     setTimeout(tick, 150);
   });
+}
+
+/**
+ * Kill the preview server AND everything it spawned, then wait for the
+ * tree to actually be gone.
+ *
+ * The group matters. `npx vite preview` is three processes — npx, vite
+ * and vite's esbuild service — and a SIGTERM to npx does not reach the
+ * other two. Their inherited stderr pipe then stays open, and an open
+ * pipe keeps the parent's event loop alive: the gate prints "OK", never
+ * exits, and takes the whole CI group down with it. That is what CI
+ * showed on 2026-11-11 and again on 2026-11-17 — a run that sat in
+ * `npm run check:a11y` for six hours and was killed by the job timeout.
+ */
+async function stopServer(proc) {
+  if (!proc) return;
+  const signal = (sig) => {
+    try { process.kill(-proc.pid, sig); } catch { /* already gone */ }
+  };
+  signal('SIGTERM');
+  await Promise.race([
+    new Promise((r) => proc.once('exit', r)),
+    new Promise((r) => setTimeout(r, 2000)),
+  ]);
+  signal('SIGKILL');
 }
 
 (async () => {
@@ -229,7 +261,7 @@ async function startServer() {
     }
   } finally {
     await browser.close();
-    if (server) try { server.kill('SIGTERM'); } catch (_) { /* already gone */ }
+    await stopServer(server);
   }
 
   if (skipped.length) {
@@ -321,6 +353,29 @@ async function startServer() {
   console.log('');
   console.log('────────────────');
   console.log(`Accessibility gate: ${checks.filter(c => c.ok).length}/${checks.length} checks passed`);
-  if (checks.some(c => !c.ok)) process.exit(1);
-  console.log('OK');
+  const failed = checks.some(c => !c.ok);
+
+  // THE GATE MUST EXIT, ON BOTH PATHS.
+  //
+  // It used to exit only on FAILURE (`process.exit(1)`), and on success
+  // it simply fell off the end of the script. The spawned preview server
+  // kept node's event loop alive, so node never exited, so the group
+  // that spawned this gate waited forever. On CI that meant a run that
+  // passed the accessibility gate then sat in `npm run check:a11y` until
+  // the job's six-hour timeout killed it — a cancelled run, and a red
+  // PR, with every gate before it green.
+  //
+  // The irony worth recording: the gate FAILING was what let CI
+  // finish. A failure calls process.exit(1); a success did not.
+  //
+  // The exit code is SET rather than process.exit()'d, so stdout
+  // flushes properly — the gate prints a line per rule, and a truncated
+  // log is a log that cannot be read.
+  process.exitCode = failed ? 1 : 0;
+  if (!failed) console.log('OK');
+  // Nothing should be holding the loop open now that the server tree is
+  // dead. If something is, leave within a few seconds rather than hang
+  // CI for six hours — a timeout that fires while the work is still
+  // running is a cancellation, not a verdict.
+  setTimeout(() => process.exit(process.exitCode), 5000).unref();
 })();

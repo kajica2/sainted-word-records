@@ -76,7 +76,16 @@ const GROUPS = {
     'npm run check:responsive-overflow',
     // Accessibility: no rule may regress against the committed baseline.
     // The baseline counts can only go down — every fix lowers them.
-    'npm run check:a11y',
+    //
+    // BOUNDED, because this step spawns a browser and a preview server.
+    // The gate has its own 20-minute internal deadline, and this is the
+    // outer wall: if the gate ever hangs again — it used to, for six
+    // hours, because it only exited on failure — this step fails in 25
+    // minutes with a timeout instead of taking the whole job's budget
+    // with it. A timeout that fires while the work is still running is a
+    // cancellation, not a verdict, but a cancellation at 25 minutes is
+    // survivable and one at 360 is not.
+    { cmd: 'npm run check:a11y', timeoutMs: 1500000 },
     // The accessible-name rule (WCAG 2.5.3) on the SOURCE. The a11y gate
     // above measures the built site, but it reports counts and it needs a
     // browser, so it cannot tell "this element's name broke" from "the
