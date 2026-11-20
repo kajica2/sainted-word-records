@@ -1,6 +1,6 @@
 {
   "schema": "swr-codemod-manifest/v1",
-  "generated_at": "2026-11-20T15:48:42.362Z",
+  "generated_at": "2026-11-20T16:45:26.707Z",
   "generated_by": "node versions/verify-codemods.mjs --update",
   "pending_max_age_days": 30,
   "ENGINES": [
@@ -728,6 +728,7 @@
         "aurora.html",
         "baroque.html",
         "chrome.html",
+        "collage.html",
         "eclipse.html",
         "film.html",
         "fractal.html",
@@ -740,27 +741,13 @@
         "phosphor.html",
         "pulse.html",
         "smoke.html",
+        "spectrum.html",
         "tape.html",
+        "typography.html",
         "void.html",
         "watercolor.html"
       ],
-      "pending": [
-        {
-          "file": "collage.html",
-          "since": "2026-10-25T06:01:46.698Z",
-          "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
-        },
-        {
-          "file": "spectrum.html",
-          "since": "2026-10-25T06:01:46.698Z",
-          "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
-        },
-        {
-          "file": "typography.html",
-          "since": "2026-10-25T06:01:46.698Z",
-          "reason": "collage / spectrum / typography carry the intensity slider but were never given the tone mount, because this codemod ran before they gained an FX or versions-presets consumer. Running it is the fix."
-        }
-      ],
+      "pending": [],
       "dry_run_flag": false,
       "partial": []
     },
@@ -836,7 +823,7 @@
         "void",
         "watercolor"
       ],
-      "notes": "Adds the shared Studio Command Center to the 13 full engine surfaces \u2014 the ones with a Layers stack, a Library and a live output canvas. The six stub pages (baroque, gallery, kraft, mosaic, phosphor, tape) have none of those, so the Command Center would open onto empty panels there. This is the same allowlist _genops-inject.js uses. What it injects is the LAUNCHER (lib/command-center-launcher.client.js, ~2 KB), not the implementation: the implementation and its stylesheet load on demand the first time the button is used, so a variant visitor who never opens the Command Center does not download its 67 KB. Renders nothing until opened: a launcher button in the corner, or ?cc=1.",
+      "notes": "Adds the shared Studio Command Center to the 13 full engine surfaces — the ones with a Layers stack, a Library and a live output canvas. The six stub pages (baroque, gallery, kraft, mosaic, phosphor, tape) have none of those, so the Command Center would open onto empty panels there. This is the same allowlist _genops-inject.js uses. What it injects is the LAUNCHER (lib/command-center-launcher.client.js, ~2 KB), not the implementation: the implementation and its stylesheet load on demand the first time the button is used, so a variant visitor who never opens the Command Center does not download its 67 KB. Renders nothing until opened: a launcher button in the corner, or ?cc=1.",
       "variants_processed": [
         "aurora.html",
         "chrome.html",
@@ -881,7 +868,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "bachdrop.html": {
       "codemods_applied": [
@@ -890,7 +877,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "baroque.html": {
       "codemods_applied": [
@@ -900,7 +887,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "chrome.html": {
       "codemods_applied": [
@@ -925,7 +912,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "clean.html": {
       "codemods_applied": [
@@ -933,7 +920,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "collage.html": {
       "codemods_applied": [
@@ -942,10 +929,11 @@
         "_canvas-hints-inject",
         "_image-load-inject",
         "_library-loader-inject",
+        "_tone-slider-inject",
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "console.html": {
       "codemods_applied": [
@@ -953,7 +941,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "echo-manifold.html": {
       "codemods_applied": [
@@ -961,7 +949,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "eclipse.html": {
       "codemods_applied": [
@@ -984,7 +972,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "film.html": {
       "codemods_applied": [
@@ -1009,7 +997,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "fractal.html": {
       "codemods_applied": [
@@ -1034,7 +1022,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "gallery.html": {
       "codemods_applied": [
@@ -1042,7 +1030,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "glitch.html": {
       "codemods_applied": [
@@ -1067,7 +1055,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "grid.html": {
       "codemods_applied": [
@@ -1091,7 +1079,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "hallucination.html": {
       "codemods_applied": [
@@ -1115,7 +1103,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "index.html": {
       "codemods_applied": [
@@ -1123,7 +1111,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "kraft.html": {
       "codemods_applied": [
@@ -1133,7 +1121,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "mosaic.html": {
       "codemods_applied": [
@@ -1143,7 +1131,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "music_video.html": {
       "codemods_applied": [
@@ -1165,7 +1153,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "music_video_mtv.html": {
       "codemods_applied": [
@@ -1187,7 +1175,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "neon.html": {
       "codemods_applied": [
@@ -1212,7 +1200,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "phosphor.html": {
       "codemods_applied": [
@@ -1222,7 +1210,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "pulse.html": {
       "codemods_applied": [
@@ -1247,7 +1235,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "simple.html": {
       "codemods_applied": [
@@ -1257,7 +1245,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "smoke.html": {
       "codemods_applied": [
@@ -1281,17 +1269,18 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "spectrum.html": {
       "codemods_applied": [
         "_audio-damp-inject",
         "_audio-overlay-inject",
         "_canvas-hints-inject",
+        "_tone-slider-inject",
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "tape.html": {
       "codemods_applied": [
@@ -1301,7 +1290,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "temple-of-control.html": {
       "codemods_applied": [
@@ -1309,17 +1298,18 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "typography.html": {
       "codemods_applied": [
         "_audio-damp-inject",
         "_audio-overlay-inject",
         "_canvas-hints-inject",
+        "_tone-slider-inject",
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "void.html": {
       "codemods_applied": [
@@ -1344,7 +1334,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "watercolor.html": {
       "codemods_applied": [
@@ -1368,7 +1358,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "music-video-gallery.html": {
       "codemods_applied": [
@@ -1376,7 +1366,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "credits-storyline.html": {
       "codemods_applied": [
@@ -1384,7 +1374,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "envelope.html": {
       "codemods_applied": [
@@ -1392,7 +1382,7 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "play.html": {
       "codemods_applied": [
@@ -1403,34 +1393,34 @@
         "_watermark-inject"
       ],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     }
   },
   "extra_pages": {
     "tools/hf-publish.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "tools/manifest-editor.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "tools/mobile/index.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "auth/login.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     },
     "auth/verify.html": {
       "codemods_applied": [],
       "skipped": [],
-      "last_verified": "2026-11-20T15:48:42.362Z"
+      "last_verified": "2026-11-20T16:45:26.707Z"
     }
   }
 }

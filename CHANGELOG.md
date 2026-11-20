@@ -7,7 +7,35 @@ once it hits 1.0.
 
 ## [Unreleased]
 
+### Added
+- **The tone/desaturation slider now reaches collage, spectrum and
+  typography.** Those three pages carry the intensity slider and load
+  `fx-postprocess.js`, whose shader honours `u_tone` — but they were
+  never given the tone mount, because the codemod ran before they gained
+  an FX consumer. The drift sat in `versions/manifest.json` as pending
+  work on a 30-day budget, stamped 2026-10-25, so on 2026-11-24 the
+  codemod gate would have started failing on `main` over a slider nobody
+  had asked for. Running the codemod is the fix: two lines per page — a
+  `<span data-fx-tone-mount>` beside the intensity mount, and
+  `lib/tone-slider.client.js` — and the new knob drives `FX.setTone` →
+  `u_tone` exactly like every other page that has one.
+
 ### Fixed
+- **The tone slider's accessible name no longer comes from its tooltip
+  alone.** The slider was labelled only by its `title` attribute, which
+  axe's `label-title-only` rule flags on every page that mounts it —
+  a page's worth of violations on each of the 21 pages that carry the
+  tone slider, which the baseline had simply grown to absorb. The
+  intensity slider has always set `aria-label` as well as `title`; the
+  tone slider now does the same, with the same string, so the name a
+  screen reader reads is unchanged and the rule stops firing. Measured
+  with axe in a browser: `label-title-only` drops by one on every page
+  carrying a tone slider, and the three pages that gained the slider add
+  no violation at all.
+- **AGENTS.md counts the codemod scripts correctly again.** It claimed 19
+  scripts plus a stylesheet; the tree holds 20 scripts plus
+  `_shared.css`. The count drifted when a codemod was retired and the
+  paragraph was not corrected with it.
 - **The five codemod findings that came due are closed.**
   `versions/manifest.json` records what each codemod did to which page,
   and the gate ages a known finding out after 30 days so it cannot rot
