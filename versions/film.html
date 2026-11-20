@@ -972,7 +972,7 @@ const Layers = { list: [], sel: null,
             [ { feature:'rms', target:'opacity', scale: 0.2, ease:'smooth' }, { feature:'beat', target:'scale', scale: 0.5, ease:'soft' } ],
           ];
           this.list.push({
-            id:'L'+(i+1), asset: it, blend:['source-over','multiply','overlay','soft-light','source-over','overlay'][i%6],
+            id:'L'+(i+1), asset: it, blend:(__shuffle_once('film',['source-over','multiply','overlay','soft-light','source-over','overlay']))[i%6],
             opacity:0.95, baseScale:[1.4,1.0,0.6,1.8,0.5,2.0][i%6], hue:0, brightness:0.95, contrast:1.1,
           alpha:1, mutate:0,
             reactors: presets[i%presets.length]

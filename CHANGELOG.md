@@ -8,6 +8,32 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Fixed
+- **The five codemod findings that came due are closed.**
+  `versions/manifest.json` records what each codemod did to which page,
+  and the gate ages a known finding out after 30 days so it cannot rot
+  unnoticed. On 2026-11-20 five of them came due — and every one was the
+  same mistake in a different place: **a tool that had stopped being
+  taught what the tree looks like.**
+  - the library-loader's idempotency guard recognised only the boot shape
+    it had written, so all 13 engines — migrated by hand to the
+    persistence boot — looked "unpatched" to it, and it exited 1 having
+    written nothing;
+  - the fx-grade codemod's detector matched a template-literal filter
+    chain, and its own migration replaces that chain — so a fully
+    migrated page read exactly like a page it had no opinion about. The
+    finding also claimed gpu-grade.client.js was "loaded and unused";
+    every marked page calls `SWR_GRADE.set(…)` in its draw loop;
+  - bachdrop carries the drop-a-song overlay and takes one song through
+    its own file input, but has no layer stack, so the shared library
+    does not apply to it — it was reported MISSING_LIBRARY every run and
+    made the codemod exit 1;
+  - film.html had two layer-creation sites and only one had been
+    shuffled, so a re-map still picked the same blend order;
+  - and AGENTS.md claimed a codemod had given 24 renderers a site exit
+    link that was on zero of them. It injected exactly what
+    `scripts/migrate-html.mjs` removes, so it was retired — the exit
+    affordance is `lib/home-link.client.js`.
+  Gate: `npm run check:codemods`.
 - **The accessibility gate no longer hangs CI for six hours when it
   passes.** The gate spawns `npx vite preview` to serve the built site,
   and it used to exit only on FAILURE — on success it fell off the end

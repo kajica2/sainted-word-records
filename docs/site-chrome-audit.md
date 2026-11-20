@@ -88,7 +88,13 @@ surfaces must carry an exit link. Every declared redirect must exist in
    content wrapper into `<main>` **in place** (class/id preserved, so no CSS
    selector changes) rather than re-parenting content.
 6. **`versions/_site-exit-inject.js` (new)** — the `← Site` link on all 24
-   renderers, marker-guarded and idempotent.
+   renderers, marker-guarded and idempotent. **Correction, 2026-11-20:**
+   this codemod was never applied — the `SWR-SITE-EXIT` marker is on zero
+   of those pages — and it was retired. The exit affordance it was written
+   for is `lib/home-link.client.js` (a fixed `← Home` link on every page),
+   and `scripts/migrate-html.mjs` actively REMOVES any `SWR-SITE-EXIT`
+   anchor it finds, so the codemod injected exactly what the migration
+   tool took away.
 7. **`scripts/check-site-chrome.mjs` (new)** — the gate, in the `check` group.
 8. **IA** — `/atlas` added to the Learn nav dropdown and the footer's Learn
    column; `Enhance` added to the Engine nav dropdown and footer; `Shot list`
