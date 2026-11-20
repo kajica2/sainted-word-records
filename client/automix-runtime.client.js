@@ -370,12 +370,18 @@
     // Shared glide math for the arc layer and the glide clock: this act's
     // baseline gliding toward the next act's; the last act wraps to the
     // first baseline (the outro drifts back toward the intro's feel).
+    // The progress is SHAPED by the act's archetype (each act moves at its
+    // own pace) — the arc owns the shape, the runtime just calls it.
     _arcGlidePreset(arcSample) {
       var acts = this.arc.acts;
       var next = acts[arcSample.actIndex + 1] || acts[0];
       if (!next || !next.preset || !window.SWR_AUTOMIX ||
           typeof window.SWR_AUTOMIX.lerpPreset !== 'function') return arcSample.preset;
-      return window.SWR_AUTOMIX.lerpPreset(arcSample.preset, next.preset, arcSample.actProgress);
+      var p = arcSample.actProgress;
+      if (window.SWR_AUTOMIX_ARC && typeof window.SWR_AUTOMIX_ARC.shapeActProgress === 'function') {
+        p = window.SWR_AUTOMIX_ARC.shapeActProgress(arcSample.actName, p);
+      }
+      return window.SWR_AUTOMIX.lerpPreset(arcSample.preset, next.preset, p);
     },
 
     // L3 song arc — build (or rebuild after a song change) from the
@@ -628,6 +634,17 @@
             var recent = sess.recent();
             if (recent.indexOf(mix.anchors[0].id) === -1) return mix;
             var nb = window.SWR_ANCHOR_MAP.neighbours(mix.coords, 4);
+            // A soft preference (the anchors the user kept) breaks the tie
+            // among the unused neighbours. Novelty still wins: the recent
+            // set is excluded from the preference, so a preferred anchor
+            // that was already used is never reused.
+            var preferred = (typeof sess.pickPreferred === 'function')
+              ? sess.pickPreferred(nb, recent)
+              : null;
+            if (preferred && preferred.anchor && preferred.anchor.preset) {
+              return { coords: mix.coords, anchors: [preferred], preset: preferred.anchor.preset,
+                       section: c.section, arc: mix.arc, sessionRerouted: true };
+            }
             for (var i = 0; i < nb.length; i++) {
               if (nb[i] && nb[i].anchor && nb[i].anchor.preset && recent.indexOf(nb[i].id) === -1) {
                 return { coords: mix.coords, anchors: [nb[i]], preset: nb[i].anchor.preset,

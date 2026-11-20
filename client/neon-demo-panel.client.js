@@ -318,12 +318,11 @@
     var chain = Promise.resolve(true);
     if (!haveItems || !haveLayers) {
       chain = installDemoClips().then(function () {
-        L = layers();
-        Lib = window.Library || (window.SWR && window.SWR.Library);
-        if (L && typeof L.remap === 'function' && Lib && Lib.items && Lib.items.length) {
-          try { L.remap(); } catch (_) {}
-        }
-        // Remap needs audio features + items; if still short, add directly.
+        // The stage needs a stack to act on. Fill the empty slots with the
+        // demo clips — never remap, which would throw away a set the
+        // performer staged.
+        stageDemoClips();
+        // Still short? Add directly from the library.
         L = layers();
         Lib = window.Library || (window.SWR && window.SWR.Library);
         if (L && typeof L.add === 'function' && Lib && Array.isArray(Lib.items)) {
@@ -479,6 +478,32 @@
     return lib.items.filter(function (it) { return it.packId === DEMO_CLIPS_PACK; });
   }
 
+  /**
+   * How many clips a complete dance pack holds. The pack loader answers from
+   * the manifest; 0 means "unknown" (the manifest was unreachable), and
+   * unknown must never be read as "the pack is empty" — that would throw a
+   * whole pack away on a flaky network.
+   */
+  function demoPackExpectedCount() {
+    var P = window.SWR_LIBRARY_PACKS;
+    if (!P) return Promise.resolve(0);
+    var read = 0;
+    try {
+      if (typeof P.expectedCount === 'function') {
+        var r = P.expectedCount(DEMO_CLIPS_PACK);
+        if (r && typeof r.then === 'function') {
+          return r.then(function (n) { return Number.isFinite(+n) ? +n : 0; }, function () { return 0; });
+        }
+        read = Number.isFinite(+r) ? +r : 0;
+        return Promise.resolve(read);
+      }
+      // Fallback: what the loader put in the library the last time it ran.
+      var st = P.state && typeof P.state.get === 'function' ? P.state.get(DEMO_CLIPS_PACK) : null;
+      if (st && Number.isFinite(st.itemCount)) read = st.itemCount;
+    } catch (_) {}
+    return Promise.resolve(read);
+  }
+
   function webglState() {
     var gate = window.SWR_WEBGL;
     var asked = !!(gate && typeof gate.isWebGLEnabled === 'function' && gate.isWebGLEnabled());
@@ -498,24 +523,113 @@
     });
   }
 
+  /**
+   * A layer that points at a clip the pack reloaded has to be re-pointed at
+   * the new clip: the loader builds a fresh item (a new id) for every file.
+   * The match is by name and size — the same rule the Recent folder uses to
+   * find an item after a reload.
+   */
+  function rebindLayersToClips() {
+    var L = layers();
+    var Lib = demoLib();
+    if (!L || !Array.isArray(L.list) || !Lib || !Array.isArray(Lib.items)) return 0;
+    var live = Lib.items;
+    var rebound = 0;
+    L.list.forEach(function (l) {
+      if (!l || !l.asset) return;
+      if (live.indexOf(l.asset) >= 0) return;
+      for (var i = 0; i < live.length; i++) {
+        var it = live[i];
+        if (!it || it === l.asset) continue;
+        if (String(it.name || '') !== String(l.asset.name || '')) continue;
+        if ((it.size || 0) !== (l.asset.size || 0)) continue;
+        l.asset = it;
+        l.mediaId = it.id;
+        rebound++;
+        return;
+      }
+    });
+    return rebound;
+  }
+
+  /**
+   * Fill the stage with the demo clips — without taking a slot that is
+   * already occupied.
+   *
+   * Start demo used to call Layers.remap(), which replaces the whole stack.
+   * That is right for an empty stage and wrong for a performer who already
+   * built one: their layer was thrown away by a button labelled "Start demo".
+   * Now the rows that hold no media get a clip, and the stack grows to the
+   * layer cap with the clips that were just installed. A layer the
+   * performer staged is left exactly as it is.
+   */
+  function stageDemoClips() {
+    var L = layers();
+    if (!L || !Array.isArray(L.list)) return 0;
+    var clips = demoClipItems();
+    if (!clips.length) return 0;
+    var max = Number.isFinite(L.MAX) && L.MAX > 0 ? L.MAX : 3;
+    var used = [];
+    var changed = 0;
+    function isUsed(it) { return used.indexOf(it) >= 0; }
+    function nextClip() {
+      for (var i = 0; i < clips.length; i++) if (!isUsed(clips[i])) return clips[i];
+      return null;
+    }
+    L.list.forEach(function (l) {
+      if (!l || l.asset || l.locked) return;
+      var pick = nextClip();
+      if (!pick) return;
+      if (typeof L.assign === 'function') {
+        if (!L.assign(pick, L.list.indexOf(l))) return;
+      } else {
+        l.asset = pick;
+        l.mediaId = pick.id;
+      }
+      used.push(pick);
+      changed++;
+    });
+    var guard = clips.length + 1;
+    while (L.list.length < max && guard-- > 0) {
+      var pick2 = nextClip();
+      if (!pick2) break;
+      if (typeof L.add === 'function') {
+        if (!L.add(pick2)) break;
+      } else {
+        L.list.push({ id: 'L' + (L.list.length + 1), asset: pick2, mediaId: pick2.id, locked: false, reactors: [] });
+      }
+      used.push(pick2);
+      changed++;
+    }
+    if (changed && typeof L.render === 'function') L.render();
+    return changed;
+  }
+
   function installDemoClips() {
     var P = window.SWR_LIBRARY_PACKS;
     if (!P || typeof P.load !== 'function') return Promise.resolve(false);
-    // The pack loader treats "already loaded" as success and does not
-    // re-add the files. After the library is cleared that cache is a lie:
-    // the clips are gone. Drop it before loading so Start demo installs
-    // them again.
-    if (!demoClipItems().length && typeof P.unload === 'function') {
-      try { P.unload(DEMO_CLIPS_PACK); } catch (_) {}
-    }
-    return P.load(DEMO_CLIPS_PACK).then(function (res) {
-      if (!res || !res.loaded) return false;
-      return whenClassified(demoClipItems(), CLASSIFY_WAIT_MS).then(function () {
-        var L = layers();
-        if (L && typeof L.remap === 'function') L.remap();
-        invalidateRender();
-        paintStage();
-        return true;
+    var have = demoClipItems().length;
+    return demoPackExpectedCount().then(function (want) {
+      // The pack loader treats "already loaded" as success and does not
+      // re-add the files. After the library was cleared that cache is a lie:
+      // the clips are gone. The same lie applies to a pack that lost only
+      // SOME of its clips — the loader still says loaded and will not fetch
+      // the missing files. Drop the pack before loading it, but only when
+      // it is actually short: unloading a complete pack would throw away the
+      // very items we are here to keep.
+      var short = want > 0 && have < want;
+      if ((short || !have) && typeof P.unload === 'function') {
+        try { P.unload(DEMO_CLIPS_PACK); } catch (_) {}
+      }
+      return P.load(DEMO_CLIPS_PACK).then(function (res) {
+        if (!res || !res.loaded) return false;
+        return whenClassified(demoClipItems(), CLASSIFY_WAIT_MS).then(function () {
+          rebindLayersToClips();
+          stageDemoClips();
+          invalidateRender();
+          paintStage();
+          return true;
+        });
       });
     }).catch(function () { return false; });
   }
@@ -680,7 +794,17 @@
     var VP = window.VersionsPresets;
     if (!VP || !pageKey) return false;
     if (VP.setPresetOverride) VP.setPresetOverride(pageKey);
-    var ok = VP.applyPreset && VP.applyPreset(pageKey);
+    // The preset's grade GLIDES into place instead of cutting to it.
+    // morph() runs the same applyPreset() and then eases the FX state from
+    // the grade that was on screen into the new one; without the transition
+    // module the preset still applies, just instantly.
+    var T = window.SWR_PRESET_TRANSITION;
+    var ok;
+    if (T && typeof T.morph === 'function') {
+      ok = T.morph(function () { return VP.applyPreset && VP.applyPreset(pageKey); });
+    } else {
+      ok = VP.applyPreset && VP.applyPreset(pageKey);
+    }
     if (ok === false) return false;
     window.__swrCurrentPreset = pageKey;
     if (window.SWR_PRESET_PICK && typeof window.SWR_PRESET_PICK.save === 'function') {
@@ -774,8 +898,98 @@
     paintAudioButtons();
     var sensNow = document.getElementById('sens');
     if (sensNow) writeSensitivity(parseFloat(sensNow.value));
+    // The preset id is remembered next to the knobs it wrote, so a reload
+    // can tell which preset is on screen.
+    saveAudioPreset(id);
     invalidateRender();
     return true;
+  }
+
+  /**
+   * The audio preset is remembered in the store the audio knobs already use
+   * (the engine-state snapshot persist-wire writes), so a reload restores it
+   * without a second key namespace.
+   */
+  function persistWire() {
+    return window.SWR_PERSIST_WIRE || null;
+  }
+
+  function saveAudioPreset(id) {
+    var W = persistWire();
+    if (!W || typeof W.setGlobal !== 'function') return false;
+    try { return !!W.setGlobal('audioPreset', id); } catch (_) { return false; }
+  }
+
+  function readAudioPreset() {
+    var W = persistWire();
+    if (!W || typeof W.getGlobal !== 'function') return null;
+    try { return W.getGlobal('audioPreset') || null; } catch (_) { return null; }
+  }
+
+  /**
+   * Restore the preset that was active before the reload.
+   *
+   * It waits for the page state to land on the controls first: writing to
+   * the snapshot before that would save the DEFAULT knob values over the
+   * ones the snapshot holds, and the performer's own knob setting would be
+   * lost.
+   *
+   * The stored knob values are the judge: if the performer moved sens / gate
+   * / decay away from the preset after picking it, the knobs win and the
+   * stored preset id is dropped — a preset that is no longer on screen is
+   * not "the active preset".
+   */
+  var RESTORE_POLL_MS = 100;
+  var RESTORE_WAIT_MAX_MS = 5000;
+
+  function restoreAudioPreset() {
+    var W = persistWire();
+    if (!W || typeof W.getGlobal !== 'function') return false;
+    if (!W.stateRestored) {
+      state.restoreWaits = (state.restoreWaits || 0) + 1;
+      if (state.restoreWaits * RESTORE_POLL_MS > RESTORE_WAIT_MAX_MS) return false;
+      if (!state.restoreTimer) {
+        state.restoreTimer = setTimeout(function () {
+          state.restoreTimer = null;
+          restoreAudioPreset();
+        }, RESTORE_POLL_MS);
+      }
+      return false;
+    }
+    state.restoreWaits = 0;
+    var id = null;
+    try { id = W.getGlobal('audioPreset'); } catch (_) { return false; }
+    if (!id) return false;
+    var preset = audioPresetById(id);
+    if (!preset) { clearAudioPreset(); return false; }
+    var sens = null;
+    var gate = null;
+    var decay = null;
+    try {
+      sens = W.getGlobal('sens');
+      gate = W.getGlobal('gate');
+      decay = W.getGlobal('decay');
+    } catch (_) {}
+    if (!Number.isFinite(+sens) || !Number.isFinite(+gate) || !Number.isFinite(+decay)) return false;
+    var moved = Math.abs(+sens - preset.sens) > 0.02 ||
+      Math.abs(+gate - preset.gate) > 0.02 ||
+      Math.abs(+decay - preset.decay) > 0.02;
+    if (moved) { clearAudioPreset(); return false; }
+    return applyAudioPreset(id);
+  }
+
+  /**
+   * Drop a preset id that is no longer true, WITHOUT saving the live page
+   * state: the knob values and the staged layers already on disk must not
+   * be overwritten by whatever the controls hold at this moment.
+   */
+  function clearAudioPreset() {
+    var W = persistWire();
+    if (!W) return false;
+    if (typeof W.clearGlobal === 'function') {
+      try { return !!W.clearGlobal('audioPreset'); } catch (_) { return false; }
+    }
+    return saveAudioPreset(null);
   }
 
   function readSensitivity() {
@@ -1680,6 +1894,8 @@
     window.addEventListener('resize', function () {
       if (state.aspect && state.aspect !== 'stage') applyStageAspect(state.aspect);
     });
+    // The preset that was active before the reload comes back with the page.
+    restoreAudioPreset();
     if (!state.collapsed) startMark();
     return el;
   }
@@ -1773,6 +1989,18 @@
           ? window.SWR_NATURAL.mirror() : null,
       };
     }
+    if (id.indexOf('image:') === 0) {
+      // The image controls act on the layer stack: a depth swap reorders it,
+      // a media swap re-points a layer. The order of the asset ids is what
+      // changes, so it is what the probe reports.
+      var lay = layers();
+      return {
+        order: lay && Array.isArray(lay.list)
+          ? lay.list.map(function (l) { return l && l.asset ? l.asset.id : null; })
+          : [],
+        style: state.imageStyle,
+      };
+    }
     if (id.indexOf('layer:') === 0) {
       var sel = selectedLayer();
       if (!sel) return { layer: null };
@@ -1838,6 +2066,12 @@
     installDemoClips: installDemoClips,
     loadDemoSong: loadDemoSong,
     startDemo: startDemo,
+    stageDemoClips: stageDemoClips,
+    rebindLayersToClips: rebindLayersToClips,
+    demoPackExpectedCount: demoPackExpectedCount,
+    restoreAudioPreset: restoreAudioPreset,
+    readAudioPreset: readAudioPreset,
+    saveAudioPreset: saveAudioPreset,
     toggleWebGL: toggleWebGL,
     webglState: webglState,
     stageSummary: stageSummary,
@@ -1853,7 +2087,7 @@
     invokeControl: invokeControl,
     readProbe: readProbe,
     assertAllControlsBound: assertAllControlsBound,
-    getState: function () { return { collapsed: state.collapsed, activePreset: state.activePreset, activeFilter: state.activeFilter }; },
+    getState: function () { return { collapsed: state.collapsed, activePreset: state.activePreset, activeFilter: state.activeFilter, activeAudio: state.activeAudio }; },
   };
 
   if (document.readyState === 'loading') {

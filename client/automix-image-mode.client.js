@@ -9,6 +9,12 @@
 
   /** Minimum time between still advances (lane order or library random). */
   var MIN_STILL_DWELL_MS = 2800;
+  /**
+   * The floor a PROFILE-derived dwell is clamped up to. A very fast
+   * composition profile must not be able to strobe the stills: 400ms is
+   * below the ~2.5fps that reads as a slideshow rather than a cut.
+   */
+  var MIN_DWELL_FLOOR_MS = 400;
 
   var rafId = 0;
   var active = false;
@@ -84,7 +90,35 @@
   }
 
   function canDwellSwap() {
-    return (Date.now() - lastSwapMs) >= MIN_STILL_DWELL_MS;
+    return (Date.now() - lastSwapMs) >= dwellFloorMs();
+  }
+
+  // The still-advance dwell follows the composition's cut window for the
+  // CURRENT ACT: a peak act cuts stills faster, a breakdown holds one
+  // image longer. The composition module owns those windows (PROFILES is
+  // its live table); this module only reads them.
+  //
+  // With no composition on the page — or no act yet — the default floor
+  // stands. The clarity caps are a DIFFERENT contract and are untouched by
+  // this: how fast a still advances never changes how sharp it looks.
+  function dwellFloorMs() {
+    var C = global.SWR_AUTOMIX_COMPOSITION;
+    if (!C || typeof C.getProfiles !== 'function') return MIN_STILL_DWELL_MS;
+    var act = null;
+    try {
+      act = typeof C.currentAct === 'function' ? C.currentAct() : null;
+    } catch (_) { act = null; }
+    if (!act) return MIN_STILL_DWELL_MS;
+    var profiles = null;
+    try { profiles = C.getProfiles(); } catch (_) { profiles = null; }
+    if (!profiles) return MIN_STILL_DWELL_MS;
+    var p = profiles[act];
+    if (!p || typeof p.minSeconds !== 'number' || !isFinite(p.minSeconds)) {
+      return MIN_STILL_DWELL_MS;
+    }
+    var ms = Math.round(p.minSeconds * 1000);
+    if (ms < MIN_DWELL_FLOOR_MS) return MIN_DWELL_FLOOR_MS;
+    return ms;
   }
 
   function audioFeat() {
@@ -426,6 +460,8 @@
     resolveSwapMode: resolveSwapMode,
     automixHoldStill: automixHoldStill,
     MIN_STILL_DWELL_MS: MIN_STILL_DWELL_MS,
+    MIN_DWELL_FLOOR_MS: MIN_DWELL_FLOOR_MS,
+    dwellFloorMs: dwellFloorMs,
     buildClarityFxPreset: buildClarityFxPreset,
     enforceOpacityFloor: enforceOpacityFloor,
   };

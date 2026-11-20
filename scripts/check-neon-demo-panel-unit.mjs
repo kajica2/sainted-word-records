@@ -146,22 +146,69 @@ const audioCore = {
 };
 const remaps = [];
 
+// The demo panel keeps the active audio preset in the same snapshot as the
+// audio knobs (persist-wire's contract). The stub mirrors it: setGlobal
+// writes one key and the live knobs land in the same snapshot.
+const wireGlobals = {};
+const wireApi = {
+  pageId: 'neon',
+  // The page state is on the controls by the time the panel restores.
+  stateRestored: true,
+  getGlobal: function (k) {
+    return Object.prototype.hasOwnProperty.call(wireGlobals, k) ? wireGlobals[k] : undefined;
+  },
+  setGlobal: function (k, v) {
+    wireGlobals[k] = (v === undefined) ? null : v;
+    ['sens', 'gate', 'decay'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) wireGlobals[id] = parseFloat(el.value);
+    });
+    return true;
+  },
+  // Clearing rewrites the stored snapshot as it stands: the knob values and
+  // the staged layers already on disk are NOT overwritten by whatever the
+  // controls hold at this moment.
+  clearGlobal: function (k) {
+    wireGlobals[k] = null;
+    return true;
+  },
+};
+// The page's own autosave writes the knobs back into the snapshot.
+function syncKnobsToStore() {
+  ['sens', 'gate', 'decay'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) wireApi.setGlobal(id, parseFloat(el.value));
+  });
+}
+
 const window = {
   document: document,
   localStorage: { setItem: function (k, v) { storage[k] = v; } },
   SWR_WEBGL: { isWebGLEnabled: function () { return storage.swrWebGL === '1'; } },
   A: audioCore,
   SWR_LIB: { items: demoItems },
+  SWR_PERSIST_WIRE: wireApi,
   SWR_LIBRARY_PACKS: {
     loads: 0,
     unloads: 0,
+    loaded: false,
+    // The shipped manifest declares thirteen dance clips.
+    expectedCount: function () { return 13; },
     load: function (id) {
       this.loads++;
-      if (!demoItems.length) for (let i = 0; i < 13; i++) demoItems.push({ packId: id, type: 'video', thumb: 'x' });
-      return Promise.resolve({ loaded: true, items: demoItems.slice(), error: null });
+      // The real loader treats "already loaded" as success and does not
+      // re-add the files — which is why a half-present pack has to be
+      // dropped before it is loaded again.
+      if (this.loaded) return Promise.resolve({ loaded: true, items: 13, error: null });
+      for (let i = 0; i < 13; i++) {
+        demoItems.push({ packId: id, type: 'video', thumb: 'x', id: 'clip-' + i, name: 'dance-' + i + '.mp4', size: 1000 + i });
+      }
+      this.loaded = true;
+      return Promise.resolve({ loaded: true, items: 13, error: null });
     },
     unload: function () {
       this.unloads++;
+      this.loaded = false;
       demoItems.length = 0;
     },
   },
@@ -188,6 +235,24 @@ const window = {
   SWR_AUTOMAP: {},
   Layers: {
     list: [],
+    MAX: 3,
+    add: function (it) {
+      if (this.list.length >= this.MAX) return null;
+      const l = { id: 'L' + (this.list.length + 1), asset: it, mediaId: it ? it.id : null, locked: false, reactors: [] };
+      this.list.push(l);
+      this.sel = l;
+      return l;
+    },
+    assign: function (it, idx) {
+      const l = this.list[idx];
+      if (!l) return !!this.add(it);
+      if (l.locked) return false;
+      l.asset = it;
+      l.mediaId = it.id;
+      this.sel = l;
+      return true;
+    },
+    toggleLock: function (l) { if (!l) return false; l.locked = !l.locked; return l.locked; },
     remap: function () { remaps.push(1); this.list = [{}, {}, {}]; },
     sel: { blend: 'screen', opacity: 1, baseScale: 1, hue: 0, contrast: 1, brightness: 1, alpha: 1, mutate: 0, reactors: [] },
     render: function () {},
@@ -259,7 +324,9 @@ const remapsBefore = remaps.length;
 const installed = await api.installDemoClips();
 assert(installed === true, 'installDemoClips resolves true');
 assert(demoItems.length === 13 && demoItems.every(function (it) { return it.packId === 'dancer-video'; }), 'all 13 dance clips installed from the dancer-video pack');
-assert(remaps.length > remapsBefore && window.Layers.list.length === 3, 'clips are staged into layers');
+assert(remaps.length === remapsBefore, 'installing the clips does not remap the stage');
+assert(window.Layers.list.length === 3, 'the demo fills the stage to the layer cap');
+assert(window.Layers.list.every(function (l) { return l && l.asset && l.asset.packId === 'dancer-video'; }), 'the staged layers hold the demo clips');
 assert(/13 clips · 3 layers/.test(api.stageSummary()), 'stage summary reports clips and layers: ' + api.stageSummary());
 
 // Demo song loads and plays through the shared audio core.
@@ -300,6 +367,24 @@ assert(audioProbe.preset === 'punch' && audioProbe.sens === 2.4, 'audio probe re
 assert(api.applyAudioPreset('soft') === true && parseFloat(document.getElementById('sens').value) === 0.7, 'soft replaces punch');
 assert(api.applyAudioPreset('nope') === false, 'unknown audio preset is refused');
 
+// The preset id is remembered next to the knobs it wrote, so a reload can
+// restore it without a second key namespace.
+assert(api.applyAudioPreset('punch') === true, 'punch applies again');
+assert(wireApi.getGlobal('audioPreset') === 'punch', 'the preset id is stored with the knobs');
+assert(Math.abs(wireApi.getGlobal('sens') - 2.4) < 0.001, 'the knobs are stored with the preset');
+assert(api.restoreAudioPreset() === true, 'the stored preset is restored');
+assert(api.getState().activeAudio === 'punch', 'the restored preset is the active one');
+assert(api.readProbe('audio:punch').preset === 'punch', 'the audio probe reports the restored preset');
+
+// The performer moved the knobs off the preset after picking it: the knobs
+// win and the stored preset id is dropped — a preset that is no longer on
+// screen is not the active preset.
+api.writeSensitivity(1.8);
+syncKnobsToStore();
+assert(api.restoreAudioPreset() === false, 'a preset the knobs moved away from is not restored');
+assert(wireApi.getGlobal('audioPreset') === null, 'the stale preset id is dropped');
+assert(wireApi.getGlobal('sens') === 1.8, 'dropping a stale preset does not overwrite the knobs');
+
 assert(api.writeSensitivity(2.4) === true, 'sensitivity slider writes');
 assert(document.getElementById('sens').value === '2.4', 'sensitivity slider drives #sens');
 assert(document.getElementById('demo-sensitivity').value === '2.4', 'sensitivity slider shows 2.4');
@@ -319,6 +404,37 @@ const pack = window.SWR_LIBRARY_PACKS;
 const unloadsBefore = pack.unloads;
 const reinstalled = await api.installDemoClips();
 assert(reinstalled === true && pack.unloads === unloadsBefore + 1 && demoItems.length === 13, 'a cleared library reinstalls the dance clips');
+
+// A pack that lost only SOME of its clips is the case the loader could not
+// repair on its own: it still says "loaded" and hands back its cached count
+// without fetching the missing files. The demo drops the pack and loads it
+// again, so all thirteen come back.
+demoItems.length = 4;
+const unloadsBeforePartial = pack.unloads;
+const repaired = await api.installDemoClips();
+assert(repaired === true && demoItems.length === 13, 'a half-present pack is refilled to thirteen clips');
+assert(pack.unloads === unloadsBeforePartial + 1, 'the half-present pack is dropped before it is loaded again');
+
+// A complete pack is left alone: unloading it would throw away the very
+// items the demo is here to keep.
+const unloadsBeforeComplete = pack.unloads;
+const kept = await api.installDemoClips();
+assert(kept === true && demoItems.length === 13 && pack.unloads === unloadsBeforeComplete, 'a complete pack is not thrown away and reloaded');
+
+// Start demo must not wipe a set the performer staged. It fills the empty
+// slots around it and leaves the occupied one exactly as it was.
+const mine = { id: 'mine', name: 'mine.mp4', type: 'video', packId: null };
+window.Layers.list.length = 0;
+window.Layers.add(mine);
+const stagedBefore = window.Layers.list.map(function (l) { return l.asset && l.asset.id; });
+await api.invokeControl('stage:start');
+const stagedAfter = window.Layers.list.map(function (l) { return l.asset && l.asset.id; });
+assert(stagedAfter[0] === stagedBefore[0] && stagedAfter[0] === 'mine', 'Start demo leaves a staged layer alone');
+assert(window.Layers.list.length === 3, 'Start demo fills the empty slots around the staged layer');
+assert(stagedAfter.slice(1).every(function (id) { return id && id.indexOf('clip-') === 0; }), 'the filled slots hold the demo clips');
+// Start demo leaves the beat-driven preset cycler running. Stop it, or the
+// script never exits (the cycler is a requestAnimationFrame loop).
+await api.invokeControl('demo:demoAll');
 
 assert(api.fitAspectBox(800, 600, 16, 9).h === 450 && api.fitAspectBox(800, 600, 16, 9).w === 800, '16:9 letterboxes a 4:3 cell on the width');
 assert(api.fitAspectBox(800, 600, 9, 16).h === 600 && api.fitAspectBox(800, 600, 9, 16).w === 338, '9:16 letterboxes a 4:3 cell on the height');

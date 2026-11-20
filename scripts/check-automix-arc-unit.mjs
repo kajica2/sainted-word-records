@@ -193,5 +193,200 @@ check('10. snapped boundaries cannot collapse an act to a near-zero span', () =>
   assert(arc.acts[arc.acts.length - 1].t1 === dur, 'last act must end at duration');
 });
 
+// ---- Act family map + the single fire site --------------------------------
+// The arc fires ONE transition per act boundary, from tick() →
+// fireActTransition(). The transition it picks argues for a FAMILY (the
+// catalog's own `family` tag), and the pick is filtered by the motion
+// kill-switch, so a blocked transition can never be the one that fires.
+//
+// The catalog below mirrors engine-transitions.client.js's real families.
+// A name that is NOT in the catalog must be skipped, never rejected —
+// firing an unknown name makes SWRTransitions.fire() return a rejected
+// promise, and a rejected promise in the tick path is a broken tick.
+const TX_CATALOG = {
+  'fade-to-black': { kind: 'css', family: 'fade' },
+  'pure-crossfade': { kind: 'css', family: 'fade' },
+  'warp-dissolve': { kind: 'css', family: 'hybrid' },
+  'linear-wipe-lr': { kind: 'css', family: 'wipe' },
+  'glitch-burst': { kind: 'fx', family: 'distortion' },
+  'chromatic-split': { kind: 'css', family: 'distortion' },
+  'glow-burst': { kind: 'fx', family: 'brightness' },
+};
+
+function loadArcWithTx(stubMap, opts) {
+  opts = opts || {};
+  const fired = [];
+  const win = {
+    SWR_ANCHOR_MAP: stubMap,
+    SWRTransitions: {
+      _TRANSITIONS: opts.catalog || TX_CATALOG,
+      fire(name, o) { fired.push({ name, opts: o || {} }); return Promise.resolve(); },
+    },
+  };
+  if (opts.motionKill) win.SWR_MOTION_KILL = opts.motionKill;
+  const sandbox = { window: win, console };
+  vm.createContext(sandbox);
+  vm.runInContext(src, sandbox, { filename: 'automix-arc.client.js' });
+  return { ARC: win.SWR_AUTOMIX_ARC, fired, win };
+}
+
+// A hand-built three-act arc with names, so the family map is exercised
+// without depending on build()'s deterministic act order.
+function namedArc(names, coords) {
+  const acts = names.map((name, i) => ({
+    t0: i * 10,
+    t1: (i + 1) * 10,
+    name,
+    anchorId: 'a' + i,
+    coords: (coords && coords[i]) || { warmth: 0.5, intensity: 0.5 },
+    preset: { temp: 0, mut: 0 },
+    rampMs: 1000,
+  }));
+  return { duration: 30, acts };
+}
+
+check('11. ACT_FAMILY maps every act name to a catalog family', () => {
+  const { ARC } = loadArcWithTx(makeMap());
+  const F = ARC._internals.ACT_FAMILY;
+  assert(F && typeof F === 'object', 'ACT_FAMILY is published on _internals');
+  for (const name of ['intro', 'lift', 'peak', 'breakdown', 'outro']) {
+    assert(typeof F[name] === 'string' && F[name], `ACT_FAMILY has ${name}`);
+  }
+  // Every family the map names must exist in the real catalog, or the
+  // picker resolves to an empty pool and the act falls back silently.
+  for (const name of Object.keys(F)) {
+    const fam = F[name];
+    const inCatalog = Object.keys(TX_CATALOG).some((n) => TX_CATALOG[n].family === fam);
+    assert(inCatalog, `family '${fam}' (act ${name}) exists in the catalog`);
+  }
+});
+
+check('12. one act boundary fires exactly ONE transition, tagged _src', () => {
+  const { ARC, fired } = loadArcWithTx(makeMap());
+  const arc = namedArc(['intro', 'peak', 'outro']);
+  ARC.tick(arc, 1);   // arms tracking, no boundary
+  ARC.tick(arc, 2);   // still act 0
+  assert(fired.length === 0, 'no transition before a boundary', fired.length);
+  ARC.tick(arc, 12);  // crosses act 0 → act 1
+  assert(fired.length === 1, 'exactly one transition per act boundary', fired.length);
+  assert(fired[0].opts && fired[0].opts._src === 'automix-arc',
+    'the fire is tagged _src:automix-arc', JSON.stringify(fired[0].opts));
+  ARC.tick(arc, 13);  // still act 1
+  assert(fired.length === 1, 'no second transition inside the same act', fired.length);
+  ARC.tick(arc, 22);  // crosses act 1 → act 2
+  assert(fired.length === 2, 'the next boundary fires again', fired.length);
+});
+
+check('13. the transition picked for an act belongs to that act\'s family', () => {
+  const { ARC, fired } = loadArcWithTx(makeMap());
+  const arc = namedArc(['intro', 'peak', 'outro']);
+  const F = ARC._internals.ACT_FAMILY;
+  ARC.tick(arc, 1);
+  ARC.tick(arc, 12); // enters the 'peak' act
+  assert(fired.length === 1, 'one transition fired', fired.length);
+  const entry = TX_CATALOG[fired[0].name];
+  assert(!!entry, 'the fired name is in the catalog', fired[0].name);
+  assert(entry.family === F.peak,
+    `a peak act fires the ${F.peak} family (got ${entry.family})`, fired[0].name);
+});
+
+check('14. a name missing from the catalog is skipped, never fired', () => {
+  // The catalog holds only fade-family entries, so neither the peak family
+  // nor the subtle/dynamic fallback names resolve. The arc must skip the
+  // fire and must not throw — an unknown name makes fire() reject.
+  const { ARC, fired } = loadArcWithTx(makeMap(), {
+    catalog: { 'fade-to-black': { kind: 'css', family: 'fade' } },
+  });
+  const arc = namedArc(['intro', 'peak', 'outro']);
+  ARC.tick(arc, 1);
+  ARC.tick(arc, 12);
+  assert(fired.length === 0, 'an unknown transition name is never fired', fired.length);
+});
+
+check('15. the motion kill-switch filters the family pool', () => {
+  // The kill-switch says only 'fade-to-black' may fire. The peak act's
+  // family pool must be filtered down to it — a blocked transition that
+  // fires anyway is a visible motion the user switched off.
+  const { ARC, fired } = loadArcWithTx(makeMap(), {
+    motionKill: {
+      // Mirrors lib/motion-kill-switch.client.js's real contract: it takes a
+      // pool and returns ONE allowed name (a string), not a filtered pool.
+      pickAllowedTransition(pool) {
+        const allowed = (pool || []).filter((n) => n === 'fade-to-black');
+        return allowed.length ? allowed[0] : 'fade-to-black';
+      },
+    },
+  });
+  const arc = namedArc(['intro', 'peak', 'outro']);
+  ARC.tick(arc, 1);
+  ARC.tick(arc, 12);
+  assert(fired.length === 1, 'the transition still fires', fired.length);
+  assert(fired[0].name === 'fade-to-black',
+    'the kill-switch decides which name survives', fired[0].name);
+});
+
+// ---- Phase 4: act-aware shaping of the within-act glide -----------------
+//
+// The glide from one act's baseline to the next is not one curve for the
+// whole song. Each act archetype gets its own shape: an intro eases in,
+// a peak holds then releases, a breakdown releases early. The shape is a
+// PURE function of (actName, progress) so the arc unit can pin it and the
+// runtime can call it in one line.
+
+check('16. shapeActProgress exists and maps [0,1] onto [0,1]', () => {
+  const ARC2 = loadArc(makeMap());
+  assert(typeof ARC2.shapeActProgress === 'function', 'shapeActProgress is not exposed');
+  for (const act of ['intro', 'lift', 'peak', 'breakdown', 'outro']) {
+    assert(Math.abs(ARC2.shapeActProgress(act, 0)) < 1e-9,
+      `${act} must start at 0, got ${ARC2.shapeActProgress(act, 0)}`);
+    assert(Math.abs(ARC2.shapeActProgress(act, 1) - 1) < 1e-9,
+      `${act} must end at 1, got ${ARC2.shapeActProgress(act, 1)}`);
+  }
+});
+
+check('17. shapeActProgress is monotonic within an act', () => {
+  const ARC2 = loadArc(makeMap());
+  for (const act of ['intro', 'lift', 'peak', 'breakdown', 'outro']) {
+    let prev = -1;
+    for (let p = 0; p <= 1.0001; p += 0.05) {
+      const v = ARC2.shapeActProgress(act, p);
+      assert(v >= prev - 1e-9, `${act} went backwards at p=${p.toFixed(2)} (${v} < ${prev})`);
+      prev = v;
+    }
+  }
+});
+
+check('18. each act has its own shape (the curve is act-aware)', () => {
+  const ARC2 = loadArc(makeMap());
+  const at = (act) => ARC2.shapeActProgress(act, 0.5);
+  const shapes = new Set(['intro', 'lift', 'peak', 'breakdown', 'outro'].map(at));
+  assert(shapes.size >= 3,
+    `expected distinct shapes per act, got ${shapes.size} distinct midpoints`);
+});
+
+check('19. a peak holds its baseline then releases late', () => {
+  const ARC2 = loadArc(makeMap());
+  // A peak is the act that should STAY at its own baseline for most of
+  // its span and then move — the release is late, not even.
+  const early = ARC2.shapeActProgress('peak', 0.25);
+  const late = ARC2.shapeActProgress('peak', 0.9);
+  assert(early < 0.25, `a peak must still hold at 25%, got ${early}`);
+  assert(late > 0.75, `a peak must have released by 90%, got ${late}`);
+});
+
+check('20. an unknown act falls back to the linear progress', () => {
+  const ARC2 = loadArc(makeMap());
+  assert(Math.abs(ARC2.shapeActProgress('not-an-act', 0.4) - 0.4) < 1e-9,
+    'an unknown act must be linear');
+  assert(Math.abs(ARC2.shapeActProgress(null, 0.4) - 0.4) < 1e-9,
+    'no act must be linear');
+});
+
+check('21. shapeActProgress clamps out-of-range progress', () => {
+  const ARC2 = loadArc(makeMap());
+  assert(ARC2.shapeActProgress('peak', -1) === 0, 'negative progress clamps to 0');
+  assert(ARC2.shapeActProgress('peak', 2) === 1, 'progress above 1 clamps to 1');
+});
+
 console.log(failures ? `\n${failures} CHECK(S) FAILED` : '\nALL ARC CHECKS PASS');
 process.exit(failures ? 1 : 0);

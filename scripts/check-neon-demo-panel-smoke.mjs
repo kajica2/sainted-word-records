@@ -75,6 +75,33 @@ try {
   if (reachable === 'ok') ok('Start demo is clickable over the start overlay');
   else bad('Start demo is covered', reachable);
 
+  // A performer who already built a stage keeps it. The demo fills the
+  // empty slots around the set and leaves the occupied slot exactly as it
+  // was — Start demo used to remap the stack, which threw away a layer the
+  // performer had staged.
+  await page.evaluate(function () {
+    document.querySelector('[data-demo-control="stage:clips"]').click();
+  });
+  const clipsIn = await page.waitForFunction(function () {
+    var lib = window.SWR_LIB;
+    var clips = lib ? lib.items.filter(function (it) { return it.packId === 'dancer-video'; }) : [];
+    return clips.length >= 13 ? true : false;
+  }, { timeout: 60000, polling: 300 }).then(function () { return true; }, function () { return false; });
+  if (clipsIn) ok('the dance clips install on their own');
+  else bad('dance clips did not install');
+  const performerId = await page.evaluate(function () {
+    var lib = window.SWR_LIB;
+    var clip = lib ? lib.items.filter(function (it) { return it.packId === 'dancer-video'; })[0] : null;
+    if (!clip || !window.Layers) return null;
+    // The performer's own layer: the same media, its own identity.
+    var mine = Object.create(clip);
+    mine.id = 'performer-layer-1';
+    mine.name = 'performer.mp4';
+    window.Layers.list.length = 0;
+    window.Layers.add(mine);
+    return mine.id;
+  });
+
   await page.evaluate(function () {
     document.querySelector('[data-demo-control="stage:start"]').click();
   });
@@ -86,6 +113,17 @@ try {
   }, { timeout: 60000, polling: 300 }).then(function () { return true; }, function () { return false; });
   if (staged) ok('Start demo installs the 13 dance clips, stages layers and plays the song');
   else bad('Start demo did not stage clips + audio', await page.evaluate(function () { return window.SWR_NEON_DEMO.stageSummary(); }));
+
+  const kept = await page.evaluate(function () {
+    var list = (window.Layers && window.Layers.list) || [];
+    return {
+      first: list[0] && list[0].asset ? list[0].asset.id : null,
+      count: list.length,
+    };
+  });
+  if (performerId && kept.first === performerId && kept.count === 3) {
+    ok('Start demo keeps the staged layer and fills the empty slots around it');
+  } else bad('Start demo wiped a staged layer', JSON.stringify(kept) + ' expected ' + performerId);
 
   const videoLayers = await page.waitForFunction(function () {
     var decoded = window.Layers.list.filter(function (l) {
@@ -133,10 +171,13 @@ try {
       sens: parseFloat(document.getElementById('sens').value),
       core: params ? params.sens : null,
       preset: window.SWR_NEON_DEMO.readProbe('audio:punch').preset,
+      stored: window.SWR_PERSIST_WIRE ? window.SWR_PERSIST_WIRE.getGlobal('audioPreset') : null,
     };
   });
   if (punch.preset === 'punch' && punch.sens === 2.4 && punch.core === 2.4) ok('audio preset Punch drives the slider and the audio core');
   else bad('audio preset', JSON.stringify(punch));
+  if (punch.stored === 'punch') ok('the audio preset is remembered with the knobs it wrote');
+  else bad('audio preset was not stored', JSON.stringify(punch));
 
   await page.evaluate(function () {
     var sens = document.getElementById('demo-sensitivity');
@@ -162,6 +203,34 @@ try {
       liveSliders.temp === 0.45 && liveSliders.tempPage === 0.45 && liveSliders.tempRead === '+0.45') {
     ok('sensitivity and temperature sliders drive the audio core and the grade');
   } else bad('live sliders', JSON.stringify(liveSliders));
+
+  // A pack that lost some of its clips is repaired. The loader still says
+  // "loaded" and hands back its cached count without fetching the missing
+  // files, so Start demo has to drop the pack and load it again.
+  await page.evaluate(function () {
+    var lib = window.SWR_LIB;
+    var clips = lib.items.filter(function (it) { return it.packId === 'dancer-video'; });
+    var drop = {};
+    clips.slice(0, 4).forEach(function (it) { drop[it.id] = true; });
+    lib.items = lib.items.filter(function (it) { return !drop[it.id]; });
+  });
+  const halfGone = await page.evaluate(function () {
+    var lib = window.SWR_LIB;
+    return lib.items.filter(function (it) { return it.packId === 'dancer-video'; }).length;
+  });
+  await page.evaluate(function () {
+    document.querySelector('[data-demo-control="stage:start"]').click();
+  });
+  const refilled = await page.waitForFunction(function () {
+    var lib = window.SWR_LIB;
+    var clips = lib ? lib.items.filter(function (it) { return it.packId === 'dancer-video'; }) : [];
+    return clips.length >= 13 ? true : false;
+  }, { timeout: 60000, polling: 300 }).then(function () { return true; }, function () { return false; });
+  if (refilled) ok('a dance pack that lost four clips is refilled to thirteen (' + halfGone + ' → 13)');
+  else bad('a half-present pack was not repaired', await page.evaluate(function () {
+    var lib = window.SWR_LIB;
+    return lib ? lib.items.filter(function (it) { return it.packId === 'dancer-video'; }).length : -1;
+  }));
 
   const clipRatio = await page.waitForFunction(function () {
     var chip = document.querySelector('#lib .li .ratio');

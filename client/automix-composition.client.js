@@ -28,7 +28,12 @@
   if (window.SWR_AUTOMIX_COMPOSITION) return;
   window.SWR_AUTOMIX_COMPOSITION = true;
 
-  var PROFILES = {
+  // The BASE table — the shipped rhythm. Every effective profile is this
+  // table with the context maps and the owner's explicit overrides applied
+  // on top. Keeping the base separate is what lets a persona change (or a
+  // variant switch) recompose the profiles without ever losing an
+  // explicit override.
+  var BASE_PROFILES = {
     intro:     { minSeconds: 9,    maxSeconds: 14 },
     lift:      { minSeconds: 6,    maxSeconds: 10 },
     peak:      { minSeconds: 2.5,  maxSeconds: 5 },
@@ -37,9 +42,156 @@
   };
   var DEFAULT_PROFILE = { minSeconds: 6, maxSeconds: 10 };
 
+  // The LIVE effective table. This is the object the scheduler and the
+  // image lane read; `PROFILES` stays the public name for it.
+  var PROFILES = {
+    intro:     { minSeconds: 9,    maxSeconds: 14 },
+    lift:      { minSeconds: 6,    maxSeconds: 10 },
+    peak:      { minSeconds: 2.5,  maxSeconds: 5 },
+    breakdown: { minSeconds: 12,   maxSeconds: 20 },
+    outro:     { minSeconds: 8,    maxSeconds: 14 },
+  };
+
+  // The owner's explicit overrides — what setProfiles() was called with.
+  // They outrank the context maps.
+  var EXPLICIT = {};
+
+  // ---- Context profile maps (persona → cut rhythm, variant → cut rhythm) --
+  // These are DATA, not code: a persona or a variant names a rhythm and the
+  // numbers live in one table. `compose()` is the only writer of the live
+  // table; `setProfiles` is the only writer of the explicit overrides — so
+  // there is one path into PROFILES and no writer conflict.
+  //
+  // Personas come from the targeting ontology (28 workflow personas);
+  // variants from the variant switcher's id list. A persona that is not in
+  // the table (or a surface that has no targeting at all) simply keeps the
+  // base PROFILES — an unknown context is never an error.
+  var PERSONA_PROFILES = {
+    'live-vj':           { peak: { minSeconds: 1.5,  maxSeconds: 3.5 }, lift: { minSeconds: 4, maxSeconds: 7 } },
+    'transition-choreo': { peak: { minSeconds: 1.8,  maxSeconds: 4 },   lift: { minSeconds: 4.5, maxSeconds: 8 } },
+    'anchor-curator':    { peak: { minSeconds: 4,    maxSeconds: 9 },   breakdown: { minSeconds: 16, maxSeconds: 24 } },
+    'gallery-curator':   { peak: { minSeconds: 3.5,  maxSeconds: 8 },   breakdown: { minSeconds: 15, maxSeconds: 22 } },
+    'podcast-visual-editor': { peak: { minSeconds: 3,  maxSeconds: 7 }, breakdown: { minSeconds: 14, maxSeconds: 20 } },
+    'film-composer':     { peak: { minSeconds: 2.8,  maxSeconds: 6.5 }, lift: { minSeconds: 5, maxSeconds: 9 } },
+    'wedding-videographer': { peak: { minSeconds: 3, maxSeconds: 7 },   breakdown: { minSeconds: 14, maxSeconds: 20 } },
+    'choreographer':     { peak: { minSeconds: 1.6,  maxSeconds: 3.6 }, lift: { minSeconds: 4, maxSeconds: 7.5 } },
+    'album-cover-designer': { peak: { minSeconds: 2.2, maxSeconds: 5 }, lift: { minSeconds: 4, maxSeconds: 8 } },
+  };
+
+  var VARIANT_PROFILES = {
+    'grid':  { peak: { minSeconds: 1.5, maxSeconds: 3.5 }, lift: { minSeconds: 4, maxSeconds: 7 } },
+    'neon':  { peak: { minSeconds: 1.8, maxSeconds: 4 },   lift: { minSeconds: 4.5, maxSeconds: 8 } },
+    'film':  { peak: { minSeconds: 3.5, maxSeconds: 8 },   breakdown: { minSeconds: 15, maxSeconds: 22 } },
+    'aurora':{ peak: { minSeconds: 3,   maxSeconds: 7 },   breakdown: { minSeconds: 14, maxSeconds: 20 } },
+    'tape':  { peak: { minSeconds: 2.5, maxSeconds: 5.5 }, lift: { minSeconds: 5, maxSeconds: 9 } },
+  };
+
+  // The live profile map. `getProfiles()` hands this out; the image lane
+  // reads it to derive its dwell floor (Phase 5).
+  function getProfiles() {
+    return PROFILES;
+  }
+
+  // Merge one act's window into a target table. Only the named act moves;
+  // invalid numbers are ignored rather than clamped, so a bad partial cannot
+  // silently produce a zero-length cut window.
+  function mergeInto(target, act, p) {
+    if (!p || typeof p !== 'object') return;
+    var min = typeof p.minSeconds === 'number' && isFinite(p.minSeconds) ? p.minSeconds : null;
+    var max = typeof p.maxSeconds === 'number' && isFinite(p.maxSeconds) ? p.maxSeconds : null;
+    if (min === null && max === null) return;
+    var cur = target[act] || DEFAULT_PROFILE;
+    var nextMin = min === null ? cur.minSeconds : min;
+    var nextMax = max === null ? cur.maxSeconds : max;
+    if (nextMax < nextMin) { var t = nextMin; nextMin = nextMax; nextMax = t; }
+    target[act] = { minSeconds: nextMin, maxSeconds: nextMax };
+  }
+
+  // The ONE writer for explicit overrides. Merges a partial map of
+  // act → {minSeconds,maxSeconds} into EXPLICIT and recomposes the live
+  // table, so the owner's call always wins over the context maps.
+  function setProfiles(partial) {
+    if (partial && typeof partial === 'object') {
+      for (var act in partial) {
+        if (!Object.prototype.hasOwnProperty.call(partial, act)) continue;
+        mergeInto(EXPLICIT, act, partial[act]);
+      }
+    }
+    compose();
+    return PROFILES;
+  }
+
+  // The current context, read from the surfaces that own it. Both are
+  // optional: a page with no targeting keeps the base profiles.
+  function currentPersona() {
+    try {
+      var T = window.SWR_TARGETING;
+      return (T && typeof T.persona === 'function') ? (T.persona() || null) : null;
+    } catch (_) { return null; }
+  }
+  function currentVariant() {
+    try {
+      var V = window.SWR_VARIANTS;
+      return (V && typeof V.current === 'function') ? (V.current() || null) : null;
+    } catch (_) { return null; }
+  }
+
+  // Recompose the live table: base → context maps → explicit overrides.
+  // Recomposing FROM THE BASE (rather than layering onto whatever the table
+  // already holds) is what makes a persona change leave no stale override
+  // behind: persona A → persona B must not keep A's peak.
+  function compose() {
+    for (var act in BASE_PROFILES) {
+      PROFILES[act] = { minSeconds: BASE_PROFILES[act].minSeconds, maxSeconds: BASE_PROFILES[act].maxSeconds };
+    }
+    var v = currentVariant();
+    if (v && VARIANT_PROFILES[v]) {
+      for (var k in VARIANT_PROFILES[v]) mergeInto(PROFILES, k, VARIANT_PROFILES[v][k]);
+    }
+    var p = currentPersona();
+    if (p && PERSONA_PROFILES[p]) {
+      for (var j in PERSONA_PROFILES[p]) mergeInto(PROFILES, j, PERSONA_PROFILES[p][j]);
+    }
+    for (var e in EXPLICIT) mergeInto(PROFILES, e, EXPLICIT[e]);
+    return PROFILES;
+  }
+
+  // Apply the context maps when the context changes (a persona is
+  // classified, a variant is activated). Recomposing is idempotent, so
+  // calling it on every act change is safe and always current.
+  function applyContextProfiles() {
+    return compose();
+  }
+
+  // ---- Config (owned by the runtime, read here) --------------------------
+  // The runtime parses #swrc-automix-config; the composition only READS the
+  // parsed result through SWR_AUTOMIX_RUNTIME._config(). It never parses
+  // the config itself, so there is one parser and one owner.
+  function runtimeConfig() {
+    try {
+      var R = window.SWR_AUTOMIX_RUNTIME;
+      return (R && typeof R._config === 'function') ? (R._config() || null) : null;
+    } catch (_) { return null; }
+  }
+  // arcOnly = the macro arc drives the picture, the clip composition does
+  // not run. The FX override still moves (the arc layer owns it); only the
+  // scheduler is left alone.
+  function isArcOnly() {
+    var cfg = runtimeConfig();
+    return !!(cfg && cfg.arcOnly === true);
+  }
+
   var lastActIndex = null;
   var lastApplied = null;
   var lastProgress = null;
+  var lastActName = null;
+
+  // The act the composition is currently cutting for, or null before the
+  // first act arrives. The image lane reads it (with getProfiles()) to
+  // derive its dwell floor.
+  function currentAct() {
+    return lastActName;
+  }
 
   // ---- Grouping helpers for automix ----
   // ONE rule for "which clips belong together", shared with the media
@@ -141,6 +293,11 @@
   }
 
   function apply(actName, reason) {
+    // arcOnly: the macro arc drives the picture, the clip composition does
+    // not run. The FX override still moves (the arc layer owns it) — only
+    // the scheduler is left alone, so no clip is cut and no cut window is
+    // configured.
+    if (isArcOnly()) return false;
     var sched = window.SWR_LAYER_SCHEDULER;
     if (!sched || typeof sched.setConfig !== 'function') return false;
 
@@ -255,21 +412,30 @@
   window.addEventListener('swr-automix-glide', function (ev) {
     var g = ev.detail || {};
     if (typeof g.actIndex !== 'number') return;
+    // The context (persona / variant) can change between acts, so the
+    // profiles are recomposed before they are read. Recomposing is
+    // idempotent, so this is cheap and always current.
+    applyContextProfiles();
     var sched = window.SWR_LAYER_SCHEDULER;
     if (g.actIndex !== lastActIndex) {
       lastActIndex = g.actIndex;
       lastProgress = null;
+      lastActName = g.actName || null;
       apply(g.actName, 'act-change');
       // Section boundary → the composition changes WITH the music. The
       // swap flows through the normal applySwap path (crossfade +
       // beat-snap), so the cut lands on the next downbeat.
-      if (sched && typeof sched.swapNow === 'function') sched.swapNow();
+      // arcOnly: no cut — the composition is off entirely.
+      if (!isArcOnly() && sched && typeof sched.swapNow === 'function') sched.swapNow();
       return;
     }
     // Within-act cadence envelope: interpolate this act's cutting window
     // toward the next act's profile by actProgress — cuts tighten into a
     // peak, release into a breakdown, settle in the outro, instead of
     // stepping flat between per-act constants.
+    // arcOnly: the clip composition is off, so the window is not touched
+    // either — the arc drives the picture and nothing else runs.
+    if (isArcOnly()) return;
     if (!sched || typeof sched.setProgress !== 'function') return;
     var cur = PROFILES[g.actName] || DEFAULT_PROFILE;
     var nextName = g.nextActName || null;
@@ -297,5 +463,26 @@
   window.SWR_AUTOMIX_COMPOSITION = {
     apply: apply,
     PROFILES: PROFILES,
+    // The owner API: setProfiles(partial) is the ONE way to change a cut
+    // window explicitly, and it outranks the context maps. getProfiles()
+    // hands back the live effective map (the image lane reads it).
+    setProfiles: setProfiles,
+    getProfiles: getProfiles,
+    // Recompose the live table from the base + the current context.
+    applyContextProfiles: applyContextProfiles,
+    // The act the composition is currently cutting for (null before the
+    // first act). The image lane reads it with getProfiles() to derive its
+    // dwell floor.
+    currentAct: currentAct,
+    // True when the arc drives the picture and the clip composition is off.
+    isArcOnly: isArcOnly,
+    // The context maps, exposed so a page can read (not write) them.
+    PERSONA_PROFILES: PERSONA_PROFILES,
+    VARIANT_PROFILES: VARIANT_PROFILES,
   };
+
+  // Apply the context once at init so the FIRST act already uses the right
+  // rhythm — a persona classified before the first glide must not be waited
+  // for a boundary to land.
+  try { applyContextProfiles(); } catch (_) {}
 })();

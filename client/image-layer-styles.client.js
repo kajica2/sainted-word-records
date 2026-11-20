@@ -4,8 +4,14 @@
 //
 //   fade  — opacity crossfade only (no slide)
 //   depth — reorder the layer toward the top of the stack, then fade
-//   move  — flow slide + keep Ken Burns drift (imageEvolve)
+//   move  — flow slide across the frame (the still itself holds still)
 //   mask  — drive a mask-illusion grade while fading out, then swap
+//
+// Motion note: while a still is being swapped, the ambient Ken Burns drift
+// and zoom are switched off (engine-render's imageEvolve). A still that
+// drifts while it dissolves reads as a glitch, not as a transition. The
+// swap's own motion — this module's flow slide — is a separate offset and
+// stays.
 //
 // One global: window.SWR_IMAGE_STYLES.
 
@@ -18,7 +24,7 @@
   var STYLES = [
     { id: 'fade', label: 'Fade', hint: 'Opacity dissolve only' },
     { id: 'depth', label: 'Depth', hint: 'Bring the layer forward, then fade' },
-    { id: 'move', label: 'Move', hint: 'Slide + Ken Burns drift' },
+    { id: 'move', label: 'Move', hint: 'Slide across the frame' },
     { id: 'mask', label: 'Mask', hint: 'Mask illusion disappear, then swap' },
   ];
   var STYLE_IDS = STYLES.map(function (s) { return s.id; });

@@ -199,7 +199,7 @@ check('3. duplicate key replaces the old entry', () => {
 check('4. store caps at 5 songs, oldest dropped', () => {
   const { m, storage } = storeOnly();
   for (let i = 1; i <= 7; i++) m.record('s' + i, ['a' + i]);
-  const raw = JSON.parse(storage.getItem('swr.automix.session.v1'));
+  const raw = JSON.parse(storage.getItem(m.KEY));
   assert.strictEqual(raw.songs.length, 5);
   assert.deepStrictEqual(raw.songs.map((s) => s.key), ['s3', 's4', 's5', 's6', 's7']);
   assert.deepStrictEqual(Array.from(m.recent()), ['a7', 'a6', 'a5', 'a4', 'a3']);
@@ -209,7 +209,7 @@ check('4. store caps at 5 songs, oldest dropped', () => {
 check('5. per-song anchorIds capped at 8', () => {
   const { m, storage } = storeOnly();
   m.record('s1', ['x1', 'x2', 'x3', 'x4', 'x5', 'x6', 'x7', 'x8', 'x9', 'x10']);
-  const raw = JSON.parse(storage.getItem('swr.automix.session.v1'));
+  const raw = JSON.parse(storage.getItem(m.KEY));
   assert.strictEqual(raw.songs[0].anchorIds.length, 8);
 });
 
@@ -225,11 +225,11 @@ check('6. recent() dedupes anchors across songs', () => {
 check('7. corrupted JSON treated as empty store, never throws', () => {
   const { m, storage } = storeOnly();
   const store = storage;
-  store.setItem('swr.automix.session.v1', '{not json!!');
+  store.setItem(m.KEY, '{not json!!');
   assert.deepStrictEqual(Array.from(m.recent()), []);
   m.record('s1', ['a']);
   assert.deepStrictEqual(Array.from(m.recent()), ['a']);
-  const raw = JSON.parse(store.getItem('swr.automix.session.v1'));
+  const raw = JSON.parse(store.getItem(m.KEY));
   assert.strictEqual(raw.songs.length, 1);
 });
 
@@ -237,7 +237,7 @@ check('7. corrupted JSON treated as empty store, never throws', () => {
 check('8. record filters non-string anchor ids', () => {
   const { m, storage } = storeOnly();
   m.record('s1', ['a', null, '', 42, 'b']);
-  const raw = JSON.parse(storage.getItem('swr.automix.session.v1'));
+  const raw = JSON.parse(storage.getItem(m.KEY));
   assert.deepStrictEqual(raw.songs[0].anchorIds, ['a', 'b']);
 });
 
@@ -347,7 +347,7 @@ check('18. song-change flush records the old song and resets accumulation', () =
   sb.automix._ensureArc();
   assert.deepStrictEqual(Array.from(sb.automix._sessionAnchors), [], 'accumulation reset after flush');
   assert.deepStrictEqual(Array.from(sb.session.recent()), ['a']);
-  const raw = JSON.parse(sb.storage.getItem('swr.automix.session.v1'));
+  const raw = JSON.parse(sb.storage.getItem(sb.session.KEY));
   assert.strictEqual(raw.songs[0].key, 'song1.mp3');
   assert.deepStrictEqual(Array.from(raw.songs[0].anchorIds), ['a']);
   assert.strictEqual(typeof raw.songs[0].ts, 'number');
@@ -535,6 +535,85 @@ check('26. pagehide flushes the debounced last-mix write', () => {
   sb.win.SWR_LAST_MIX = undefined;
   sb.win.dispatchEvent({ type: 'pagehide' });
   assert.strictEqual(flushed, 1, 'no store → no flush, no throw');
+});
+
+// ---- P6: soft preference (a prior over the anchors the user kept) -------
+//
+// The store grows a `prefs` table alongside the novelty songs. `prefer()`
+// records that the user KEPT an anchor (freeze / lock / save), and the
+// session layer reroutes to the most-preferred UNUSED neighbour instead of
+// simply the nearest one. Novelty still wins: a preferred anchor that is
+// already in the recent set is never reused.
+
+check('27. preference biases the neighbour when novelty allows', () => {
+  const sb = makeSandbox();
+  sb.session.record('earlier-song', ['a']); // 'a' is a repeat → forces a reroute
+  assert.strictEqual(typeof sb.session.prefer, 'function', 'prefer API missing');
+  assert.strictEqual(typeof sb.session.prefs, 'function', 'prefs API missing');
+  sb.session.prefer('c'); // the user kept 'c'
+  sb.automix.tick();
+  const mixed = tickEvents(sb)[0];
+  assert.strictEqual(mixed.sessionRerouted, true, 'expected the session reroute');
+  assert.strictEqual(mixed.anchors[0].id, 'c',
+    'expected the preferred neighbour c, got ' + mixed.anchors[0].id);
+});
+
+check('28. without a preference the reroute keeps its old behaviour', () => {
+  const sb = makeSandbox();
+  sb.session.record('earlier-song', ['a']);
+  sb.automix.tick();
+  const mixed = tickEvents(sb)[0];
+  assert.strictEqual(mixed.anchors[0].id, 'b', 'expected the first unused neighbour b');
+});
+
+check('29. a preference cannot break the all-recent block', () => {
+  const sb = makeSandbox();
+  sb.session.record('earlier-song', ['a', 'b', 'c', 'd']);
+  sb.session.prefer('b');
+  sb.automix.tick();
+  const mixed = tickEvents(sb)[0];
+  assert.strictEqual(mixed.sessionRerouted, undefined, 'must not reroute onto a repeat');
+  assert.strictEqual(mixed.anchors[0].id, 'a', 'keeps the current anchor');
+});
+
+check('30. a corrupt payload yields empty prefs and never throws', () => {
+  const sb = makeSandbox();
+  sb.storage.setItem('swr.automix.session.v2', '{not json!!');
+  assert.strictEqual(Object.keys(sb.session.prefs()).length, 0, 'prefs must be empty');
+  assert.deepStrictEqual(Array.from(sb.session.recent()), [], 'songs must be empty');
+  sb.session.record('s1', ['x']);
+  assert.deepStrictEqual(Array.from(sb.session.recent()), ['x'], 'the store must recover');
+});
+
+check('31. a v1 payload is migrated to v2', () => {
+  const sb = makeSandbox();
+  sb.storage.setItem('swr.automix.session.v1',
+    JSON.stringify({ songs: [{ key: 'old', ts: 1, anchorIds: ['a'] }] }));
+  assert.deepStrictEqual(Array.from(sb.session.recent()), ['a'], 'the v1 songs must survive');
+  const raw = JSON.parse(sb.storage.getItem('swr.automix.session.v2'));
+  assert.ok(raw, 'the migrated payload must be stored under v2');
+  assert.strictEqual(raw.songs.length, 1, 'the migrated payload carries the songs');
+  assert.strictEqual(Object.keys(raw.prefs || {}).length, 0, 'the migrated payload starts with no prefs');
+});
+
+check('32. freezing the look records a preference for that anchor', () => {
+  const sb = makeSandbox();
+  // The tick carries the anchor the picture is on; the freeze is the user
+  // saying "keep this one".
+  sb.win.dispatchEvent({ type: 'swr-automix-tick', detail: { mixed: { anchors: [{ id: 'b' }] } } });
+  sb.win.dispatchEvent({ type: 'swr-automix-freeze', detail: { frozen: true } });
+  assert.strictEqual(sb.session.prefs()['b'], 1, 'freeze must prefer the current anchor');
+  // Releasing the freeze is not a "keep" — it must not add a preference.
+  sb.win.dispatchEvent({ type: 'swr-automix-freeze', detail: { frozen: false } });
+  assert.strictEqual(sb.session.prefs()['b'], 1, 'unfreezing must not add a preference');
+});
+
+check('33. saving and locking also record a preference', () => {
+  const sb = makeSandbox();
+  sb.win.dispatchEvent({ type: 'swr-automix-tick', detail: { mixed: { anchors: [{ id: 'c' }] } } });
+  sb.win.dispatchEvent({ type: 'swr-automix-save', detail: { name: 'auto-1' } });
+  sb.win.dispatchEvent({ type: 'swr-automix-lock', detail: { locked: true } });
+  assert.strictEqual(sb.session.prefs()['c'], 2, 'save + lock must prefer the current anchor');
 });
 
 console.log(results.join('\n'));
