@@ -38,9 +38,11 @@
 // or throws, so the verifier has NO side effects on the working tree and is
 // safe to run from a gate or in a loop.
 //
-// Two codemods reach outside `versions/`: `_site-exit-inject.js` also patches
-// `tools/` and `auth/`. Those pages get their own top-level `extra_pages`
-// block in the manifest, same shape as `variants`.
+// A codemod that reaches outside `versions/` (into `tools/` and `auth/`)
+// gets those pages in their own top-level `extra_pages` block in the
+// manifest, same shape as `variants`. The block is generic: it is empty
+// today because the only codemod that used it — `_site-exit-inject.js`,
+// retired 2026-11-20 — was itself undone by the chrome migration tool.
 //
 // SEVERITY MODEL
 // --------------
@@ -98,8 +100,9 @@ const UPDATE = ARGS.includes('--update');
 const VERBOSE = ARGS.includes('--verbose');
 
 // Trees a codemod may read or write. Copied into every sandbox. `versions/`
-// is the codemod dir itself; `tools/` and `auth/` exist for
-// _site-exit-inject.js, the one codemod that patches outside versions/.
+// is the codemod dir itself; `tools/` and `auth/` are there for the case of
+// a codemod that patches outside versions/ (the last one, `_site-exit-inject.js`,
+// was retired on 2026-11-20).
 const SANDBOX_TREES = ['versions', 'tools', 'auth'];
 
 // Codemods run concurrently, each against its own temp dir. 4 is enough to
