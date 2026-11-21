@@ -129,7 +129,7 @@ const GROUPS = {
     // file. The unit gate states the invariant; the verify gate proves the
     // outcome in a browser (it spawns one, so it is bounded like the others).
     'npm run check:recorder-capture-unit',
-    { cmd: 'npm run check:recorder-capture-verify', timeoutMs: 900000 },
+    { cmd: 'npm run check:recorder-verify', timeoutMs: 900000 },
     'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',
     'npm run check:webgl-uniform-guard',

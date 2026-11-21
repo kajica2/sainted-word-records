@@ -9378,6 +9378,21 @@
       } catch (e) {
         stream = recCanvas.captureStream(30);
       }
+      // THE SONG GOES IN THE FILE. The recorded stream was video-only, so
+      // every export was a silent music video — there was no beat in it to
+      // follow. The audio comes from the same analyser the picture is
+      // drawn from.
+      let audioDest = null;
+      try {
+        if (audioCtx && analyser) {
+          audioDest = audioCtx.createMediaStreamDestination();
+          analyser.connect(audioDest);
+          const audioTrack = audioDest.stream.getAudioTracks()[0];
+          if (audioTrack) stream.addTrack(audioTrack);
+        }
+      } catch (e) {
+        audioDest = null;
+      }
       recordingStream = stream;
       recordedBlobs = [];
 
@@ -9395,6 +9410,11 @@
           showToast('MediaRecorder could not start: ' + e2.message);
           stopBlit = true;
           if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e3) {} }
+          if (audioDest) {
+            try { analyser.disconnect(audioDest); } catch (e4) {}
+            try { audioDest.stream.getAudioTracks().forEach(t => t.stop()); } catch (e5) {}
+            audioDest = null;
+          }
           return;
         }
       }
@@ -9405,6 +9425,12 @@
         stopBlit = true;
         // The take is over, so the capture canvas leaves the document again.
         if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e) {} }
+        // And so does the audio tap.
+        if (audioDest) {
+          try { analyser.disconnect(audioDest); } catch (e) {}
+          try { audioDest.stream.getAudioTracks().forEach(t => t.stop()); } catch (e) {}
+          audioDest = null;
+        }
         // The take is over, so the music stops with it. Record starts playback
         // and stopping ends it, which keeps the transport and the file in step.
         try { audioEl.pause(); } catch (e) {}
@@ -9448,6 +9474,11 @@
       mediaRecorder.onerror = (e) => {
         stopBlit = true;
         if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e2) {} }
+        if (audioDest) {
+          try { analyser.disconnect(audioDest); } catch (e3) {}
+          try { audioDest.stream.getAudioTracks().forEach(t => t.stop()); } catch (e4) {}
+          audioDest = null;
+        }
         showToast('Recording error: ' + (e.error && e.error.message || 'unknown'));
       };
 
