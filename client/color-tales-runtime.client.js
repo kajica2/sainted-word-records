@@ -45,8 +45,24 @@
     if (statusEl) statusEl.textContent = msg || '';
   }
 
+  function loadDefaultPages() {
+    const src = window.SWR_COLOR_TALES_DEFAULT_PAGES;
+    if (!Array.isArray(src) || !src.length) return false;
+    pages = src.map((row) => {
+      const [title, hint, meta] = row;
+      const svg = meta?.svg ? SAN.sanitizeSvgText(meta.svg) : null;
+      return [title, hint, svg ? { svg } : { placeholder: true }];
+    });
+    states = pages.map(() => []);
+    regionsByPage = pages.map(() => []);
+    page = 0;
+    customSvg = pages[0][2]?.svg || null;
+    return true;
+  }
+
   function defaultScene() {
-    const art = C.PLACEHOLDER_ART;
+    if (customSvg) return customSvg;
+    const art = C.CHARACTERS_WEBP || C.PLACEHOLDER_ART;
     return `<rect width="900" height="550" fill="#fffdf5"/>` +
       `<image href="${art}" x="0" y="0" width="900" height="550" preserveAspectRatio="xMidYMid meet"/>`;
   }
@@ -371,6 +387,7 @@
   }
 
   function mount() {
+    loadDefaultPages();
     bindPainting();
     bindControls();
     render();
