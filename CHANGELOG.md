@@ -34,7 +34,12 @@ once it hits 1.0.
   `BUDGET_BYTES` could never have resolved against
   `.github/workflows/ci.yml`. The negation was hiding the claim, not
   exonerating it. YAML is now part of the corpus, the sentence no longer
-  hides, and the gate verifies **472** claims instead of 471.
+  hides, and the gate verifies **one more claim than it did** — 467 → 468 on
+  the runner, 471 → 472 on a machine that has the gitignored `_archive/`
+  directory. The absolute number differs by environment because four
+  `_archive/` claims verify only where that directory exists; on a clean
+  checkout they land in `ACCEPTED_DRIFT` and do not count. That difference
+  predates this change.
 - **The tone slider's accessible name no longer comes from its tooltip
   alone.** The slider was labelled only by its `title` attribute, which
   axe's `label-title-only` rule flags on every page that mounts it —

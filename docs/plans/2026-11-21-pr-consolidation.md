@@ -47,7 +47,7 @@ things the repository claims about itself are measured and checked.
 | gate | what it holds honest |
 |---|---|
 | `check:codemods` | `versions/manifest.json` matches the tree; pending drift ages out after 30 days |
-| `check:doc-truth` | 471 claims across 13 docs still match the source |
+| `check:doc-truth` | the claims in 13 docs still match the source |
 | `check:a11y` | per-rule violation counts may only shrink (`qa/a11y-baseline.json`) |
 | `check:a11y-names-unit` | the accessible-name census may only shrink (`qa/a11y-names-baseline.json`) |
 | `check:media-budget` | per-directory shipped bytes |
@@ -326,10 +326,34 @@ gate rather than in the doc:
   `.github/workflows/ci.yml`.
 
 Both are fixed in this pull request: YAML is now part of the corpus, the
-sentence no longer hides behind a negation, and the gate verifies **472**
-claims. A negation is a reasonable thing to skip — "there is no
+sentence no longer hides behind a negation, and the gate verifies **one more
+claim than it did**. A negation is a reasonable thing to skip — "there is no
 `api/health.js`" is not a claim — but it must not be able to smuggle an
 unchecked claim past the gate.
+
+#### The count is environment-dependent, and that is worth knowing
+
+The gate reports **468 claims on the runner** and **472 on a working
+machine**. The difference is four claims, all of them about `_archive/`:
+
+```
+.kai/conventions/architecture.md:166  dir  _archive
+AGENTS.md:49                          dir  _archive
+AGENTS.md:70                          dir  _archive
+AGENTS.md:87                          dir  _archive
+```
+
+`_archive/` is gitignored, so it is present on a contributor's disk and
+absent from a clean checkout. Its ignore pattern carries a trailing slash, so
+git can only match it when the directory actually exists — which means
+`isIgnored('_archive')` answers differently on the two machines. Locally the
+four claims verify; on the runner they land in `ACCEPTED_DRIFT` and are not
+counted as verified.
+
+This was measured, not guessed: a throwaway branch dumped the gate's claim
+list on the runner and the lists were diffed. The difference predates this
+work, and the honest form of the claim is therefore *one more claim*, not an
+absolute number.
 
 ### 6.2 Re-pin the accessibility baseline
 
