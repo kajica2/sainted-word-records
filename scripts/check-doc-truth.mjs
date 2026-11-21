@@ -144,7 +144,16 @@ const SOURCE_EXT_RE = /\.(?:js|mjs|cjs|jsx|ts|tsx|html|css|json|md|sh|py|yml|yam
 // Only these are read (and joined) to check identifier claims. Markdown is
 // deliberately excluded: it would triple the string for no gain, since the
 // docs being checked are not the evidence for what the code uses.
-const CONTENT_EXT_RE = /\.(?:js|mjs|cjs|jsx|ts|html|json)$/i;
+//
+// YAML IS included, because a YAML file is configuration the repository
+// ships and the docs describe by name — `BUDGET_BYTES` lives in
+// .github/workflows/ci.yml, and a corpus that cannot see it cannot check
+// the sentence that names it. Without YAML, every CI claim in AGENTS.md was
+// silently unchecked, because the sentence that carried it also carried a
+// negation ("a direct push to main does not trigger it") and a negated
+// sentence is skipped whole. The negation was hiding the claim, not
+// exonerating it.
+const CONTENT_EXT_RE = /\.(?:js|mjs|cjs|jsx|ts|html|json|yml|yaml)$/i;
 // Dot-separated identifier, no slash: `engine.html`, `err.usage`, `FX.state`.
 const DOTTED_SHAPE_RE = /^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z0-9_$]+)*$/;
 const SWR_GLOBAL_RE = /^SWR_[A-Z0-9_]+$/;

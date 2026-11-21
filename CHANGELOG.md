@@ -21,6 +21,20 @@ once it hits 1.0.
   `u_tone` exactly like every other page that has one.
 
 ### Fixed
+- **AGENTS.md describes CI as it is, and the doc-truth gate can now see it.**
+  The paragraph claimed `.github/workflows/ci.yml` was the only workflow, that
+  it ran on pushes to **non-main** branches with `branches-ignore: main`, and
+  that the size ceiling was 181 MiB. All three were wrong: `ci.yml` runs on
+  pushes to `main` as well as pull requests against it, eleven workflows are
+  active, and the ceiling is 182 MiB.
+  `check:doc-truth` never caught this, and the reason is worth keeping: the
+  gate skips negated sentences, and the old sentence carried one (*"a direct
+  push to main does not trigger it"*), so the whole bullet went unverified —
+  while the corpus it verifies against did not include YAML at all, so
+  `BUDGET_BYTES` could never have resolved against
+  `.github/workflows/ci.yml`. The negation was hiding the claim, not
+  exonerating it. YAML is now part of the corpus, the sentence no longer
+  hides, and the gate verifies **472** claims instead of 471.
 - **The tone slider's accessible name no longer comes from its tooltip
   alone.** The slider was labelled only by its `title` attribute, which
   axe's `label-title-only` rule flags on every page that mounts it —
