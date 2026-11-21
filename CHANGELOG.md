@@ -21,6 +21,34 @@ once it hits 1.0.
   `u_tone` exactly like every other page that has one.
 
 ### Fixed
+- **● REC now saves a file.** Pressing REC on the NEON page recorded nothing:
+  the take ended with *"nothing captured - press REC while the song plays"*
+  and no file was written. The recorder records a *mirror* — a second canvas
+  the live stage is copied into, with the page's CSS grade baked in, because
+  `captureStream()` and `VideoFrame` both read RAW canvas pixels and would
+  otherwise miss a display-only filter. The mirror was made with
+  `document.createElement('canvas')` and **never appended** — and
+  `lib/watermark.client.js` wraps `HTMLCanvasElement.prototype.captureStream`
+  so the recording is a compositor canvas that copies its source once per
+  frame, but only while that source is connected to the document
+  (`if (!source.isConnected)` the tick stops). A
+  detached mirror meant the compositor was never painted, the recorded canvas
+  never changed, `captureStream()` emitted no frames at all, `MediaRecorder`
+  produced no data, and the export came out empty. The mirror now lives in the
+  document for the length of the take and is removed again when the take ends.
+  Measured in Chrome 158: before the fix 0 chunks and a 0-byte file, after it
+  11 chunks and 2.6 MB. The same attachment was applied to
+  `swr-app.html`'s recording canvas. That page records without the watermark
+  module in the way, so its take was **not** measured as broken — the
+  attachment there removes the last dependency on a browser detail (a
+  detached canvas that is painted every frame still emitted frames in Chrome
+  158, but that is not a documented guarantee) and makes the invariant uniform
+  across the recorders. Two gates came with it:
+  `check:recorder-capture-unit` (a source lint that says the invariant — every
+  captured-from canvas is appended and later removed) and
+  `check:recorder-capture-verify` (a browser gate that drives a real take on
+  both the WebM fallback and the "auto" path and asserts the file that reaches
+  the download is not empty).
 - **AGENTS.md describes CI as it is, and the doc-truth gate can now see it.**
   The paragraph claimed `.github/workflows/ci.yml` was the only workflow, that
   it ran on pushes to **non-main** branches with `branches-ignore: main`, and

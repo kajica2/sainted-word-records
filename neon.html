@@ -1958,11 +1958,38 @@
         // into an offscreen canvas with the same filter baked in and capture
         // that instead, so the export matches the picture.
         let captureSource = stage;
+        // THE MIRROR MUST BE IN THE DOCUMENT WHILE IT IS RECORDED.
+        // lib/watermark.client.js wraps HTMLCanvasElement.prototype
+        // .captureStream, so what is really recorded is a compositor canvas
+        // that copies its source once per frame — but only while that source
+        // is connected to the document: its tick stops on
+        // `if (!source.isConnected)`. With the mirror detached the compositor
+        // was never painted, the recorded canvas never changed,
+        // captureStream() emitted no frames at all, MediaRecorder produced no
+        // data, and the take ended with "nothing captured - press REC while
+        // the song plays" and no file. So the mirror is parked in the
+        // document (invisible and out of the way) for the length of the take,
+        // and removed again when the take ends.
+        //
+        // A previous take may still own a mirror - the WebM fallback re-enters
+        // start() - so the old pump and the old mirror go before a new one is
+        // made, so only one is ever in the document.
+        try { if (this._stopPump) this._stopPump(); } catch (_) {}
+        this._stopPump = null;
+        this._teardownMirror();
         try {
           const mirror = document.createElement('canvas');
           mirror.width = stage.width;
           mirror.height = stage.height;
           const mctx = mirror.getContext('2d');
+          mirror.setAttribute('aria-hidden', 'true');
+          // Fixed, invisible, out of the way: not in the flow, not in the
+          // accessibility tree, not a pointer target. The CSS size matches
+          // the canvas size so the captured video keeps the stage's
+          // resolution.
+          mirror.style.cssText = 'position:fixed;left:0;top:0;width:' + mirror.width + 'px;height:' + mirror.height + 'px;visibility:hidden;pointer-events:none;z-index:-1;';
+          document.body.appendChild(mirror);
+          this._mirror = mirror;
           this._pumpOn = true;
           const pump = () => {
             if (!this._pumpOn) return;
@@ -2013,6 +2040,7 @@
               return this.start('webm');
             }
             setStatus('recorder start failed: ' + (err && err.message || err), 'err');
+            this._teardownMirror();
             return;
           }
           // stop() owns the blob; a mid-take encoder error only needs to be
@@ -2085,7 +2113,7 @@
         });
         this.chunks = [];
         this.rec.ondataavailable = (e) => { if (e.data.size) this.chunks.push(e.data); };
-        this.rec.onstop = () => this._save();
+        this.rec.onstop = () => { this._teardownMirror(); this._save(); };
         this.rec.start(250);
         this.recording = true;
         this.startedAt = Date.now();
@@ -2144,15 +2172,17 @@
           const timeout = new Promise((_, rej) =>
             setTimeout(() => rej(new Error('encoder did not finish in 20s')), 20000));
           Promise.race([window.SWR_RECORDER.stop(), timeout]).then((res) => {
+            this._teardownMirror();
             this.chunks = [res.blob];
             this.mime = res.mime;
             this._save();
           }).catch((err) => {
+            this._teardownMirror();
             setStatus('recorder stop failed: ' + (err && err.message || err), 'err');
           });
           return;
         }
-        if (!this.rec) return;
+        if (!this.rec) { this._teardownMirror(); return; }
         if (this.autoStopTimer) { clearTimeout(this.autoStopTimer); this.autoStopTimer = null; }
         if (this.tickTimer) { clearInterval(this.tickTimer); this.tickTimer = null; }
         this.rec.stop();
@@ -2163,6 +2193,17 @@
         if (this.mediaDest) {
           try { A.analyser.disconnect(this.mediaDest); } catch {}
           this.mediaDest = null;
+        }
+      },
+      // The mirror is the canvas the take is recorded from, and it has to be
+      // IN THE DOCUMENT while it is recorded - Chrome hands a detached canvas
+      // no frames at all. So it is put back out of the document when the take
+      // ends, or when a new take replaces it.
+      _teardownMirror() {
+        const mirror = this._mirror;
+        this._mirror = null;
+        if (mirror && mirror.parentNode) {
+          try { mirror.parentNode.removeChild(mirror); } catch (_) {}
         }
       },
       _save() {
