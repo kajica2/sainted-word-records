@@ -165,6 +165,8 @@
     "check:wave-lines-unit": "node scripts/check-wave-lines-unit.mjs",
     "check:remo-unit": "node scripts/check-remo-unit.mjs",
     "check:neon-demo-panel-verify": "node scripts/check-neon-demo-panel-verify.mjs",
+    "check:recorder-capture-unit": "node scripts/check-recorder-capture-canvas-unit.mjs",
+    "check:recorder-capture-verify": "node scripts/check-recorder-capture-verify.mjs",
     "check:neon-demo-panel-smoke": "node scripts/check-neon-demo-panel-smoke.mjs",
     "check:preset-pick-unit": "node scripts/check-preset-pick-unit.mjs",
     "check:layer-state-unit": "node scripts/check-layer-state-unit.mjs",

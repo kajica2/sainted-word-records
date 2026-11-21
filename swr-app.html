@@ -9145,6 +9145,17 @@
       recCanvas.width = dims.w;
       recCanvas.height = dims.h;
       const recCtx = recCanvas.getContext('2d');
+      // IT MUST BE IN THE DOCUMENT WHILE IT IS RECORDED. This canvas is the
+      // one captureStream() reads. The NEON recorder shipped with a detached
+      // capture canvas and its take ended with "nothing captured" and no file
+      // at all, so the canvas a recorder reads now lives in the document for
+      // the length of the take and leaves it again when the take ends.
+      recCanvas.setAttribute('aria-hidden', 'true');
+      // Fixed, invisible, out of the way: not in the flow, not in the
+      // accessibility tree, not a pointer target. The CSS size matches the
+      // canvas size so the captured video keeps the picked resolution.
+      recCanvas.style.cssText = 'position:fixed;left:0;top:0;width:' + recCanvas.width + 'px;height:' + recCanvas.height + 'px;visibility:hidden;pointer-events:none;z-index:-1;';
+      document.body.appendChild(recCanvas);
 
       // Composite loop: blit the live stage canvas into the recording canvas,
       // scaled to fit the target aspect ratio. We use a cover-fit so the
@@ -9383,6 +9394,7 @@
         } catch (e2) {
           showToast('MediaRecorder could not start: ' + e2.message);
           stopBlit = true;
+          if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e3) {} }
           return;
         }
       }
@@ -9391,6 +9403,8 @@
       };
       mediaRecorder.onstop = () => {
         stopBlit = true;
+        // The take is over, so the capture canvas leaves the document again.
+        if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e) {} }
         // The take is over, so the music stops with it. Record starts playback
         // and stopping ends it, which keeps the transport and the file in step.
         try { audioEl.pause(); } catch (e) {}
@@ -9433,6 +9447,7 @@
       };
       mediaRecorder.onerror = (e) => {
         stopBlit = true;
+        if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e2) {} }
         showToast('Recording error: ' + (e.error && e.error.message || 'unknown'));
       };
 

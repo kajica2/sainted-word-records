@@ -123,6 +123,13 @@ const GROUPS = {
     'npm run check:wave-lines-unit',
     'npm run check:remo-unit',
     'npm run check:neon-demo-panel-verify',
+    // The recorder: a take must produce a FILE. The capture canvas has to be
+    // in the document while it is recorded — Chrome hands a detached canvas
+    // no frames, and the take used to end with "nothing captured" and no
+    // file. The unit gate states the invariant; the verify gate proves the
+    // outcome in a browser (it spawns one, so it is bounded like the others).
+    'npm run check:recorder-capture-unit',
+    { cmd: 'npm run check:recorder-capture-verify', timeoutMs: 900000 },
     'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',
     'npm run check:webgl-uniform-guard',
