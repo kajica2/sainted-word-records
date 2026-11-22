@@ -9097,6 +9097,21 @@
        when the duration timer fires (or stop is clicked).
        ============================================================ */
 
+    // CAN THIS MIME CARRY THE MUSIC?
+    //
+    // A mime that names a video-only codec list — `video/mp4;codecs=avc1` —
+    // has no audio codec in it. An audio track on such a stream is either
+    // refused by the recorder or dropped from the file, and the export comes
+    // out mute: a silent music video with no beat in it to follow. A mime
+    // with no codec list at all (`video/mp4`) lets the browser choose its own
+    // defaults, which do include an audio codec.
+    function mimeCanCarryAudio(mime) {
+      if (!mime) return true;
+      const m = /codecs=([^;]+)/i.exec(mime);
+      if (!m) return true;
+      return m[1].split(',').some(c => /^(mp4a|opus|vorbis|flac|alac|aac|ac-3|ec-3)/i.test(c.trim()));
+    }
+
     // Detect which MIME types the browser can actually encode. Some
     // browsers (older Safari, Firefox) only support WebM; Chrome and Edge
     // support both. We pick the best match for the user's picker.
@@ -9106,10 +9121,11 @@
       const candidates = codec === 'mp4'
         ? ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
         : ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/mp4;codecs=avc1'];
-      for (const m of candidates) {
-        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
-      }
-      return ''; // browser supports no candidate — caller will show a toast
+      const supported = candidates.filter(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m));
+      // The export has to carry the music, so a mime that can hold an audio
+      // track always beats a video-only one — even when the video-only one
+      // came first in the list.
+      return supported.find(m => mimeCanCarryAudio(m)) || supported[0] || ''; // '' = no candidate the browser supports
     }
 
     let mediaRecorder = null;
@@ -9382,19 +9398,40 @@
       // every export was a silent music video — there was no beat in it to
       // follow. The audio comes from the same analyser the picture is
       // drawn from.
+      //
+      // The music only goes in if the chosen mime can carry it: a video-only
+      // codec list refuses the track (or drops it from the file), and a
+      // silent export is the exact failure this fix is about.
       let audioDest = null;
-      try {
-        if (audioCtx && analyser) {
+      if (mimeCanCarryAudio(recordingMime) && audioCtx && analyser) {
+        try {
           audioDest = audioCtx.createMediaStreamDestination();
           analyser.connect(audioDest);
           const audioTrack = audioDest.stream.getAudioTracks()[0];
           if (audioTrack) stream.addTrack(audioTrack);
+        } catch (e) {
+          audioDest = null;
         }
-      } catch (e) {
-        audioDest = null;
       }
+      // Did the take end up with the music in it? The file has to say so.
+      let tookAudio = stream.getAudioTracks().length > 0;
       recordingStream = stream;
       recordedBlobs = [];
+
+      // One teardown for the audio tap — the take can end on stop, on error,
+      // or on a recorder that never started.
+      const releaseAudio = () => {
+        if (!audioDest) return;
+        try { analyser.disconnect(audioDest); } catch (e) {}
+        try { audioDest.stream.getAudioTracks().forEach(t => t.stop()); } catch (e) {}
+        audioDest = null;
+      };
+      // And one way to take the track back out of the stream.
+      const dropAudioTrack = () => {
+        releaseAudio();
+        try { stream.getAudioTracks().forEach(t => stream.removeTrack(t)); } catch (e) {}
+        tookAudio = false;
+      };
 
       const bitrate = (state.export.bitrate || 6) * 1_000_000; // Mbps → bps
       try {
@@ -9407,15 +9444,19 @@
         try {
           mediaRecorder = new MediaRecorder(stream, { mimeType: recordingMime });
         } catch (e2) {
-          showToast('MediaRecorder could not start: ' + e2.message);
-          stopBlit = true;
-          if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e3) {} }
-          if (audioDest) {
-            try { analyser.disconnect(audioDest); } catch (e4) {}
-            try { audioDest.stream.getAudioTracks().forEach(t => t.stop()); } catch (e5) {}
-            audioDest = null;
+          // Still refused. The audio track is the likeliest reason — the mime
+          // cannot carry it — so drop it and keep the picture.
+          dropAudioTrack();
+          try {
+            mediaRecorder = new MediaRecorder(stream, { mimeType: recordingMime });
+          } catch (e3) {
+            showToast('MediaRecorder could not start: ' + e3.message);
+            stopBlit = true;
+            if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e4) {} }
+            releaseAudio();
+            return;
           }
-          return;
+          showToast('This browser refused the audio track — the export will be silent.');
         }
       }
       mediaRecorder.ondataavailable = (e) => {
@@ -9426,11 +9467,7 @@
         // The take is over, so the capture canvas leaves the document again.
         if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e) {} }
         // And so does the audio tap.
-        if (audioDest) {
-          try { analyser.disconnect(audioDest); } catch (e) {}
-          try { audioDest.stream.getAudioTracks().forEach(t => t.stop()); } catch (e) {}
-          audioDest = null;
-        }
+        releaseAudio();
         // The take is over, so the music stops with it. Record starts playback
         // and stopping ends it, which keeps the transport and the file in step.
         try { audioEl.pause(); } catch (e) {}
@@ -9469,16 +9506,16 @@
           applyPresetChange(restorePresetAfterRecord.preset);
         }
         const sizeMb = (blob.size / 1024 / 1024).toFixed(2);
-        showToast(`Saved ${a.download} (${sizeMb} MB)`);
+        // Say so when the file came out mute — a silent music video is the
+        // one thing the user must never have to guess about.
+        showToast(tookAudio
+          ? `Saved ${a.download} (${sizeMb} MB)`
+          : `Saved ${a.download} (${sizeMb} MB) — silent, this browser cannot carry the audio`);
       };
       mediaRecorder.onerror = (e) => {
         stopBlit = true;
         if (recCanvas.parentNode) { try { recCanvas.parentNode.removeChild(recCanvas); } catch (e2) {} }
-        if (audioDest) {
-          try { analyser.disconnect(audioDest); } catch (e3) {}
-          try { audioDest.stream.getAudioTracks().forEach(t => t.stop()); } catch (e4) {}
-          audioDest = null;
-        }
+        releaseAudio();
         showToast('Recording error: ' + (e.error && e.error.message || 'unknown'));
       };
 

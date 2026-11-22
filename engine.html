@@ -6049,6 +6049,22 @@
     // ======================================================================
     // RECORDER
     // ======================================================================
+
+    // CAN THIS MIME CARRY THE MUSIC?
+    //
+    // A mime that names a video-only codec list — `video/mp4;codecs=avc1` —
+    // has no audio codec in it. An audio track on such a stream is either
+    // refused by the recorder or dropped from the file, and the export comes
+    // out mute: a silent music video with no beat in it to follow. A mime
+    // with no codec list at all (`video/mp4`) lets the browser choose its own
+    // defaults, which do include an audio codec.
+    function mimeCanCarryAudio(mime) {
+      if (!mime) return true;
+      const m = /codecs=([^;]+)/i.exec(mime);
+      if (!m) return true;
+      return m[1].split(',').some(c => /^(mp4a|opus|vorbis|flac|alac|aac|ac-3|ec-3)/i.test(c.trim()));
+    }
+
     const Recorder = {
       rec: null,
       chunks: [],
@@ -6119,17 +6135,6 @@
         // otherwise fall back to the raw 2D stage.
         const captureCanvas = (window.FX && window.FX.outputCanvas) || stageCanvas;
         const vstream = captureCanvas.captureStream(fps);
-        // Pull audio from Web Audio destination
-        const dest = Audio.ctx.createMediaStreamDestination();
-        this.mediaDest = dest;
-        // route analyser -> dest (and keep existing gain->destination)
-        Audio.analyser.connect(dest);
-        const astream = dest.stream;
-        const tracks = [...vstream.getVideoTracks(), ...astream.getAudioTracks()];
-        const stream = new MediaStream(tracks);
-        if (typeof setStatus === 'function') {
-          setStatus(`recording · ${this._sizeLabel} · ${newSize.width}×${newSize.height}`, 'ok');
-        }
         // Pick the best supported codec. Prefer real MP4 (H.264 + AAC) when
         // available — Chrome 126+ and Safari 14.5+ ship it natively and
         // it matches the .mp4 extension in the filename. Fall back to WebM
@@ -6147,6 +6152,22 @@
           try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; }
         }) || 'video/webm';
         this.mime = mime;
+        // Pull audio from Web Audio destination — but only into a mime that
+        // can carry it. A video-only codec list refuses the track (or drops
+        // it from the file), and a silent export is the one thing the
+        // recorder must never hand the user.
+        const tracks = [...vstream.getVideoTracks()];
+        if (mimeCanCarryAudio(mime)) {
+          const dest = Audio.ctx.createMediaStreamDestination();
+          this.mediaDest = dest;
+          // route analyser -> dest (and keep existing gain->destination)
+          Audio.analyser.connect(dest);
+          tracks.push(...dest.stream.getAudioTracks());
+        }
+        const stream = new MediaStream(tracks);
+        if (typeof setStatus === 'function') {
+          setStatus(`recording · ${this._sizeLabel} · ${newSize.width}×${newSize.height}`, 'ok');
+        }
         // Bitrate scales with resolution to keep quality consistent across
         // presets. 8 Mbps was the old single value (1080p); square/portrait
         // need roughly the same bitrate per pixel, so we adjust.

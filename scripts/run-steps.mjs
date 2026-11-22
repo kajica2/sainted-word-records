@@ -128,7 +128,11 @@ const GROUPS = {
     // no frames, and the take used to end with "nothing captured" and no
     // file. The unit gate states the invariant; the verify gate proves the
     // outcome in a browser (it spawns one, so it is bounded like the others).
+    // The second unit gate is the quietest way to lose the music: a mime
+    // that names a video-only codec list cannot carry an audio track, so the
+    // recorder has to ask before it tapes the song in.
     'npm run check:recorder-capture-unit',
+    'npm run check:recorder-audio-unit',
     { cmd: 'npm run check:recorder-verify', timeoutMs: 900000 },
     'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',

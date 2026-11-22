@@ -166,6 +166,7 @@
     "check:remo-unit": "node scripts/check-remo-unit.mjs",
     "check:neon-demo-panel-verify": "node scripts/check-neon-demo-panel-verify.mjs",
     "check:recorder-capture-unit": "node scripts/check-recorder-capture-canvas-unit.mjs",
+    "check:recorder-audio-unit": "node scripts/check-recorder-audio-unit.mjs",
     "check:recorder-verify": "node scripts/check-recorder-verify.mjs",
     "check:neon-demo-panel-smoke": "node scripts/check-neon-demo-panel-smoke.mjs",
     "check:preset-pick-unit": "node scripts/check-preset-pick-unit.mjs",

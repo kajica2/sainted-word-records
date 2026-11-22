@@ -51,6 +51,25 @@ once it hits 1.0.
   picture start together, and — against a known signal, since no CI
   runner has an H.264 encoder — that the WebCodecs pull is real time and
   hands over only new samples.
+- **The music only goes into a mime that can carry it.** A mime that names
+  a **video-only** codec list — `video/mp4;codecs=avc1` — has no audio
+  codec in it, so an audio track on such a stream is refused by the
+  recorder or dropped from the file, and the export comes out mute with
+  nothing in the logs to say why. The recorder now asks first: a mime with
+  a codec list can carry audio only if the list names an audio codec
+  (`mp4a`, `opus`, `vorbis`, …), while a mime with no codec list at all
+  (`video/mp4`) lets the browser pick its own defaults — which do include
+  audio. Every recording surface (`versions/neon.html` and the generated
+  `neon.html`, `engine.html`, `swr-app.html`) asks before it tapes the song
+  in, and each mime list leads with a candidate that can hold the song.
+  `swr-app.html` goes further: if the recorder still refuses the track it
+  drops the track and keeps the picture, and the save toast says outright
+  that the file came out silent. The gate is `check:recorder-audio-unit`:
+  the rule is **executed** (the helper is lifted out of the shipped source
+  and run against a table of mimes, so a helper that always answers "yes"
+  fails), every audio track that reaches a recorded stream has to sit under
+  it, and the first candidate in every mime list has to be one that can
+  carry audio.
 - **● REC now saves a file.** Pressing REC on the NEON page recorded nothing:
   the take ended with *"nothing captured - press REC while the song plays"*
   and no file was written. The recorder records a *mirror* — a second canvas
