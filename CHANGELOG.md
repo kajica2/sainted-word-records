@@ -8,6 +8,376 @@ once it hits 1.0.
 ## [Unreleased]
 
 ### Added
+- **The tone/desaturation slider now reaches collage, spectrum and
+  typography.** Those three pages carry the intensity slider and load
+  `fx-postprocess.js`, whose shader honours `u_tone` — but they were
+  never given the tone mount, because the codemod ran before they gained
+  an FX consumer. The drift sat in `versions/manifest.json` as pending
+  work on a 30-day budget, stamped 2026-10-25, so on 2026-11-24 the
+  codemod gate would have started failing on `main` over a slider nobody
+  had asked for. Running the codemod is the fix: two lines per page — a
+  `<span data-fx-tone-mount>` beside the intensity mount, and
+  `lib/tone-slider.client.js` — and the new knob drives `FX.setTone` →
+  `u_tone` exactly like every other page that has one.
+
+### Fixed
+- **The export carries the music, and the picture is on the same clock as
+  it.** Two of the three recording paths shipped a file with **no audio at
+  all** — a silent music video, which cannot follow the beat. The
+  WebCodecs/MP4 path's audio tap threw while being set up: an
+  `AnalyserNode`'s `fftSize` must be a power of two, and the code set
+  `sampleRate * 0.1 * 2` (9600 at 48 kHz). The throw was swallowed, the
+  analyser was dropped, and the MP4 came out with no audio track — so
+  every desktop Chrome export (the default path there) was mute.
+  `swr-app.html`'s recorded stream never got an audio track either.
+  Underneath that sat a second defect: the same path pulled the
+  analyser's time-domain window once per animation frame, but
+  `getFloatTimeDomainData` returns the **last** N samples, not the new
+  ones, so consecutive chunks overlapped almost completely and the
+  timeline — a counter advancing 100 ms per frame while the song advanced
+  ~16 ms — ran about six times too fast. The video frames were stamped
+  with the wall clock and the audio with that counter, so the two tracks
+  could not be aligned even in principle. The pull now hands over only
+  the samples the graph has produced since the last pull, and the frames
+  and the chunks are both stamped from the audio graph's clock — the clock
+  the picture is drawn from, so a frame that shows a beat carries that
+  beat's time. Measured against a 437 Hz signal: the old pull produced
+  9.1 s of audio from 1.5 s of real time and came out at 706 Hz; the new
+  one produces 1.5 s and 874 Hz (twice the frequency — a sine crosses
+  zero twice per period). The gate that guards it is
+  `check:recorder-verify` (the browser half of the recorder gate, renamed
+  from `check:recorder-capture-verify`): it drives a real take, asserts
+  the file has an audio track that is not silence, that the music and the
+  picture start together, and — against a known signal, since no CI
+  runner has an H.264 encoder — that the WebCodecs pull is real time and
+  hands over only new samples.
+- **The music only goes into a mime that can carry it.** A mime that names
+  a **video-only** codec list — `video/mp4;codecs=avc1` — has no audio
+  codec in it, so an audio track on such a stream is refused by the
+  recorder or dropped from the file, and the export comes out mute with
+  nothing in the logs to say why. The recorder now asks first: a mime with
+  a codec list can carry audio only if the list names an audio codec
+  (`mp4a`, `opus`, `vorbis`, …), while a mime with no codec list at all
+  (`video/mp4`) lets the browser pick its own defaults — which do include
+  audio. Every recording surface (`versions/neon.html` and the generated
+  `neon.html`, `engine.html`, `swr-app.html`) asks before it tapes the song
+  in, and each mime list leads with a candidate that can hold the song.
+  `swr-app.html` goes further: if the recorder still refuses the track it
+  drops the track and keeps the picture, and the save toast says outright
+  that the file came out silent. The gate is `check:recorder-audio-unit`:
+  the rule is **executed** (the helper is lifted out of the shipped source
+  and run against a table of mimes, so a helper that always answers "yes"
+  fails), every audio track that reaches a recorded stream has to sit under
+  it, and the first candidate in every mime list has to be one that can
+  carry audio.
+- **● REC now saves a file.** Pressing REC on the NEON page recorded nothing:
+  the take ended with *"nothing captured - press REC while the song plays"*
+  and no file was written. The recorder records a *mirror* — a second canvas
+  the live stage is copied into, with the page's CSS grade baked in, because
+  `captureStream()` and `VideoFrame` both read RAW canvas pixels and would
+  otherwise miss a display-only filter. The mirror was made with
+  `document.createElement('canvas')` and **never appended** — and
+  `lib/watermark.client.js` wraps `HTMLCanvasElement.prototype.captureStream`
+  so the recording is a compositor canvas that copies its source once per
+  frame, but only while that source is connected to the document
+  (`if (!source.isConnected)` the tick stops). A
+  detached mirror meant the compositor was never painted, the recorded canvas
+  never changed, `captureStream()` emitted no frames at all, `MediaRecorder`
+  produced no data, and the export came out empty. The mirror now lives in the
+  document for the length of the take and is removed again when the take ends.
+  Measured in Chrome 158: before the fix 0 chunks and a 0-byte file, after it
+  11 chunks and 2.6 MB. The same attachment was applied to
+  `swr-app.html`'s recording canvas. That page records without the watermark
+  module in the way, so its take was **not** measured as broken — the
+  attachment there removes the last dependency on a browser detail (a
+  detached canvas that is painted every frame still emitted frames in Chrome
+  158, but that is not a documented guarantee) and makes the invariant uniform
+  across the recorders. Two gates came with it:
+  `check:recorder-capture-unit` (a source lint that says the invariant — every
+  captured-from canvas is appended and later removed) and
+  `check:recorder-verify` (a browser gate that drives a real take and asserts
+  the file that reaches the download is not empty).
+- **AGENTS.md describes CI as it is, and the doc-truth gate can now see it.**
+  The paragraph claimed `.github/workflows/ci.yml` was the only workflow, that
+  it ran on pushes to **non-main** branches with `branches-ignore: main`, and
+  that the size ceiling was 181 MiB. All three were wrong: `ci.yml` runs on
+  pushes to `main` as well as pull requests against it, eleven workflows are
+  active, and the ceiling is 182 MiB.
+  `check:doc-truth` never caught this, and the reason is worth keeping: the
+  gate skips negated sentences, and the old sentence carried one (*"a direct
+  push to main does not trigger it"*), so the whole bullet went unverified —
+  while the corpus it verifies against did not include YAML at all, so
+  `BUDGET_BYTES` could never have resolved against
+  `.github/workflows/ci.yml`. The negation was hiding the claim, not
+  exonerating it. YAML is now part of the corpus, the sentence no longer
+  hides, and the gate verifies **one more claim than it did** — 467 → 468 on
+  the runner, 471 → 472 on a machine that has the gitignored `_archive/`
+  directory. The absolute number differs by environment because four
+  `_archive/` claims verify only where that directory exists; on a clean
+  checkout they land in `ACCEPTED_DRIFT` and do not count. That difference
+  predates this change.
+- **The tone slider's accessible name no longer comes from its tooltip
+  alone.** The slider was labelled only by its `title` attribute, which
+  axe's `label-title-only` rule flags on every page that mounts it —
+  a page's worth of violations on each of the 21 pages that carry the
+  tone slider, which the baseline had simply grown to absorb. The
+  intensity slider has always set `aria-label` as well as `title`; the
+  tone slider now does the same, with the same string, so the name a
+  screen reader reads is unchanged and the rule stops firing. Measured
+  with axe in a browser: `label-title-only` drops by one on every page
+  carrying a tone slider, and the three pages that gained the slider add
+  no violation at all.
+- **AGENTS.md counts the codemod scripts correctly again.** It claimed 19
+  scripts plus a stylesheet; the tree holds 20 scripts plus
+  `_shared.css`. The count drifted when a codemod was retired and the
+  paragraph was not corrected with it.
+- **The five codemod findings that came due are closed.**
+  `versions/manifest.json` records what each codemod did to which page,
+  and the gate ages a known finding out after 30 days so it cannot rot
+  unnoticed. On 2026-11-20 five of them came due — and every one was the
+  same mistake in a different place: **a tool that had stopped being
+  taught what the tree looks like.**
+  - the library-loader's idempotency guard recognised only the boot shape
+    it had written, so all 13 engines — migrated by hand to the
+    persistence boot — looked "unpatched" to it, and it exited 1 having
+    written nothing;
+  - the fx-grade codemod's detector matched a template-literal filter
+    chain, and its own migration replaces that chain — so a fully
+    migrated page read exactly like a page it had no opinion about. The
+    finding also claimed gpu-grade.client.js was "loaded and unused";
+    every marked page calls `SWR_GRADE.set(…)` in its draw loop;
+  - bachdrop carries the drop-a-song overlay and takes one song through
+    its own file input, but has no layer stack, so the shared library
+    does not apply to it — it was reported MISSING_LIBRARY every run and
+    made the codemod exit 1;
+  - film.html had two layer-creation sites and only one had been
+    shuffled, so a re-map still picked the same blend order;
+  - and AGENTS.md claimed a codemod had given 24 renderers a site exit
+    link that was on zero of them. It injected exactly what
+    `scripts/migrate-html.mjs` removes, so it was retired — the exit
+    affordance is `lib/home-link.client.js`.
+  Gate: `npm run check:codemods`.
+- **The accessibility gate no longer hangs CI for six hours when it
+  passes.** The gate spawns `npx vite preview` to serve the built site,
+  and it used to exit only on FAILURE — on success it fell off the end
+  of the script. The spawned server kept node's event loop alive, so
+  node never exited, so the `process.on('exit')` handler that would
+  kill the server never fired either. The group that spawned the gate
+  then waited forever, and the job sat there until its six-hour timeout
+  killed it: a cancelled run and a red PR, with every gate before it
+  green. The irony worth recording is that **the gate failing is what
+  let CI finish** — a failure calls `process.exit(1)`, a success did
+  not. The server is now spawned as its own process group and killed as
+  a group (`npx` spawns vite, vite spawns esbuild, and a signal to npx
+  alone left the grandchildren alive with their stderr pipe still open),
+  and the gate exits explicitly on both paths. The step also has a
+  25-minute wall-clock budget, so a gate that hangs again fails in
+  minutes instead of taking the whole job's budget with it.
+- **Two controls now say the same thing to a screen reader as they do to
+  the eye (WCAG 2.5.3, "Label in Name").** An element's accessible name
+  has to CONTAIN the text the user can see; when it does not, the two
+  disagree and someone using a screen reader is told something that is
+  not on the page. The version badge showed "v2026.10.13.1" but named
+  itself "App version 2026.10.13.1, link to changelog" — on every one of
+  the 148 pages that load it. The drop-a-song overlay showed "Drop a
+  song" (and, on the two music-video pages, a sentence more) but named
+  itself "Start Sainted Word Records" / "Drop a song to begin". The badge
+  now leads its name with the text on screen, and the overlay has no
+  name of its own: it takes its name from what it shows, which is
+  exactly what the rule asks for. Measured in a real browser, before and
+  after, on the same pages: `/versions/music_video` went from two
+  `label-content-name-mismatch` violations to none, and `/engine` from
+  one to none.
+- **The audio toolkit gate no longer depends on the runner image's Python.**
+  The gate installs `numpy<2.1`, `scipy<1.15` and `matplotlib<3.10` and
+  then runs the toolkit's own selftest. On 2026-11-17 it failed with
+  "pip install of audio toolkit requirements failed", and the real cause
+  was nine minutes further up the log: pip had no wheel for Python 3.14
+  and fell back to building scipy from source, and the source build
+  needs OpenBLAS, which the image does not have. The runner had rolled
+  from ubuntu-24.04 (Python 3.12) to ubuntu-26.04 (Python 3.14) three
+  days earlier. The pins are deliberate — the requirements file says they
+  are there "so CI / local Python 3.12 installs stay reliable" — so CI now
+  pins the interpreter to 3.12 instead of inheriting whatever the image
+  ships. The gate also reports the interpreter it ran on, and a failed
+  install now names its cause instead of leaving it buried in a build
+  log. Gate: `npm run check:audio-toolkit`.
+- **One unreadable system reading no longer takes the control centre down.**
+  `GET /api/control-centre?action=status` reads the serving instance's
+  cores, load, memory, disk and uptime, and every one of those readings
+  can be refused by a restricted host — the uptime reading needs a sysctl
+  a sandbox does not grant. A refusal there rejected the whole request,
+  so a public status read answered 500 instead of status. Each reading is
+  now taken on its own (`uptimeUnavailable` says the uptime was not
+  readable), and each of the three sources of the status card stands
+  alone: one that cannot answer reports its own failure instead of
+  taking the other two down with it. Gate:
+  `npm run check:security-gates-unit`.
+- **Start demo no longer throws away the stage you built.** Start demo
+  called `Layers.remap()`, which replaces the whole stack. That is right
+  for an empty stage and wrong for a performer who had already staged a
+  layer: their layer disappeared when they pressed a button labelled "Start
+  demo". The demo now fills the slots that are empty — a row holding no
+  media, and the stack up to the three-layer cap — and leaves every
+  occupied slot exactly as it was. Remapping is still one click away.
+- **A dance pack that lost clips is refilled.** The pack loader treats
+  "already loaded" as success: it hands back its cached count and does not
+  re-add the files. A pack that lost some of its files (four of the
+  thirteen dance clips deleted) therefore still read as loaded, and Start
+  demo fetched nothing — the missing clips were never coming back. The
+  loader now answers how many files a complete pack holds
+  (`SWR_LIBRARY_PACKS.expectedCount`), and the demo drops and reloads a
+  pack that is short. A complete pack is never thrown away, and the layers
+  that pointed at a reloaded clip are re-pointed at the new item (matched
+  by name and size, the rule the Recent folder uses).
+- **The audio preset is remembered without losing the knobs.** Punch, Club,
+  Soft and Tight wrote `sens` / `gate` / `decay` for the session only, so a
+  reload could not show which preset was active. The preset id now lives in
+  the same page snapshot as the knobs it wrote, and the panel restores it
+  on the next visit: the buttons paint the preset and the audio core
+  matches. The restore waits for the page state to land on the controls
+  first — writing earlier saved the default knob values over the
+  performer's own — and if the knobs were moved away from the preset
+  afterwards, the knobs win and the stored preset id is dropped. A preset
+  that is no longer on screen is not the active preset.
+- **A still no longer drifts while it is being swapped.** The ambient
+  Ken Burns pan and zoom kept running through the dissolve, so a
+  picture that moved while it faded read as a glitch rather than as a
+  transition. The motion is switched off for the length of the swap
+  (`SWR_RENDER.isSwapping`), and the swap's own slide — the Move style's
+  flow — is untouched. Gate: `npm run check:preset-transition-unit`.
+- **Remo history and import stay usable after review findings.**
+  Empty v1/v2 imports re-seed the starter envelopes. Preset undo
+  captures the envelope id it edited. Coalesced depth edits keep the
+  earliest undo. Wire ids are stable across remove/re-add. Remo
+  scripts load in order so the panel never boots before its
+  dependencies.
+- **The NEON wave lines cover the stage, and they stay above the grade.**
+  The renderer floors its drawing size at 640×360, so a smaller stage
+  gave the SVG a different shape and the lines letterboxed. The sheet
+  now stretches to the stage. The FX canvas uses the same stacking
+  level and is inserted later, so it was painting over the lines; the
+  sheet now sits one level above it.
+- **Keys 1–9 apply look filters on NEON.** The digit row was holding
+  1–4 for scene recall whenever the scene store was loaded. This page
+  loads the store and not the scene keyboard, so those four keys did
+  nothing. Bare 1–9 now call the look-filter slots. The engine and play
+  pages still give 1–4 to the scene keyboard, because that script is
+  what actually handles them.
+- **Start demo could not be clicked, and could not be repeated.** The
+  start overlay (z-index 10000) sat over the demo panel, so a fresh visit
+  had no way to press Start demo. The panel now sits above that overlay.
+  Clearing the library left the pack loader believing the dance clips
+  were still loaded, so Start demo reported success and installed
+  nothing. It drops that cache when the clips are gone and installs them
+  again. A clip touched before it had a persist id also vanished from
+  Recent after a reload; the time is now found by name and copied onto
+  the id.
+
+### Added
+- **A gate for the accessible-name rule that runs on the source, in
+  seconds, without a browser.** The accessibility gate measures the built
+  site and compares per-rule counts against a baseline, so it reports a
+  number and not a place — a regression of one element on one page is
+  indistinguishable from its own noise — and it cannot run on a
+  contributor's machine at all. `npm run check:a11y-names-unit` asserts
+  the rule directly on the two element families the site ships (the
+  version badge and every drop-a-song overlay), and holds a census of
+  every other labelled element against `qa/a11y-names-baseline.json` — a
+  baseline it may only shrink. The census starts at the 72 offenders
+  that predate the gate, every one of them listed, so the backlog is
+  visible and cannot grow.
+- **A preset change glides instead of cutting.** Picking a grade or an
+  FX preset wrote the sixteen grade uniforms in one frame, so the
+  picture jumped from one look to the next. `SWR_PRESET_TRANSITION.morph()`
+  runs the very same apply and then eases the grade from what was on
+  screen into the new one over 420 ms. It is interruptible, it yields to
+  a slider the user is dragging, and the applied value stays the final
+  state, so the recorder and the export path still read the new grade.
+  The looks menu, the demo panel's preset rows and the command centre
+  all go through it. Gate: `npm run check:preset-transition-unit`.
+- **Image layer swap styles (Fade · Depth · Move · Mask).** Stills can
+  leave via opacity dissolve, stack reordering, flow slide + Ken Burns
+  drift, or a mask-illusion dissolve. Demo panel section on NEON;
+  automix image mode and the image lane honour the active style.
+  `SWR_RENDER.imageEvolve` is restored (pan always; zoom respects the
+  motion kill-switch). Gate: `npm run check:image-layer-styles-unit`.
+- **NEON audio top layer (Phase A+B).** The SVG sheet is a dedicated
+  reactive overlay (`SWR_AUDIO_TOP`): public presets Pulse · Spike ·
+  Scan · Ribbon · Off, Demo panel section rename, sensitivity coupling,
+  multi-band mixes, Spike onset decay, Pulse beat-snap, and opacity
+  breathe from RMS. Tide / Ripple / Stack remain available internally.
+  Media layers stay untouched.
+- **Python audio toolkit for enhanced DSP and additional takes.**
+  `tools/python-audio-toolkit/` adapts
+  [Matin-python/Python-Audio-Processing-Toolkit](https://github.com/Matin-python/Python-Audio-Processing-Toolkit)
+  into a callable CLI: `process` (FFT / spectrogram / onsets / BPM),
+  `record` (fixed or VAD mic takes), `take` (file → take without a mic),
+  and `overdub` (mix a take onto a song for Media Source external audio).
+  Gate: `npm run check:audio-toolkit`. Docs: `docs/AUDIO-TOOLKIT.md`.
+- **NEON layer lock holds position as well as media.** Locking a layer
+  freezes its resting place on the stage (no reactor or narrative
+  x/y/scale/rot motion) and still keeps its media through remap,
+  assign, detach, remove, the layer scheduler, and automix image swaps.
+  The stage refuses a fourth layer. The demo panel’s Selected layer
+  section exposes the same lock.
+- **Remo Panel 2.0 (flagged `?env=1`) — wired envelopes on NEON.**
+  A parameter registry, envelope bus (seven presets + LUT), wiring
+  store, undo history, and ENV / MATRIX UI load only when the flag is
+  on. Snapshots use `schemaVersion: 2` with a v1 migration. Without
+  the flag the page is unchanged.
+- **NEON has a top layer of moving SVG wave lines.** The sheet sits
+  above the picture and redraws every frame from audio features. The
+  Demo panel’s Audio top layer row switches the public presets. CSS
+  animation stays off; the motion is the path.
+- **The NEON Demo panel has Sensitivity and Temperature sliders.**
+  Sensitivity writes the page sensitivity control and `A.params.sens`.
+  Temperature writes the grade temperature (`#temp` and `FX.setTemp`,
+  −1 to +1). Both show a live number and stay in step with the footer.
+- **The NEON Demo panel sets the stage aspect and animates an SVG mark.**
+  Fill, 16:9, 9:16, 1:1 and 4:5 letterbox `#render` inside the stage, and
+  each library tile takes the clip's own ratio once its dimensions are
+  known, with a chip that names the nearest of those frames (the dance
+  clips read 16:9). The mark beside that readout is an SVG whose scale
+  pulses on a heartbeat. It is drawn by updating the SVG transform,
+  because the motion switch turns CSS animation off.
+- **The media panel has a Recent folder.** Clips that were just added or
+  just assigned to a layer collect under a `recent` header at the top of
+  the library (`client/recent-media.client.js`), newest first, capped at
+  12, and they are not listed again below it. The times are remembered in
+  this browser, so a reload puts the same clips back in the folder. The
+  name-grouping rule the automix pool uses is unchanged.
+- **The NEON Demo panel has audio presets.** Punch, Club, Soft and Tight
+  set sensitivity, beat gate and decay on the page sliders and on the
+  shared audio core, so a preset changes how the layers react, not only
+  the numbers on screen.
+- **The NEON Demo panel installs the dance clips as the demo.** A new
+  **Demo stage** section leads the panel: **Start demo** installs the 13
+  `dancer-video` clips from the Dance Clips pack, stages them as layers
+  once they are classified, loads and plays the demo song (dismissing the
+  start overlay) and starts cycling presets. **Dance clips**, **Demo song**
+  and **Play/Pause** do each step on their own, **WebGL** toggles the
+  `?webgl=1` opt-in and reloads, and a live strip shows the bass / mid /
+  treble / air bands and the beat, with a status line reporting clips,
+  layers, audio and whether the WebGL pipeline is actually running.
+  `check:neon-demo-panel-unit`, `-verify` and `-smoke` cover it, the smoke
+  through the real button: clips decoding and advancing, audio features
+  moving, the overlay gone, WebGL reported honestly.
+
+### Fixed
+- **Neon packs mount** — `versions/neon.html` (and the synced root `neon.html`) loaded `library-packs.client.js` but had no `#packs` host, so the Dance Clips / Dancers toolbar never painted and the Media library stayed empty. The packs strip also shrinks/scrolls inside the clipped Media panel on phone widths so loaded clips stay reachable. Gate: `check:neon-packs-mount-unit`.
+
+### Changed
+- The stage holds at most 3 layers. A fourth add is refused, a remap assigns three roles, and a saved stack restores only the first three. Starting the camera when the stage is already full leaves the existing layers in place.
+
+### Added
+- **Mask illusions** — six beat-driven reveals in the post-process shader (Develop, Bloom, Ribbed, Fringe, Print, Wedge). Bass, mid, and treble open the photograph. They are personas and filter-cycler slots 10–15; press T twice, then 1–6. Slots 0–9 are unchanged.
+- **Offline render HTTP API** (`POST/GET /api/render`) — job queue over the
+  existing `renderVariant()` Puppeteer + ffmpeg pipeline. Local / self-hosted
+  Node only (`npm run dev`); Vercel serverless returns
+  `503 offline_render_unavailable`. Auth via `SWR_RENDER_SECRET` or a session
+  cookie. Docs: `docs/RENDER-OFFLINE-API.md`. Gate:
+  `check:render-offline-api-unit` (dry-run worker, in the `check` group).
 - **Responsive overflow gate** (`check:responsive-overflow`, in the `check`
   group) — asserts that no page scrolls sideways at 390×844 or 1440×900, and
   names the element that crosses the viewport and by how much. It also
@@ -185,7 +555,81 @@ once it hits 1.0.
   previous song cannot bias the new song's first act.
 
 ### Fixed
-- **Five more pages scrolled sideways, and one threw on every load.** The
+- **Staged media did not come back after a reload.** Dropping or clicking a clip onto the stage filled the library, but the page snapshot was only written when a control changed — so the next visit restored an empty stage. Adding, remapping, or reordering layers now writes the stack, and the existing restore path puts those clips back. Typed text layers keep their kind and string in the same snapshot.
+- **Movie files never reached the mix.** A `.mov`, `.mkv` or `.avi` often arrives with an empty `File.type` (or `application/octet-stream`). Both import paths kept only `video/*` and `image/*`, so the file was skipped before it could become a layer. The kind now comes from the extension in that case, the file dialog lists those extensions, and a click on the stored movie stages it as video. Neon's own importer uses that classifier too, so an empty-type movie dropped there becomes a video layer instead of being skipped or stored as a still.
+- **The last song is preloaded on the next visit.** Loading a song already writes it to this browser. The next open reads that record back onto a media element that lives in the page, so the browser fetches it before Play. The default clip no longer steps in while that record is waiting, and the restore runs once so it cannot interrupt playback.
+- **The NEON demo verify named a stalled control.** A control that stopped delivering animation frames used to sit until Puppeteer's 180s protocol timeout, and the log said `verify run` with no id. Each step now has a Node-side deadline that names the control, and the frame wait itself fails after 5s when the page is still alive but frames never arrive. The run after `layer:baseScale` was the one that hung (`layer:blend`).
+- **Neon auto-start threw `Audio.load is not a function`.** The shared
+  audio core (`lib/audio.client.js`) only published `loadFile`, while the
+  start overlay on `versions/neon.html` and `neon.html` — and `swr-sets` —
+  still call `SWR.Audio.load(file)`. Neon publishes that core as
+  `SWR.Audio`, so the default song never started. `load` is now the same
+  path as `loadFile`.
+- **The engine page logged a WebGL failure, a document 504, and a long frame on every paint.** Post-process now follows the WebGL gate: with it off (the default) it does not call `getContext` and does not warn, and it still publishes `window.FX` so looks and sliders have somewhere to write. The warning stays only when the page asked for WebGL and the browser refused a context. A navigation that throws or comes back 5xx is served from the precached shell (`/engine`, `/engine.html`, `/`, `/offline.html`) instead of the gateway response. The stage palette tint is rasterised once per size and palette and blitted, rather than rebuilt as two full-canvas gradients inside every animation frame.
+- **The shot list showed 60 broken images.** `shotlist/index.html` linked
+  its frame binaries in `shotlist/_candidates_web/` — a directory that is
+  gitignored and never deployed, so every one of them was a 404 in
+  production. The page said as much in its own copy and linked them
+  anyway. The tiles keep their place in the grid and their drag
+  behaviour, and show the frame's name instead; the slot preview does the
+  same, and a click copies the name rather than opening a file that is
+  not there.
+- **`check:dist-links` never checked a bare relative reference.** Its
+  pattern only matched `./`-prefixed paths, so `src="_candidates_web/x.png"`
+  — a dead link — looked healthy to it. It now checks bare relative media
+  references as well, resolving each from every path the page is served
+  at. The old shotlist page fails that check with all 61 of its dead
+  references named.
+- **The version pill pushed the "Open editor" button 514px off the edge.**
+  Twenty-two links in a flex row that could not shrink, with the
+  overflow handling applied only below 1100px — which is exactly where it
+  was not needed. The pill scrolls now, at every width, and is focusable
+  so it can be scrolled from the keyboard.
+- **The QA preview was measuring the home page for 26 of its 148 routes.**
+  `vite preview` resolves `/atlas` on its own — Vite's static middleware
+  finds `dist/atlas.html` for the path `/atlas` — but it answered `/play`
+  with the home page, because the real file is `dist/versions/play.html`
+  and nothing rewrote the path to reach it. Twenty-six routes were
+  silently measuring the wrong document, so a surface that reported 148
+  routes was covering 122 pages. `vite.config.js`'s `dev-vercel-rewrites`
+  plugin now hooks `configurePreviewServer` as well as `configureServer`,
+  so the preview answers the same routes production does — all eleven
+  spot-checked routes now serve their own page, matching production's
+  titles exactly. The runner reads the home page's title first and
+  reports any route that answers with it as a **soft 404**, so the class
+  cannot come back unnoticed.
+- **Accessibility had no gate at all.** axe-core is now a devDependency
+  (the site never loads it; only the tools do), `qa/a11y.mjs` is the one
+  place it is invoked, and `scripts/check-a11y.mjs` compares the
+  per-rule instance counts against a committed baseline. A rule that
+  regresses fails the gate; a rule that improves is reported so the
+  baseline can be lowered. The baseline stores the counts, the pages that
+  carry each rule, and one example element per rule — a count with no
+  location is not a work item. The gate uses **Puppeteer**, the browser
+  the CI runner installs — a gate that needs a browser nobody installed is
+  a gate that fails on CI and nowhere else — and it binds an **ephemeral
+  port** — chosen by asking the OS for a free one, not parsed out of
+  vite's log — so a stale server from an earlier run can never answer
+  its  readiness poll. A route it could not measure is a failure, not a skip:
+  a gate that silently measures nothing reports clean. The gate also
+  **pins the palette and the font stack**: `lib/nav.client.js` takes the
+  theme from the OS preference, so the same build rendered a different
+  palette on a dark-mode machine and on a runner with no preference —
+  3425 contrast instances against 4546, and the gate failed against its
+  own baseline. The theme is now set on the document before the
+  measurement, and the font stack is pinned to a metric-compatible pair,
+  so neither an OS preference nor a font CDN can move the count. Every
+  wait in the gate is bounded — the webfont wait included, because
+  `document.fonts.ready` never settles when a font request hangs — and the
+  gate has a global ceiling, because a gate that can hang hangs CI for
+  the runner's six-hour limit and tells you nothing about the code. The CI
+  job's own ceiling went from 90 minutes to 150: the check group grew to
+  140 steps and the job was being killed at 92 minutes, mid-group, with
+  every gate before it green. A timeout that fires while the work is
+  still running is not a budget, it is a cancellation. The ceiling went
+  again, to 240: the same group takes ten minutes on this machine and
+  120+ minutes on a loaded GitHub runner, and a job killed at 145 minutes
+  with every gate green has proved nothing.- **Five more pages scrolled sideways, and one threw on every load.** The
   KAI SWARM QA surface went from seventeen routes to a hundred and forty-eight
   — every route that resolves the same way in preview and in production —
   and found five more real defects. Four were the class cycle 2 already

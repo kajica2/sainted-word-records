@@ -186,6 +186,59 @@ console.log('automix-image-lane: URL automix-image=library forces library path')
   check(!AI.usesLaneOrder(), 'usesLaneOrder false when forced library');
 }
 
+console.log('automix-image-lane: dwell floor follows the composition profile');
+{
+  // The still-advance dwell is not a constant: it follows the composition
+  // profile of the CURRENT ACT, so a peak act cuts stills faster and a
+  // breakdown holds one image longer. The profile map is read from
+  // SWR_AUTOMIX_COMPOSITION (the owner of the cut windows).
+  const sb = loadImageModeSandbox();
+  const AI = sb.SWR_AUTOMIX_IMAGE;
+  const lane = sb.SWR_IMAGE_LANE;
+  lane.list = [];
+  lane.add(img('d1'));
+  lane.add(img('d2'));
+
+  // No composition module → the default floor stands.
+  check(AI.dwellFloorMs() === AI.MIN_STILL_DWELL_MS,
+    'without a composition the default dwell floor stands',
+    String(AI.dwellFloorMs()));
+
+  // With a composition whose peak window is short, the floor drops.
+  sb.SWR_AUTOMIX_COMPOSITION = {
+    getProfiles: () => ({ peak: { minSeconds: 1.2, maxSeconds: 2.4 } }),
+    currentAct: () => 'peak',
+  };
+  check(AI.dwellFloorMs() === 1200,
+    'a peak profile of 1.2s sets a 1200ms dwell floor',
+    String(AI.dwellFloorMs()));
+
+  // The floor follows the ACT: a breakdown's longer window raises it.
+  sb.SWR_AUTOMIX_COMPOSITION.currentAct = () => 'breakdown';
+  sb.SWR_AUTOMIX_COMPOSITION.getProfiles = () => ({ breakdown: { minSeconds: 9, maxSeconds: 18 } });
+  check(AI.dwellFloorMs() === 9000,
+    'a breakdown profile of 9s sets a 9000ms dwell floor',
+    String(AI.dwellFloorMs()));
+}
+
+console.log('automix-image-lane: clarity caps are unchanged by the profile');
+{
+  const sb = loadImageModeSandbox();
+  const AI = sb.SWR_AUTOMIX_IMAGE;
+  const before = JSON.stringify(AI.caps());
+  sb.SWR_AUTOMIX_COMPOSITION = {
+    getProfiles: () => ({ peak: { minSeconds: 0.2, maxSeconds: 0.4 } }),
+    currentAct: () => 'peak',
+  };
+  // A floor below the anti-strobe minimum is clamped, so a very fast
+  // profile cannot make the stills strobe.
+  check(AI.dwellFloorMs() === AI.MIN_DWELL_FLOOR_MS,
+    'a 0.2s profile is clamped up to the anti-strobe floor',
+    String(AI.dwellFloorMs()));
+  check(JSON.stringify(AI.caps()) === before,
+    'the clarity caps did not move with the dwell floor', before + ' → ' + JSON.stringify(AI.caps()));
+}
+
 if (failures) {
   console.error('\nAUTOMIX IMAGE LANE UNIT: ' + failures + ' failure(s)');
   process.exit(1);

@@ -20,7 +20,7 @@
 
   // ---- Persona registry ----
   // Values are the same shape as window.FX.state, all 0..1 except temp (-1..1)
-  // and mutAlgo (integer 0..5).
+  // and mutAlgo (integer 0..11; 6..11 are mask illusions).
   const PERSONAS = {
     raw: {
       label: 'RAW',
@@ -194,6 +194,57 @@
       liquid: 0.10, pearl: 0.40, glitch: 0,     // persistence
     },
 
+    // ---- MASK ILLUSIONS ----
+    // Beat-driven reveals. mutAlgo 6..11. Not part of the 5 core or MORPHA.
+    maskThreshold: {
+      label: 'MASK · DEVELOP',
+      desc: 'Photograph develops from its own highlights. Bass opens the image.',
+      temp: 0.05, mut: 0.9, mutAlgo: 6,
+      posterize: 0, vignette: 0.10, chroma: 0, grain: 0.06,
+      sepia: 0, glow: 0.10, grayscale: 0, blur: 0,
+      liquid: 0, pearl: 0, glitch: 0,
+    },
+    maskGooey: {
+      label: 'MASK · BLOOM',
+      desc: 'The image grows out of merging organic blobs. Bass breathes, treble pops.',
+      temp: 0.10, mut: 1.0, mutAlgo: 7,
+      posterize: 0, vignette: 0.15, chroma: 0.15, grain: 0.10,
+      sepia: 0, glow: 0.20, grayscale: 0, blur: 0,
+      liquid: 0, pearl: 0, glitch: 0,
+    },
+    maskSlit: {
+      label: 'MASK · RIBBED',
+      desc: 'Ribbed-glass ripple. Mid-range sweeps the strips.',
+      temp: 0, mut: 0.8, mutAlgo: 8,
+      posterize: 0, vignette: 0.10, chroma: 0.10, grain: 0.05,
+      sepia: 0, glow: 0, grayscale: 0, blur: 0,
+      liquid: 0, pearl: 0, glitch: 0,
+    },
+    maskChromaBand: {
+      label: 'MASK · FRINGE',
+      desc: 'A soft moving band of RGB fringing. Editorial, not broken.',
+      temp: -0.05, mut: 0.85, mutAlgo: 9,
+      posterize: 0, vignette: 0.10, chroma: 0.20, grain: 0.08,
+      sepia: 0, glow: 0, grayscale: 0, blur: 0,
+      liquid: 0, pearl: 0, glitch: 0,
+    },
+    maskHalftone: {
+      label: 'MASK · PRINT',
+      desc: 'The photograph dissolves into a printed halftone. Treble drives the threshold.',
+      temp: 0.05, mut: 1.0, mutAlgo: 10,
+      posterize: 0.20, vignette: 0.15, chroma: 0, grain: 0.15,
+      sepia: 0, glow: 0, grayscale: 0, blur: 0,
+      liquid: 0, pearl: 0, glitch: 0,
+    },
+    maskKaleido: {
+      label: 'MASK · WEDGE',
+      desc: 'A mirrored wedge turns the photograph into a slow kaleidoscope.',
+      temp: 0, mut: 0.9, mutAlgo: 11,
+      posterize: 0, vignette: 0.20, chroma: 0.25, grain: 0.08,
+      sepia: 0, glow: 0.15, grayscale: 0, blur: 0,
+      liquid: 0, pearl: 0, glitch: 0,
+    },
+
     // ---- 3 from an audio-GAN training schedule ----
     // Each persona embodies one stage of a multi-stage adversarial training
     // run. The mapping is conceptual: loss weights become FX layer amounts,
@@ -283,8 +334,26 @@
     state.currentKey = key;
 
     if (typeof setStatus === 'function') {
-      setStatus(`persona: ${p.label} — ${p.desc}`, 'ok');
+      if (MASK_KEYS[key] && noPicture()) {
+        setStatus('Add a still or clip to use mask illusions.', 'warn');
+      } else {
+        setStatus(`persona: ${p.label} — ${p.desc}`, 'ok');
+      }
     }
+  }
+
+  const MASK_KEYS = {
+    maskThreshold: 1, maskGooey: 1, maskSlit: 1,
+    maskChromaBand: 1, maskHalftone: 1, maskKaleido: 1,
+  };
+
+  function noPicture() {
+    const L = window.Layers;
+    const lib = window.Library;
+    const layers = L && Array.isArray(L.list) ? L.list : null;
+    const items = lib && Array.isArray(lib.items) ? lib.items : null;
+    if (!layers && !items) return false;
+    return (layers ? layers.length : 0) + (items ? items.length : 0) === 0;
   }
 
   // Tween every slider + value-display from its current value to target over `dur` ms.

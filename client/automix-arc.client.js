@@ -378,6 +378,40 @@
   var SUBTLE = ['fade-to-black', 'cross-dissolve', 'warp-dissolve'];
   var DYNAMIC = ['glitch-burst', 'chromatic-split', 'circle-wipe', 'linear-wipe-lr', 'vhs-tracking'];
 
+  // ---- Act → transition family ------------------------------------------
+  // The act's dramatic shape argues for a transition FAMILY — the same
+  // `family` tag engine-transitions.client.js puts on every catalog entry.
+  // The pool for a family is read from the LIVE catalog, never from a
+  // hardcoded list: a hardcoded name that drifts out of the catalog makes
+  // an act boundary silently fire nothing, which is exactly the failure
+  // this map exists to remove.
+  //
+  // The cue still outranks the act plan (one vote, consumed by the caller),
+  // and the warmth/intensity rule stays the fallback when the catalog is
+  // absent or knows no member of the family.
+  var ACT_FAMILY = {
+    intro: 'fade',
+    lift: 'wipe',
+    peak: 'distortion',
+    breakdown: 'brightness',
+    outro: 'fade',
+  };
+
+  // Every catalog entry whose `family` matches, or null when the catalog is
+  // absent or has no member of that family (the caller then falls back).
+  function familyPool(family) {
+    var tx = (typeof window !== 'undefined') && window.SWRTransitions;
+    var catalog = tx && tx._TRANSITIONS;
+    if (!catalog || !family) return null;
+    var pool = [];
+    for (var name in catalog) {
+      if (!Object.prototype.hasOwnProperty.call(catalog, name)) continue;
+      var entry = catalog[name];
+      if (entry && entry.family === family) pool.push(name);
+    }
+    return pool.length ? pool : null;
+  }
+
   var pendingCue = null;
 
   function clamp01(v) {
@@ -433,6 +467,56 @@
     } catch (_) { /* no event surface: the arc simply runs cue-less */ }
   }
 
+  // ---- Act-aware shaping of the within-act glide -------------------------
+  //
+  // The glide from one act's baseline to the next is not one curve for the
+  // whole song: each act archetype moves at its own pace. The shape is a
+  // PURE function of (actName, progress) — the arc unit pins it, the
+  // runtime calls it in one line.
+  //
+  // Every curve is monotone and maps 0→0 and 1→1, so the act boundaries
+  // stay continuous (the glide still arrives exactly on the next act's
+  // baseline) and a boundary can never jump backwards.
+  //
+  //   intro     — eases in: the song settles before it starts moving.
+  //   lift      — steady, slightly front-loaded (the lift IS the rise).
+  //   peak      — HOLDS its own baseline, then releases late: the peak is
+  //               the act that stays put, and the release into the next
+  //               act happens near the end.
+  //   breakdown — releases early: the picture falls away while the act
+  //               still has time left.
+  //   outro     — eases out: the drift back is gradual.
+  var ACT_SHAPE = {
+    intro:     function (p) { return p * p * (3 - 2 * p) * 0.55 + p * 0.45; },
+    lift:      function (p) { return Math.pow(p, 0.85); },
+    // Hold the baseline for the first quarter of the act, then release
+    // with a smoothstep: the peak stays put, and the move into the next
+    // act happens late and lands softly. A small creep (6%) during the
+    // hold keeps the frame alive — a completely frozen quarter reads as a
+    // stall, not as a held peak.
+    peak:      function (p) {
+      if (p <= 0.25) return 0.06 * (p / 0.25);
+      var t = (p - 0.25) / 0.75;
+      return 0.06 + 0.94 * (t * t * (3 - 2 * t));
+    },
+    breakdown: function (p) { return Math.pow(p, 1.6); },
+    outro:     function (p) { return 1 - Math.pow(1 - p, 2.2); },
+  };
+
+  function shapeActProgress(actName, progress) {
+    var p = typeof progress === 'number' && isFinite(progress) ? progress : 0;
+    if (p < 0) p = 0;
+    if (p > 1) p = 1;
+    var shape = actName && ACT_SHAPE[actName];
+    // An unknown act is linear: the old behaviour, unchanged.
+    if (!shape) return p;
+    var v = shape(p);
+    if (typeof v !== 'number' || !isFinite(v)) return p;
+    if (v < 0) v = 0;
+    if (v > 1) v = 1;
+    return v;
+  }
+
   function pickFromPool(pool) {
     var mk = (typeof window !== 'undefined') && window.SWR_MOTION_KILL;
     if (mk && typeof mk.pickAllowedTransition === 'function') {
@@ -441,7 +525,7 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  function pickTransition(warmth, intensity, cue) {
+  function pickTransition(warmth, intensity, cue, actName) {
     // The cue has an opinion and the act plan does not get a say. One vote,
     // consumed by the caller.
     if (cue && cue.cls === 'subtle') {
@@ -449,6 +533,14 @@
     }
     if (cue && cue.cls === 'dynamic') {
       return pickFromPool(DYNAMIC);
+    }
+    // The act's family — the deliberate plan for THIS act. It outranks the
+    // warmth/intensity proxy because the act name is the arc's own
+    // decision, while warmth/intensity is a continuous guess. The pool
+    // comes from the live catalog and is kill-filtered like any other.
+    if (actName && ACT_FAMILY[actName]) {
+      var pool = familyPool(ACT_FAMILY[actName]);
+      if (pool && pool.length) return pickFromPool(pool);
     }
     if (warmth < 0.3 || intensity < 0.3) {
       return pickFromPool(SUBTLE);
@@ -472,7 +564,9 @@
     // boundary is decided by the plan again.
     var cue = pendingCue;
     pendingCue = null;
-    var name = pickTransition(coords.warmth, coords.intensity, cue);
+    // The act name is the arc's own plan for the act being entered, so the
+    // transition that lands on this boundary belongs to that act's family.
+    var name = pickTransition(coords.warmth, coords.intensity, cue, sample.actName);
     if (TRANSITION_ALIASES[name]) name = TRANSITION_ALIASES[name];
     var catalog = tx._TRANSITIONS;
     if (catalog && !catalog[name]) return; // unknown → skip, never reject
@@ -509,6 +603,8 @@
     // null. Reading it does not consume it: only an act transition spends it.
     onSectionChange: onSectionChange,
     onSectionReset: onSectionReset,
+    // The act-aware glide shape (pure). The runtime calls it in one line.
+    shapeActProgress: shapeActProgress,
     get sectionCue() {
       return pendingCue;
     },
@@ -522,6 +618,8 @@
       MIN_CUE_CONFIDENCE: MIN_CUE_CONFIDENCE,
       SUBTLE: SUBTLE,
       DYNAMIC: DYNAMIC,
+      ACT_FAMILY: ACT_FAMILY,
+      familyPool: familyPool,
     },
     // Generic analysis for pages whose Audio object lacks .analyzeFull
     // (the variant stubs, e.g. tape). Ensures audio-analysis-v2.js is

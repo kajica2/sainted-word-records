@@ -47,8 +47,29 @@ for (const name of fs.readdirSync(DIR).filter((f) => f.endsWith('.html')).sort()
   const privateOnes = filterLines.filter((m) => !isMain(m[1]));
   const blurs = plain.filter((m) => m[2].includes('blur('));
 
+  // A page that already calls the GPU grade IS this codemod's own output.
+  //
+  // Recognising it is what makes the dry-run a signal rather than a shrug.
+  // The detector only ever matched a TEMPLATE-LITERAL filter chain
+  // (`ctx.filter = \`…\``), and this codemod's own migration REPLACES that
+  // chain with `window.SWR_GRADE.set(...)` plus a `ctx.filter = 'none'`
+  // cleanup — so a fully migrated page came back as "0 plain chain(s)",
+  // which reads exactly like a page the codemod has no opinion about. The
+  // tool looked broken when it was in fact finished, and its dry-run could
+  // not tell "migrated" from "not applicable".
+  //
+  // (The marker is NOT dead. It marks live wiring: every marked page calls
+  // SWR_GRADE.set(…) in its draw loop, and lib/gpu-grade.client.js is what
+  // serves it.)
+  const migrated = /window\.SWR_GRADE && window\.SWR_GRADE\.set/.test(src) ||
+                   /window\.SWR_GRADE\.set\(/.test(src);
+
   if (plain.length !== 1 || privateOnes.length > 0 || blurs.length > 0) {
-    const why = plain.length !== 1 ? `${plain.length} plain chain(s)` : privateOnes.length ? 'private _ctx chain' : 'blur() in chain';
+    const why = migrated
+      ? 'already on the GPU path'
+      : plain.length !== 1
+        ? `${plain.length} plain chain(s)`
+        : privateOnes.length ? 'private _ctx chain' : 'blur() in chain';
     console.log(`skip: ${name} (${why})`);
     skipped++;
     continue;

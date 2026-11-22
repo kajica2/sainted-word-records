@@ -140,8 +140,31 @@
         _el: v,
         live: true,
       };
-      S.Layers.add(asset);
-      state.cameraLayer = S.Layers.list[S.Layers.list.length - 1] || null;
+      // A refused add (the stage already holds 3 layers) returns null and
+      // leaves the stack as it was. Taking "whatever is on top" would
+      // adopt an existing layer, and stopping the camera would delete it.
+      var before = S.Layers.list ? S.Layers.list.length : 0;
+      var added = S.Layers.add(asset);
+      var layer = null;
+      if (added && added.asset === asset) layer = added;
+      else if (S.Layers.list && S.Layers.list.length > before) {
+        var top = S.Layers.list[S.Layers.list.length - 1];
+        if (top && top.asset === asset) layer = top;
+      }
+      if (!layer) {
+        try { v.pause = realPause; v.pause(); } catch (_) {}
+        try { v.srcObject = null; } catch (_) {}
+        if (v.parentNode) v.parentNode.removeChild(v);
+        state.cameraPause = null;
+        state.cameraHost = null;
+        state.cameraEl = null;
+        state.cameraLayer = null;
+        state.cameraOn = false;
+        mi.stopCamera();
+        setStatus('3 layers max', true);
+        return { ok: false, error: 'LayerCap', message: '3 layers max' };
+      }
+      state.cameraLayer = layer;
       // A new layer inherits a blend mode from the page's shuffle, and
       // some of them (multiply, and difference over black) make a live
       // feed invisible on a dark stage. A camera wants to be seen.

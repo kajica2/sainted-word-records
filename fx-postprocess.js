@@ -37,7 +37,7 @@
     uniform float u_temp;     // -1..1 (cold..warm)
     uniform float u_tone;     // 0..1 tone/desaturation grade (warm highs, cool shadows)
     uniform float u_mut;      // 0..1 mutation amount
-    uniform float u_mutAlgo;  // 0..5 (selects mutation algorithm)
+    uniform float u_mutAlgo;  // 0..11 (0..5 mutate, 6..11 mask illusions)
     uniform float u_vortexEnabled; // 0=skip mutAlgo 0 vortex branch
 
     // Persona uniforms (0..1 unless noted)
@@ -110,6 +110,8 @@
       if (amt < 0.001) return uv;
       vec2 off = vec2(0.0);
       float a = floor(algo + 0.5);
+      // 6..11 are mask illusions. They sample a mask, not a UV offset.
+      if (a > 5.5) return uv;
       if (a < 0.5) {
         // 0: vortex — swirl around center, scaled by time + bass
         if (u_vortexEnabled < 0.5) return uv;
@@ -163,8 +165,119 @@
       return mix(c, c * tint, amt);
     }
 
+    // MASK-ILLUSIONS-START
+    // Mask illusions (mutAlgo 6..11). A mask is a 0..1 reveal, not a UV offset.
+    vec3 maskHue(vec3 c, float ang) {
+      float cs = cos(ang);
+      float sn = sin(ang);
+      vec3 k = vec3(0.57735);
+      return c * cs + cross(k, c) * sn + k * dot(k, c) * (1.0 - cs);
+    }
+
+    float thresholdMask(vec2 uv) {
+      vec3 c = texture2D(u_tex, uv).rgb;
+      float lum = dot(c, vec3(0.299, 0.587, 0.114));
+      float th = 1.0 - u_bass;
+      return smoothstep(th - 0.08, th + 0.08, lum);
+    }
+
+    float gooeyMask(vec2 uv, float t) {
+      float d = 1000.0;
+      for (int i = 0; i < 6; i++) {
+        float fi = float(i);
+        vec2 c = vec2(0.25 + 0.18 * mod(fi, 3.0), 0.30 + 0.22 * floor(fi / 3.0));
+        c += 0.04 * vec2(sin(t * 0.7 + fi), cos(t * 0.9 + fi * 1.3));
+        float r = 0.10 + u_bass * 0.22 + 0.03 * sin(t * 1.6 + fi * 1.1);
+        if (mod(fi, 2.0) > 0.5) r += u_treble * 0.06;
+        d = min(d, length(uv - c) - r);
+      }
+      return smoothstep(-0.06, 0.06, -d);
+    }
+
+    vec2 slitUV(vec2 uv, float t) {
+      float row = floor(uv.y * 34.0);
+      float amp = 0.006 + u_mid * 0.030;
+      return vec2(uv.x + sin(row * 0.42 + t) * amp, uv.y);
+    }
+
+    float slitMask(vec2 uv, float t) {
+      float x = slitUV(uv, t).x;
+      return step(0.0, x) * step(x, 1.0);
+    }
+
+    float chromaBandMask(vec2 uv, float t) {
+      float pos = 0.5 + 0.32 * sin(t * 0.7) + u_mid * 0.12;
+      float w = 0.15;
+      return smoothstep(pos - w, pos, uv.x) * (1.0 - smoothstep(pos, pos + w, uv.x));
+    }
+
+    float halftoneMask(vec2 uv) {
+      float cells = 32.0;
+      vec2 p = floor(uv * cells) / cells + 0.5 / cells;
+      vec3 c = texture2D(u_tex, p).rgb;
+      float lum = dot(c, vec3(0.299, 0.587, 0.114));
+      float r = (1.0 - lum) * 0.68 / cells;
+      float d = length(fract(uv * cells) - 0.5) / cells;
+      float dotMask = step(d, r);
+      return mix(dotMask, 1.0 - dotMask, u_treble * 0.5);
+    }
+
+    vec2 kaleidoUV(vec2 uv) {
+      vec2 c = uv - 0.5;
+      float r = length(c);
+      float ang = atan(c.y, c.x) + u_mid * 0.349066;
+      float seg = 6.0;
+      float a = mod(ang, 6.2831853 / seg);
+      a = abs(a - 3.1415926 / seg);
+      return vec2(cos(a), sin(a)) * r + 0.5;
+    }
+
+    float kaleidoMask(vec2 uv) {
+      vec2 c = uv - 0.5;
+      float r = length(c);
+      float ang = atan(c.y, c.x) + u_mid * 0.349066;
+      float seg = 6.0;
+      float a = mod(ang, 6.2831853 / seg);
+      a = abs(a - 3.1415926 / seg);
+      float wedge = 1.0 - smoothstep(0.42, 0.50, abs(a));
+      float rad = 1.0 - smoothstep(0.45, 0.55, r);
+      return wedge * rad;
+    }
+
+    float maskIllusion(vec2 uv, float t, float algo) {
+      if (algo < 6.5) return thresholdMask(uv);
+      if (algo < 7.5) return gooeyMask(uv, t);
+      if (algo < 8.5) return slitMask(uv, t);
+      if (algo < 9.5) return chromaBandMask(uv, t);
+      if (algo < 10.5) return halftoneMask(uv);
+      return kaleidoMask(uv);
+    }
+
+    vec3 maskColor(vec3 col, float t, float algo) {
+      float lum = dot(col, vec3(0.299, 0.587, 0.114));
+      if (algo < 6.5) {
+        vec3 duo = mix(vec3(0.08, 0.10, 0.16), vec3(0.96, 0.90, 0.78), lum);
+        return mix(vec3(lum), duo, 0.85);
+      }
+      if (algo < 7.5) return maskHue(mix(vec3(lum), col, 1.35), 0.45 + 0.15 * sin(t));
+      if (algo < 10.5) return mix(vec3(lum), col, 0.35);
+      return maskHue(col, u_treble * 0.8 + t * 0.0);
+    }
+    // MASK-ILLUSIONS-END
+
     void main() {
-      vec2 uv = mutate(v_uv, u_time, u_mut, u_mutAlgo);
+      float algo = floor(u_mutAlgo + 0.5);
+      float mask = 0.0;
+      vec2 uv = v_uv;
+      if (algo < 5.5) {
+        uv = mutate(v_uv, u_time, u_mut, u_mutAlgo);
+      } else if (algo < 11.5) {
+        mask = maskIllusion(v_uv, u_time, algo);
+        // Scale UV displacement by u_mut so intensity 0 is a true no-op
+        // (Ribbed / Wedge used to leave the frame shifted with mut at 0).
+        if (algo > 7.5 && algo < 8.5) uv = mix(v_uv, slitUV(v_uv, u_time), u_mut);
+        else if (algo > 10.5) uv = mix(v_uv, kaleidoUV(v_uv), clamp(mask * u_mut, 0.0, 1.0));
+      }
 
       // === Liquid glass domain warp ===
       // 2-scale fbm offset, scaled by u_liquid. The warp also drives a small
@@ -336,6 +449,22 @@
         col = mix(vec3(lc), col, 1.0 + c * 0.08);
       }
 
+      // Mask blend. Algorithms 0..5 leave mask at 0, so this is a no-op for them.
+      // Every branch multiplies by u_mut so intensity 0 restores the clean frame.
+      if (algo > 5.5 && algo < 11.5) {
+        if (algo > 7.5 && algo < 8.5) {
+          col *= mix(1.0, mask, u_mut);
+        } else if (algo > 8.5 && algo < 9.5) {
+          vec2 off = vec2(0.006 * mask * u_mut, 0.0);
+          float r = texture2D(u_tex, clamp(uv + off, 0.0, 1.0)).r;
+          float g = texture2D(u_tex, uv).g;
+          float b = texture2D(u_tex, clamp(uv - off, 0.0, 1.0)).b;
+          col = mix(col, vec3(r, g, b), mask * u_mut);
+        } else {
+          col = mix(col, maskColor(col, u_time, algo), mask * u_mut);
+        }
+      }
+
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }
   `;
@@ -344,7 +473,7 @@
   const state = {
     temp: 0,           // -1..1
     mut: 0,            // 0..1
-    mutAlgo: 0,        // 0..5
+    mutAlgo: 0,        // 0..11 (6..11 are mask illusions)
     enabled: true,
     bass: 0, mid: 0, treble: 0, beat: 0,
     time: 0,
@@ -373,6 +502,82 @@
     sharp: 0,
     cinematic: 0,
   };
+
+  // No GL context (the gate is off, or the browser has no WebGL). The
+  // setters still have to exist: looks, automix and the FX sliders write
+  // through them, and the recorder falls back to the stage canvas when
+  // outputCanvas is null. This object does not start a frame loop.
+  const PERSONA_KEYS = ['temp', 'mut', 'mutAlgo', 'posterize', 'vignette', 'chroma', 'grain', 'sepia', 'glow', 'grayscale', 'blur', 'liquid', 'pearl', 'glitch', 'tone', 'sharp', 'cinematic'];
+  // 0..5 displace. 6..11 are mask illusions. Vortex (0) still remaps
+  // through SWR_MOTION_KILL when that kill switch is loaded.
+  const MUT_ALGO_MAX = 11;
+  function clampMutAlgo(a) {
+    var n = Math.floor(Number(a));
+    if (!isFinite(n) || n < 0) n = 0;
+    if (n > MUT_ALGO_MAX) n = MUT_ALGO_MAX;
+    var mk = window.SWR_MOTION_KILL;
+    if (mk && typeof mk.coerceMutAlgo === 'function') n = mk.coerceMutAlgo(n);
+    return n;
+  }
+
+  function publishFxWithoutGl() {
+    if (window.FX && window.FX.state) return;
+    let intensity = 1;
+    try {
+      const savedInt = parseFloat(localStorage.getItem('swr.fx.intensity'));
+      if (isFinite(savedInt)) intensity = Math.max(0, Math.min(1, savedInt));
+    } catch (_) {}
+    try {
+      const savedTone = parseFloat(localStorage.getItem('swr.fx.tone'));
+      if (isFinite(savedTone)) state.tone = Math.max(0, Math.min(1, savedTone));
+    } catch (_) {}
+    window.FX = {
+      state,
+      available: false,
+      FRAG_SOURCE,
+      get intensity() { return intensity; },
+      setIntensity(v) {
+        const n = typeof v === 'number' && isFinite(v) ? v : parseFloat(v);
+        if (!isFinite(n)) return intensity;
+        intensity = Math.max(0, Math.min(1, n));
+        try { localStorage.setItem('swr.fx.intensity', String(intensity)); } catch (_) {}
+        return intensity;
+      },
+      setTemp(v) { state.temp = Math.max(-1, Math.min(1, v)); },
+      setMut(v)  { state.mut  = Math.max(0, Math.min(1, v)); },
+      setAlgo(a) { state.mutAlgo = clampMutAlgo(a); },
+      setPosterize(v) { state.posterize = Math.max(0, Math.min(1, v)); },
+      setVignette(v)  { state.vignette  = Math.max(0, Math.min(1, v)); },
+      setChroma(v)    { state.chroma    = Math.max(0, Math.min(1, v)); },
+      setGrain(v)     { state.grain     = Math.max(0, Math.min(1, v)); },
+      setSepia(v)     { state.sepia     = Math.max(0, Math.min(1, v)); },
+      setGlow(v)      { state.glow      = Math.max(0, Math.min(1, v)); },
+      setGrayscale(v) { state.grayscale = Math.max(0, Math.min(1, v)); },
+      setTone(v)      { state.tone      = Math.max(0, Math.min(1, v)); },
+      get tone()      { return state.tone; },
+      setBlur(v)      { state.blur      = Math.max(0, Math.min(1, v)); },
+      setLiquid(v)    { state.liquid    = Math.max(0, Math.min(1, v)); },
+      setPearl(v)     { state.pearl     = Math.max(0, Math.min(1, v)); },
+      setGlitch(v)    { state.glitch    = Math.max(0, Math.min(1, v)); },
+      setSharp(v)     { state.sharp     = Math.max(0, Math.min(1, v)); },
+      setCinematic(v) { state.cinematic = Math.max(0, Math.min(1, v)); },
+      setPersona(profile) {
+        if (!profile) return;
+        for (const k of PERSONA_KEYS) {
+          if (profile[k] === undefined) continue;
+          if (k === 'mutAlgo') {
+            state.mutAlgo = clampMutAlgo(profile.mutAlgo);
+          } else {
+            state[k] = profile[k];
+          }
+        }
+      },
+      setEnabled(on) { state.enabled = !!on; },
+      setFrameSkip() { return 1; },
+      get frameSkip() { return 1; },
+      outputCanvas: null,
+    };
+  }
 
   // ---- Init ----
   function init() {
@@ -412,10 +617,22 @@
     // NB: preserveDrawingBuffer must be true for captureStream() / MediaRecorder to
     // work — otherwise the WebGL buffer is cleared after each compositor present,
     // causing black frames in headless SwiftShader (issue #75).
-    const gl = out.getContext('webgl', { premultipliedAlpha: false, preserveDrawingBuffer: true })
-           || out.getContext('experimental-webgl');
+    // The product gate (lib/webgl-feature-detect.client.js) is off unless
+    // the page asked (?webgl=1 or localStorage swrWebGL=1). Calling
+    // getContext anyway logs "WebGL not available" on every browser that
+    // has no GPU — including the ChatGPT webview — and starts a second
+    // rAF loop on the ones that do. requireWebGL returns null for both
+    // "not asked" and "asked, context refused".
+    const gate = window.SWR_WEBGL;
+    const glOpts = { premultipliedAlpha: false, preserveDrawingBuffer: true };
+    const gl = (gate && typeof gate.requireWebGL === 'function')
+      ? gate.requireWebGL(out, glOpts)
+      : (out.getContext('webgl', glOpts) || out.getContext('experimental-webgl'));
     if (!gl) {
-      console.warn('[fx-postprocess] WebGL not available; post-process disabled');
+      const asked = !gate || (typeof gate.isWebGLEnabled === 'function' && gate.isWebGLEnabled());
+      if (asked) console.warn('[fx-postprocess] WebGL not available; post-process disabled');
+      if (out.style) out.style.display = 'none';
+      publishFxWithoutGl();
       return;
     }
 
@@ -434,13 +651,17 @@
 
     const vs = compile(gl.VERTEX_SHADER, VERT);
     const fs = compile(gl.FRAGMENT_SHADER, FRAG_SOURCE);
-    if (!vs || !fs) return;
+    if (!vs || !fs) {
+      publishFxWithoutGl();
+      return;
+    }
     const prog = gl.createProgram();
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
       console.error('[fx-postprocess] program link error:', gl.getProgramInfoLog(prog));
+      publishFxWithoutGl();
       return;
     }
     gl.useProgram(prog);
@@ -622,6 +843,21 @@
         state.mid = Audio.feat.mid || 0;
         state.treble = Audio.feat.treble || 0;
         state.beat = Audio.feat.beat || 0;
+        // No confident tempo (AudioAnalysisV2 returns bpm 0 below its
+        // confidence floor). The bands are already the live analyser;
+        // when they are flat too, fall back to JourneyState energy so a
+        // mask does not freeze on a silent feature vector.
+        var bpm = Audio.feat.bpm || 0;
+        if (!bpm && (state.bass + state.mid + state.treble) < 0.02) {
+          var journey = window.JourneyState && window.JourneyState.audio;
+          if (journey && typeof journey.energy === 'number') {
+            var energy = Math.max(0, Math.min(1, journey.energy));
+            state.bass = energy;
+            state.mid = Math.min(1, energy * 0.7);
+            state.treble = Math.min(1, energy * 0.35);
+            if (journey.beatPulse) state.beat = Math.max(state.beat, 0.85);
+          }
+        }
       }
 
       // Consume the automix target (window.SWR._fxOverride — written by
@@ -763,12 +999,7 @@
       },
       setTemp(v) { state.temp = Math.max(-1, Math.min(1, v)); },
       setMut(v)  { state.mut  = Math.max(0, Math.min(1, v)); },
-      setAlgo(a) {
-        var n = Math.max(0, Math.min(5, Math.floor(a)));
-        var mk = window.SWR_MOTION_KILL;
-        if (mk && typeof mk.coerceMutAlgo === 'function') n = mk.coerceMutAlgo(n);
-        state.mutAlgo = n;
-      },
+      setAlgo(a) { state.mutAlgo = clampMutAlgo(a); },
       setPosterize(v) { state.posterize = Math.max(0, Math.min(1, v)); },
       setVignette(v)  { state.vignette  = Math.max(0, Math.min(1, v)); },
       setChroma(v)    { state.chroma    = Math.max(0, Math.min(1, v)); },
@@ -789,12 +1020,7 @@
         if (!profile) return;
         if (profile.temp      !== undefined) state.temp      = profile.temp;
         if (profile.mut       !== undefined) state.mut       = profile.mut;
-        if (profile.mutAlgo   !== undefined) {
-          var mk2 = window.SWR_MOTION_KILL;
-          var algo = profile.mutAlgo;
-          if (mk2 && typeof mk2.coerceMutAlgo === 'function') algo = mk2.coerceMutAlgo(algo);
-          state.mutAlgo = algo;
-        }
+        if (profile.mutAlgo   !== undefined) state.mutAlgo = clampMutAlgo(profile.mutAlgo);
         if (profile.posterize !== undefined) state.posterize = profile.posterize;
         if (profile.vignette  !== undefined) state.vignette  = profile.vignette;
         if (profile.chroma    !== undefined) state.chroma    = profile.chroma;

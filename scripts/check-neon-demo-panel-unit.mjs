@@ -32,6 +32,7 @@ function makeEl(tag) {
     hasAttribute: function (k) { return el.attrs[k] != null; },
     appendChild: function (child) {
       child.parentNode = el;
+      child.parentElement = el;
       el.children.push(child);
       return child;
     },
@@ -76,6 +77,8 @@ function matchSel(node, sel) {
     return node.getAttribute('data-demo-filter') === id;
   }
   if (sel.startsWith('[data-demo-control]')) return node.getAttribute('data-demo-control');
+  if (sel === '[data-demo-aspect]') return node.getAttribute('data-demo-aspect');
+  if (sel === '.demo-mark-pulse') return node.getAttribute('class') === 'demo-mark-pulse';
   return false;
 }
 
@@ -103,6 +106,21 @@ const document = {
   },
 };
 
+const stageSection = makeEl('section');
+stageSection.className = 'stage';
+stageSection.clientWidth = 800;
+stageSection.clientHeight = 600;
+stageSection._classes = {};
+stageSection.classList = {
+  add: function (c) { stageSection._classes[c] = true; },
+  remove: function (c) { delete stageSection._classes[c]; },
+  toggle: function () {},
+};
+const stageCanvas = makeEl('canvas');
+stageCanvas.id = 'render';
+stageSection.appendChild(stageCanvas);
+body.appendChild(stageSection);
+
 ['sens', 'gate', 'decay'].forEach(function (id) {
   const inp = makeEl('input');
   inp.id = id;
@@ -113,7 +131,87 @@ const document = {
   body.appendChild(inp);
 });
 
+const fetched = [];
+const storage = {};
+const demoItems = [];
+const reloads = [];
+const audioCore = {
+  playing: false,
+  audioEl: null,
+  feat: { bass: 0.4, mid: 0.2, treble: 0.1, air: 0, beat: 0, beatPulse: false },
+  params: { sens: 1, gate: 1, decay: 1 },
+  loadFile: function (file) { this.audioEl = { src: 'blob:' + file.name }; this.loadedName = file.name; },
+  play: function () { this.playing = true; return Promise.resolve(); },
+  pause: function () { this.playing = false; },
+};
+const remaps = [];
+
+// The demo panel keeps the active audio preset in the same snapshot as the
+// audio knobs (persist-wire's contract). The stub mirrors it: setGlobal
+// writes one key and the live knobs land in the same snapshot.
+const wireGlobals = {};
+const wireApi = {
+  pageId: 'neon',
+  // The page state is on the controls by the time the panel restores.
+  stateRestored: true,
+  getGlobal: function (k) {
+    return Object.prototype.hasOwnProperty.call(wireGlobals, k) ? wireGlobals[k] : undefined;
+  },
+  setGlobal: function (k, v) {
+    wireGlobals[k] = (v === undefined) ? null : v;
+    ['sens', 'gate', 'decay'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) wireGlobals[id] = parseFloat(el.value);
+    });
+    return true;
+  },
+  // Clearing rewrites the stored snapshot as it stands: the knob values and
+  // the staged layers already on disk are NOT overwritten by whatever the
+  // controls hold at this moment.
+  clearGlobal: function (k) {
+    wireGlobals[k] = null;
+    return true;
+  },
+};
+// The page's own autosave writes the knobs back into the snapshot.
+function syncKnobsToStore() {
+  ['sens', 'gate', 'decay'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) wireApi.setGlobal(id, parseFloat(el.value));
+  });
+}
+
 const window = {
+  document: document,
+  localStorage: { setItem: function (k, v) { storage[k] = v; } },
+  SWR_WEBGL: { isWebGLEnabled: function () { return storage.swrWebGL === '1'; } },
+  A: audioCore,
+  SWR_LIB: { items: demoItems },
+  SWR_PERSIST_WIRE: wireApi,
+  SWR_LIBRARY_PACKS: {
+    loads: 0,
+    unloads: 0,
+    loaded: false,
+    // The shipped manifest declares thirteen dance clips.
+    expectedCount: function () { return 13; },
+    load: function (id) {
+      this.loads++;
+      // The real loader treats "already loaded" as success and does not
+      // re-add the files — which is why a half-present pack has to be
+      // dropped before it is loaded again.
+      if (this.loaded) return Promise.resolve({ loaded: true, items: 13, error: null });
+      for (let i = 0; i < 13; i++) {
+        demoItems.push({ packId: id, type: 'video', thumb: 'x', id: 'clip-' + i, name: 'dance-' + i + '.mp4', size: 1000 + i });
+      }
+      this.loaded = true;
+      return Promise.resolve({ loaded: true, items: 13, error: null });
+    },
+    unload: function () {
+      this.unloads++;
+      this.loaded = false;
+      demoItems.length = 0;
+    },
+  },
   document: document,
   addEventListener: function () {},
   SWR_MOTION_KILL: {
@@ -136,6 +234,26 @@ const window = {
   SWR_SCENES: { recall: function () { return true; }, startCapture: function () {}, cancelCapture: function () {} },
   SWR_AUTOMAP: {},
   Layers: {
+    list: [],
+    MAX: 3,
+    add: function (it) {
+      if (this.list.length >= this.MAX) return null;
+      const l = { id: 'L' + (this.list.length + 1), asset: it, mediaId: it ? it.id : null, locked: false, reactors: [] };
+      this.list.push(l);
+      this.sel = l;
+      return l;
+    },
+    assign: function (it, idx) {
+      const l = this.list[idx];
+      if (!l) return !!this.add(it);
+      if (l.locked) return false;
+      l.asset = it;
+      l.mediaId = it.id;
+      this.sel = l;
+      return true;
+    },
+    toggleLock: function (l) { if (!l) return false; l.locked = !l.locked; return l.locked; },
+    remap: function () { remaps.push(1); this.list = [{}, {}, {}]; },
     sel: { blend: 'screen', opacity: 1, baseScale: 1, hue: 0, contrast: 1, brightness: 1, alpha: 1, mutate: 0, reactors: [] },
     render: function () {},
   },
@@ -143,7 +261,19 @@ const window = {
 };
 window.window = window;
 
-vm.runInNewContext(source, { window: window, document: document });
+const fetchStub = function (url) {
+  fetched.push(url);
+  return Promise.resolve({ ok: true, blob: function () { return Promise.resolve({ type: 'audio/mpeg' }); } });
+};
+class FileStub { constructor(parts, name) { this.name = name; } }
+vm.runInNewContext(source, { window: window, document: document, fetch: fetchStub, File: FileStub,
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
+  setInterval: setInterval,
+  clearInterval: clearInterval,
+  requestAnimationFrame: function (fn) { return setTimeout(fn, 16); },
+  cancelAnimationFrame: function (id) { clearTimeout(id); },
+});
 
 const api = window.SWR_NEON_DEMO;
 let tests = 0;
@@ -182,5 +312,152 @@ try {
 const rogueAssign = source.match(/setAttribute\(\s*['"]data-demo-control['"]/g);
 const regCalls = source.match(/regControl\(/g) || [];
 assert(!rogueAssign || rogueAssign.length <= regCalls.length, 'data-demo-control only via regControl');
+
+assert(api.hooks && typeof api.hooks.reload === 'function', 'reload hook is replaceable');
+
+// Beat detection must accept the shared core's boolean pulse as well as a numeric envelope.
+audioCore.feat.beatPulse = true;
+assert(/function beatPulseOf/.test(source), 'beat helper exists');
+
+// Dance clips install as the demo's clips and are staged as layers.
+const remapsBefore = remaps.length;
+const installed = await api.installDemoClips();
+assert(installed === true, 'installDemoClips resolves true');
+assert(demoItems.length === 13 && demoItems.every(function (it) { return it.packId === 'dancer-video'; }), 'all 13 dance clips installed from the dancer-video pack');
+assert(remaps.length === remapsBefore, 'installing the clips does not remap the stage');
+assert(window.Layers.list.length === 3, 'the demo fills the stage to the layer cap');
+assert(window.Layers.list.every(function (l) { return l && l.asset && l.asset.packId === 'dancer-video'; }), 'the staged layers hold the demo clips');
+assert(/13 clips · 3 layers/.test(api.stageSummary()), 'stage summary reports clips and layers: ' + api.stageSummary());
+
+// Demo song loads and plays through the shared audio core.
+const songOk = await api.loadDemoSong();
+assert(songOk === true && audioCore.playing === true, 'demo song loads and plays');
+assert(fetched[0] === '/audios/endless-tomorrow.mp3' && audioCore.loadedName === 'endless-tomorrow.mp3', 'demo song comes from /audios');
+assert(/audio playing/.test(api.stageSummary()), 'summary reports audio playing');
+
+// Play toggles pause.
+const toggled = await api.invokeControl('stage:play');
+assert(toggled.ok === true && audioCore.playing === false, 'stage:play pauses a playing song');
+
+// Start demo is async and reports through invokeControl.
+audioCore.playing = false;
+const started = await api.invokeControl('stage:start');
+assert(started.ok === true, 'stage:start resolves ok');
+assert(api.getState().activePreset === 'neon', 'start demo applies the neon preset');
+const probe = api.readProbe('stage:start');
+assert(probe.cycling === true && probe.clips === 13 && probe.playing === true, 'start demo leaves clips staged, audio playing and presets cycling');
+await api.invokeControl('demo:demoAll');
+
+// WebGL toggle persists the opt-in and asks the page to reload.
+delete storage.swrWebGL;
+api.hooks.reload = function (want) { reloads.push(want); return true; };
+assert(api.webglState().asked === false, 'WebGL starts off');
+assert(api.toggleWebGL() === true && storage.swrWebGL === '1' && reloads[0] === true, 'toggle on stores swrWebGL=1 and reloads');
+assert(api.webglState().asked === true, 'WebGL reads as requested');
+assert(api.toggleWebGL() === true && storage.swrWebGL === '0' && reloads[1] === false, 'toggle off stores swrWebGL=0');
+
+assert(api.listAudioPresets().join(',') === 'punch,club,soft,tight', 'four audio presets');
+assert(api.applyAudioPreset('punch') === true, 'punch applies');
+assert(document.getElementById('sens').value === '2.4', 'punch sets sens on the page slider');
+assert(document.getElementById('gate').value === '1.15', 'punch sets gate');
+assert(document.getElementById('decay').value === '0.7', 'punch sets decay');
+assert(audioCore.params.sens === 2.4 && audioCore.params.gate === 1.15 && audioCore.params.decay === 0.7, 'punch writes the audio core params');
+const audioProbe = api.readProbe('audio:punch');
+assert(audioProbe.preset === 'punch' && audioProbe.sens === 2.4, 'audio probe reports the active preset');
+assert(api.applyAudioPreset('soft') === true && parseFloat(document.getElementById('sens').value) === 0.7, 'soft replaces punch');
+assert(api.applyAudioPreset('nope') === false, 'unknown audio preset is refused');
+
+// The preset id is remembered next to the knobs it wrote, so a reload can
+// restore it without a second key namespace.
+assert(api.applyAudioPreset('punch') === true, 'punch applies again');
+assert(wireApi.getGlobal('audioPreset') === 'punch', 'the preset id is stored with the knobs');
+assert(Math.abs(wireApi.getGlobal('sens') - 2.4) < 0.001, 'the knobs are stored with the preset');
+assert(api.restoreAudioPreset() === true, 'the stored preset is restored');
+assert(api.getState().activeAudio === 'punch', 'the restored preset is the active one');
+assert(api.readProbe('audio:punch').preset === 'punch', 'the audio probe reports the restored preset');
+
+// The performer moved the knobs off the preset after picking it: the knobs
+// win and the stored preset id is dropped — a preset that is no longer on
+// screen is not the active preset.
+api.writeSensitivity(1.8);
+syncKnobsToStore();
+assert(api.restoreAudioPreset() === false, 'a preset the knobs moved away from is not restored');
+assert(wireApi.getGlobal('audioPreset') === null, 'the stale preset id is dropped');
+assert(wireApi.getGlobal('sens') === 1.8, 'dropping a stale preset does not overwrite the knobs');
+
+assert(api.writeSensitivity(2.4) === true, 'sensitivity slider writes');
+assert(document.getElementById('sens').value === '2.4', 'sensitivity slider drives #sens');
+assert(document.getElementById('demo-sensitivity').value === '2.4', 'sensitivity slider shows 2.4');
+assert(document.getElementById('demo-sensitivity-v').textContent === '2.40', 'sensitivity readout is 2.40');
+assert(audioCore.params.sens === 2.4, 'sensitivity slider writes the audio core');
+const sensBumped = await api.invokeControl('slider:sensitivity');
+assert(sensBumped.ok === true && parseFloat(document.getElementById('sens').value) !== 2.4, 'sensitivity control moves the value');
+assert(api.writeTemperature(0.45) === true && window.FX.state.temp === 0.45, 'temperature slider writes FX.state.temp');
+assert(document.getElementById('demo-temperature-v').textContent === '+0.45', 'temperature readout is +0.45');
+const tempProbe = api.readProbe('slider:temperature');
+assert(tempProbe.temperature === 0.45 && Number.isFinite(tempProbe.sensitivity), 'slider probe reports both values');
+const tempBumped = await api.invokeControl('slider:temperature');
+assert(tempBumped.ok === true && api.readProbe('slider:temperature').temperature !== 0.45, 'temperature control moves the value');
+
+demoItems.length = 0;
+const pack = window.SWR_LIBRARY_PACKS;
+const unloadsBefore = pack.unloads;
+const reinstalled = await api.installDemoClips();
+assert(reinstalled === true && pack.unloads === unloadsBefore + 1 && demoItems.length === 13, 'a cleared library reinstalls the dance clips');
+
+// A pack that lost only SOME of its clips is the case the loader could not
+// repair on its own: it still says "loaded" and hands back its cached count
+// without fetching the missing files. The demo drops the pack and loads it
+// again, so all thirteen come back.
+demoItems.length = 4;
+const unloadsBeforePartial = pack.unloads;
+const repaired = await api.installDemoClips();
+assert(repaired === true && demoItems.length === 13, 'a half-present pack is refilled to thirteen clips');
+assert(pack.unloads === unloadsBeforePartial + 1, 'the half-present pack is dropped before it is loaded again');
+
+// A complete pack is left alone: unloading it would throw away the very
+// items the demo is here to keep.
+const unloadsBeforeComplete = pack.unloads;
+const kept = await api.installDemoClips();
+assert(kept === true && demoItems.length === 13 && pack.unloads === unloadsBeforeComplete, 'a complete pack is not thrown away and reloaded');
+
+// Start demo must not wipe a set the performer staged. It fills the empty
+// slots around it and leaves the occupied one exactly as it was.
+const mine = { id: 'mine', name: 'mine.mp4', type: 'video', packId: null };
+window.Layers.list.length = 0;
+window.Layers.add(mine);
+const stagedBefore = window.Layers.list.map(function (l) { return l.asset && l.asset.id; });
+await api.invokeControl('stage:start');
+const stagedAfter = window.Layers.list.map(function (l) { return l.asset && l.asset.id; });
+assert(stagedAfter[0] === stagedBefore[0] && stagedAfter[0] === 'mine', 'Start demo leaves a staged layer alone');
+assert(window.Layers.list.length === 3, 'Start demo fills the empty slots around the staged layer');
+assert(stagedAfter.slice(1).every(function (id) { return id && id.indexOf('clip-') === 0; }), 'the filled slots hold the demo clips');
+// Start demo leaves the beat-driven preset cycler running. Stop it, or the
+// script never exits (the cycler is a requestAnimationFrame loop).
+await api.invokeControl('demo:demoAll');
+
+assert(api.fitAspectBox(800, 600, 16, 9).h === 450 && api.fitAspectBox(800, 600, 16, 9).w === 800, '16:9 letterboxes a 4:3 cell on the width');
+assert(api.fitAspectBox(800, 600, 9, 16).h === 600 && api.fitAspectBox(800, 600, 9, 16).w === 338, '9:16 letterboxes a 4:3 cell on the height');
+assert(api.fitAspectBox(800, 600, 1, 1).w === 600 && api.fitAspectBox(800, 600, 1, 1).h === 600, '1:1 is the shorter side');
+assert(api.labelAspect(832, 464) === '16:9', 'dance clips (832×464) label as 16:9');
+assert(api.labelAspect(1080, 1920) === '9:16', '1080×1920 labels as 9:16');
+assert(api.labelAspect(1080, 1080) === '1:1', 'square labels as 1:1');
+assert(api.labelAspect(1080, 1350) === '4:5', '1080×1350 labels as 4:5');
+const fitted = [];
+window.SWR_RENDER.fit = function (c) { fitted.push(c && c.style.width + 'x' + c.style.height); };
+assert(api.applyStageAspect('16:9') === true, '16:9 applies');
+assert(stageCanvas.style.width === '800px' && stageCanvas.style.height === '450px', 'canvas box is 800×450 for 16:9');
+assert(stageSection._classes['is-ratio'] === true, 'stage letterboxes');
+assert(api.readProbe('aspect:16:9').aspect === '16:9', 'aspect probe reports 16:9');
+assert(api.applyStageAspect('9:16') === true && stageCanvas.style.width === '338px' && stageCanvas.style.height === '600px', '9:16 resizes the canvas');
+assert(api.applyStageAspect('stage') === true && stageCanvas.style.width === '' && !stageSection._classes['is-ratio'], 'Fill restores the layout cell');
+assert(api.applyStageAspect('nope') === false, 'unknown aspect is refused');
+assert(fitted.length >= 3, 'each aspect asks the renderer to fit');
+
+assert(api.heartbeatScale(0) === 1, 'svg heartbeat rests at the start of the cycle');
+assert(Math.abs(api.heartbeatScale(144) - 1.16) < 0.001, 'svg heartbeat peaks at 144ms');
+assert(Math.abs(api.heartbeatScale(432) - 1.16) < 0.001, 'svg heartbeat peaks again at 432ms');
+assert(api.heartbeatScale(600) === 1, 'svg heartbeat rests after the two pulses');
+assert(/translate\(16 16\) scale\(/.test(api.markTransform()), 'svg mark transform is a scale about its centre: ' + api.markTransform());
 
 console.log('NEON DEMO PANEL UNIT: ALL GREEN (' + tests + ' tests, ' + listed.length + ' controls)');

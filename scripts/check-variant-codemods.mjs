@@ -62,13 +62,13 @@ const CODEMODS = [
   { file: 'versions/_mobile-header-inject.js', marker: 'SWR-MOBILE-HEADER-MARKER', targets: REACTIVE },
   { file: 'versions/_responsive-inject.js',     marker: 'SWR-RESPONSIVE-MARKER',     targets: REACTIVE },
   { file: 'versions/_render-inject.js',          marker: 'SWR-HEADER-DATA-ICONS',    targets: REACTIVE },
-  // _fx-grade is dead — its regex doesn't match any current variant
-  // (the filter-syntax on disk is `ctx.filter = 'string'` not
-  // `filter('args')`), so its dry-run reports 0 injects. Treating it
-  // as dynamic means the gate expects 0 files, which matches reality.
-  // The 11 stale markers on reactives remain (the codemod added them
-  // in a previous era) — they don't break the build, they're just
-  // dead. Removing them is a separate cleanup.
+  // _fx-grade is COMPLETE, not dead. Its detector matches a template-literal
+  // filter chain, and its own migration replaced that chain with
+  // `window.SWR_GRADE.set(...)` — so it now recognises the pages it
+  // migrated and reports them as "already on the GPU path". The marker is
+  // live wiring, not a stale artefact: every marked page calls
+  // SWR_GRADE.set(…) in its draw loop. Treating it as dynamic means the
+  // gate expects 0 files to inject, which matches reality.
   { file: 'versions/_fx-grade-inject.js',        marker: 'SWR-FX-GRADE-MARKER',       targets: null },
   // These codemods target based on file contents, not a hardcoded
   // list, so the dry-run output is the source of truth. The gate

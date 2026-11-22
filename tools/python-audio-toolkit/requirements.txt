@@ -1,0 +1,9 @@
+# Core DSP (file process + overdub). Matches the Matin toolkit stack with
+# looser pins so CI / local Python 3.12 installs stay reliable.
+numpy>=1.26,<2.1
+scipy>=1.11,<1.15
+matplotlib>=3.8,<3.10
+
+# Optional — mic recording (fixed-time / VAD). Needs PortAudio system libs.
+# Install with: pip install -r tools/python-audio-toolkit/requirements-record.txt
+# PyAudio==0.2.14

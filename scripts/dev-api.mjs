@@ -45,6 +45,8 @@ const HANDLER_PATHS = {
   // The control centre's data source: system, git, health, state and the
   // action log behind super-admin.html.
   'control-centre': '../api/control-centre.js',
+  // Offline / full-song render job queue (local Chrome+ffmpeg only).
+  'render': '../api/render.js',
 };
 
 function pickHandlerPath(urlPath) {
@@ -128,6 +130,8 @@ function pickHandlerPath(urlPath) {
   if (segs[1] === 'health') return HANDLER_PATHS['manifest'];
   if (segs[1] === 'manifest') return HANDLER_PATHS['manifest'];  // handles ?action=known-files + ?action=health
   if (segs[1] === 'control-centre') return HANDLER_PATHS['control-centre'];
+  // Offline render API: POST create + GET status/list/download/health.
+  if (segs[1] === 'render' && !segs[2]) return HANDLER_PATHS['render'];
   return null;
 }
 

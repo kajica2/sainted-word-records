@@ -91,11 +91,25 @@ function diskUsage(target) {
   }
 }
 
+// A single reading the host will not give must not take the whole card
+// down. A restricted instance refuses some of these syscalls (the uptime
+// reading needs a sysctl a sandbox does not grant), and the card's job is
+// to show what it can and name what it could not read.
+function safeRead(fn, fallback) {
+  try {
+    const v = fn();
+    return v === undefined ? fallback : v;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 function systemStats() {
-  const cores = os.cpus()?.length || 1;
-  const load = os.loadavg();
-  const totalMem = os.totalmem();
-  const freeMem = os.freemem();
+  const cores = safeRead(() => os.cpus()?.length, 1) || 1;
+  const load = safeRead(() => os.loadavg(), [0, 0, 0]);
+  const totalMem = safeRead(() => os.totalmem(), 0);
+  const freeMem = safeRead(() => os.freemem(), 0);
+  const uptime = safeRead(() => Math.round(os.uptime()), null);
   return {
     cores,
     load1: Math.round(load[0] * 100) / 100,
@@ -106,7 +120,10 @@ function systemStats() {
     memUsed: totalMem - freeMem,
     memPct: totalMem ? Math.round(((totalMem - freeMem) / totalMem) * 1000) / 10 : null,
     disk: diskUsage('/'),
-    uptimeSec: Math.round(os.uptime()),
+    uptimeSec: uptime,
+    // The uptime reading is the one a restricted host refuses most often.
+    // Say that it is unavailable rather than failing the whole request.
+    uptimeUnavailable: uptime === null,
     node: process.version,
     platform: `${os.platform()} ${os.arch()}`,
     // The instance the request landed on, not a fleet-wide number.
@@ -314,8 +331,11 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'status') {
+      // Each source stands on its own. One that cannot answer reports its
+      // own failure; it does not take the other two down with it, and it
+      // does not turn a public status read into a 500.
       const [sys, git, store] = await Promise.all([
-        Promise.resolve(systemStats()),
+        Promise.resolve().then(() => systemStats()).catch((e) => ({ error: e.message })),
         gitInfo().catch((e) => ({ error: e.message })),
         health().catch((e) => ({ ok: false, error: e.message })),
       ]);
@@ -323,7 +343,8 @@ export default async function handler(req, res) {
     }
 
     if (action === 'system') {
-      return sendJson(res, 200, { ok: true, at: nowIso(), system: systemStats() });
+      const sys = await Promise.resolve().then(() => systemStats()).catch((e) => ({ error: e.message }));
+      return sendJson(res, 200, { ok: true, at: nowIso(), system: sys });
     }
 
     if (action === 'git') {

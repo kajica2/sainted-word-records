@@ -417,6 +417,31 @@ check('a group survives a re-render of the panel', () => {
   return true;
 });
 
+check('the stack stops at 3 layers', () => {
+  const w = runFresh();
+  const L = w.Layers;
+  if (L.MAX !== 3) return 'MAX ' + L.MAX;
+  addLayers(w, 4);
+  if (L.list.length !== 3) return 'add allowed a fourth: ' + L.list.length;
+  if (L.addText('fourth') !== null) return 'addText allowed a fourth';
+  if (L.setActiveCount(9) !== 3) return 'activeCount ' + L.activeCount;
+  return true;
+});
+
+check('a remap assigns at most 3 roles', () => {
+  const w = runFresh();
+  const L = w.Layers;
+  w.Library = {
+    items: [0, 1, 2, 3, 4, 5].map((i) => ({
+      id: 'a' + i, name: 'clip-' + i, type: 'video', url: 'clip-' + i,
+      motion: 0.2 + i * 0.1, luma: 0.4, hue: 0.3,
+    })),
+  };
+  L.autoMap();
+  if (L.list.length !== 3) return 'remap built ' + L.list.length;
+  return true;
+});
+
 // ---- summary ----
 const pass = results.filter((r) => r.ok).length;
 const fail = results.filter((r) => !r.ok).length;

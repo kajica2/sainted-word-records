@@ -1,8 +1,12 @@
 import { chromium } from 'playwright';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { runAxe, tally } from './a11y.mjs';
 
-const config = JSON.parse(readFileSync(new URL('./swarm.config.json', import.meta.url)));
+// The config path can be overridden, so a test can drive the surface
+// over two routes instead of a hundred and forty-eight.
+const configPath = process.env.KAI_QA_CONFIG || new URL('./swarm.config.json', import.meta.url);
+const config = JSON.parse(readFileSync(configPath, 'utf8'));
 if (config.maxConcurrentAgents > 2 || config.maxDailyApiUsd > 2 || config.allowMerge || config.allowProductionDeploy) throw new Error('Unsafe swarm policy');
 const base = process.env.KAI_QA_BASE_URL || config.baseUrl;
 const output = process.env.KAI_QA_OUTPUT || 'qa-results';
@@ -36,6 +40,22 @@ for (const endpoint of config.apiChecks) {
     }
   } catch (_) { hasApiServer = false; break; }
 }
+  // The home page's title is the fingerprint of a soft 404: a route that
+  // answers 200 with the HOME PAGE is a broken route, and a surface that
+  // cannot see that will happily report 148 routes while covering 122
+  // pages. (It did: 26 routes measured the home page, because the
+  // preview server was not applying vercel.json's rewrites. The preview
+  // now is — vite.config.js's dev-vercel-rewrites plugin hooks
+  // configurePreviewServer as well as configureServer — and this check
+  // is what proves it.)
+  let homeTitle = '';
+  try {
+    const home = await browser.newPage();
+    await home.goto(new URL('/', base).href, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    homeTitle = await home.title();
+    await home.close();
+  } catch (_) { /* the home page is not this surface's business */ }
+
   async function run({ route, viewport }) {
     const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, reducedMotion: 'reduce' });
     const page = await context.newPage();
@@ -84,7 +104,12 @@ for (const endpoint of config.apiChecks) {
         for (const el of document.querySelectorAll('*')) {
           const r = el.getBoundingClientRect();
           if (r.width === 0 && r.height === 0) continue;
-          if (r.right > vw + 2 || r.left < -2) {
+          // Only the RIGHT edge can make a page scroll sideways. The
+          // shared skip link sits at `left: -9999px` until it is focused,
+          // so testing the left edge too reported it as the worst
+          // offender on every page — a red herring at +9999px that hid
+          // the element actually causing the scroll.
+          if (r.right > vw + 2) {
             offenders.push({
               tag: el.tagName.toLowerCase(),
               id: el.id || null,
@@ -107,9 +132,21 @@ for (const endpoint of config.apiChecks) {
           canvasCount: document.querySelectorAll('canvas').length
         };
       });
+      // Accessibility is a mission of this surface too: the same axe
+      // probe the gate uses, so a fix and its gate can never disagree
+      // about what the page's accessibility state is.
+      let a11y = { counts: {}, detail: {} };
+      try {
+        a11y = tally(await runAxe(page));
+      } catch (err) {
+        errors.push(['accessibility', 'axe could not run: ' + err.message]);
+      }
       await page.screenshot({ path: join(output, 'screenshots', key + '.png'), fullPage: true, animations: 'disabled', timeout: 15000 });
-      evidence.push({ key, route: route.path, viewport: viewport.id, status, ...state, scripts: scripts.slice(0, 60), screenshot: 'screenshots/' + key + '.png' });
+      evidence.push({ key, route: route.path, viewport: viewport.id, status, ...state, a11y, scripts: scripts.slice(0, 60), screenshot: 'screenshots/' + key + '.png' });
       if (state.bodyTextLength < 2) add('medium', 'visual', key, 'Page has little visible text; inspect screenshot (canvas-only surfaces may be valid)');
+      if (homeTitle && state.title === homeTitle && route.path !== '/') {
+        add('high', 'regression', key, 'The route serves the HOME PAGE (soft 404) — the rewrite for ' + route.path + ' does not reach its own document');
+      }
       if (state.horizontalOverflow) {
         const who = state.overflowOffenders.map(o => `${o.tag}${o.id ? '#' + o.id : ''}${o.cls ? '.' + o.cls.split(/\s+/).join('.') : ''} (+${o.overBy}px)`).join(', ');
         add('medium', 'visual', key, 'Horizontal overflow: scrollWidth ' + state.scrollWidth + ' > innerWidth ' + state.innerWidth + ' — ' + (who || 'no element located'));
@@ -128,6 +165,25 @@ for (const endpoint of config.apiChecks) {
   for (let i = 0; i < work.length; i += 2) await Promise.all(work.slice(i, i + 2).map(run));
 } catch (err) { add('high', 'regression', 'browser', err.message); }
 finally { await browser?.close(); }
+// Accessibility, aggregated BY RULE across the whole surface. The same
+// rule broken on sixty pages is ONE defect with sixty symptoms; reported
+// per instance it would be sixty tasks, and the swarm would spend its
+// budget on the count rather than on the cause.
+const a11yCounts = {};
+const a11yPages = {};
+const a11yDetail = {};
+for (const ev of evidence) {
+  for (const [id, n] of Object.entries(ev.a11y?.counts || {})) {
+    a11yCounts[id] = (a11yCounts[id] || 0) + n;
+    a11yPages[id] = (a11yPages[id] || 0) + 1;
+    if (!a11yDetail[id]) a11yDetail[id] = { ...ev.a11y.detail[id], example: ev.route };
+  }
+}
+for (const [id, n] of Object.entries(a11yCounts).sort((a, b) => b[1] - a[1])) {
+  const d = a11yDetail[id];
+  const sample = d?.sample?.target ? ' — e.g. ' + d.sample.target : '';
+  add('medium', 'accessibility', id, n + ' instance' + (n === 1 ? '' : 's') + ' on ' + a11yPages[id] + ' page' + (a11yPages[id] === 1 ? '' : 's') + ': ' + (d?.help || id) + sample);
+}
 for (const endpoint of config.apiChecks) {
   try {
     const response = await fetch(new URL(endpoint.path, base), { signal: AbortSignal.timeout(12000) });

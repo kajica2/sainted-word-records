@@ -60,6 +60,7 @@ const GROUPS = {
     'npm run check:section-detector-unit',
     'npm run check:automix-arc-unit',
     'npm run check:automix-session-unit',
+    'npm run check:preset-transition-unit',
     'npm run check:posterize-curve',
     'npm run check:contract',
     'npm run check:ver-picker',
@@ -73,11 +74,43 @@ const GROUPS = {
     // Auto-rotate master toggle off-screen. This gate watches the four
     // DIFFERENT causes, so no single lucky rule can satisfy it.
     'npm run check:responsive-overflow',
+    // Accessibility: no rule may regress against the committed baseline.
+    // The baseline counts can only go down — every fix lowers them.
+    //
+    // BOUNDED, because this step spawns a browser and a preview server.
+    // The gate has its own 20-minute internal deadline, and this is the
+    // outer wall: if the gate ever hangs again — it used to, for six
+    // hours, because it only exited on failure — this step fails in 25
+    // minutes with a timeout instead of taking the whole job's budget
+    // with it. A timeout that fires while the work is still running is a
+    // cancellation, not a verdict, but a cancellation at 25 minutes is
+    // survivable and one at 360 is not.
+    { cmd: 'npm run check:a11y', timeoutMs: 1500000 },
+    // The accessible-name rule (WCAG 2.5.3) on the SOURCE. The a11y gate
+    // above measures the built site, but it reports counts and it needs a
+    // browser, so it cannot tell "this element's name broke" from "the
+    // measurement was noisy". This one asserts the rule directly, on the
+    // two element families the site ships, and holds a census of the rest
+    // against a baseline it may only shrink.
+    'npm run check:a11y-names-unit',
     // A page must load without a JavaScript error. /engine-personas read
     // `currentPalette` while it was still in its temporal dead zone, and
     // the page threw on every load.
     'npm run check:page-errors',
     'npm run check:pwa-sw-reload',
+    // A gateway 504 of the document used to be returned to the page even
+    // when the precached shell was sitting in the cache.
+    'npm run check:sw-navigation-unit',
+    // WebGL is off unless the page asks. The post-process pass must not
+    // warn, and must still publish window.FX, on that default path.
+    'npm run check:fx-fallback-unit',
+    // Mask illusions: shader compile for mutAlgo 0..11, MASK personas,
+    // cycler slots 10..15, and a bass 0 vs 1 pixel difference.
+    'npm run check:mask-illusions',
+    // A .mov / .mkv with an empty File.type must still enter the library.
+    'npm run check:media-kind-unit',
+    // Neon must mount #packs so Dance Clips / library-packs can paint.
+    'npm run check:neon-packs-mount-unit',
     'npm run check:webgl-safe-uniforms',
     'npm run check:clip-evolution-unit',
     'npm run check:site-keys-unit',
@@ -87,7 +120,20 @@ const GROUPS = {
     'npm run check:get-preset-unit',
     'npm run check:preset-cycle-unit',
     'npm run check:neon-demo-panel-unit',
+    'npm run check:wave-lines-unit',
+    'npm run check:remo-unit',
     'npm run check:neon-demo-panel-verify',
+    // The recorder: a take must produce a FILE. The capture canvas has to be
+    // in the document while it is recorded — Chrome hands a detached canvas
+    // no frames, and the take used to end with "nothing captured" and no
+    // file. The unit gate states the invariant; the verify gate proves the
+    // outcome in a browser (it spawns one, so it is bounded like the others).
+    // The second unit gate is the quietest way to lose the music: a mime
+    // that names a video-only codec list cannot carry an audio track, so the
+    // recorder has to ask before it tapes the song in.
+    'npm run check:recorder-capture-unit',
+    'npm run check:recorder-audio-unit',
+    { cmd: 'npm run check:recorder-verify', timeoutMs: 900000 },
     'npm run check:walkthrough-auto-unit',
     'npm run check:preset-pick-unit',
     'npm run check:webgl-uniform-guard',
@@ -101,6 +147,12 @@ const GROUPS = {
     // group name. The sibling layer-retire/layer-text/layer-lifecycle
     // suites are reachable from no gate (pre-existing, not this gate's job).
     'npm run check:layer-groups-unit',
+    // Staged media must write the page snapshot on add/remap so a
+    // reload restores the same clips onto the stage.
+    'npm run check:layer-persist-unit',
+    // Camera on a full stage: a refused add must not adopt the layer
+    // already on top, or stopping the camera deletes it.
+    'npm run check:live-layer-cap-unit',
     // The auto-post feed: the posts come from site-map.json's
     // `announcements` array, read from the inlined footer slice or from
     // /site-map.json, and painted into every [data-announcements]
@@ -141,10 +193,12 @@ const GROUPS = {
     // classifyStill hue/luma, persona motion strip, blocked CSS filters.
     'npm run check:jpg-engine-unit',
     'npm run check:image-lane-unit',
+    'npm run check:image-layer-styles-unit',
     'npm run check:automix-image-lane-unit',
     // The one rule for "which media belong together" — shared by the
     // media panel's group-by-name view and the automix layer pool.
     'npm run check:media-grouping-unit',
+    'npm run check:recent-media-unit',
     // A video loaded as the song becomes a layer that shares the song's own
     // <video> element, so the picture and the sound are one clock. The unit
     // pins the module's decisions (a video song adds one songBound layer
@@ -232,6 +286,9 @@ const GROUPS = {
     'npm run check:invite-unlock-unit',
     'npm run check:grant-invite-batch-unit',
     'npm run check:invite-api-smoke',
+    // Offline / full-song render HTTP API (local Chrome+ffmpeg job queue;
+    // Vercel always 503). Dry-run worker — no Puppeteer in the gate.
+    'npm run check:render-offline-api-unit',
     'npm run check:pt-unit',
     'npm run check:zip-reader-unit',
     'npm run check:slots-unit',
@@ -295,6 +352,7 @@ const GROUPS = {
     // always-set response headers and the no-origin/no-throw call paths.
     'npm run check:cors-preview-domain',
     'npm run check:reel-unit',
+    'npm run check:waveform-scrub-unit',
     'npm run check:photo-slideshow',
     'npm run check:default-library',
     'npm run check:grade-smoke',
@@ -331,8 +389,12 @@ const GROUPS = {
     // pins the five-band envelope and the transient/tempo bounds. Both read
     // versions/neon.html as source — no browser, no build.
     'npm run check:neon-v2-phase1',
+    'npm run check:neon-layer-lock-unit',
     'npm run check:neon-audio-v3',
     'npm run check:root-neon-sync',
+    // Offline Python DSP + additional-audio takes (Matin toolkit adaptation).
+    // Selftest is mic-free; record --env-skip keeps CI green without PortAudio.
+    'npm run check:audio-toolkit',
     // The bench gate's A/V sampling-depth floor: derived from the host's
     // OWN measured frame rate, so a slow machine is not asked for what it
     // cannot deliver — while a host that renders at speed but samples once

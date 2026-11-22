@@ -135,9 +135,17 @@ check('simulate: defaultPrevented → no swr-keys-press', () => {
   return true;
 });
 
-check('simulate: bare 1 does not filter when SWR_SCENES present', () => {
+check('simulate: bare 1 does not filter when the scene keyboard is loaded', () => {
+  sandbox.window.SWR_SCENES_KEYBOARD = { helpRows() { return []; } };
   const ev = fire({ key: '1', code: 'Digit1' });
-  if (actionFrom(ev) === 'filter-1') return '1 still mapped to filter-1 with scenes';
+  delete sandbox.window.SWR_SCENES_KEYBOARD;
+  if (actionFrom(ev) === 'filter-1') return '1 still mapped to filter-1 with the scene keyboard';
+  return true;
+});
+
+check('simulate: bare 1 is filter-1 when only the scene store is loaded (NEON)', () => {
+  const ev = fire({ key: '1', code: 'Digit1' });
+  if (actionFrom(ev) !== 'filter-1') return 'expected filter-1, got ' + actionFrom(ev);
   return true;
 });
 

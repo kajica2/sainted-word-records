@@ -248,22 +248,22 @@ check('SWR keys cleared; non-SWR keys preserved', () => {
 
 // ---- 7. SW caches other than current are deleted ---------------------
 // Async because the script calls caches.delete() inside a .then.
-checkAsync('SW caches other than swr-v5 are deleted', async () => {
+checkAsync('SW caches other than swr-v6 are deleted', async () => {
   const { sandbox, reloadCalled } = makeSandbox({
     version: '2026.10.13.1',
     lsState: { swr_app_version_seen: '2026.10.13.0' },
   });
   // Pre-seed cache names via the stub's _seed helper. caches is a
   // separate API from localStorage, so we don't conflate the two.
-  sandbox.window.caches._seed('swr-v4');
   sandbox.window.caches._seed('swr-v5');
+  sandbox.window.caches._seed('swr-v6');
   vm.createContext(sandbox);
   vm.runInContext(SRC, sandbox);
   // Wait for the Promise.then to resolve.
   await new Promise(r => setTimeout(r, 10));
   const deleted = sandbox.window.caches._deleted;
-  if (!deleted.includes('swr-v4')) return `swr-v4 not deleted (got: ${JSON.stringify(deleted)})`;
-  if (deleted.includes('swr-v5')) return `swr-v5 wrongly deleted`;
+  if (!deleted.includes('swr-v5')) return `swr-v5 not deleted (got: ${JSON.stringify(deleted)})`;
+  if (deleted.includes('swr-v6')) return `swr-v6 wrongly deleted`;
   if (reloadCalled() !== 1) return `reloaded ${reloadCalled()} time(s), expected 1`;
   return true;
 });

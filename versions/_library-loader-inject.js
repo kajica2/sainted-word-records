@@ -65,6 +65,18 @@ const ENGINES = [
 // diagnostic will reclassify it as "wired" automatically. But if one
 // of these ever LOSES the loader they never had, the diagnostic
 // still won't flag it (it's just "excluded by design").
+//
+// bachdrop is the odd one out and used to be flagged MISSING_LIBRARY
+// every run, which made the codemod exit 1 and unusable as a dry-run
+// signal. It is NOT decorative — it plays a real song through its own
+// `#song-input` → SWR.Audio.load(file) path. It simply has no LAYER
+// system: no `Lib`, no `Layers`, no remap(). The shared library is a
+// layer-stack feature (the curated packs land on layers and remap
+// binds them), so wiring the loader into bachdrop would give it a
+// loader script and a boot call that then finds no `Lib` and warns on
+// every load. Classifying it as excluded is the accurate answer, not
+// a way to hide a gap: the overlay on that page takes a single song,
+// not a library.
 const EXCLUDED_ENGINES = new Set([
   'baroque',     // decorative — no media
   'kraft',       // decorative — no media
@@ -73,6 +85,7 @@ const EXCLUDED_ENGINES = new Set([
   'spectrum',    // decorative — "no footage, no library, just signal"
   'tape',        // decorative — no media
   'typography',  // decorative — no media
+  'bachdrop',    // single song via its own #song-input — no layer stack, so no library
   'gallery',     // marketing page, not an engine
 ]);
 
@@ -127,18 +140,35 @@ for (const name of ENGINES) {
   }
 
   // Replace the synchronous library boot block.
-  // Idempotency: a page is considered patched if it has the
-  // SWR_LIBLOAD.boot call AND references Lib lexically (not via
-  // window.Lib — that was the broken v1 codemod) AND defers via
-  // DOMContentLoaded (the broken v2 codemod ran the boot
-  // synchronously inside the engine IIFE, but the loader script
-  // itself was deferred, so window.SWR_LIBLOAD was undefined at
-  // boot time).
-  const HAS_NEW_PATTERN  = src.includes("SWR_LIBLOAD.boot") &&
+  // Idempotency: a page is considered patched if it has the boot call AND
+  // references Lib lexically (not via window.Lib — that was the broken v1
+  // codemod) AND defers via DOMContentLoaded (the broken v2 codemod ran
+  // the boot synchronously inside the engine IIFE, but the loader script
+  // itself was deferred, so window.SWR_LIBLOAD was undefined at boot time).
+  //
+  // The boot has been through THREE shapes since this codemod first ran:
+  //   v1 — `Lib: window.Lib` (broken: window.Lib is undefined when the
+  //        engine IIFE runs, because the loader script is deferred)
+  //   v2 — `window.SWR_LIBLOAD.boot({...})` (this codemod's own output)
+  //   v3 — `window.SWR_LIB_PERSIST.boot(Lib, {...})` (the loader grew an
+  //        IndexedDB layer; lib/library-persist.client.js wraps the v2
+  //        boot, hydrates prior uploads, persists new ones, then chains
+  //        the curated manifest load)
+  //
+  // The guard used to recognise v2 ONLY. Every one of the 13 engines had
+  // been migrated to v3 by hand, so all 13 looked "unpatched" to it: the
+  // codemod fell through to the pre-codemod fetch-block matcher, found
+  // nothing, and exited 1 having written nothing. The pages were fine —
+  // the guard had simply stopped being taught. It has to recognise the
+  // shape that is on disk, or the codemod cannot be used as a dry-run
+  // signal at all.
+  const HAS_BOOT_CALL    = src.includes("SWR_LIBLOAD.boot") ||
+                            src.includes("SWR_LIB_PERSIST.boot");
+  const HAS_NEW_PATTERN  = HAS_BOOT_CALL &&
                             !/Lib:\s*window\.Lib/.test(src) &&
                             /DOMContentLoaded.*swr_libboot|__swr_libboot/.test(src);
   const HAS_BROKEN_V1    = /Lib:\s*window\.Lib/.test(src);
-  const HAS_BROKEN_V2    = src.includes("SWR_LIBLOAD.boot") &&
+  const HAS_BROKEN_V2    = HAS_BOOT_CALL &&
                             !HAS_NEW_PATTERN;
   if (HAS_NEW_PATTERN) {
     // already done

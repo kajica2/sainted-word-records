@@ -1,0 +1,440 @@
+{
+  "schema": "swr/a11y-names-baseline/v1",
+  "note": "Elements in the shipped pages whose accessible name does not contain their visible text (WCAG 2.5.3, \"Label in Name\"). The census may only SHRINK — scripts/check-a11y-names-unit.mjs fails on any growth. Every offender is listed so the backlog can be worked down; a count with no location is not a work item.",
+  "measured": "2026-11-17",
+  "count": 72,
+  "offenders": [
+    {
+      "file": "echo.html",
+      "tag": "button",
+      "visible": "NEXT »",
+      "name": "Advance to the next sequence"
+    },
+    {
+      "file": "engine.html",
+      "tag": "button",
+      "visible": "← ver",
+      "name": "Previous version"
+    },
+    {
+      "file": "engine.html",
+      "tag": "button",
+      "visible": "ver →",
+      "name": "Next version"
+    },
+    {
+      "file": "engine.html",
+      "tag": "button",
+      "visible": "←",
+      "name": "Previous preset"
+    },
+    {
+      "file": "engine.html",
+      "tag": "button",
+      "visible": "→",
+      "name": "Next preset"
+    },
+    {
+      "file": "engine.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Dismiss"
+    },
+    {
+      "file": "engine.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Close"
+    },
+    {
+      "file": "index.html",
+      "tag": "button",
+      "visible": "Next →",
+      "name": "Next render"
+    },
+    {
+      "file": "landing-personas-v2-dark.html",
+      "tag": "span",
+      "visible": "★ STARRED",
+      "name": "best fit"
+    },
+    {
+      "file": "landing-personas-v3-friendly.html",
+      "tag": "button",
+      "visible": "↑",
+      "name": "Back to top"
+    },
+    {
+      "file": "landing-personas-v3-friendly.html",
+      "tag": "span",
+      "visible": "★ fan favorite",
+      "name": "fan favorite"
+    },
+    {
+      "file": "landing-personas-v4-dashboard.html",
+      "tag": "button",
+      "visible": "›",
+      "name": "Next"
+    },
+    {
+      "file": "landing-personas-v5-brutalist.html",
+      "tag": "h1",
+      "visible": "[",
+      "name": "PERSONAS.TXT"
+    },
+    {
+      "file": "landing.html",
+      "tag": "div",
+      "visible": "Drop files anywhere on this box — or click to browse",
+      "name": "Drag files anywhere on this box to batch-upload"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "select",
+      "visible": "${Object.entries(LAYER_TYPES).map(([k, v]) => `",
+      "name": "Layer type"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "⚿",
+      "name": "Lock layer"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "❄",
+      "name": "Freeze layer"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "↑",
+      "name": "Move layer up"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "↓",
+      "name": "Move layer down"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "⧉",
+      "name": "Duplicate layer"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "✕",
+      "name": "Delete layer"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "↑",
+      "name": "Move modulator up"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "↓",
+      "name": "Move modulator down"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "⧉",
+      "name": "Duplicate modulator"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "✕",
+      "name": "Delete modulator"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "select",
+      "visible": "${targetOptions(l.target)}",
+      "name": "Modulator target"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "✕",
+      "name": "Remove condition"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "↑",
+      "name": "Move rule up"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "↓",
+      "name": "Move rule down"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "✕",
+      "name": "Delete rule"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "textarea",
+      "visible": "${esc(JSON.stringify(r.then || [], null, 1))}",
+      "name": "Actions JSON"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "textarea",
+      "visible": "${esc(JSON.stringify(s.overrides || {}, null, 1))}",
+      "name": "Scene overrides JSON"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "↓",
+      "name": "Move section down"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "✕",
+      "name": "Delete section"
+    },
+    {
+      "file": "preset-editor.html",
+      "tag": "button",
+      "visible": "★",
+      "name": "rate ${n} stars"
+    },
+    {
+      "file": "shotlist/index.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Clear slot"
+    },
+    {
+      "file": "shotlist/index.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Clear slot"
+    },
+    {
+      "file": "shotlist/index.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Clear slot"
+    },
+    {
+      "file": "shotlist/index.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Clear slot"
+    },
+    {
+      "file": "shotlist/index.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Clear slot"
+    },
+    {
+      "file": "spit.html",
+      "tag": "button",
+      "visible": "▶",
+      "name": "Play / pause beat"
+    },
+    {
+      "file": "spit.html",
+      "tag": "button",
+      "visible": "⏭",
+      "name": "Skip to end"
+    },
+    {
+      "file": "spit.html",
+      "tag": "button",
+      "visible": "◀◀",
+      "name": "Back 5s"
+    },
+    {
+      "file": "spit.html",
+      "tag": "button",
+      "visible": "▶",
+      "name": "Play / pause"
+    },
+    {
+      "file": "spit.html",
+      "tag": "button",
+      "visible": "▶▶",
+      "name": "Forward 5s"
+    },
+    {
+      "file": "spit.html",
+      "tag": "button",
+      "visible": "⏭",
+      "name": "Next"
+    },
+    {
+      "file": "spit.html",
+      "tag": "button",
+      "visible": "● REC",
+      "name": "Record"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "span",
+      "visible": "—",
+      "name": "BPM source"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "Next →",
+      "name": "Next fragment"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "select",
+      "visible": "${blendOptions}",
+      "name": "Blend mode for ${layer.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "${layer.visible ? '●' : '○'}",
+      "name": "Toggle ${layer.name} visibility"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "↑",
+      "name": "Move ${layer.name} up"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "select",
+      "visible": "${featOpts}",
+      "name": "Reactor ${slotIdx + 1} feature for ${layer.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "select",
+      "visible": "${tgtOpts}",
+      "name": "Reactor ${slotIdx + 1} target for ${layer.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "${r.enabled ? '●' : '○'}",
+      "name": "Toggle reactor ${slotIdx + 1} for ${layer.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Remove reactor ${slotIdx + 1} from ${layer.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "+ Add reactor",
+      "name": "Add reactor ${slotIdx + 1} to ${layer.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Delete ${a.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "▶",
+      "name": "Play ${t.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Remove ${t.name}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "select",
+      "visible": "${opts}",
+      "name": "Preset for fragment ${idx + 1}"
+    },
+    {
+      "file": "swr-app.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Remove fragment ${idx + 1}"
+    },
+    {
+      "file": "versions.html",
+      "tag": "button",
+      "visible": "&#8594;",
+      "name": "Next random preset"
+    },
+    {
+      "file": "versions.html",
+      "tag": "button",
+      "visible": "Copy ID",
+      "name": "Copy preset ID to clipboard"
+    },
+    {
+      "file": "versions.html",
+      "tag": "span",
+      "visible": "&#10003;",
+      "name": "ok"
+    },
+    {
+      "file": "versions.html",
+      "tag": "button",
+      "visible": "&#9733;",
+      "name": "' + (faved ? 'Remove from favorites' : 'Add to favorites') + '"
+    },
+    {
+      "file": "versions/play.html",
+      "tag": "button",
+      "visible": "← ver",
+      "name": "Previous version"
+    },
+    {
+      "file": "versions/play.html",
+      "tag": "button",
+      "visible": "ver →",
+      "name": "Next version"
+    },
+    {
+      "file": "versions/play.html",
+      "tag": "button",
+      "visible": "←",
+      "name": "Previous preset"
+    },
+    {
+      "file": "versions/play.html",
+      "tag": "button",
+      "visible": "→",
+      "name": "Next preset"
+    },
+    {
+      "file": "versions/play.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Dismiss"
+    },
+    {
+      "file": "versions/play.html",
+      "tag": "button",
+      "visible": "×",
+      "name": "Close"
+    }
+  ]
+}

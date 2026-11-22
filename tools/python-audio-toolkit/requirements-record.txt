@@ -1,0 +1,5 @@
+# Mic capture extras (optional). Requires PortAudio:
+#   Debian/Ubuntu: sudo apt-get install portaudio19-dev
+#   macOS: brew install portaudio
+-r requirements.txt
+PyAudio==0.2.14

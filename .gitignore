@@ -173,3 +173,5 @@ media/inventory.json
 # here. qa/README.md says the outputs are uploaded as Actions artefacts,
 # not committed — so a local run must not leave the tree dirty.
 qa-results/
+data/audio-takes/
+out/audio-toolkit/

@@ -1169,4 +1169,42 @@ const VARIANT_NAMES = [
   assert.equal(mk('am'), null, 'a multi-character value is rejected');
 }
 
+// ---- P2: the config is forwarded, not re-parsed -------------------------
+//
+// The runtime OWNS the automix config (#swrc-automix-config). The
+// composition must not parse it: it reads the parsed result through
+// SWR_AUTOMIX_RUNTIME._config(). That is the whole contract — one parser,
+// one owner, and a flag the composition cannot invent.
+
+{
+  const cfgScript = { textContent: JSON.stringify({
+    version: 1, variant: 'aurora', enabled: true, arcOnly: true,
+  }) };
+  const env = makeRuntimeEnv({ elements: { 'swrc-automix-config': cfgScript } });
+  runInContext(runtimeSrc, env.sandbox);
+  const R = env.sandbox.SWR_AUTOMIX_RUNTIME;
+  assert.ok(R._config(), 'the config must be parsed');
+  assert.equal(R._config().arcOnly, true, 'arcOnly must survive on _config');
+}
+
+{
+  // The composition's isArcOnly() must consult the runtime's parsed
+  // config. A composition that parsed the script tag itself would be a
+  // second parser — and the runtime is the owner. Comments are stripped
+  // first: explaining the ownership in prose is the point, reading the
+  // element is not.
+  const compSrc = readFileSync(new URL('../client/automix-composition.client.js', import.meta.url), 'utf8');
+  const code = compSrc
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  assert.ok(code.indexOf('SWR_AUTOMIX_RUNTIME') !== -1,
+    'the composition must read SWR_AUTOMIX_RUNTIME._config()');
+  assert.ok(code.indexOf('getElementById') === -1,
+    'the composition must not read the DOM for its config');
+  assert.ok(code.indexOf('swrc-automix-config') === -1,
+    'the composition must not parse the config element itself');
+  assert.ok(code.indexOf('JSON.parse') === -1,
+    'the composition must not parse config JSON itself');
+}
+
 console.log('AUTOMIX UNIT: ALL GREEN (60 tests)');
