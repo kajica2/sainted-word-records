@@ -21,6 +21,55 @@ once it hits 1.0.
   `u_tone` exactly like every other page that has one.
 
 ### Fixed
+- **The export carries the music, and the picture is on the same clock as
+  it.** Two of the three recording paths shipped a file with **no audio at
+  all** — a silent music video, which cannot follow the beat. The
+  WebCodecs/MP4 path's audio tap threw while being set up: an
+  `AnalyserNode`'s `fftSize` must be a power of two, and the code set
+  `sampleRate * 0.1 * 2` (9600 at 48 kHz). The throw was swallowed, the
+  analyser was dropped, and the MP4 came out with no audio track — so
+  every desktop Chrome export (the default path there) was mute.
+  `swr-app.html`'s recorded stream never got an audio track either.
+  Underneath that sat a second defect: the same path pulled the
+  analyser's time-domain window once per animation frame, but
+  `getFloatTimeDomainData` returns the **last** N samples, not the new
+  ones, so consecutive chunks overlapped almost completely and the
+  timeline — a counter advancing 100 ms per frame while the song advanced
+  ~16 ms — ran about six times too fast. The video frames were stamped
+  with the wall clock and the audio with that counter, so the two tracks
+  could not be aligned even in principle. The pull now hands over only
+  the samples the graph has produced since the last pull, and the frames
+  and the chunks are both stamped from the audio graph's clock — the clock
+  the picture is drawn from, so a frame that shows a beat carries that
+  beat's time. Measured against a 437 Hz signal: the old pull produced
+  9.1 s of audio from 1.5 s of real time and came out at 706 Hz; the new
+  one produces 1.5 s and 874 Hz (twice the frequency — a sine crosses
+  zero twice per period). The gate that guards it is
+  `check:recorder-verify` (the browser half of the recorder gate, renamed
+  from `check:recorder-capture-verify`): it drives a real take, asserts
+  the file has an audio track that is not silence, that the music and the
+  picture start together, and — against a known signal, since no CI
+  runner has an H.264 encoder — that the WebCodecs pull is real time and
+  hands over only new samples.
+- **The music only goes into a mime that can carry it.** A mime that names
+  a **video-only** codec list — `video/mp4;codecs=avc1` — has no audio
+  codec in it, so an audio track on such a stream is refused by the
+  recorder or dropped from the file, and the export comes out mute with
+  nothing in the logs to say why. The recorder now asks first: a mime with
+  a codec list can carry audio only if the list names an audio codec
+  (`mp4a`, `opus`, `vorbis`, …), while a mime with no codec list at all
+  (`video/mp4`) lets the browser pick its own defaults — which do include
+  audio. Every recording surface (`versions/neon.html` and the generated
+  `neon.html`, `engine.html`, `swr-app.html`) asks before it tapes the song
+  in, and each mime list leads with a candidate that can hold the song.
+  `swr-app.html` goes further: if the recorder still refuses the track it
+  drops the track and keeps the picture, and the save toast says outright
+  that the file came out silent. The gate is `check:recorder-audio-unit`:
+  the rule is **executed** (the helper is lifted out of the shipped source
+  and run against a table of mimes, so a helper that always answers "yes"
+  fails), every audio track that reaches a recorded stream has to sit under
+  it, and the first candidate in every mime list has to be one that can
+  carry audio.
 - **● REC now saves a file.** Pressing REC on the NEON page recorded nothing:
   the take ended with *"nothing captured - press REC while the song plays"*
   and no file was written. The recorder records a *mirror* — a second canvas
@@ -46,9 +95,8 @@ once it hits 1.0.
   across the recorders. Two gates came with it:
   `check:recorder-capture-unit` (a source lint that says the invariant — every
   captured-from canvas is appended and later removed) and
-  `check:recorder-capture-verify` (a browser gate that drives a real take on
-  both the WebM fallback and the "auto" path and asserts the file that reaches
-  the download is not empty).
+  `check:recorder-verify` (a browser gate that drives a real take and asserts
+  the file that reaches the download is not empty).
 - **AGENTS.md describes CI as it is, and the doc-truth gate can now see it.**
   The paragraph claimed `.github/workflows/ci.yml` was the only workflow, that
   it ran on pushes to **non-main** branches with `branches-ignore: main`, and
