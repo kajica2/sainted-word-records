@@ -11,6 +11,8 @@
 import puppeteer from 'puppeteer';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 const PORT = 54042;
 const LOCAL_BASE = `http://127.0.0.1:${PORT}`;
@@ -19,20 +21,24 @@ const EXTERNAL = !!process.env.CC_BASE_URL;
 const VARIANT = process.env.CC_VARIANT || 'neon';
 const LOOP = process.env.CC_LOOP === '1';
 const MAX_MS = Number(process.env.CC_LOOP_MS || 300000);
+const ARTIFACT_DIR = process.env.CC_ARTIFACT_DIR || 'artifacts/command-center';
 
 function startServer() {
   return new Promise((resolve, reject) => {
     const proc = spawn('python3', ['-m', 'http.server', String(PORT)], {
       cwd: process.cwd(), stdio: 'ignore',
     });
+    proc.once('error', reject);
+    proc.once('exit', code => reject(new Error(`local server exited before readiness (${code})`)));
+    const fail = message => { proc.kill(); reject(new Error(message)); };
     const start = Date.now();
     const tick = () => http.get(`${LOCAL_BASE}/versions/${VARIANT}.html`, (res) => {
       res.resume();
       if (res.statusCode === 200) return resolve(proc);
-      if (Date.now() - start > 8000) return reject(new Error('server timeout'));
+      if (Date.now() - start > 8000) return fail('server timeout');
       setTimeout(tick, 100);
     }).on('error', () => {
-      if (Date.now() - start > 8000) return reject(new Error('server error'));
+      if (Date.now() - start > 8000) return fail('server error');
       setTimeout(tick, 80);
     });
     setTimeout(tick, 100);
@@ -62,50 +68,68 @@ async function checkAndCorrect(page) {
 }
 
 (async () => {
-  console.log(`visual-correct → ${BASE}/versions/${VARIANT}.html?cc=1`);
-  let server;
-  if (!EXTERNAL) {
-    try { server = await startServer(); }
-    catch (e) { console.error('server boot failed', e.message); process.exit(1); }
-  }
-
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1600, height: 1000 });
-
-  const start = Date.now();
+  const target = `${BASE}/versions/${VARIANT}.html?cc=1`;
+  console.log(`visual-correct → ${target}`);
+  let server, browser, page;
+  let result = null;
+  let failure = null;
   let pass = 0;
-  while (true) {
-    pass++;
-    console.log(`\n--- pass ${pass} ---`);
-    await page.goto(`${BASE}/versions/${VARIANT}.html?cc=1`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForFunction(() => !!document.getElementById('swr-cc'), { timeout: 20000 }).catch(() => {});
-    await new Promise((r) => setTimeout(r, 2500));
-
-    const result = await checkAndCorrect(page);
-    console.log('fixes:', result.fixes.length ? result.fixes.join(', ') : 'none');
-    console.log('missing:', result.missing.length ? result.missing.join(', ') : 'none');
-
-    if (result.ok && result.fixes.length === 0) {
-      console.log('layout clean — no corrections needed');
-      break;
+  try {
+    if (!EXTERNAL) server = await startServer();
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    page = await browser.newPage();
+    await page.setViewport({ width: 1600, height: 1000 });
+    const start = Date.now();
+    while (true) {
+      pass++;
+      await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForFunction(() => !!document.getElementById('swr-cc'), { timeout: 20000 }).catch(() => {});
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      result = await checkAndCorrect(page);
+      console.log(`pass ${pass}: missing: ${result.missing.join(', ') || 'none'}`);
+      if (result.ok) break;
+      if (!LOOP || Date.now() - start > MAX_MS) {
+        process.exitCode = 1;
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 15000));
     }
-    if (!LOOP || Date.now() - start > MAX_MS) {
-      console.log(LOOP ? 'timeout reached' : 'single pass done');
+  } catch (error) {
+    failure = error;
+    process.exitCode = 1;
+    console.error(error);
+  } finally {
+    // Capture evidence before closing Chrome. Diagnostics must not bypass cleanup.
+    try {
+      await mkdir(ARTIFACT_DIR, { recursive: true });
+      if (page) {
+        try {
+          await page.screenshot({ path: join(ARTIFACT_DIR, 'command-center.png'), fullPage: true });
+        } catch (error) {
+          console.error('screenshot unavailable:', error.message);
+        }
+      }
+      await writeFile(join(ARTIFACT_DIR, 'report.json'), JSON.stringify({
+        target, commit: process.env.GITHUB_SHA || null,
+        ok: !failure && result?.ok === true,
+        passes: pass, missing: result?.missing || [],
+        error: failure?.message || null,
+      }, null, 2));
+    } catch (error) {
+      console.error('artifact capture failed:', error.message);
       process.exitCode = 1;
-      break;
+    } finally {
+      try {
+        if (browser) await browser.close();
+      } catch (error) {
+        console.error('browser cleanup failed:', error.message);
+        process.exitCode = 1;
+      } finally {
+        if (server) server.kill();
+      }
     }
-    console.log('waiting 15s before next pass…');
-    await new Promise((r) => setTimeout(r, 15000));
   }
-
-  await browser.close();
-  if (server) server.kill();
-  console.log('\ndone');
-})().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+})();
